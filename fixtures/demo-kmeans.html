@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K-means, step by step</title>
+
+<script type="application/json" id="ai4s-meta">
+{
+  "description": "Watch k-means alternate between assigning points and moving centroids until the clusters settle.",
+  "category": "Machine learning",
+  "tags": "clustering, k-means, unsupervised",
+  "audience": "Intro",
+  "learning_goal": "See that k-means is nothing more than two simple steps repeated until nothing moves.",
+  "data_source": "Synthetic data (generated in browser)",
+  "data_license": "Synthetic data",
+  "data_notes": "150 points drawn from 3 Gaussian blobs on page load.",
+  "task_type": "Clustering",
+  "method": "K-Means (Lloyd's algorithm)",
+  "framework": "Vanilla JS + canvas",
+  "training": "Trained in-browser",
+  "metrics": "Total within-cluster distance, shown live"
+}
+</script>
+
+<style>
+  body { margin: 0; background: #FAF7F0; color: #26211C;
+         font: 16px/1.6 "Avenir Next", "Segoe UI", system-ui, sans-serif;
+         display: flex; justify-content: center; }
+  main { max-width: 660px; padding: 40px 20px 60px; }
+  h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 500;
+       font-size: 34px; margin: 0 0 6px; }
+  p.lede { margin: 0 0 22px; color: #5C554C; }
+  canvas { width: 100%; height: auto; background: #FFFFFF; border: 1px solid #E4DDD0;
+           border-radius: 10px; display: block; }
+  .bar { display: flex; gap: 10px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+  button { font: inherit; font-size: 15px; padding: 8px 16px; border-radius: 8px;
+           border: 1px solid #26211C; background: #26211C; color: #FAF7F0; cursor: pointer; }
+  button.ghost { background: transparent; color: #26211C; }
+  button:hover { opacity: .85; }
+  .stat { margin-left: auto; font-size: 14px; color: #5C554C; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<main>
+  <h1>K-means, step by step</h1>
+  <p class="lede">Three hidden blobs, three centroids dropped at random. The algorithm only
+  ever does two things: <em>assign</em> every point to its nearest centroid, then
+  <em>move</em> each centroid to the middle of its points. Step until nothing moves.</p>
+
+  <canvas id="c" width="1240" height="820"></canvas>
+  <div class="bar">
+    <button id="step">Assign points</button>
+    <button id="reset" class="ghost">New data</button>
+    <span class="stat" id="stat"></span>
+  </div>
+</main>
+
+<script>
+(function () {
+  var cv = document.getElementById('c'), ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  var COLORS = ['#1D9E75', '#D85A30', '#534AB7'];
+  var K = 3, pts, cents, phase, iter;
+
+  function gauss() { var s = 0; for (var i = 0; i < 6; i++) s += Math.random(); return (s - 3) / 3; }
+
+  function reset() {
+    pts = [];
+    for (var b = 0; b < 3; b++) {
+      var cx = 160 + Math.random() * (W - 320), cy = 140 + Math.random() * (H - 280);
+      for (var i = 0; i < 50; i++)
+        pts.push({ x: cx + gauss() * 110, y: cy + gauss() * 110, k: -1 });
+    }
+    cents = [];
+    for (var k = 0; k < K; k++)
+      cents.push({ x: 100 + Math.random() * (W - 200), y: 100 + Math.random() * (H - 200) });
+    phase = 0; iter = 0;
+    update(); draw();
+  }
+
+  function assign() {
+    pts.forEach(function (p) {
+      var best = 0, bd = Infinity;
+      for (var k = 0; k < K; k++) {
+        var d = (p.x - cents[k].x) * (p.x - cents[k].x) + (p.y - cents[k].y) * (p.y - cents[k].y);
+        if (d < bd) { bd = d; best = k; }
+      }
+      p.k = best;
+    });
+  }
+
+  function move() {
+    for (var k = 0; k < K; k++) {
+      var sx = 0, sy = 0, n = 0;
+      pts.forEach(function (p) { if (p.k === k) { sx += p.x; sy += p.y; n++; } });
+      if (n) { cents[k].x = sx / n; cents[k].y = sy / n; }
+    }
+    iter++;
+  }
+
+  function inertia() {
+    var s = 0;
+    pts.forEach(function (p) {
+      if (p.k < 0) return;
+      s += Math.sqrt((p.x - cents[p.k].x) * (p.x - cents[p.k].x) +
+                     (p.y - cents[p.k].y) * (p.y - cents[p.k].y));
+    });
+    return Math.round(s);
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    pts.forEach(function (p) {
+      ctx.beginPath(); ctx.arc(p.x, p.y, 7, 0, 7);
+      ctx.fillStyle = p.k < 0 ? '#C9C2B6' : COLORS[p.k];
+      ctx.globalAlpha = .85; ctx.fill(); ctx.globalAlpha = 1;
+    });
+    cents.forEach(function (c, k) {
+      ctx.beginPath(); ctx.arc(c.x, c.y, 16, 0, 7);
+      ctx.fillStyle = '#FFFFFF'; ctx.fill();
+      ctx.lineWidth = 6; ctx.strokeStyle = COLORS[k]; ctx.stroke();
+    });
+  }
+
+  function update() {
+    document.getElementById('step').textContent = phase === 0 ? 'Assign points' : 'Move centroids';
+    document.getElementById('stat').textContent =
+      'iteration ' + iter + (pts.some(function (p) { return p.k >= 0; })
+        ? ' · total distance ' + inertia() : '');
+  }
+
+  document.getElementById('step').onclick = function () {
+    if (phase === 0) assign(); else move();
+    phase = 1 - phase;
+    update(); draw();
+  };
+  document.getElementById('reset').onclick = reset;
+  reset();
+})();
+</script>
+</body>
+</html>

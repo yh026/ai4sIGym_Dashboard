@@ -1,0 +1,9 @@
+{
+  "name": "ai4s-dashboard",
+  "private": true,
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "build": "node build.js",
+    "mock": "node build.js --mock"
+  }
+}

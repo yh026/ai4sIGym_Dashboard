@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<meta name="description" content="{{TAGLINE}}">
+<style>
+{{STYLES}}
+</style>
+</head>
+<body>
+<header>
+  <h1>{{TITLE}}</h1>
+  <p class="tagline">{{TAGLINE}}</p>
+  <p class="counts">{{COUNT_LINE}}</p>
+</header>
+
+<section class="controls" aria-label="Search and filters">
+  <input id="q" type="search" placeholder="Search demos, methods, datasets&hellip;" aria-label="Search demos">
+  <div class="chiprow" role="group" aria-label="Filter by category">
+    <span class="chiplabel">field</span>{{CHIPS_CATEGORY}}
+  </div>
+  <div class="chiprow" role="group" aria-label="Filter by task type">
+    <span class="chiplabel">task</span>{{CHIPS_TASK}}
+  </div>
+  <p class="showing" id="showing" aria-live="polite"></p>
+</section>
+
+<main class="grid" id="grid">
+{{CARDS}}
+</main>
+
+<p class="empty" id="empty" hidden>Nothing matches — clear the search or filters to see every demo.</p>
+
+<footer>
+  <p>Built {{BUILT}} &middot; demos live in Google Drive, the record lives in the registry sheet.</p>
+</footer>
+
+<script>
+{{SCRIPT}}
+</script>
+</body>
+</html>
