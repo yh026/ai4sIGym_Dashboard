@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#07111f">
+<title>{{PAGE_TITLE}}</title>
+<meta name="description" content="{{DOMAIN_DESCRIPTION}}">
+<style>
+{{STYLES}}
+</style>
+</head>
+<body class="domain-page" style="--domain-accent:{{DOMAIN_COLOR}};--domain-soft:{{DOMAIN_SOFT}}">
+<a class="skip-link" href="#projects">Skip to projects</a>
+
+<header class="site-header">
+  <a class="brand" href="../../index.html" aria-label="AI for Science Atlas home">
+    <span class="brand-mark" aria-hidden="true">AI4S</span>
+    <span class="brand-name">Interactive Atlas</span>
+  </a>
+  <nav class="top-nav" aria-label="Primary navigation">
+    <a href="../../index.html#atlas">Explore domains</a>
+    <a href="../../index.html#projects">All projects</a>
+  </nav>
+</header>
+
+<main>
+  <section class="domain-hero" aria-labelledby="domain-title">
+    <div class="domain-copy">
+      <a class="back-link" href="../../index.html#atlas"><span aria-hidden="true">&#8592;</span> Back to the atlas</a>
+      <p class="eyebrow">Research domain · {{DOMAIN_NUMBER}}</p>
+      <h1 id="domain-title">{{DOMAIN_NAME}}</h1>
+      <p class="domain-description">{{DOMAIN_DESCRIPTION}}</p>
+      <p class="domain-count">{{DOMAIN_COUNT}}</p>
+    </div>
+    <div class="domain-hero-art" aria-hidden="true">
+      <svg class="domain-orbits" viewBox="0 0 600 480" focusable="false">
+        <ellipse cx="300" cy="240" rx="245" ry="132"/>
+        <ellipse cx="300" cy="240" rx="190" ry="222" transform="rotate(58 300 240)"/>
+        <circle cx="82" cy="292" r="5"/><circle cx="470" cy="102" r="4"/><circle cx="486" cy="347" r="6"/>
+      </svg>
+      <div class="domain-emblem">{{DOMAIN_ICON}}</div>
+      <span class="domain-art-label">{{DOMAIN_SHORT}}</span>
+    </div>
+  </section>
+
+  <section class="domain-projects" id="projects" aria-labelledby="projects-title">
+    <div class="section-heading">
+      <p class="section-number" aria-hidden="true">{{DOMAIN_NUMBER}}</p>
+      <div>
+        <h2 id="projects-title">Explore {{DOMAIN_SHORT}}</h2>
+        <p>Open an experiment or search within this research domain.</p>
+      </div>
+    </div>
+
+    <div class="filter-panel domain-filter-panel" aria-label="Project search and filters" {{FILTER_HIDDEN}}>
+      <label class="search-field" for="q">
+        <span class="search-label">Search this domain</span>
+        <span class="search-control">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+          <input id="q" type="search" placeholder="Search {{DOMAIN_SHORT}} projects..." autocomplete="off">
+        </span>
+      </label>
+      <div class="filter-actions">
+{{TASK_FILTERS}}
+        <button class="clear-filters" id="clear-filters" type="button" hidden>Clear filters</button>
+      </div>
+      <p class="showing" id="showing" aria-live="polite"></p>
+    </div>
+
+    <div class="project-grid" id="grid">
+{{CARDS}}
+    </div>
+
+    <div class="empty-state" id="empty" {{EMPTY_HIDDEN}}>
+      <p class="empty-kicker">{{EMPTY_KICKER}}</p>
+      <h3>{{EMPTY_TITLE}}</h3>
+      <p>{{EMPTY_TEXT}}</p>
+    </div>
+  </section>
+
+  <nav class="domain-switcher" aria-labelledby="domain-switcher-title">
+    <p class="eyebrow" id="domain-switcher-title">Continue exploring</p>
+    <div class="domain-switcher-grid">
+{{DOMAIN_LINKS}}
+    </div>
+  </nav>
+</main>
+
+<footer class="site-footer">
+  <div>
+    <span class="brand-mark" aria-hidden="true">AI4S</span>
+    <p>Interactive experiments across the sciences.</p>
+  </div>
+  <p>Atlas updated {{BUILT}}</p>
+</footer>
+
+<script>
+{{SCRIPT}}
+</script>
+</body>
+</html>

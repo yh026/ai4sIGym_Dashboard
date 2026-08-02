@@ -1,9 +1,11 @@
-# AI4S demo dashboard
+# AI for Science Atlas
 
-Static dashboard for the AI4S demo collection. Content lives in Google Drive,
-the record lives in the registry sheet, and this repo turns both into a fast
-public site on every build. The repo contains **zero demo content** — the whole
-site is reproducible from Drive + Sheet alone.
+Interactive atlas for the AI4S demo collection. The home page is a visual map
+of scientific domains, each domain has its own project collection, and every
+project opens as a self-contained demo. Content lives in Google Drive, the
+record lives in the registry sheet, and this repo turns both into a fast public
+site on every build. The repo contains **zero production demo content** — the
+whole site is reproducible from Drive + Sheet alone.
 
 ```
 Drive folder ──▶ Apps Script (sync + JSON feed) ──▶ this build ──▶ Netlify
@@ -64,17 +66,40 @@ each demo at `/demos/<slug>/`.
 Set `auto_publish` to `yes` in Config if you'd rather the hourly sync also
 rebuild whenever it finds changes — then step 3 disappears.
 
+## Domain atlas taxonomy
+
+Add a `domain` field to each registry record when possible. The atlas recognises
+these stable collections:
+
+- `Space & Astronomy`
+- `Earth & Climate`
+- `Biology & Genomics`
+- `Chemistry & Materials`
+- `Physics & Simulation`
+- `AI, Mathematics & Data`
+
+Common aliases such as `Astronomy`, `Bioinformatics`, `Materials Science`, and
+`Machine Learning` are accepted. Existing feeds without a `domain` field remain
+compatible: the build infers a domain from the title, category, task, method,
+and tags. Anything unknown falls back to `AI, Mathematics & Data`, so a project
+is never dropped from the site.
+
+The build publishes the resolved stable ID as `domain_id`, generates collection
+pages at `/domains/<domain_id>/`, and injects a return link to the correct domain
+into every demo. `category`, `task_type`, `method`, and `framework` remain useful
+metadata and are not replaced by the domain taxonomy.
+
 ## Local preview
 `node build.js --mock` builds from `fixtures/` into `dist/` with no network —
 open `dist/index.html` in a browser. With `REGISTRY_URL` exported in your
 shell, plain `node build.js` builds from the real registry.
 
 ## What the build injects into each demo
-A "← All demos" chip (bottom-left) and, when any provenance fields are filled,
-a "Data & methods" panel (bottom-right) showing data source + license +
-snapshot date, task, method, framework, training, metrics, and the workflow
-link. Styles are inline and namespaced (`ai4s-*`), so demos don't need to know
-about the dashboard at all.
+A domain-aware return control (bottom-left), a route back to the main atlas,
+and, when any provenance fields are filled, a "Data & methods" panel
+(bottom-right) showing data source + license + snapshot date, task, method,
+framework, training, metrics, and the workflow link. Styles are inline and
+namespaced (`ai4s-*`), so demos don't need to know about the atlas at all.
 
 ## Troubleshooting
 - **Build fails: "REGISTRY_URL is not set"** — add the env var in Netlify

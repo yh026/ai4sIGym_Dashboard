@@ -3,38 +3,134 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{TITLE}}</title>
-<meta name="description" content="{{TAGLINE}}">
+<meta name="theme-color" content="#07111f">
+<title>{{PAGE_TITLE}}</title>
+<meta name="description" content="Explore interactive AI for Science projects by research domain.">
 <style>
 {{STYLES}}
 </style>
 </head>
-<body>
-<header>
-  <h1>{{TITLE}}</h1>
-  <p class="tagline">{{TAGLINE}}</p>
-  <p class="counts">{{COUNT_LINE}}</p>
+<body class="atlas-page">
+<a class="skip-link" href="#atlas">Skip to the atlas</a>
+
+<header class="site-header">
+  <a class="brand" href="index.html" aria-label="AI for Science Atlas home">
+    <span class="brand-mark" aria-hidden="true">AI4S</span>
+    <span class="brand-name">Interactive Atlas</span>
+  </a>
+  <nav class="top-nav" aria-label="Primary navigation">
+    <a href="#atlas">Explore domains</a>
+    <a href="#projects">All projects</a>
+  </nav>
 </header>
 
-<section class="controls" aria-label="Search and filters">
-  <input id="q" type="search" placeholder="Search demos, methods, datasets&hellip;" aria-label="Search demos">
-  <div class="chiprow" role="group" aria-label="Filter by category">
-    <span class="chiplabel">field</span>{{CHIPS_CATEGORY}}
-  </div>
-  <div class="chiprow" role="group" aria-label="Filter by task type">
-    <span class="chiplabel">task</span>{{CHIPS_TASK}}
-  </div>
-  <p class="showing" id="showing" aria-live="polite"></p>
-</section>
+<main>
+  <section class="atlas-hero" aria-labelledby="page-title">
+    <div class="hero-copy">
+      <p class="eyebrow">AI for Science Atlas</p>
+      <h1 id="page-title">Explore science through<br>interactive experiments.</h1>
+      <p class="hero-intro">Choose a research domain, discover the ideas behind it, and open a project you can investigate for yourself.</p>
+      <div class="hero-meta">
+        <a class="text-link" href="#atlas">Enter the atlas <span aria-hidden="true">&#8595;</span></a>
+        <span>{{COUNT_LINE}}</span>
+      </div>
+    </div>
+  </section>
 
-<main class="grid" id="grid">
+  <nav class="atlas-shell" id="atlas" aria-labelledby="atlas-title">
+    <div class="atlas-heading">
+      <p class="section-number" aria-hidden="true">01</p>
+      <div>
+        <h2 id="atlas-title">Choose a research domain</h2>
+        <p>Select a landmark to enter its project collection.</p>
+      </div>
+    </div>
+
+    <svg class="atlas-routes" viewBox="0 0 1400 820" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+      <defs>
+        <radialGradient id="atlas-glow" cx="50%" cy="48%" r="48%">
+          <stop offset="0" stop-color="#1a3654" stop-opacity=".58"/>
+          <stop offset=".58" stop-color="#0d2135" stop-opacity=".2"/>
+          <stop offset="1" stop-color="#07111f" stop-opacity="0"/>
+        </radialGradient>
+        <pattern id="atlas-dots" width="34" height="34" patternUnits="userSpaceOnUse">
+          <circle cx="1" cy="1" r="1" fill="#b8d8e8" opacity=".13"/>
+        </pattern>
+      </defs>
+      <rect width="1400" height="820" fill="url(#atlas-dots)"/>
+      <circle cx="700" cy="430" r="385" fill="url(#atlas-glow)"/>
+      <g class="route-lines">
+        <path d="M266 197 C430 200 530 300 700 336 S1000 200 1134 189"/>
+        <path d="M266 574 C420 530 520 410 700 336 S1000 500 1134 566"/>
+        <path d="M266 574 C420 660 570 660 714 631 S980 640 1134 566"/>
+        <path d="M266 197 C205 340 205 470 266 574"/>
+        <path d="M1134 189 C1195 330 1195 455 1134 566"/>
+        <path d="M700 336 C680 450 685 550 714 631"/>
+      </g>
+      <g class="route-points">
+        <circle cx="266" cy="197" r="4"/><circle cx="700" cy="336" r="4"/>
+        <circle cx="1134" cy="189" r="4"/><circle cx="266" cy="574" r="4"/>
+        <circle cx="714" cy="631" r="4"/><circle cx="1134" cy="566" r="4"/>
+      </g>
+      <g class="constellation constellation-one">
+        <circle cx="455" cy="170" r="2"/><circle cx="498" cy="126" r="3"/><circle cx="548" cy="172" r="2"/>
+        <path d="M455 170 498 126 548 172"/>
+      </g>
+      <g class="constellation constellation-two">
+        <circle cx="920" cy="690" r="2"/><circle cx="955" cy="738" r="3"/><circle cx="1005" cy="710" r="2"/>
+        <path d="M920 690 955 738 1005 710"/>
+      </g>
+    </svg>
+
+    <div class="atlas-domain-layer">
+{{ATLAS_DOMAINS}}
+    </div>
+
+    <p class="atlas-note"><span aria-hidden="true">&#9678;</span> Every project remains available in the complete library below.</p>
+  </nav>
+
+  <section class="project-library" id="projects" aria-labelledby="projects-title">
+    <div class="section-heading">
+      <p class="section-number" aria-hidden="true">02</p>
+      <div>
+        <h2 id="projects-title">All interactive projects</h2>
+        <p>Search the complete collection or narrow it by research domain.</p>
+      </div>
+    </div>
+
+    <div class="filter-panel" aria-label="Project search and filters">
+      <label class="search-field" for="q">
+        <span class="search-label">Search the library</span>
+        <span class="search-control">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+          <input id="q" type="search" placeholder="Search projects, methods, datasets..." autocomplete="off">
+        </span>
+      </label>
+      <div class="filter-actions">
+{{DOMAIN_FILTERS}}
+        <button class="clear-filters" id="clear-filters" type="button" hidden>Clear filters</button>
+      </div>
+      <p class="showing" id="showing" aria-live="polite"></p>
+    </div>
+
+    <div class="project-grid" id="grid">
 {{CARDS}}
+    </div>
+
+    <div class="empty-state" id="empty" hidden>
+      <p class="empty-kicker">No signal found</p>
+      <h3>No projects match this search.</h3>
+      <p>Clear the filters or try a broader term.</p>
+    </div>
+  </section>
 </main>
 
-<p class="empty" id="empty" hidden>Nothing matches — clear the search or filters to see every demo.</p>
-
-<footer>
-  <p>Built {{BUILT}} &middot; demos live in Google Drive, the record lives in the registry sheet.</p>
+<footer class="site-footer">
+  <div>
+    <span class="brand-mark" aria-hidden="true">AI4S</span>
+    <p>Interactive experiments across the sciences.</p>
+  </div>
+  <p>Atlas updated {{BUILT}}</p>
 </footer>
 
 <script>
