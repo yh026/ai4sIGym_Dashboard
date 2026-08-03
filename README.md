@@ -1,8 +1,9 @@
-# AI for Science Atlas
+# AIS Instrument Gym
 
-Interactive atlas for the AI4S demo collection. The home page is a visual map
-of scientific domains, each domain has its own project collection, and every
-project opens as a self-contained demo. Content lives in Google Drive, the
+An interactive science map for the AIS Instrument Gym demo collection. The
+home page is a hand-drawn world of scientific domains: visitors can select a
+region, preview its subtopics and current projects, then enter its full
+collection. Every project opens as a self-contained demo. Content lives in Google Drive, the
 record lives in the registry sheet, and this repo turns both into a fast public
 site on every build. The repo contains **zero production demo content** — the
 whole site is reproducible from Drive + Sheet alone.
@@ -66,22 +67,24 @@ each demo at `/demos/<slug>/`.
 Set `auto_publish` to `yes` in Config if you'd rather the hourly sync also
 rebuild whenever it finds changes — then step 3 disappears.
 
-## Domain atlas taxonomy
+## Science-map taxonomy
 
-Add a `domain` field to each registry record when possible. The atlas recognises
+Add a `domain` field to each registry record when possible. Instrument Gym recognises
 these stable collections:
 
-- `Space & Astronomy`
-- `Earth & Climate`
-- `Biology & Genomics`
+- `Physics & Astronomy`
 - `Chemistry & Materials`
-- `Physics & Simulation`
-- `AI, Mathematics & Data`
+- `Biological Sciences`
+- `Pharmacy & Biomedical Science`
+- `Food Science & Technology`
+- `Earth, Climate & Natural History`
+- `Mathematics`
+- `Statistics, Data Science & AI`
 
-Common aliases such as `Astronomy`, `Bioinformatics`, `Materials Science`, and
-`Machine Learning` are accepted. Existing feeds without a `domain` field remain
+Legacy names and common aliases such as `Space & Astronomy`, `Physics & Simulation`,
+`Bioinformatics`, `Materials Science`, and `Machine Learning` are accepted. Existing feeds without a `domain` field remain
 compatible: the build infers a domain from the title, category, task, method,
-and tags. Anything unknown falls back to `AI, Mathematics & Data`, so a project
+and tags. Anything unknown falls back to `Statistics, Data Science & AI`, so a project
 is never dropped from the site.
 
 The build publishes the resolved stable ID as `domain_id`, generates collection
@@ -89,17 +92,30 @@ pages at `/domains/<domain_id>/`, and injects a return link to the correct domai
 into every demo. `category`, `task_type`, `method`, and `framework` remain useful
 metadata and are not replaced by the domain taxonomy.
 
+Each domain also has a stable subtopic taxonomy. A registry record may provide
+one of these optional fields, in descending priority: `subtopic_id`, `subtopic`,
+`science_subtopic`, `research_subtopic`, `subdomain`, or `topic`. Exact IDs,
+labels, and common aliases are accepted. If none matches, the build infers a
+subtopic from the project's title and metadata *within its already resolved
+domain*; ambiguous records fall back to `General & Interdisciplinary` instead of
+being forced into an arbitrary topic.
+
+Resolved records publish `subtopic_id` and `subtopic_label`. Manifest taxonomy
+version 3 also includes each domain's subtopic list and live `project_count`, so
+the map's hover panels always reflect the current registry rather than a
+hard-coded number of projects.
+
 ## Local preview
 `node build.js --mock` builds from `fixtures/` into `dist/` with no network —
 open `dist/index.html` in a browser. With `REGISTRY_URL` exported in your
 shell, plain `node build.js` builds from the real registry.
 
 ## What the build injects into each demo
-A domain-aware return control (bottom-left), a route back to the main atlas,
+A domain-aware return control (bottom-left), a route back to the main science map,
 and, when any provenance fields are filled, a "Data & methods" panel
 (bottom-right) showing data source + license + snapshot date, task, method,
 framework, training, metrics, and the workflow link. Styles are inline and
-namespaced (`ai4s-*`), so demos don't need to know about the atlas at all.
+namespaced (`ai4s-*`), so demos don't need to know about Instrument Gym at all.
 
 ## Troubleshooting
 - **Build fails: "REGISTRY_URL is not set"** — add the env var in Netlify
