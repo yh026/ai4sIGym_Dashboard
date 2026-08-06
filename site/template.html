@@ -3,38 +3,122 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{TITLE}}</title>
-<meta name="description" content="{{TAGLINE}}">
+<meta name="theme-color" content="#f4ead6">
+<title>{{PAGE_TITLE}}</title>
+<meta name="description" content="Explore interactive science projects across the AIS Instrument Gym.">
 <style>
 {{STYLES}}
 </style>
 </head>
-<body>
-<header>
-  <h1>{{TITLE}}</h1>
-  <p class="tagline">{{TAGLINE}}</p>
-  <p class="counts">{{COUNT_LINE}}</p>
+<body class="map-page">
+<a class="skip-link" href="#science-map">Skip to the science map</a>
+
+<header class="site-header map-site-header">
+  <a class="brand" href="index.html" aria-label="AIS Instrument Gym home">
+    <span class="brand-mark" aria-hidden="true">AIS</span>
+    <span class="brand-name">Instrument Gym</span>
+  </a>
+  <nav class="top-nav" aria-label="Primary navigation">
+    <a href="#science-map">Explore the map</a>
+    <a href="#projects">All demos</a>
+  </nav>
 </header>
 
-<section class="controls" aria-label="Search and filters">
-  <input id="q" type="search" placeholder="Search demos, methods, datasets&hellip;" aria-label="Search demos">
-  <div class="chiprow" role="group" aria-label="Filter by category">
-    <span class="chiplabel">field</span>{{CHIPS_CATEGORY}}
-  </div>
-  <div class="chiprow" role="group" aria-label="Filter by task type">
-    <span class="chiplabel">task</span>{{CHIPS_TASK}}
-  </div>
-  <p class="showing" id="showing" aria-live="polite"></p>
-</section>
+<main>
+  <section class="science-map-section" aria-labelledby="map-title">
+    <div class="map-intro">
+      <p class="eyebrow">AIS Instrument Gym</p>
+      <h1 id="map-title">Welcome to AIS Instrument Gym</h1>
+      <p>Follow the illustrated landscape from particles to planets, and from cells to data. Choose a field to discover its interactive demos.</p>
+    </div>
 
-<main class="grid" id="grid">
+    <nav class="science-map" id="science-map" aria-label="Illustrated map of science domains">
+      <div class="map-canvas">
+        <img class="map-art" src="assets/ais-science-map-v2-lines.png" width="1536" height="1024" alt="">
+
+        <svg class="map-hotspots" viewBox="0 0 1536 1024" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">
+{{MAP_HOTSPOTS}}
+        </svg>
+
+        <div class="map-center">
+          <div class="map-center-heading" aria-hidden="true">
+            <p>AIS Instrument Gym</p>
+            <strong>Explore the world<br>of science.</strong>
+          </div>
+          <a class="map-compass-link" href="#projects" aria-label="View all AIS Instrument Gym demos">
+            <span>View all demos <span aria-hidden="true">&#8595;</span></span>
+          </a>
+          <div class="map-center-note" aria-hidden="true">
+            <p>Choose a field to begin</p>
+            <span>{{COUNT_LINE}}</span>
+          </div>
+        </div>
+
+        <ol class="map-marker-layer" aria-label="Science domains">
+{{MAP_MARKERS}}
+        </ol>
+      </div>
+    </nav>
+
+    <p class="map-instruction">Hover, focus, or tap a field to see its subtopics and current projects.</p>
+
+    <nav class="mobile-domain-list" aria-label="Science domains">
+{{MOBILE_DOMAIN_LINKS}}
+    </nav>
+
+    <dialog class="map-dialog" id="map-dialog" aria-label="Science domain details">
+      <div class="map-dialog-shell">
+        <button class="map-dialog-close" id="map-dialog-close" type="button">
+          <span>Close</span><span aria-hidden="true">&#215;</span>
+        </button>
+        <div id="map-dialog-content"></div>
+      </div>
+    </dialog>
+  </section>
+
+  <section class="project-library" id="projects" aria-labelledby="projects-title">
+    <div class="section-heading">
+      <p class="section-number" aria-hidden="true">02</p>
+      <div>
+        <p class="section-kicker">Project library</p>
+        <h2 id="projects-title">All interactive demos</h2>
+        <p>Search the complete collection or narrow it by science domain.</p>
+      </div>
+    </div>
+
+    <div class="filter-panel" aria-label="Demo search and filters">
+      <label class="search-field" for="q">
+        <span class="search-label">Search the library</span>
+        <span class="search-control">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+          <input id="q" type="search" placeholder="Search demos, methods, datasets..." autocomplete="off">
+        </span>
+      </label>
+      <div class="filter-actions">
+{{DOMAIN_FILTERS}}
+        <button class="clear-filters" id="clear-filters" type="button" hidden>Clear filters</button>
+      </div>
+      <p class="showing" id="showing" aria-live="polite"></p>
+    </div>
+
+    <div class="project-grid" id="grid">
 {{CARDS}}
+    </div>
+
+    <div class="empty-state" id="empty" hidden>
+      <p class="empty-kicker">No signal found</p>
+      <h3>No demos match this search.</h3>
+      <p>Clear the filters or try a broader term.</p>
+    </div>
+  </section>
 </main>
 
-<p class="empty" id="empty" hidden>Nothing matches — clear the search or filters to see every demo.</p>
-
-<footer>
-  <p>Built {{BUILT}} &middot; demos live in Google Drive, the record lives in the registry sheet.</p>
+<footer class="site-footer">
+  <div>
+    <span class="brand-mark" aria-hidden="true">AIS</span>
+    <p>Interactive instruments and demos across the sciences.</p>
+  </div>
+  <p>Instrument Gym updated {{BUILT}}</p>
 </footer>
 
 <script>
