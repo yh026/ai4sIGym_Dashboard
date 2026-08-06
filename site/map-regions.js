@@ -3,6 +3,8 @@
 /**
  * Geometry traced against site/assets/ais-science-map-v2-lines.png (1536 × 1024).
  * Keep the raster, SVG viewBox, hotspot paths, and label coordinates aligned.
+ * The lower-left Earth landscape is a decorative interdisciplinary transition;
+ * it is intentionally not assigned to a department hotspot.
  */
 module.exports = {
   width: 1536,
@@ -32,11 +34,6 @@ module.exports = {
       label: [56, 88],
       popover: 'above',
       path: 'M405 650C495 610 600 600 720 625C800 640 860 690 910 775C880 850 865 925 875 1024H400C390 900 375 760 405 650Z',
-    },
-    'earth-climate': {
-      label: [13, 72],
-      popover: 'right',
-      path: 'M0 430C110 420 210 430 295 480C345 525 380 585 405 650C375 760 390 900 400 1024H0Z',
     },
     mathematics: {
       label: [13, 38],

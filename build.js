@@ -25,36 +25,39 @@ const MAP_DATA = require(path.join(SITE, 'map-regions.js'));
 const DOMAIN_DEFINITIONS = [
   {
     id: 'space-astronomy',
-    name: 'Physics & Astronomy',
+    name: 'Physics',
     short: 'Physics',
-    description: 'Explore particles, waves, fields, planetary systems, galaxies, and the models used to understand the physical universe.',
+    description: 'Explore matter, energy, fields, condensed matter, atmospheric measurements, and the physical universe.',
     color: '#6950b8',
     soft: '#211b3b',
     subtopics: [
-      { id: 'astrophysics', name: 'Astrophysics', aliases: ['astronomy', 'space science'], keywords: ['astronom*', 'astrophys*', 'galax*', 'cosmolog*', 'stellar', 'telescope*', 'exoplanet*', 'planetary'] },
+      { id: 'astrophysics', name: 'Astronomy & Astrophysics', aliases: ['astronomy', 'space science'], keywords: ['astronom*', 'astrophys*', 'galax*', 'cosmolog*', 'stellar', 'telescope*', 'exoplanet*', 'planetary'] },
       { id: 'quantum-particles', name: 'Quantum & Particles', aliases: ['quantum science', 'particle physics'], keywords: ['quantum', 'particle*', 'atomic', 'nuclear'] },
-      { id: 'waves-fields', name: 'Waves & Fields', aliases: ['waves', 'fields', 'optics'], keywords: ['wave*', 'optic*', 'electromagnet*', 'field*', 'signal*'] },
+      { id: 'condensed-matter', name: 'Condensed Matter & Materials Physics', aliases: ['condensed matter', 'materials physics', 'solid state physics'], keywords: ['superconduct*', 'condensed matter', 'solid state', 'critical temperature'] },
+      { id: 'atmospheric-remote-sensing', name: 'Atmospheric Physics & Remote Sensing', aliases: ['atmospheric physics', 'remote sensing'], keywords: ['atmospher*', 'weather satellite*', 'brightness temperature*', 'remote sensing', 'himawari*'] },
+      { id: 'waves-fields', name: 'Waves, Optics & Fields', aliases: ['waves', 'fields', 'optics'], keywords: ['wave*', 'optic*', 'electromagnet*', 'field*', 'signal*'] },
       { id: 'mechanics-simulation', name: 'Mechanics & Simulation', aliases: ['physical simulation', 'mechanics'], keywords: ['mechanic*', 'fluid*', 'thermodynamic*', 'dynamic*', 'simulation*'] },
     ],
     legacyIds: ['physics-simulation'],
-    aliases: ['space', 'space and astronomy', 'astronomy', 'astrophysics', 'planetary science', 'cosmology', 'physics', 'physics and simulation', 'physics-simulation', 'physical science', 'simulation', 'mechanics', 'quantum science'],
+    aliases: ['space', 'space and astronomy', 'physics and astronomy', 'astronomy', 'astrophysics', 'planetary science', 'cosmology', 'physics', 'department of physics', 'physics and simulation', 'physics-simulation', 'physical science', 'simulation', 'mechanics', 'quantum science', 'atmospheric physics', 'remote sensing'],
   },
   {
     id: 'chemistry-materials',
-    name: 'Chemistry & Materials',
+    name: 'Chemistry',
     short: 'Chemistry',
-    description: 'Examine molecules, reactions, crystals, and materials with interactive models across multiple scales.',
+    description: 'Examine molecules, reactions, materials, electrochemistry, and sustainable chemical systems across multiple scales.',
     color: '#d97822',
     soft: '#352219',
     subtopics: [
       { id: 'molecular-systems', name: 'Molecular Systems', aliases: ['molecular science'], keywords: ['molecule*', 'molecular'] },
       { id: 'reactions-catalysis', name: 'Reactions & Catalysis', aliases: ['chemical reactions', 'catalysis'], keywords: ['reaction*', 'catalysis', 'catalyst*', 'kinetic*'] },
-      { id: 'materials', name: 'Materials', aliases: ['materials science'], keywords: ['material*', 'crystal*', 'polymer*', 'alloy*', 'solid state'] },
+      { id: 'materials', name: 'Materials Chemistry', aliases: ['materials science'], keywords: ['material*', 'crystal*', 'polymer*', 'alloy*', 'solid state'] },
+      { id: 'electrochemistry-energy', name: 'Electrochemistry & Energy Storage', aliases: ['electrochemistry', 'energy storage', 'battery science'], keywords: ['electrochemi*', 'battery', 'batteries', 'lithium-ion', 'lithium ion', 'state of health', 'capacity fade', 'charge cycle*', 'discharge cycle*'] },
       { id: 'nanoscience', name: 'Nanoscience', aliases: ['nanomaterials'], keywords: ['nanoscience', 'nanomaterial*', 'nanoparticle*', 'nanostructure*', 'graphene', 'surface chemistry', 'thin film*'] },
       { id: 'sustainable-chemistry', name: 'Sustainable Chemistry', aliases: ['green chemistry'], keywords: ['green chemistry', 'sustainable chemistry', 'circular chemistry', 'recycl*'], strongKeywords: ['green chemistry', 'sustainable chemistry', 'circular chemistry', 'recycl*'] },
     ],
     legacyIds: [],
-    aliases: ['chemistry', 'materials', 'molecular science', 'chemical science', 'materials science'],
+    aliases: ['chemistry', 'department of chemistry', 'chemistry and materials', 'materials', 'molecular science', 'chemical science', 'materials science', 'electrochemistry', 'battery science'],
   },
   {
     id: 'biology-genomics',
@@ -64,33 +67,35 @@ const DOMAIN_DEFINITIONS = [
     color: '#4d8b45',
     soft: '#17301c',
     subtopics: [
-      { id: 'genomics-rna', name: 'Genomics & RNA', aliases: ['genomics', 'bioinformatics'], keywords: ['genom*', 'dna', 'rna', 'gene', 'genes', 'genetic*', 'bioinform*'] },
+      { id: 'genomics-rna', name: 'Genomics & Single-Cell Biology', aliases: ['genomics', 'bioinformatics', 'single-cell biology'], keywords: ['genom*', 'dna', 'rna', 'mrna', 'gene', 'genes', 'genetic*', 'bioinform*', 'single cell', 'single-cell'] },
       { id: 'cell-biology', name: 'Cell Biology', aliases: ['cellular biology'], keywords: ['cell biology', 'cellular', 'cell', 'cells', 'microscopy'] },
+      { id: 'systems-biology', name: 'Genomics & Systems Biology', aliases: ['systems biology', 'gene networks'], keywords: ['co-expression', 'coexpression', 'gene network*', 'systems biology', 'pathway*'] },
       { id: 'protein-science', name: 'Protein Science', aliases: ['proteomics'], keywords: ['protein*', 'proteom*', 'enzyme*', 'structure prediction'] },
-      { id: 'ecology-evolution', name: 'Ecology & Evolution', aliases: ['ecology', 'evolution'], keywords: ['ecolog*', 'ecosystem*', 'evolution*', 'biodiversity'] },
+      { id: 'ecology-evolution', name: 'Ecology & Environmental Biology', aliases: ['ecology', 'evolution', 'environmental biology'], keywords: ['ecolog*', 'ecosystem*', 'evolution*', 'biodiversity', 'forest*', 'canopy', 'microclimate*'] },
     ],
     legacyIds: [],
-    aliases: ['biology', 'biology and genomics', 'genomics', 'bioinformatics', 'life science', 'biological sciences'],
+    aliases: ['biology', 'biology and genomics', 'genomics', 'bioinformatics', 'life science', 'biological sciences', 'department of biological sciences'],
   },
   {
     id: 'pharmacy-biomedical',
-    name: 'Pharmacy & Biomedical Science',
+    name: 'Pharmacy and Pharmaceutical Sciences',
     short: 'Pharmacy',
-    description: 'Discover medicines, therapeutics, biomedical imaging, and data-driven approaches to human health.',
+    description: 'Discover medicines, therapeutics, drug delivery, pharmaceutical analysis, and data-driven approaches to human health.',
     color: '#c95878',
     soft: '#3a1c2a',
     subtopics: [
       { id: 'drug-discovery', name: 'Drug Discovery', aliases: ['molecular screening'], keywords: ['drug discovery', 'compound*', 'screening', 'qsar', 'molecular docking'] },
       { id: 'therapeutics', name: 'Therapeutics', aliases: ['pharmacology'], keywords: ['therapeut*', 'pharmac*', 'medicine*', 'clinical trial*'] },
       { id: 'medical-imaging', name: 'Medical Imaging', aliases: ['biomedical imaging'], keywords: ['medical imaging', 'mri', 'radiology', 'tomography', 'scan', 'scans', 'scanner*', 'scanning', 'imaging'] },
-      { id: 'biomedical-data', name: 'Biomedical Data', aliases: ['health data'], keywords: ['biomedical data', 'health data', 'patient*', 'clinical data', 'medical ai'] },
+      { id: 'pharmaceutical-analysis', name: 'Pharmaceutical Analysis', aliases: ['pharmaceutical science'], keywords: ['pharmaceutical analysis', 'formulation*', 'drug delivery', 'pharmacokinetic*'] },
+      { id: 'biomedical-data', name: 'Biomedical & Clinical Data', aliases: ['health data'], keywords: ['biomedical data', 'health data', 'patient*', 'clinical data', 'medical ai'] },
     ],
     legacyIds: [],
-    aliases: ['pharmacy', 'pharmaceutical science', 'pharmaceutical sciences', 'biomedicine', 'biomedical science', 'pharmacology', 'drug discovery'],
+    aliases: ['pharmacy', 'pharmacy and pharmaceutical sciences', 'department of pharmacy and pharmaceutical sciences', 'pharmaceutical science', 'pharmaceutical sciences', 'biomedicine', 'biomedical science', 'pharmacology', 'drug discovery'],
   },
   {
     id: 'food-science-technology',
-    name: 'Food Science & Technology',
+    name: 'Food Science and Technology',
     short: 'Food Science',
     description: 'Explore nutrition, fermentation, food safety, analysis, and technologies across the food system.',
     color: '#5d8e39',
@@ -102,23 +107,7 @@ const DOMAIN_DEFINITIONS = [
       { id: 'food-analysis-engineering', name: 'Food Analysis & Engineering', aliases: ['food analysis', 'food engineering'], keywords: ['food analysis', 'food technology', 'processing', 'sensor*', 'texture*'] },
     ],
     legacyIds: [],
-    aliases: ['food science', 'food technology', 'nutrition', 'fermentation', 'food safety', 'agriculture', 'crops'],
-  },
-  {
-    id: 'earth-climate',
-    name: 'Earth, Climate & Natural History',
-    short: 'Earth',
-    description: 'Investigate climate, oceans, landscapes, fossils, biodiversity, and the changing systems of our planet.',
-    color: '#2d78a5',
-    soft: '#122b38',
-    subtopics: [
-      { id: 'climate-atmosphere', name: 'Climate & Atmosphere', aliases: ['climate'], keywords: ['climate*', 'atmosphere*', 'weather', 'carbon', 'temperature*'] },
-      { id: 'oceans-hydrology', name: 'Oceans & Hydrology', aliases: ['ocean science'], keywords: ['ocean*', 'marine', 'hydrolog*', 'water', 'coastal'] },
-      { id: 'remote-sensing-geospatial', name: 'Remote Sensing & Geospatial', aliases: ['remote sensing', 'geospatial'], keywords: ['remote sensing', 'satellite*', 'geospatial', 'gis', 'traffic', 'transport*', 'point cloud*'] },
-      { id: 'natural-history-geology', name: 'Natural History & Geology', aliases: ['natural history', 'geology'], keywords: ['natural history', 'geolog*', 'fossil*', 'palaeo*', 'paleo*', 'mineral*'] },
-    ],
-    legacyIds: [],
-    aliases: ['earth', 'earth and climate', 'climate', 'environment', 'geoscience', 'geospatial', 'weather', 'ocean science', 'natural history'],
+    aliases: ['food science', 'food science and technology', 'department of food science and technology', 'food technology', 'nutrition', 'fermentation', 'food safety', 'agriculture', 'food crops'],
   },
   {
     id: 'mathematics',
@@ -134,27 +123,110 @@ const DOMAIN_DEFINITIONS = [
       { id: 'optimisation', name: 'Optimisation', aliases: ['optimization'], keywords: ['optimisation', 'optimization', 'operations research'] },
     ],
     legacyIds: [],
-    aliases: ['mathematics', 'mathematical sciences', 'applied mathematics', 'pure mathematics', 'topology', 'optimisation', 'optimization'],
+    aliases: ['mathematics', 'department of mathematics', 'mathematical sciences', 'applied mathematics', 'pure mathematics', 'topology', 'optimisation', 'optimization'],
   },
   {
     id: 'ai-mathematics-data',
-    name: 'Statistics, Data Science & AI',
-    short: 'Data & AI',
-    description: 'Discover statistics, machine learning, visualisation, and data methods that connect every region of science.',
+    name: 'Statistics and Data Science',
+    short: 'Statistics & Data',
+    description: 'Discover statistical inference, machine learning, visualisation, and computational methods that connect every region of science.',
     color: '#5267a9',
     soft: '#102a39',
     subtopics: [
-      { id: 'machine-learning', name: 'Machine Learning', aliases: ['artificial intelligence'], keywords: ['machine learning', 'deep learning', 'neural network*', 'clustering', 'k-means', 'classification'] },
+      { id: 'machine-learning', name: 'Machine Learning & Representation Learning', aliases: ['artificial intelligence', 'representation learning'], keywords: ['machine learning', 'deep learning', 'neural network*', 'clustering', 'k-means', 'classification', 'embedding*', 'regularisation', 'regularization'] },
+      { id: 'data-compression', name: 'Machine Learning & Data Compression', aliases: ['data compression', 'quantisation', 'quantization'], keywords: ['quantization', 'quantisation', 'codebook*', 'compression', 'compressed representation*'] },
       { id: 'scientific-machine-learning', name: 'Scientific Machine Learning', aliases: ['scientific ml'], keywords: ['scientific machine learning', 'physics informed', 'physics-informed', 'pinn', 'neural operator*', 'surrogate model*'], strongKeywords: ['scientific machine learning', 'physics informed', 'physics-informed', 'pinn', 'neural operator*'] },
       { id: 'statistics-inference', name: 'Statistics & Inference', aliases: ['statistics', 'inference'], keywords: ['statistics', 'statistical', 'inference', 'bayesian', 'probability', 'regression*'] },
       { id: 'forecasting-time-series', name: 'Forecasting & Time Series', aliases: ['forecasting', 'time series'], keywords: ['forecast*', 'time series', 'temporal', 'prediction'] },
+      { id: 'spatiotemporal-data', name: 'Spatiotemporal Data Science', aliases: ['spatial data science'], keywords: ['spatiotemporal', 'spatial', 'road speed*', 'traffic', 'sensor*', 'air quality', 'umap'] },
+      { id: 'multivariate-visualisation', name: 'Multivariate Analysis & Visualisation', aliases: ['multivariate analysis', 'multivariate visualisation'], keywords: ['multivariate', 'pca', 'umap', 'air quality', 'day segment*', 'sensor*'] },
       { id: 'data-visualisation', name: 'Visualisation & Exploration', aliases: ['data visualization', 'data visualisation', 'visualization', 'visualisation'], keywords: ['visualisation', 'visualization', 'interactive chart', 'dashboard', 'visual analytics'] },
       { id: 'scientific-computing', name: 'Scientific Computing', aliases: ['computational science'], keywords: ['scientific computing', 'numerical method', 'numerical solver', 'high performance computing', 'parallel computing'] },
     ],
     legacyIds: [],
-    aliases: ['ai', 'ai and data', 'data', 'statistics', 'machine learning', 'data science', 'scientific computing', 'data visualisation', 'data visualization', 'AI, Mathematics & Data'],
+    aliases: ['ai', 'ai and data', 'data', 'statistics', 'statistics and data science', 'department of statistics and data science', 'machine learning', 'data science', 'scientific computing', 'data visualisation', 'data visualization', 'AI, Mathematics & Data'],
   },
 ];
+
+// Explicit compatibility assignments for the current live collection. Registry
+// `department_id` values take precedence; these keep legacy records correct until
+// that canonical field is populated in the Sheet.
+const PROJECT_DOMAIN_OVERRIDES = new Map([
+  ['soh-battery', 'chemistry-materials'],
+  ['battery-soh-explorer', 'chemistry-materials'],
+  ['battery-soh-forecast-explorer', 'chemistry-materials'],
+  ['ceemdan-battery-forecasting', 'chemistry-materials'],
+  ['ceemdan-battery-forecast-explorer', 'chemistry-materials'],
+  ['ceemdan-battery-explorer', 'chemistry-materials'],
+  ['tbb-cluster-explorer', 'space-astronomy'],
+  ['tbb-cluster-explorer-himawari-9-band-07', 'space-astronomy'],
+  ['pleiades-membership-explorer', 'space-astronomy'],
+  ['superconductor-regression-explorer', 'space-astronomy'],
+  ['forest-microclimate-does-canopy-buffer-the-day', 'biology-genomics'],
+  ['microclimate-explorer', 'biology-genomics'],
+  ['galaxy2-does-rotation-augmentation-help', 'space-astronomy'],
+  ['galaxy-classification', 'space-astronomy'],
+  ['singapore-road-speed-clusters-umap', 'ai-mathematics-data'],
+  ['ltaspeedbands', 'ai-mathematics-data'],
+  ['from-twenty-thousand-genes-to-fourteen-cell-types', 'biology-genomics'],
+  ['pancreas-singlecell-clustering', 'biology-genomics'],
+  ['from-twelve-thousand-numbers-to-a-codebook', 'ai-mathematics-data'],
+  ['satellite-image-quantization', 'ai-mathematics-data'],
+  ['air-quality-day-segment-pca-and-amp-umap-by-sensor', 'ai-mathematics-data'],
+  ['airquality-dashboard', 'ai-mathematics-data'],
+  ['jae-regularisation-lab-what-each-loss-actually-does', 'ai-mathematics-data'],
+  ['jae-joint-embedding-how-one-cell-becomes-61-numbers', 'biology-genomics'],
+  ['mrna-joint-embedding', 'biology-genomics'],
+  ['alzheimer-s-gene-co-expression-explorer', 'biology-genomics'],
+  ['alzheimer-s-gene-co-expression-lab', 'biology-genomics'],
+]);
+
+const PROJECT_SUBTOPIC_OVERRIDES = new Map([
+  ['soh-battery', 'electrochemistry-energy'],
+  ['battery-soh-explorer', 'electrochemistry-energy'],
+  ['battery-soh-forecast-explorer', 'electrochemistry-energy'],
+  ['ceemdan-battery-forecasting', 'electrochemistry-energy'],
+  ['ceemdan-battery-forecast-explorer', 'electrochemistry-energy'],
+  ['ceemdan-battery-explorer', 'electrochemistry-energy'],
+  ['tbb-cluster-explorer', 'atmospheric-remote-sensing'],
+  ['tbb-cluster-explorer-himawari-9-band-07', 'atmospheric-remote-sensing'],
+  ['pleiades-membership-explorer', 'astrophysics'],
+  ['superconductor-regression-explorer', 'condensed-matter'],
+  ['forest-microclimate-does-canopy-buffer-the-day', 'ecology-evolution'],
+  ['microclimate-explorer', 'ecology-evolution'],
+  ['galaxy2-does-rotation-augmentation-help', 'astrophysics'],
+  ['galaxy-classification', 'astrophysics'],
+  ['singapore-road-speed-clusters-umap', 'spatiotemporal-data'],
+  ['ltaspeedbands', 'spatiotemporal-data'],
+  ['from-twenty-thousand-genes-to-fourteen-cell-types', 'genomics-rna'],
+  ['pancreas-singlecell-clustering', 'genomics-rna'],
+  ['from-twelve-thousand-numbers-to-a-codebook', 'data-compression'],
+  ['satellite-image-quantization', 'data-compression'],
+  ['air-quality-day-segment-pca-and-amp-umap-by-sensor', 'multivariate-visualisation'],
+  ['airquality-dashboard', 'multivariate-visualisation'],
+  ['jae-regularisation-lab-what-each-loss-actually-does', 'machine-learning'],
+  ['jae-joint-embedding-how-one-cell-becomes-61-numbers', 'genomics-rna'],
+  ['mrna-joint-embedding', 'genomics-rna'],
+  ['alzheimer-s-gene-co-expression-explorer', 'systems-biology'],
+  ['alzheimer-s-gene-co-expression-lab', 'systems-biology'],
+]);
+
+const PROJECT_PREVIEW_ALTS = new Map([
+  ['soh-battery', 'Four battery state-of-health curves decline as charge cycles increase.'],
+  ['ceemdan-battery-forecasting', 'Battery capacity curves decline across repeated charge cycles.'],
+  ['tbb-cluster-explorer', 'A blue Himawari-9 satellite brightness-temperature scene.'],
+  ['pleiades-membership-explorer', 'A proper-motion scatterplot separates likely Pleiades members from field stars.'],
+  ['superconductor-regression-explorer', 'A PCA scatterplot of held-out superconducting materials coloured by critical temperature.'],
+  ['forest-microclimate-does-canopy-buffer-the-day', 'Mean daily temperature curves compare four forest types across 24 hours.'],
+  ['galaxy2-does-rotation-augmentation-help', 'Ten real galaxy images illustrate the ten morphology classes.'],
+  ['singapore-road-speed-clusters-umap', 'A UMAP point cloud groups Singapore road-speed profiles by cluster.'],
+  ['from-twenty-thousand-genes-to-fourteen-cell-types', 'A sparse heatmap shows raw counts for 120 cells across 80 genes.'],
+  ['from-twelve-thousand-numbers-to-a-codebook', 'A wall of real Sentinel-2 image tiles shows the source satellite data.'],
+  ['air-quality-day-segment-pca-and-amp-umap-by-sensor', 'Five heatmaps show hourly readings across 357 days for five air-quality sensors.'],
+  ['jae-regularisation-lab-what-each-loss-actually-does', 'Two embedding plots compare uniform and batch-classifying regularisation objectives.'],
+  ['jae-joint-embedding-how-one-cell-becomes-61-numbers', 'A heatmap and profiles show the multi-omics design matrix for one cell.'],
+  ['alzheimer-s-gene-co-expression-explorer', 'Two gene-expression heatmaps compare raw values with global z-scores.'],
+]);
 
 const GENERAL_SUBTOPIC = {
   id: 'general-interdisciplinary',
@@ -162,6 +234,11 @@ const GENERAL_SUBTOPIC = {
   aliases: ['general', 'interdisciplinary'],
   keywords: [],
 };
+
+// This former catch-all was split across Physics, Biological Sciences, and
+// Statistics and Data Science. Its old collection URL now returns to the map
+// rather than misleadingly redirecting every project into one department.
+const RETIRED_DOMAIN_IDS = ['earth-climate'];
 
 DOMAIN_DEFINITIONS.forEach(domain => {
   domain.futurePaths = domain.subtopics.map(subtopic => subtopic.name);
@@ -173,7 +250,17 @@ function fail(msg) {
 }
 
 function esc(value) {
-  return String(value == null ? '' : value)
+  let text = String(value == null ? '' : value);
+  // Registry text occasionally arrives HTML-encoded. Decode the small safe
+  // entity set first, then escape once for the generated document.
+  for (let i = 0; i < 3; i++) text = text.replace(/&(?:amp|#0*38|#x0*26);/gi, '&');
+  text = text
+    .replace(/&(?:lt|#0*60|#x0*3c);/gi, '<')
+    .replace(/&(?:gt|#0*62|#x0*3e);/gi, '>')
+    .replace(/&(?:quot|#0*34|#x0*22);/gi, '"')
+    .replace(/&(?:apos|#0*39|#x0*27);/gi, "'")
+    .replace(/&nbsp;/gi, ' ');
+  return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -202,6 +289,11 @@ function toBoolean(value) {
   return ['true', 'yes', '1', 'y'].includes(String(value || '').trim().toLowerCase());
 }
 
+function isExplicitFalse(value) {
+  if (value === false || value === 0) return true;
+  return ['false', 'no', '0', 'n'].includes(String(value == null ? '' : value).trim().toLowerCase());
+}
+
 function toList(value) {
   if (Array.isArray(value)) return value.map(String).map(s => s.trim()).filter(Boolean);
   if (!value) return [];
@@ -210,6 +302,25 @@ function toList(value) {
 
 function pluralText(count, singular) {
   return count + ' ' + singular + (count === 1 ? '' : 's');
+}
+
+function isSiteRecord(demo) {
+  const recordType = normalKey(demo.record_type);
+  const hasProjectFlag = Object.prototype.hasOwnProperty.call(demo, 'is_project');
+
+  // An explicit project declaration always wins, including for a legitimate
+  // project whose entry file happens to be named index.html.
+  if (recordType === 'project' || recordType === 'demo' || toBoolean(demo.is_project)) return false;
+  if (['site', 'dashboard', 'homepage'].includes(recordType)) return true;
+  if (hasProjectFlag && isExplicitFalse(demo.is_project)) return true;
+
+  // Compatibility for the current registry, which contains the dashboard
+  // itself as a Live Drive record. Keep this deliberately exact rather than
+  // excluding every future project that uses index.html.
+  const title = normalKey(demo.title);
+  return normalKey(path.basename(String(demo.file_name || ''))) === 'index-html'
+    && normalKey(demo.slug) === 'ai-for-science-demos'
+    && title === 'ai-for-science-demos';
 }
 
 const DOMAIN_ALIASES = new Map();
@@ -233,15 +344,65 @@ function domainById(id) {
     || DOMAIN_DEFINITIONS[DOMAIN_DEFINITIONS.length - 1];
 }
 
+function projectOverride(overrides, demo) {
+  const fileStem = demo.file_name
+    ? path.basename(String(demo.file_name), path.extname(String(demo.file_name)))
+    : '';
+  const keys = [demo.slug, fileStem, demo.file_name, demo.title].filter(Boolean).map(slugSafe);
+  for (const key of keys) {
+    if (overrides.has(key)) return overrides.get(key);
+  }
+  return '';
+}
+
+function validateTaxonomy() {
+  if (DOMAIN_DEFINITIONS.length !== 7) fail('The NUS Science taxonomy must contain exactly seven departments.');
+
+  const departmentIds = new Set(DOMAIN_DEFINITIONS.map(domain => domain.id));
+  const regionIds = new Set(Object.keys(MAP_DATA.regions));
+  const missingRegions = [...departmentIds].filter(id => !regionIds.has(id));
+  const extraRegions = [...regionIds].filter(id => !departmentIds.has(id));
+  if (missingRegions.length || extraRegions.length) {
+    fail('Department/map region mismatch. Missing: ' + (missingRegions.join(', ') || 'none')
+      + '; extra: ' + (extraRegions.join(', ') || 'none'));
+  }
+
+  PROJECT_DOMAIN_OVERRIDES.forEach((domainId, key) => {
+    if (!departmentIds.has(domainId)) fail('Unknown department override for ' + key + ': ' + domainId);
+  });
+  PROJECT_SUBTOPIC_OVERRIDES.forEach((subtopicId, key) => {
+    const domainId = PROJECT_DOMAIN_OVERRIDES.get(key);
+    const domain = DOMAIN_DEFINITIONS.find(candidate => candidate.id === domainId);
+    if (!domain || !domain.subtopics.some(subtopic => subtopic.id === subtopicId)) {
+      fail('Invalid subtopic override for ' + key + ': ' + subtopicId);
+    }
+  });
+}
+
 function resolveDomain(demo) {
-  const candidates = [demo.domain, demo.science_domain, demo.research_domain, demo.domain_id].filter(Boolean);
-  for (const candidate of candidates) {
+  const canonical = [demo.department_id, demo.department, demo.academic_department].filter(Boolean);
+  for (const candidate of canonical) {
+    const resolved = DOMAIN_ALIASES.get(normalKey(candidate));
+    if (resolved) return resolved;
+  }
+  if (canonical.length) {
+    console.warn('  unrecognised department metadata for ' + (demo.title || demo.file_name || 'untitled record') + ': ' + canonical.join(', '));
+  }
+
+  const humanLabels = [demo.domain, demo.science_domain, demo.research_domain].filter(Boolean);
+  for (const candidate of humanLabels) {
     const resolved = DOMAIN_ALIASES.get(normalKey(candidate));
     if (resolved) return resolved;
   }
 
+  const override = projectOverride(PROJECT_DOMAIN_OVERRIDES, demo);
+  if (override) return domainById(override);
+
+  const generatedId = DOMAIN_ALIASES.get(normalKey(demo.domain_id));
+  if (generatedId) return generatedId;
+
   const text = [
-    ...candidates,
+    ...humanLabels,
     demo.category,
     demo.title,
     demo.description,
@@ -250,14 +411,18 @@ function resolveDomain(demo) {
     toList(demo.tags).join(' '),
   ].filter(Boolean).join(' ').toLowerCase();
 
+  // Scientific subject takes priority over the analytical method. Keep these
+  // terms contextual: battery "health", battery "cell", and image "crop" are
+  // not medical, biological, or food evidence by themselves.
+  if (/\bbatter(?:y|ies)\b|lithium[- ]ion|electrochemi|energy storage|capacity fade|charge[- ]discharge/.test(text)) return domainById('chemistry-materials');
   if (/astronom|astrophys|planet|space|galax|cosmo|stellar|telescope|exoplanet/.test(text)) return domainById('space-astronomy');
-  if (/physics|quantum|particle|\bwave|fluid|mechanic|electromagnet|thermodynamic/.test(text)) return domainById('space-astronomy');
-  if (/pharmac|pharmaceut|drug|therapeut|biomed|medical imag|clinical|medicine|health/.test(text)) return domainById('pharmacy-biomedical');
-  if (/food|nutrition|ferment|crop|agricultur|food safety/.test(text)) return domainById('food-science-technology');
-  if (/biolog|genom|\bdna\b|\brna\b|protein|\bcells?\b|cellular|bioinform|neuro|ecolog/.test(text)) return domainById('biology-genomics');
+  if (/physics|quantum|particle|superconduct|critical temperature|\bwave|fluid|mechanic|electromagnet|thermodynamic|weather satellite|brightness temperature|atmospher|remote sensing|himawari/.test(text)) return domainById('space-astronomy');
+  if (/pharmac|pharmaceut|\bdrug\b|drug discovery|therapeut|biomed|medical imag|clinical|\bpatient|medicine|drug delivery/.test(text)) return domainById('pharmacy-biomedical');
+  if (/\bfood\b|nutrition|ferment|agricultur|food safety|food processing|\bfood crops?\b/.test(text)) return domainById('food-science-technology');
+  if (/biolog|genom|\bdna\b|\brna\b|\bmrna\b|\bgenes?\b|protein|single[- ]cell|cell type|cellular|bioinform|neuro|ecolog|ecosystem|forest|canopy|microclimate/.test(text)) return domainById('biology-genomics');
   if (/chemi|molecul|material|crystal|cataly|reaction|polymer/.test(text)) return domainById('chemistry-materials');
-  if (/climate|earth|geoscience|environment|weather|ocean|atmos|geospatial|traffic|transport|fossil|natural history/.test(text)) return domainById('earth-climate');
   if (/mathemat|topolog|geometr|algebra|calculus|optimis|optimiz|number theory/.test(text)) return domainById('mathematics');
+  console.warn('  classification fallback (Statistics and Data Science): ' + (demo.title || demo.file_name || 'untitled record'));
   return domainById('ai-mathematics-data');
 }
 
@@ -291,20 +456,38 @@ function subtopicEvidenceScore(value, weight, subtopic) {
 }
 
 function resolveSubtopic(demo, domain) {
-  const explicitFields = [
-    demo.subtopic_id,
+  const canonicalFields = [demo.department_subtopic_id, demo.department_subtopic];
+  const aliases = SUBTOPIC_ALIASES.get(domain.id);
+  for (const field of canonicalFields) {
+    for (const value of toList(field)) {
+      const resolved = aliases.get(normalKey(value));
+      if (resolved) return resolved;
+    }
+  }
+  if (canonicalFields.some(Boolean)) {
+    console.warn('  unrecognised department subtopic for ' + (demo.title || demo.file_name || 'untitled record'));
+  }
+
+  const humanFields = [
     demo.subtopic,
     demo.science_subtopic,
     demo.research_subtopic,
     demo.subdomain,
     demo.topic,
   ];
-  const aliases = SUBTOPIC_ALIASES.get(domain.id);
-  for (const field of explicitFields) {
+  for (const field of humanFields) {
     for (const value of toList(field)) {
       const resolved = aliases.get(normalKey(value));
       if (resolved) return resolved;
     }
+  }
+
+  const override = projectOverride(PROJECT_SUBTOPIC_OVERRIDES, demo);
+  if (override) return subtopicById(domain, override);
+
+  for (const value of toList(demo.subtopic_id)) {
+    const resolved = aliases.get(normalKey(value));
+    if (resolved) return resolved;
   }
 
   const evidence = [
@@ -343,19 +526,21 @@ function fillTemplate(template, values, label) {
 
 // ------------------------------------------------------------ registry I/O
 
-async function getJson(url) {
+async function getJson(url, label) {
   const response = await fetch(url, { redirect: 'follow' });
-  if (!response.ok) throw new Error('HTTP ' + response.status + ' from registry');
+  if (!response.ok) throw new Error('HTTP ' + response.status + ' while fetching registry ' + (label || 'response'));
   return response.json();
 }
 
 async function loadRegistry() {
   if (MOCK) {
-    const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'fixtures', 'manifest.json'), 'utf8'));
+    const manifestPath = process.env.MOCK_MANIFEST || path.join(ROOT, 'fixtures', 'manifest.json');
+    const fallbackHtml = process.env.MOCK_HTML_FALLBACK;
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     return {
       site: manifest.site || {},
       demos: manifest.demos || [],
-      getHtml: async id => fs.readFileSync(path.join(ROOT, 'fixtures', id + '.html'), 'utf8'),
+      getHtml: async id => fs.readFileSync(fallbackHtml || path.join(ROOT, 'fixtures', id + '.html'), 'utf8'),
     };
   }
 
@@ -367,7 +552,7 @@ async function loadRegistry() {
 
   const manifestUrl = new URL(base);
   manifestUrl.searchParams.set('action', 'manifest');
-  const manifest = await getJson(manifestUrl.toString());
+  const manifest = await getJson(manifestUrl.toString(), 'manifest');
   if (!manifest.ok) {
     fail('Registry error: ' + (manifest.error || 'unknown')
       + (manifest.error === 'bad token' ? ' — REGISTRY_URL must include the ?token=... part.' : ''));
@@ -377,10 +562,11 @@ async function loadRegistry() {
     site: manifest.site || {},
     demos: manifest.demos || [],
     getHtml: async id => {
+      if (!id) throw new Error('project record is missing file_id');
       const url = new URL(base);
       url.searchParams.set('action', 'file');
       url.searchParams.set('id', id);
-      const result = await getJson(url.toString());
+      const result = await getJson(url.toString(), 'project file');
       if (!result.ok) throw new Error(result.error || 'file fetch failed');
       return result.html;
     },
@@ -412,11 +598,6 @@ function domainIcon(id) {
       <circle class="symbol-fill" cx="50" cy="50" r="23"/><circle cx="50" cy="50" r="23"/>
       <ellipse cx="50" cy="50" rx="40" ry="13" transform="rotate(-15 50 50)"/>
       <path d="M38 31c8 7 20 9 30 5M31 57c10 8 25 11 38 7"/>
-    </svg>`,
-    'earth-climate': `<svg class="domain-symbol-svg" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
-      <circle class="symbol-fill" cx="50" cy="50" r="35"/><circle cx="50" cy="50" r="35"/>
-      <path d="M15 50h70M50 15c12 10 18 22 18 35S62 75 50 85M50 15C38 25 32 37 32 50s6 25 18 35"/>
-      <path d="M24 31c16 6 36 6 52 0M24 69c16-6 36-6 52 0"/>
     </svg>`,
     'biology-genomics': `<svg class="domain-symbol-svg" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
       <path d="M30 12c48 19-8 57 40 76M70 12C22 31 78 69 30 88"/>
@@ -481,7 +662,7 @@ function projectPreviewHtml(domain, demos) {
       return `<li><a href="demos/${esc(demo.slug)}/index.html"><span><strong>${esc(demo.title || 'Untitled experiment')}</strong><small>${esc(subtopic.name)}</small></span><span aria-hidden="true">&#8599;</span></a></li>`;
     }).join('')}</ul></div>`
     : '<p class="popover-empty">No live projects yet. This region is ready for its first experiment.</p>';
-  const action = count > 4 ? `View all ${count} projects` : 'Explore this domain';
+  const action = count > 4 ? `View all ${count} projects` : 'Explore this department';
   return `<div class="domain-popover-inner">
         <p class="popover-kicker">${count ? esc(pluralText(count, 'live project')) : 'Future region'}</p>
         <h3>${esc(domain.name)}</h3>
@@ -589,6 +770,29 @@ function badgeHtml(demo, isNew) {
   return badges.join('');
 }
 
+function safePreviewUrl(value, hrefBase) {
+  const source = String(value || '').trim();
+  if (/^https:\/\/[^\s]+$/i.test(source)) return source;
+
+  const relative = source.replace(/^\.\//, '').replace(/^\//, '');
+  if (relative.startsWith('assets/') && !relative.split('/').includes('..')) {
+    return hrefBase + relative;
+  }
+  return '';
+}
+
+function cardPreview(demo, hrefBase) {
+  const slug = slugSafe(demo.slug || demo.title);
+  const previewDirectory = path.join(SITE, 'assets', 'previews');
+  for (const extension of ['jpg', 'webp', 'png', 'jpeg', 'avif']) {
+    const fileName = slug + '.' + extension;
+    if (fs.existsSync(path.join(previewDirectory, fileName))) {
+      return hrefBase + 'assets/previews/' + fileName;
+    }
+  }
+  return safePreviewUrl(demo.preview_image || demo.picture || demo.thumbnail, hrefBase);
+}
+
 function cardHtml(demo, domain, isNew, hrefBase, index) {
   const subtopic = subtopicById(domain, demo._subtopic);
   const meta = [demo.task_type, demo.framework].filter(Boolean).map(esc).join(' &middot; ');
@@ -604,14 +808,21 @@ function cardHtml(demo, domain, isNew, hrefBase, index) {
     toList(demo.tags).join(' '),
   ].filter(Boolean).join(' ').toLowerCase();
   const cardNumber = String(index + 1).padStart(2, '0');
+  const preview = cardPreview(demo, hrefBase);
+  const previewAlt = demo.preview_alt
+    || demo.picture_alt
+    || projectOverride(PROJECT_PREVIEW_ALTS, demo)
+    || `Data preview from ${demo.title || 'this project'}`;
+  const visual = preview
+    ? `<img class="card-preview" src="${esc(preview)}" alt="${esc(previewAlt)}" loading="lazy" decoding="async" referrerpolicy="no-referrer"><span class="card-preview-pending" hidden>Data preview unavailable</span>`
+    : '<span class="card-preview-pending">Data preview coming soon</span>';
 
   return `<a class="project-card" href="${hrefBase}demos/${esc(demo.slug)}/index.html" style="--card-accent:${domain.color}" data-search="${esc(search)}" data-domain="${domain.id}" data-subtopic="${esc(subtopic.id)}" data-task="${esc(demo.task_type)}">
-  <div class="card-visual">
-    <span class="card-index" aria-hidden="true">${cardNumber}</span>
-    <span class="badges">${badgeHtml(demo, isNew)}</span>
-    <span class="card-emblem" aria-hidden="true">${domainIcon(domain.id)}</span>
+  <div class="card-visual${preview ? ' has-preview' : ''}">
+    ${visual}
   </div>
   <div class="card-body">
+    <div class="card-utility"><span class="card-index" aria-hidden="true">${cardNumber}</span><span class="badges">${badgeHtml(demo, isNew)}</span></div>
     <p class="card-domain">${esc(domain.name)} <span aria-hidden="true">/</span> ${esc(subtopic.name)}</p>
     <h3>${esc(demo.title || 'Untitled experiment')}</h3>
     <p class="card-description">${esc(demo.description || 'Open this interactive experiment to explore the project.')}</p>
@@ -648,13 +859,19 @@ function domainSwitcherHtml(currentDomain, grouped) {
 
 // ------------------------------------------------------------------ main
 
-(async function main() {
+async function main() {
   console.log(MOCK ? 'Build AIS Instrument Gym (mock fixtures)…' : 'Build AIS Instrument Gym (live registry)…');
+  validateTaxonomy();
   const registry = await loadRegistry();
   const site = registry.site && typeof registry.site === 'object' ? registry.site : {};
   let demos = Array.isArray(registry.demos)
     ? registry.demos.filter(demo => demo && typeof demo === 'object')
     : [];
+
+  const siteRecords = demos.filter(demo => isSiteRecord(demo));
+  siteRecords.forEach(demo => console.warn('  skipping (dashboard record, not a project): ' + (demo.title || demo.file_name)));
+  const siteRecordSet = new Set(siteRecords);
+  demos = demos.filter(demo => !siteRecordSet.has(demo));
 
   const missing = demos.filter(demo => demo.file_check === 'missing');
   missing.forEach(demo => console.warn('  skipping (file missing in Drive): ' + demo.title));
@@ -679,7 +896,10 @@ function domainSwitcherHtml(currentDomain, grouped) {
     demo._domain = domain.id;
     demo._subtopic = subtopic.id;
     demo.domain_id = demo._domain;
+    demo.department_id = demo._domain;
+    demo.department_label = domain.name;
     demo.subtopic_id = demo._subtopic;
+    demo.department_subtopic_id = demo._subtopic;
     demo.subtopic_label = subtopic.name;
   });
 
@@ -711,17 +931,17 @@ function domainSwitcherHtml(currentDomain, grouped) {
 
   const grouped = Object.fromEntries(DOMAIN_DEFINITIONS.map(domain => [domain.id, []]));
   demos.forEach(demo => grouped[demo._domain].push(demo));
-  const activeDomains = DOMAIN_DEFINITIONS.filter(domain => grouped[domain.id].length);
+  const activeDepartments = DOMAIN_DEFINITIONS.filter(domain => grouped[domain.id].length);
   const built = new Date().toISOString().slice(0, 10);
   const styles = fs.readFileSync(path.join(SITE, 'styles.css'), 'utf8');
   const script = fs.readFileSync(path.join(SITE, 'app.js'), 'utf8');
 
   const template = fs.readFileSync(path.join(SITE, 'template.html'), 'utf8');
   const countLine = pluralText(demos.length, 'interactive project')
-    + ' · ' + pluralText(activeDomains.length, 'active domain');
+    + ' · ' + pluralText(activeDepartments.length, 'active department');
   const rootCards = demos.map((demo, index) =>
     cardHtml(demo, domainById(demo._domain), isNew(demo), '', index)).join('\n');
-  const domainFilters = filterGroupHtml('Domain', 'domain', activeDomains.map(domain => ({
+  const domainFilters = filterGroupHtml('Department', 'domain', activeDepartments.map(domain => ({
     value: domain.id,
     label: domain.short,
   })));
@@ -755,7 +975,7 @@ function domainSwitcherHtml(currentDomain, grouped) {
       DOMAIN_SHORT: esc(domain.short),
       DOMAIN_DESCRIPTION: esc(domain.description),
       DOMAIN_NUMBER: String(domainIndex + 1).padStart(2, '0'),
-      DOMAIN_COUNT: count ? esc(pluralText(count, 'interactive project') + ' in this domain') : 'No projects published yet',
+      DOMAIN_COUNT: count ? esc(pluralText(count, 'interactive project') + ' in this department') : 'No projects published yet',
       DOMAIN_COLOR: domain.color,
       DOMAIN_SOFT: domain.soft,
       DOMAIN_ICON: domainIcon(domain.id),
@@ -788,7 +1008,25 @@ function domainSwitcherHtml(currentDomain, grouped) {
     });
   });
 
-  const publicDemos = demos.map(({ file_id, file_check, _domain, _subtopic, ...rest }) => rest);
+  RETIRED_DOMAIN_IDS.forEach(legacyId => {
+    const directory = path.join(DIST, 'domains', legacyId);
+    const target = '../../index.html#science-map';
+    fs.mkdirSync(directory, { recursive: true });
+    const redirect = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Science map | AIS Instrument Gym</title><link rel="canonical" href="${target}"><meta http-equiv="refresh" content="0;url=${target}"></head><body><p>This former collection has been reorganised across the seven NUS Science departments. <a href="${target}">Return to the science map</a>.</p><script>location.replace(${JSON.stringify(target)});</script></body></html>`;
+    fs.writeFileSync(path.join(directory, 'index.html'), redirect);
+    console.log('  retired collection: /domains/' + legacyId + '/ → science map');
+  });
+
+  const publicDemos = demos.map(({
+    file_id,
+    file_check,
+    picture_file_id,
+    preview_file_id,
+    thumbnail_file_id,
+    _domain,
+    _subtopic,
+    ...rest
+  }) => rest);
   const publicDomains = DOMAIN_DEFINITIONS.map(domain => ({
     id: domain.id,
     name: domain.name,
@@ -806,11 +1044,27 @@ function domainSwitcherHtml(currentDomain, grouped) {
   }));
   fs.writeFileSync(path.join(DIST, 'manifest.json'), JSON.stringify({
     generated: new Date().toISOString(),
-    taxonomy_version: 3,
+    taxonomy_version: 4,
     site,
     domains: publicDomains,
     demos: publicDemos,
   }, null, 2));
 
-  console.log('Done: ' + demos.length + ' demos across ' + activeDomains.length + ' active domains → dist/ (built ' + built + ')');
-})().catch(error => fail(error.message));
+  console.log('Done: ' + demos.length + ' demos across ' + pluralText(activeDepartments.length, 'active department') + ' → dist/ (built ' + built + ')');
+}
+
+if (require.main === module) {
+  main().catch(error => fail(error.message));
+}
+
+module.exports = {
+  DOMAIN_DEFINITIONS,
+  PROJECT_DOMAIN_OVERRIDES,
+  PROJECT_SUBTOPIC_OVERRIDES,
+  esc,
+  isSiteRecord,
+  resolveDomain,
+  resolveSubtopic,
+  safePreviewUrl,
+  validateTaxonomy,
+};

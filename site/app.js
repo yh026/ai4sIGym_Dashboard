@@ -11,6 +11,18 @@
   var empty = document.getElementById('empty');
   var activeFilters = {};
 
+  // A remote registry preview may disappear after a successful build. Replace
+  // broken images with the same calm fallback used for projects without art.
+  Array.prototype.slice.call(document.querySelectorAll('.card-preview')).forEach(function (image) {
+    function showFallback() {
+      var fallback = image.parentElement && image.parentElement.querySelector('.card-preview-pending');
+      image.hidden = true;
+      if (fallback) fallback.hidden = false;
+    }
+    image.addEventListener('error', showFallback);
+    if (image.complete && !image.naturalWidth) showFallback();
+  });
+
   function plural(n, word) {
     return n + ' ' + word + (n === 1 ? '' : 's');
   }

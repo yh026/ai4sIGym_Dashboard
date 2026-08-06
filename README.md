@@ -1,7 +1,7 @@
 # AIS Instrument Gym
 
 An interactive science map for the AIS Instrument Gym demo collection. The
-home page is a hand-drawn world of scientific domains: visitors can select a
+home page is a hand-drawn world of the seven NUS Science departments: visitors can select a
 region, preview its subtopics and current projects, then enter its full
 collection. Every project opens as a self-contained demo. Content lives in Google Drive, the
 record lives in the registry sheet, and this repo turns both into a fast public
@@ -69,41 +69,60 @@ rebuild whenever it finds changes — then step 3 disappears.
 
 ## Science-map taxonomy
 
-Add a `domain` field to each registry record when possible. Instrument Gym recognises
-these stable collections:
+Use `department_id` (or `department`) on each registry record when possible.
+The map follows the seven academic departments listed by
+[NUS Faculty of Science](https://www.science.nus.edu.sg/our-departments/):
 
-- `Physics & Astronomy`
-- `Chemistry & Materials`
-- `Biological Sciences`
-- `Pharmacy & Biomedical Science`
-- `Food Science & Technology`
-- `Earth, Climate & Natural History`
-- `Mathematics`
-- `Statistics, Data Science & AI`
+- `Physics` (`space-astronomy`)
+- `Chemistry` (`chemistry-materials`)
+- `Biological Sciences` (`biology-genomics`)
+- `Food Science and Technology` (`food-science-technology`)
+- `Mathematics` (`mathematics`)
+- `Pharmacy and Pharmaceutical Sciences` (`pharmacy-biomedical`)
+- `Statistics and Data Science` (`ai-mathematics-data`)
 
-Legacy names and common aliases such as `Space & Astronomy`, `Physics & Simulation`,
-`Bioinformatics`, `Materials Science`, and `Machine Learning` are accepted. Existing feeds without a `domain` field remain
-compatible: the build infers a domain from the title, category, task, method,
-and tags. Anything unknown falls back to `Statistics, Data Science & AI`, so a project
-is never dropped from the site.
+Mark the dashboard's own Drive row as `record_type=site` (or
+`is_project=false`) so it can never be counted as a project. Mark a legitimate
+project explicitly as `record_type=project` if its entry file is also named
+`index.html`. The build retains an exact compatibility filter for the current
+legacy dashboard row, but explicit registry metadata is the durable solution.
 
-The build publishes the resolved stable ID as `domain_id`, generates collection
-pages at `/domains/<domain_id>/`, and injects a return link to the correct domain
-into every demo. `category`, `task_type`, `method`, and `framework` remain useful
-metadata and are not replaced by the domain taxonomy.
+Canonical department metadata has highest priority. Older `domain`,
+`science_domain`, and `research_domain` labels remain supported, followed by
+compatibility assignments for the current collection and then metadata
+inference. Scientific subject matter takes priority over the analytical method:
+for example, battery projects are Chemistry even when they use forecasting, and
+single-cell projects are Biological Sciences even when they use clustering.
+Unrecognised records remain visible under Statistics and Data Science with a
+build warning.
 
-Each domain also has a stable subtopic taxonomy. A registry record may provide
-one of these optional fields, in descending priority: `subtopic_id`, `subtopic`,
-`science_subtopic`, `research_subtopic`, `subdomain`, or `topic`. Exact IDs,
-labels, and common aliases are accepted. If none matches, the build infers a
-subtopic from the project's title and metadata *within its already resolved
-domain*; ambiguous records fall back to `General & Interdisciplinary` instead of
-being forced into an arbitrary topic.
+The former `earth-climate` catch-all has been retired because its projects now
+belong to Physics, Biological Sciences, or Statistics and Data Science. Its old
+collection URL returns visitors to the map. `physics-simulation` remains a
+redirect to Physics.
 
-Resolved records publish `subtopic_id` and `subtopic_label`. Manifest taxonomy
-version 3 also includes each domain's subtopic list and live `project_count`, so
-the map's hover panels always reflect the current registry rather than a
-hard-coded number of projects.
+The build publishes both `department_id` and the backwards-compatible
+`domain_id`, generates collection pages at `/domains/<domain_id>/`, and injects
+a return link into every demo. `category`, `task_type`, `method`, and `framework`
+remain useful metadata and do not determine the department when an explicit
+department is present.
+
+Each department has a stable subtopic taxonomy. Prefer
+`department_subtopic_id` or `department_subtopic`; older `subtopic`,
+`science_subtopic`, `research_subtopic`, `subdomain`, and `topic` labels remain
+supported. The build then applies compatibility assignments, accepts a legacy
+generated `subtopic_id`, or infers a subtopic within the resolved department.
+Ambiguous records use `General & Interdisciplinary`.
+
+Resolved records publish `department_subtopic_id`, `subtopic_id`, and
+`subtopic_label`. Manifest taxonomy version 4 includes every department's
+subtopics and live `project_count`, so hover panels always reflect the current
+registry rather than hard-coded project totals.
+
+Project cards use real 16:9 data previews from `site/assets/previews/<slug>.*`.
+A record may instead provide an HTTPS `preview_image`, `picture`, or `thumbnail`.
+When no image is available, the card shows a quiet pending state rather than a
+generic science emblem.
 
 ## Local preview
 `node build.js --mock` builds from `fixtures/` into `dist/` with no network —
@@ -111,7 +130,7 @@ open `dist/index.html` in a browser. With `REGISTRY_URL` exported in your
 shell, plain `node build.js` builds from the real registry.
 
 ## What the build injects into each demo
-A domain-aware return control (bottom-left), a route back to the main science map,
+A department-aware return control (bottom-left), a route back to the main science map,
 and, when any provenance fields are filled, a "Data & methods" panel
 (bottom-right) showing data source + license + snapshot date, task, method,
 framework, training, metrics, and the workflow link. Styles are inline and

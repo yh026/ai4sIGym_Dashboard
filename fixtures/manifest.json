@@ -8,6 +8,14 @@
   },
   "demos": [
     {
+      "title": "AI for Science demos",
+      "slug": "ai-for-science-demos",
+      "file_name": "index.html",
+      "file_id": "dashboard-record-must-not-be-fetched",
+      "file_check": "ok",
+      "status": "Live"
+    },
+    {
       "title": "K-means, step by step",
       "slug": "k-means-step-by-step",
       "description": "Watch k-means alternate between assigning points and moving centroids until the clusters settle.",
@@ -41,7 +49,7 @@
       "title": "Night traffic point cloud",
       "slug": "night-traffic",
       "description": "A dark-mode scatter of road segments, used here to check the injected navigation stays readable on dark demos.",
-      "domain": "Earth & Climate",
+      "department": "Statistics and Data Science",
       "category": "Data visualisation",
       "tags": ["umap", "traffic"],
       "author": "Yuhan",

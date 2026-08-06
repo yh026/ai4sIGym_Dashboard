@@ -4,6 +4,7 @@
   "engines": { "node": ">=18" },
   "scripts": {
     "build": "node build.js",
-    "mock": "node build.js --mock"
+    "mock": "node build.js --mock",
+    "test": "node --test --test-concurrency=1"
   }
 }

@@ -67,10 +67,16 @@ a { color: inherit; }
   background: var(--white);
   color: var(--ink);
   font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
   transform: translateY(-170%);
 }
 
-.skip-link:focus { transform: translateY(0); }
+.skip-link:focus {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
 
 :focus-visible {
   outline: 3px solid var(--focus);
@@ -488,8 +494,11 @@ a { color: inherit; }
 .domain-popover-inner {
   position: relative;
   isolation: isolate;
+  max-height: min(68vh, 620px);
   padding: 18px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border: 1px solid color-mix(in srgb, var(--domain-color, #6a6685) 38%, #b8aa90);
   border-radius: 13px 15px 12px 16px;
   background: rgba(255, 253, 247, .98);
@@ -920,35 +929,40 @@ a { color: inherit; }
 
 .card-visual {
   position: relative;
-  min-height: 154px;
+  min-height: 0;
+  aspect-ratio: 16 / 9;
   display: grid;
   place-items: center;
   overflow: hidden;
   border-bottom: 1px solid var(--line-light);
-  background-color: color-mix(in srgb, var(--card-accent) 8%, #edf2f3);
-  background-image: linear-gradient(135deg, transparent 0 44%, color-mix(in srgb, var(--card-accent) 10%, transparent) 44% 56%, transparent 56% 100%);
+  background: color-mix(in srgb, var(--card-accent) 5%, #eef1ed);
   color: var(--card-accent);
 }
 
-.card-visual::before,
-.card-visual::after {
-  content: "";
+.card-preview {
   position: absolute;
-  width: 170px;
-  height: 170px;
-  border: 1px solid color-mix(in srgb, var(--card-accent) 24%, transparent);
-  border-radius: 50%;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  background: #f4f4ef;
 }
 
-.card-visual::after { width: 112px; height: 112px; }
+.card-preview[hidden],
+.card-preview-pending[hidden] { display: none; }
 
-.card-emblem {
-  position: relative;
-  z-index: 1;
-  width: 82px;
-  height: 82px;
+.card-preview-pending {
+  width: calc(100% - 44px);
+  min-height: 72px;
   display: grid;
   place-items: center;
+  border-top: 1px solid color-mix(in srgb, var(--card-accent) 35%, #bdc7c8);
+  border-bottom: 1px solid color-mix(in srgb, var(--card-accent) 35%, #bdc7c8);
+  color: #55646d;
+  font: 700 10px/1.4 var(--mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
 }
 
 .domain-symbol-svg {
@@ -968,20 +982,16 @@ a { color: inherit; }
 }
 
 .card-index {
-  position: absolute;
-  top: 14px;
-  left: 16px;
-  z-index: 2;
-  color: #405463;
+  padding: 5px 7px;
+  border: 1px solid rgba(95, 109, 116, .45);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--card-accent) 5%, #fffdf8);
+  color: #314856;
   font: 750 10px/1 var(--mono);
   letter-spacing: .1em;
 }
 
 .badges {
-  position: absolute;
-  top: 12px;
-  right: 13px;
-  z-index: 2;
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -1006,6 +1016,15 @@ a { color: inherit; }
   padding: 22px;
   display: flex;
   flex-direction: column;
+}
+
+.card-utility {
+  min-height: 25px;
+  margin: 0 0 13px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .card-domain {
@@ -1254,6 +1273,23 @@ a { color: inherit; }
   .map-domain-label { max-width: 170px; }
   .project-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .domain-switcher-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .domain-popover-inner { max-height: min(52vh, 520px); }
+
+  .map-marker[data-domain="biology-genomics"] .domain-popover {
+    top: calc(100% + 10px);
+    right: 0;
+    bottom: auto;
+    left: auto;
+    transform: none;
+  }
+
+  .map-marker[data-domain="ai-mathematics-data"] .domain-popover {
+    top: calc(100% + 10px);
+    right: auto;
+    bottom: auto;
+    left: 0;
+    transform: none;
+  }
 }
 
 @media (max-width: 860px) {
