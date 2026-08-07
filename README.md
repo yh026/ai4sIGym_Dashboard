@@ -8,6 +8,11 @@ record lives in the registry sheet, and this repo turns both into a fast public
 site on every build. The repo contains **zero production demo content** — the
 whole site is reproducible from Drive + Sheet alone.
 
+The complete sheet-bound Apps Script is checked in at
+[`google-apps-script/Code.gs`](google-apps-script/Code.gs). Its
+[`usage guide`](google-apps-script/README.md) covers the separate Preview and
+Production Netlify workflows.
+
 ```
 Drive folder ──▶ Apps Script (sync + JSON feed) ──▶ this build ──▶ Netlify
                      ▲
@@ -17,15 +22,23 @@ Drive folder ──▶ Apps Script (sync + JSON feed) ──▶ this build ─�
 ## One-time setup (~20 min)
 
 ### A. Deploy the Apps Script as a web app
-In the registry sheet: Extensions → Apps Script, then **Deploy → New
+In the registry sheet, open **Extensions → Apps Script**, paste the complete
+[`Code.gs`](google-apps-script/Code.gs), save, and run `setup()` once from the
+editor as the account that will own the Web App. Do not have several editors run
+`setup()` because each can install a separate hourly trigger. This stores the
+bound Registry Sheet ID for web-app requests. Then use
+**Deploy → New
 deployment** → gear icon → **Web app**:
 - Description: anything
 - Execute as: **Me**
-- Who has access: **Anyone with the link** (the unguessable token in the URL is
-  what actually gates it; the folder and sheet stay private)
+- Who has access: choose the option that permits access **without a Google
+  login** (normally **Anyone**, not “Anyone with Google account”). The
+  unguessable token in the URL is what gates the endpoint; verify it in an
+  incognito window. If your organisation disables anonymous Web Apps, Netlify
+  cannot call this endpoint until that policy or architecture changes.
 
 Click Deploy, authorize if asked. Then back in the sheet:
-**AI4S dashboard → Show build URL for Netlify** — copy the full URL it shows
+**AI4S dashboard → Show Registry API URL for Netlify** — copy the full URL it shows
 (it ends in `?token=…`). That string is your `REGISTRY_URL`.
 
 ### B. Verify the feed (30 seconds, worth it)
@@ -49,23 +62,34 @@ pick the repo. Build command and publish directory are read from
 variable: **Site configuration → Environment variables → Add**
 `REGISTRY_URL` = the URL from step A. Deploy.
 
+Give `REGISTRY_URL` the **Builds** scope and the same value in **Production**,
+**Branch deploys**, and **Deploy Previews** contexts, so every Netlify build can
+read the Registry.
+
 ### E. Create the build hook and wire it to the sheet
 **Site configuration → Build & deploy → Build hooks → Add build hook** (name it
-"registry publish", branch main). Copy the hook URL and paste it into the
-sheet's **Config** tab, `netlify_build_hook` cell.
+"registry production publish", branch main). Copy the Hook base URL and paste
+it into the sheet's **Config** tab, `netlify_build_hook` cell. To rebuild a
+Branch Deploy from the Sheet, create a second Hook whose default is a
+non-production branch and paste it into `netlify_preview_build_hook`; see the
+[Apps Script guide](google-apps-script/README.md).
+
+Treat both Hook URLs and `access_token` as credentials. Only fully trusted
+people should be editors of the Registry Sheet / bound Apps Script project.
 
 ### F. First publish
 In the sheet, set some demos to **Live**, then
-**AI4S dashboard → Publish site**. ~1–2 minutes later the dashboard is up,
+**AI4S dashboard → Rebuild production site (main)**. ~1–2 minutes later the dashboard is up,
 each demo at `/demos/<slug>/`.
 
 ## The routine forever after
 1. Drop a new `.html` in the Drive folder.
 2. Sync (menu, or the hourly auto-run) → fill the row → status **Live**.
-3. Menu → **Publish site**.
+3. Build the configured preview branch, review it, merge the code to `main`,
+   then choose **Rebuild production site (main)**.
 
-Set `auto_publish` to `yes` in Config if you'd rather the hourly sync also
-rebuild whenever it finds changes — then step 3 disappears.
+`auto_publish_target` defaults to `off`. Set it explicitly to `preview` or
+`production` only if hourly Drive syncs should also trigger that deployment.
 
 ## Science-map taxonomy
 
@@ -140,7 +164,7 @@ namespaced (`ai4s-*`), so demos don't need to know about Instrument Gym at all.
 - **Build fails: "REGISTRY_URL is not set"** — add the env var in Netlify
   (step D), then trigger a redeploy.
 - **Build fails: "bad token"** — the env var is missing the `?token=…` part;
-  re-copy from "Show build URL for Netlify".
+  re-copy from "Show Registry API URL for Netlify".
 - **Site is empty** — no rows have status **Live**, or the deploy predates
   them: publish again from the sheet menu.
 - **A demo is skipped with "file missing in Drive"** — its `file_check` says
