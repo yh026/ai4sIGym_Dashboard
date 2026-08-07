@@ -5,8 +5,10 @@ const assert = require('node:assert/strict');
 
 const {
   DOMAIN_DEFINITIONS,
+  cardPreview,
   esc,
   isSiteRecord,
+  repairDemoNavigation,
   resolveDomain,
   resolveSubtopic,
   safePreviewUrl,
@@ -46,6 +48,34 @@ test('preview URLs and encoded registry text are normalised safely', () => {
   assert.equal(safePreviewUrl('assets/../secret.png', '../../'), '');
   assert.equal(esc('PCA &amp; UMAP'), 'PCA &amp; UMAP');
   assert.equal(esc('<script>'), '&lt;script&gt;');
+});
+
+test('preview lookup survives a duplicate-row slug suffix by using the HTML file identity', () => {
+  assert.equal(cardPreview({
+    slug: 'tbb-cluster-explorer-2',
+    file_name: 'tbb_cluster_explorer.html',
+    title: 'TBB cluster explorer — grouping a day of Himawari-9 brightness temperatures',
+  }, '../../'), '../../assets/previews/tbb-cluster-explorer.jpg');
+});
+
+test('demo-owned All demos links are repaired for the nested published route', () => {
+  const source = '<header><a data-role="back" href="../index.html">← All demos</a></header>'
+    + '<a href="https://example.org">Keep this link</a>'
+    + '<a data-role="back" href="#previous-step">Previous step</a>'
+    + '<a data-href="../index.html">All demos without a real href</a>'
+    + '<a href=../index.html>All demos with an unquoted href</a>'
+    + '<a href="https://example.org/demos">Browse all demos elsewhere</a>'
+    + '<script>const template = "<a data-role=\'back\' href=\'../index.html\'>All demos</a>";</script>';
+  const repaired = repairDemoNavigation(source);
+
+  assert.match(repaired, /href="\.\.\/\.\.\/index\.html#projects">← All demos<\/a>/);
+  assert.match(repaired, /href="https:\/\/example\.org">Keep this link<\/a>/);
+  assert.match(repaired, /data-role="back" href="#previous-step">Previous step<\/a>/);
+  assert.match(repaired, /data-href="\.\.\/index\.html">All demos without a real href<\/a>/);
+  assert.match(repaired, /href=\.\.\/index\.html>All demos with an unquoted href<\/a>/);
+  assert.match(repaired, /href="https:\/\/example\.org\/demos">Browse all demos elsewhere<\/a>/);
+  assert.match(repaired, /<script>const template = "<a data-role='back' href='\.\.\/index\.html'>All demos<\/a>";<\/script>/);
+  assert.equal((repaired.match(/\.\.\/\.\.\/index\.html#projects/g) || []).length, 1);
 });
 
 test('subject matter wins over misleading individual words and ML methods', () => {

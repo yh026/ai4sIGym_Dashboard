@@ -345,14 +345,20 @@ function domainById(id) {
 }
 
 function projectOverride(overrides, demo) {
-  const fileStem = demo.file_name
-    ? path.basename(String(demo.file_name), path.extname(String(demo.file_name)))
-    : '';
-  const keys = [demo.slug, fileStem, demo.file_name, demo.title].filter(Boolean).map(slugSafe);
+  const keys = projectKeys(demo);
   for (const key of keys) {
     if (overrides.has(key)) return overrides.get(key);
   }
   return '';
+}
+
+function projectKeys(demo) {
+  const fileStem = demo.file_name
+    ? path.basename(String(demo.file_name), path.extname(String(demo.file_name)))
+    : '';
+  return [...new Set(
+    [demo.slug, fileStem, demo.file_name, demo.title].filter(Boolean).map(slugSafe),
+  )];
 }
 
 function validateTaxonomy() {
@@ -547,7 +553,7 @@ async function loadRegistry() {
   const base = process.env.REGISTRY_URL;
   if (!base) {
     fail('REGISTRY_URL is not set. In Netlify: Site configuration → Environment variables. '
-      + 'Get the value from the sheet: AI4S dashboard → Show build URL for Netlify.');
+      + 'Get the value from the sheet: AI4S dashboard → Show Registry API URL for Netlify.');
   }
 
   const manifestUrl = new URL(base);
@@ -755,9 +761,51 @@ function injectionSnippet(demo) {
 
 function injectIntoDemo(html, demo) {
   const snippet = injectionSnippet(demo);
-  const index = html.toLowerCase().lastIndexOf('</body>');
-  if (index === -1) return html + snippet;
-  return html.slice(0, index) + snippet + html.slice(index);
+  const repaired = repairDemoNavigation(html);
+  const index = repaired.toLowerCase().lastIndexOf('</body>');
+  if (index === -1) return repaired + snippet;
+  return repaired.slice(0, index) + snippet + repaired.slice(index);
+}
+
+/**
+ * Demo files are published two directories below the site root. Repair their
+ * own "All demos" controls at build time so source pages can remain portable
+ * and a one-level ../index.html link cannot resolve to the missing
+ * /demos/index.html route.
+ */
+function repairDemoNavigation(html) {
+  const source = String(html || '');
+  const rawTextBlock = /<(script|style)\b[\s\S]*?<\/\1\s*>/gi;
+  let output = '';
+  let cursor = 0;
+  let block;
+
+  while ((block = rawTextBlock.exec(source))) {
+    output += repairDemoAnchors_(source.slice(cursor, block.index));
+    output += block[0];
+    cursor = block.index + block[0].length;
+  }
+  return output + repairDemoAnchors_(source.slice(cursor));
+}
+
+function repairDemoAnchors_(html) {
+  return html.replace(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi,
+    (anchor, attributes, content) => {
+      const isBackControl = /\bdata-role\s*=\s*(["'])back\1/i.test(attributes);
+      const label = content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      if (!isBackControl && !/\ball demos\b/i.test(label)) return anchor;
+
+      // Only repair the exact broken path observed in portable source demos.
+      // Requiring whitespace before href avoids matching data-href; requiring
+      // a quoted value avoids inventing a duplicate attribute for odd markup.
+      const brokenHref = /(\s)href(\s*=\s*)(["'])\.\.\/index\.html(?:#[^"']*)?\3/i;
+      if (!brokenHref.test(attributes)) return anchor;
+      const repairedAttributes = attributes.replace(brokenHref,
+        (match, space, equals, quote) => (
+          space + 'href' + equals + quote + '../../index.html#projects' + quote
+        ));
+      return '<a' + repairedAttributes + '>' + content + '</a>';
+    });
 }
 
 // -------------------------------------------------------------- dashboard
@@ -782,12 +830,16 @@ function safePreviewUrl(value, hrefBase) {
 }
 
 function cardPreview(demo, hrefBase) {
-  const slug = slugSafe(demo.slug || demo.title);
   const previewDirectory = path.join(SITE, 'assets', 'previews');
-  for (const extension of ['jpg', 'webp', 'png', 'jpeg', 'avif']) {
-    const fileName = slug + '.' + extension;
-    if (fs.existsSync(path.join(previewDirectory, fileName))) {
-      return hrefBase + 'assets/previews/' + fileName;
+  // A duplicate Registry row can add a numeric suffix to the public slug even
+  // though the underlying project file is unchanged. Try every stable project
+  // identity (slug, HTML file stem, file name and title) before giving up.
+  for (const key of projectKeys(demo)) {
+    for (const extension of ['jpg', 'webp', 'png', 'jpeg', 'avif']) {
+      const fileName = key + '.' + extension;
+      if (fs.existsSync(path.join(previewDirectory, fileName))) {
+        return hrefBase + 'assets/previews/' + fileName;
+      }
     }
   }
   return safePreviewUrl(demo.preview_image || demo.picture || demo.thumbnail, hrefBase);
@@ -1065,6 +1117,8 @@ module.exports = {
   isSiteRecord,
   resolveDomain,
   resolveSubtopic,
+  cardPreview,
+  repairDemoNavigation,
   safePreviewUrl,
   validateTaxonomy,
 };
