@@ -102,8 +102,17 @@ use Netlify access control before putting confidential material in Draft. Previe
 builds send `X-Robots-Tag: noindex, nofollow`; this discourages indexing but is
 not authentication.
 
-`auto_publish_target` defaults to `off`. Set it explicitly to `preview` or
-`production` only if hourly Drive syncs should also trigger that deployment.
+`auto_publish_target` defaults to `off`. Set it explicitly to `preview` only
+when hourly Drive syncs should rebuild the stable develop Preview. Production
+is never an automatic target and always requires the confirmed manual action.
+
+Preview automation compares a deterministic Registry revision instead of only
+the sync counters, so additions, edits, missing files, recovered files, and
+publishable Sheet metadata changes are handled consistently. A Build Hook 2xx
+means only **accepted**; the request becomes **ready** only after the stable
+develop URL serves a matching, secret-free `/deploy-receipt.json`. The existing
+hourly `syncDrive` trigger performs bounded retries—no second trigger is added.
+Use **AI4S dashboard → Preview publish status** for a read-only reconciliation.
 
 ## Science-map taxonomy
 

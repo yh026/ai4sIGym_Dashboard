@@ -1,5 +1,7 @@
 {
   "ok": true,
+  "audience": "preview",
+  "registry_revision": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
   "site": {
     "title": "Status policy test"
   },

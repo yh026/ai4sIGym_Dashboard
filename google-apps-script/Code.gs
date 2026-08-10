@@ -61,6 +61,17 @@ var SHEET_DEMOS = 'Demos';
 var SHEET_CONFIG = 'Config';
 var SHEET_LOG = 'Log';
 var REGISTRY_SPREADSHEET_ID_PROPERTY = 'AI4S_REGISTRY_SPREADSHEET_ID';
+var PREVIEW_PUBLISH_STATE_PROPERTY = 'AI4S_PREVIEW_PUBLISH_STATE_V1';
+var REGISTRY_REVISION_SCHEMA = 1;
+var PREVIEW_PUBLISH_STATE_VERSION = 1;
+var PREVIEW_MAX_ATTEMPTS = 6;
+var PREVIEW_RETRY_DELAYS_MS = [
+  60 * 60 * 1000,
+  2 * 60 * 60 * 1000,
+  4 * 60 * 60 * 1000,
+  8 * 60 * 60 * 1000,
+  24 * 60 * 60 * 1000
+];
 
 // Deployment guardrails. Preview publishing accepts these branch families
 // plus the stable names below. Production is deliberately locked to main.
@@ -70,7 +81,9 @@ var PREVIEW_BRANCH_PREFIXES = [
   'refactor/', 'hotfix/', 'release/'
 ];
 var PREVIEW_BRANCH_NAMES = ['develop', 'staging', 'dashboard-preview'];
-var AUTO_PUBLISH_TARGETS = ['off', 'preview', 'production'];
+// Production is deliberately excluded: main may be rebuilt only through the
+// explicit publishProduction() confirmation dialog.
+var AUTO_PUBLISH_TARGETS = ['off', 'preview'];
 
 // Column order for the Demos tab. 1-based indexes.
 // Anything added here must also be added to HEADERS at the same position, and
@@ -431,7 +444,7 @@ function setupConfigSheet_(ss) {
     ['preview_branch', existing.preview_branch || '', 'Exact existing GitHub branch to preview, e.g. develop. main is always rejected.'],
     ['preview_url', existing.preview_url || '', 'Actual Branch Deploy URL copied from Netlify. Do not guess it from a branch containing slashes.'],
     ['preview_url_branch', existing.preview_url_branch || '', 'Exact branch served by preview_url. The Open preview link is shown only when this matches preview_branch.'],
-    ['auto_publish_target', autoTarget, 'off (recommended), preview, or production. Controls rebuilds after an hourly Drive sync finds changes.'],
+    ['auto_publish_target', autoTarget, 'off or preview. Production always requires the separate confirmed manual action.'],
     ['access_token', existing.access_token || Utilities.getUuid(), 'Auto-generated secret for the registry endpoint. No need to touch it.']
   ];
 
@@ -523,6 +536,7 @@ function onOpen() {
   SpreadsheetApp.getUi().createMenu('AI4S dashboard')
     .addItem('Sync Drive folder now', 'syncDriveFromMenu')
     .addItem('Build preview branch', 'publishPreview')
+    .addItem('Preview publish status', 'showPreviewPublishStatus')
     .addItem('Open preview site', 'showPreviewSite')
     .addSeparator()
     .addItem('Rebuild production site (main)', 'publishProduction')
@@ -631,7 +645,33 @@ function syncDrive() {
     return { error: busy };
   }
   try {
-    return syncDriveUnlocked_();
+    var result = syncDriveUnlocked_();
+    try {
+      var publishSs = registrySpreadsheet_();
+      var publishCfg = readConfig_(publishSs);
+      var previewRun = maintainPreviewPublish_(publishSs, publishCfg,
+        { allowAttempt: true, allowAutoRequest: !(result && result.error) });
+      if (previewRun.attempted) {
+        if (previewRun.attemptResult.ok) {
+          logEvent_('publish', 'Hourly Preview request '
+            + previewRun.state.requestId.slice(0, 12) + ' accepted by Netlify (HTTP '
+            + previewRun.attemptResult.status + '); not ready yet.');
+        } else {
+          logEvent_('publish-error', 'Hourly Preview retry failed: '
+            + safeErrorMessage_(previewRun.attemptResult.error));
+        }
+      }
+      if (previewRun.becameReady) {
+        logEvent_('publish-ready', 'Preview request '
+          + previewRun.state.readyRequestId.slice(0, 12) + ' is ready at revision '
+          + previewRun.state.ready.slice(0, 19) + '.');
+      }
+      if (result && typeof result === 'object') result.previewPublishPhase = previewRun.phase;
+    } catch (publishErr) {
+      logEvent_('publish-error', 'Hourly Preview reconciliation failed: '
+        + safeErrorMessage_(publishErr));
+    }
+    return result;
   } finally {
     try { SpreadsheetApp.flush(); }
     finally { lock.releaseLock(); }
@@ -693,8 +733,7 @@ function syncDriveUnlocked_() {
       // Known page — refresh if the page or its card changed in Drive.
       var i = byId[id];
       var stored = rows[i][COLS.LAST_MODIFIED - 1];
-      var changed = !isDate_(stored) ||
-        Math.abs(it.stamp.getTime() - stored.getTime()) > 60 * 1000;
+      var changed = driveStampChanged_(stored, it.stamp);
       if (changed) {
         var read = readDemo_(it);
         rows[i][COLS.LAST_MODIFIED - 1] = it.stamp;
@@ -755,21 +794,6 @@ function syncDriveUnlocked_() {
   logEvent_('sync', summary);
   ss.toast(summary, 'Drive sync', 6);
 
-  // Optional hands-off mode. The target is explicit so a preview workflow can
-  // never silently inherit the old production-only Build Hook behaviour.
-  if ((nNew + nUpdated) > 0) {
-    var autoTarget = autoPublishTarget_(cfg);
-    if (autoTarget !== 'off') {
-      var autoResult = triggerConfiguredBuild_(cfg, autoTarget);
-      if (autoResult.ok) {
-        logEvent_('publish', 'Auto-build ' + autoTarget + ' / ' + autoResult.branch
-          + ' accepted by Netlify (HTTP ' + autoResult.status + ').');
-      } else {
-        logEvent_('publish-error', 'Auto-build ' + autoTarget + ' blocked or failed: '
-          + autoResult.error);
-      }
-    }
-  }
   return { nNew: nNew, nUpdated: nUpdated, nWarn: nWarn };
 }
 
@@ -891,23 +915,326 @@ function readCard_(file) {
 
 // -------------------------------------------------- publish & build endpoint
 
+function emptyPreviewPublishState_() {
+  return {
+    v: PREVIEW_PUBLISH_STATE_VERSION,
+    branch: '', desired: '', requested: '', requestId: '', requestedAt: '',
+    accepted: '', acceptedAt: 0,
+    ready: '', readyRequestId: '', readyAt: 0,
+    attempts: 0, lastAttemptAt: 0, nextAttemptAt: 0,
+    lastCheckAt: 0, lastHttpStatus: 0, lastError: ''
+  };
+}
+
+function normalisePreviewPublishState_(value) {
+  var out = emptyPreviewPublishState_();
+  if (!value || Number(value.v) !== PREVIEW_PUBLISH_STATE_VERSION) return out;
+  ['branch', 'desired', 'requested', 'requestId', 'requestedAt', 'accepted',
+    'ready', 'readyRequestId', 'lastError'].forEach(function (key) {
+    out[key] = String(value[key] || '');
+  });
+  ['acceptedAt', 'readyAt', 'attempts', 'lastAttemptAt', 'nextAttemptAt',
+    'lastCheckAt', 'lastHttpStatus'].forEach(function (key) {
+    var n = Number(value[key]);
+    out[key] = isFinite(n) && n >= 0 ? n : 0;
+  });
+  out.attempts = Math.floor(out.attempts);
+  out.lastError = out.lastError.replace(/\s+/g, ' ').slice(0, 300);
+  return out;
+}
+
+function readPreviewPublishState_() {
+  var raw = PropertiesService.getScriptProperties().getProperty(PREVIEW_PUBLISH_STATE_PROPERTY);
+  if (!raw) return emptyPreviewPublishState_();
+  try { return normalisePreviewPublishState_(JSON.parse(raw)); }
+  catch (ignored) {
+    var state = emptyPreviewPublishState_();
+    state.lastError = 'Stored Preview publish state was unreadable and was reset safely.';
+    return state;
+  }
+}
+
+function writePreviewPublishState_(state) {
+  state = normalisePreviewPublishState_(state);
+  PropertiesService.getScriptProperties()
+    .setProperty(PREVIEW_PUBLISH_STATE_PROPERTY, JSON.stringify(state));
+  return state;
+}
+
+function validRegistryRevision_(value) {
+  return /^sha256:[0-9a-f]{64}$/.test(String(value || ''));
+}
+
+function previewRequestId_() {
+  return String(Utilities.getUuid());
+}
+
+function observePreviewDesired_(state, branch, revision) {
+  state = normalisePreviewPublishState_(state);
+  branch = String(branch || '').trim();
+  revision = String(revision || '');
+  if (state.branch !== branch) {
+    state = emptyPreviewPublishState_();
+    state.branch = branch;
+  }
+  if (state.desired !== revision) {
+    state.desired = revision;
+    state.requested = '';
+    state.requestId = '';
+    state.requestedAt = '';
+    state.accepted = '';
+    state.acceptedAt = 0;
+    state.attempts = 0;
+    state.lastAttemptAt = 0;
+    state.nextAttemptAt = 0;
+    state.lastHttpStatus = 0;
+    state.lastError = '';
+  }
+  return state;
+}
+
+function requestPreviewRevision_(state, now) {
+  state.requested = state.desired;
+  state.requestId = previewRequestId_();
+  state.requestedAt = new Date(now).toISOString();
+  state.accepted = '';
+  state.acceptedAt = 0;
+  state.attempts = 0;
+  state.lastAttemptAt = 0;
+  state.nextAttemptAt = now;
+  state.lastHttpStatus = 0;
+  state.lastError = '';
+  return state;
+}
+
+function previewRetryDelayMs_(attempts) {
+  var index = Math.max(0, Math.min(Number(attempts || 1) - 1,
+    PREVIEW_RETRY_DELAYS_MS.length - 1));
+  return PREVIEW_RETRY_DELAYS_MS[index];
+}
+
+function previewReceiptMatches_(receipt, expected) {
+  if (!receipt || receipt.schema !== 1 || receipt.verified !== true) return false;
+  if (receipt.revision_bound !== true) return false;
+  if (receipt.target !== 'preview' || receipt.audience !== 'preview') return false;
+  if (receipt.context !== 'branch-deploy') return false;
+  if (String(receipt.branch || '') !== String(expected.branch || '')) return false;
+  if (String(receipt.registry_revision || '') !== String(expected.revision || '')) return false;
+  if (expected.requestId
+      && String(receipt.request_id || '') !== String(expected.requestId)) return false;
+  return true;
+}
+
+function previewPublishPhase_(state) {
+  state = normalisePreviewPublishState_(state);
+  if (!state.desired) return 'unknown';
+  if (state.requested === state.desired) {
+    if (state.ready === state.desired && state.readyRequestId === state.requestId) return 'ready';
+    if (state.attempts >= PREVIEW_MAX_ATTEMPTS) return 'retry-exhausted';
+    if (state.accepted === state.desired) return 'accepted';
+    return state.attempts > 0 ? 'retry-scheduled' : 'requested';
+  }
+  return state.ready === state.desired ? 'ready' : 'dirty';
+}
+
+function previewPublishConfigurationError_(cfg) {
+  var branch = String(cfg.preview_branch || '').trim();
+  if (branch !== 'develop') {
+    return 'Durable Preview publishing is locked to the develop branch.';
+  }
+  return previewUrlError_(branch, cfg.preview_url, cfg.preview_url_branch,
+    cfg.production_branch);
+}
+
+function checkPreviewReceipt_(cfg, expected, now) {
+  var configError = previewPublishConfigurationError_(cfg);
+  if (configError) return { ok: false, configured: false, ready: false, error: configError };
+  var url = String(cfg.preview_url || '').trim().replace(/\/+$/, '')
+    + '/deploy-receipt.json?ai4s_check=' + encodeURIComponent(String(now));
+  try {
+    var response = UrlFetchApp.fetch(url, {
+      method: 'get',
+      followRedirects: true,
+      muteHttpExceptions: true,
+      headers: { 'Cache-Control': 'no-cache' }
+    });
+    var status = Number(response.getResponseCode());
+    if (status !== 200) {
+      return { ok: false, configured: true, ready: false, status: status,
+        error: 'Preview receipt returned HTTP ' + status + '.' };
+    }
+    var receipt;
+    try { receipt = JSON.parse(response.getContentText()); }
+    catch (ignored) {
+      return { ok: false, configured: true, ready: false, status: status,
+        error: 'Preview receipt was not valid JSON.' };
+    }
+    return {
+      ok: true,
+      configured: true,
+      ready: previewReceiptMatches_(receipt, expected),
+      status: status,
+      receipt: receipt,
+      error: ''
+    };
+  } catch (err) {
+    return { ok: false, configured: true, ready: false, status: 0,
+      error: 'Could not check Preview receipt: ' + safeErrorMessage_(err) };
+  }
+}
+
+function previewBuildPayload_(state) {
+  return {
+    schema: 1,
+    target: 'preview',
+    branch: state.branch,
+    registry_revision: state.requested,
+    request_id: state.requestId,
+    requested_at: state.requestedAt
+  };
+}
+
+function recordPreviewAttempt_(state, result, now) {
+  state.attempts += 1;
+  state.lastAttemptAt = now;
+  state.lastHttpStatus = Number(result.status || 0);
+  state.nextAttemptAt = state.attempts >= PREVIEW_MAX_ATTEMPTS
+    ? 0 : now + previewRetryDelayMs_(state.attempts);
+  if (result.ok) {
+    state.accepted = state.requested;
+    state.acceptedAt = now;
+    state.lastError = '';
+  } else {
+    state.lastError = String(result.error || 'Preview Hook failed.')
+      .replace(/\s+/g, ' ').slice(0, 300);
+  }
+  return state;
+}
+
+/**
+ * Reconcile one Preview content request. `forceRequest` is used only by the
+ * explicit menu action; hourly calls create or retry a request only when
+ * automation is explicitly set to Preview. Switching automation to off is a
+ * hard stop for Hook POSTs, while receipt reconciliation remains read-only.
+ */
+function maintainPreviewPublish_(ss, cfg, options) {
+  options = options || {};
+  var now = options.now == null ? Date.now() : Number(options.now);
+  var snapshot = registrySnapshot_(ss, cfg, 'preview');
+  if (!snapshot || !validRegistryRevision_(snapshot.registry_revision)) {
+    throw new Error('Preview Registry produced an invalid registry_revision; no build was requested.');
+  }
+  var state = observePreviewDesired_(readPreviewPublishState_(),
+    String(cfg.preview_branch || '').trim(), snapshot.registry_revision);
+  var priorReady = state.ready;
+  var priorReadyRequestId = state.readyRequestId;
+  var expected = {
+    branch: state.branch,
+    revision: state.desired,
+    requestId: state.requested === state.desired ? state.requestId : ''
+  };
+  var receipt = checkPreviewReceipt_(cfg, expected, now);
+  state.lastCheckAt = now;
+  state.lastHttpStatus = Number(receipt.status || state.lastHttpStatus || 0);
+  if (receipt.ready) {
+    state.ready = state.desired;
+    state.readyRequestId = String((receipt.receipt && receipt.receipt.request_id) || '');
+    state.readyAt = now;
+    state.nextAttemptAt = 0;
+    state.lastError = '';
+  } else if (receipt.ok) {
+    // A valid response from the stable alias is authoritative. If another Git
+    // or Netlify deploy replaced the verified receipt, the previous ready state
+    // is stale and must not suppress a repair request.
+    var replacedCurrentReady = state.ready === state.desired;
+    state.ready = '';
+    state.readyRequestId = '';
+    state.readyAt = 0;
+    if (replacedCurrentReady) {
+      // The previous logical request finished successfully. A later deploy that
+      // replaces it must receive a fresh request ID and retry budget; otherwise
+      // old attempts can accumulate until repair becomes permanently exhausted.
+      state.requested = '';
+      state.requestId = '';
+      state.requestedAt = '';
+      state.accepted = '';
+      state.acceptedAt = 0;
+      state.attempts = 0;
+      state.lastAttemptAt = 0;
+      state.nextAttemptAt = 0;
+      state.lastHttpStatus = 0;
+    }
+    state.lastError = 'Stable Preview receipt does not match the desired verified request.';
+  } else if (receipt.error) {
+    state.lastError = String(receipt.error).replace(/\s+/g, ' ').slice(0, 300);
+  }
+
+  if (options.forceRequest) {
+    state = requestPreviewRevision_(state, now);
+  } else if (options.allowAutoRequest !== false && autoPublishTarget_(cfg) === 'preview'
+      && state.ready !== state.desired && state.requested !== state.desired) {
+    state = requestPreviewRevision_(state, now);
+  }
+
+  var attemptResult = null;
+  var pending = state.requested === state.desired
+    && !(state.ready === state.desired && state.readyRequestId === state.requestId);
+  var due = state.nextAttemptAt > 0 && now >= state.nextAttemptAt;
+  var hookPostsEnabled = options.forceRequest === true || autoPublishTarget_(cfg) === 'preview';
+  if (options.allowAttempt !== false && hookPostsEnabled
+      && receipt.configured !== false && pending && due
+      && state.attempts < PREVIEW_MAX_ATTEMPTS) {
+    var request = configuredBuildRequest_(cfg, 'preview');
+    attemptResult = triggerBuildRequest_(request, previewBuildPayload_(state));
+    state = recordPreviewAttempt_(state, attemptResult, now);
+  }
+
+  state = writePreviewPublishState_(state);
+  return {
+    snapshot: snapshot,
+    state: state,
+    phase: previewPublishPhase_(state),
+    receipt: receipt,
+    becameReady: state.ready === state.desired
+      && (priorReady !== state.ready || priorReadyRequestId !== state.readyRequestId),
+    attempted: attemptResult !== null,
+    attemptResult: attemptResult
+  };
+}
+
 /** Build the configured non-production branch and leave main untouched. */
 function publishPreview() {
-  var ss = SpreadsheetApp.getActive();
-  var cfg = readConfig_(ss);
-  var result = triggerConfiguredBuild_(cfg, 'preview');
-  if (!result.ok) {
-    logEvent_('publish-error', 'Manual preview build blocked or failed: ' + result.error);
-    SpreadsheetApp.getUi().alert('Preview build was not started', result.error,
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) {
+    SpreadsheetApp.getUi().alert('Preview build was not started',
+      'Another Registry action is still running. Try again shortly.',
       SpreadsheetApp.getUi().ButtonSet.OK);
     return;
   }
+  try {
+    var ss = SpreadsheetApp.getActive();
+    var cfg = readConfig_(ss);
+    var run = maintainPreviewPublish_(ss, cfg, { forceRequest: true, allowAttempt: true });
+    var result = run.attemptResult;
+    if (!run.attempted || !result || !result.ok) {
+      var error = result && result.error ? result.error
+        : (run.receipt.error || 'Preview build could not be requested safely.');
+      logEvent_('publish-error', 'Manual Preview request blocked or failed: '
+        + safeErrorMessage_(error));
+      SpreadsheetApp.getUi().alert('Preview build was not started', error,
+        SpreadsheetApp.getUi().ButtonSet.OK);
+      return;
+    }
 
-  logEvent_('publish', 'Manual preview build / ' + result.branch
-    + ' accepted by Netlify (HTTP ' + result.status + ').');
-  ss.toast('Preview build accepted for ' + result.branch + '.', 'Preview', 6);
-  showPreviewBuildResult_(result.branch, cfg.preview_url, cfg.preview_url_branch,
-    cfg.production_branch);
+    logEvent_('publish', 'Manual Preview request ' + run.state.requestId.slice(0, 12)
+      + ' / ' + run.state.requested.slice(0, 19)
+      + ' accepted by Netlify (HTTP ' + result.status + '); not ready yet.');
+    ss.toast('Preview request accepted; readiness will be verified separately.', 'Preview', 8);
+    showPreviewBuildResult_(result.branch, cfg.preview_url, cfg.preview_url_branch,
+      cfg.production_branch);
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 /** Rebuild main only, with a visible confirmation before the Hook is called. */
@@ -965,6 +1292,74 @@ function showPreviewSite() {
     + '</div>';
   SpreadsheetApp.getUi().showModalDialog(
     HtmlService.createHtmlOutput(html).setWidth(440).setHeight(150), 'AI4S preview');
+}
+
+function previewStateTime_(milliseconds) {
+  var n = Number(milliseconds || 0);
+  return n > 0 ? new Date(n).toISOString() : '—';
+}
+
+/** Reconcile once and show status. This menu action never calls a Build Hook. */
+function showPreviewPublishStatus() {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) {
+    SpreadsheetApp.getUi().alert('Preview status is busy',
+      'Another Registry action is still running. Try again shortly.',
+      SpreadsheetApp.getUi().ButtonSet.OK);
+    return;
+  }
+  try {
+    var ss = SpreadsheetApp.getActive();
+    var cfg = readConfig_(ss);
+    var run = maintainPreviewPublish_(ss, cfg,
+      { allowAttempt: false, allowAutoRequest: false });
+    var state = run.state;
+    var labels = {
+      ready: 'Up to date',
+      accepted: 'Accepted — waiting for verified deploy',
+      requested: 'Requested — waiting to be accepted',
+      'retry-scheduled': 'Retry scheduled',
+      'retry-exhausted': 'Retry exhausted — use Build preview branch to start a new request',
+      dirty: 'Changes waiting',
+      unknown: 'Status unavailable'
+    };
+    var phase = run.phase;
+    var autoTarget = autoPublishTarget_(cfg);
+    var nextRetry = state.nextAttemptAt > 0 ? previewStateTime_(state.nextAttemptAt) : '—';
+    var html = '<div style="font:13px/1.55 Arial;padding:6px 10px">'
+      + '<p><b>' + htmlEscape_(labels[phase] || phase) + '</b></p>'
+      + '<table style="border-collapse:collapse">'
+      + '<tr><td style="padding:3px 16px 3px 0">Branch</td><td><code>'
+      + htmlEscape_(state.branch || '—') + '</code></td></tr>'
+      + '<tr><td style="padding:3px 16px 3px 0">Desired revision</td><td><code>'
+      + htmlEscape_(state.desired ? state.desired.slice(0, 19) : '—') + '</code></td></tr>'
+      + '<tr><td style="padding:3px 16px 3px 0">Request ID</td><td><code>'
+      + htmlEscape_(state.requestId ? state.requestId.slice(0, 12) : '—') + '</code></td></tr>'
+      + '<tr><td style="padding:3px 16px 3px 0">Accepted</td><td>'
+      + htmlEscape_(previewStateTime_(state.acceptedAt)) + '</td></tr>'
+      + '<tr><td style="padding:3px 16px 3px 0">Verified ready</td><td>'
+      + htmlEscape_(previewStateTime_(state.readyAt)) + '</td></tr>'
+      + '<tr><td style="padding:3px 16px 3px 0">Attempts</td><td>'
+      + htmlEscape_(state.attempts + ' / ' + PREVIEW_MAX_ATTEMPTS) + '</td></tr>'
+      + '<tr><td style="padding:3px 16px 3px 0">Next retry</td><td>'
+      + htmlEscape_(nextRetry) + '</td></tr>'
+      + '<tr><td style="padding:3px 16px 3px 0">Auto publish</td><td><code>'
+      + htmlEscape_(autoTarget) + '</code></td></tr></table>';
+    if (state.lastError) {
+      html += '<p style="color:#8a3b12"><b>Last check:</b> '
+        + htmlEscape_(state.lastError) + '</p>';
+    }
+    if (phase === 'dirty' && autoTarget === 'off') {
+      html += '<p>Automatic publishing is off. Use <b>Build preview branch</b> when ready.</p>';
+    }
+    html += '<p style="color:#555">Accepted means Netlify accepted the Hook. Ready is shown only '
+      + 'after the stable Preview returns a matching verified receipt.</p></div>';
+    SpreadsheetApp.getUi().showModalDialog(
+      HtmlService.createHtmlOutput(html).setWidth(570).setHeight(430),
+      'Preview publish status');
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function showPreviewBuildResult_(branch, previewUrl, previewUrlBranch, productionBranch) {
@@ -1030,21 +1425,21 @@ function triggerConfiguredBuild_(cfg, target) {
   return triggerBuildRequest_(configuredBuildRequest_(cfg, target));
 }
 
-function triggerBuildRequest_(request) {
+function triggerBuildRequest_(request, payload) {
   if (!request.ok) return request;
-  var response = triggerBuild_(request.hookUrl);
+  var response = triggerBuild_(request.hookUrl, payload);
   response.target = request.target;
   response.branch = request.branch;
   return response;
 }
 
 /** POST one secret Hook URL and report the real HTTP outcome. */
-function triggerBuild_(hookUrl) {
+function triggerBuild_(hookUrl, payload) {
   try {
     var response = UrlFetchApp.fetch(hookUrl, {
       method: 'post',
       contentType: 'application/json',
-      payload: '{}',
+      payload: JSON.stringify(payload || {}),
       muteHttpExceptions: true
     });
     var status = Number(response.getResponseCode());
@@ -1175,6 +1570,8 @@ function showBuildUrl() {
  *                                       → that demo's dataset picture, as
  *                                         { mime, base64 } for the build to
  *                                         write back out as a file
+ *   &registry_revision=sha256:...        → bind manifest/file reads to one
+ *                                         deterministic Registry snapshot
  * The default/production audience is Live-only. Preview is a closed, explicit
  * audience; Archived, missing and unreadable rows are never served. Files must
  * also be physically located in the configured registry folder (or one direct
@@ -1221,6 +1618,81 @@ function registryFileKind_(visible, id) {
   return '';
 }
 
+function registryDemoForFile_(visible, id, kind) {
+  for (var i = 0; i < visible.length; i++) {
+    if (kind === 'page' && visible[i].file_id === id) return visible[i];
+    if (kind === 'picture' && visible[i].picture_file_id === id) return visible[i];
+  }
+  return null;
+}
+
+function registryFileStampMs_(file) {
+  try {
+    var value = file.getLastUpdated();
+    return isDate_(value) ? value.getTime() : NaN;
+  } catch (ignored) { return NaN; }
+}
+
+/**
+ * last_modified is the newest sync time across a demo's page, provenance and
+ * picture. Therefore an individual page/picture may legitimately be older;
+ * only a Drive timestamp newer than that aggregate proves a post-sync change.
+ * Invalid timestamps fail closed until syncDrive repairs the row.
+ */
+function registryFileChangedAfterSync_(demo, fileStampMs) {
+  var stored = Date.parse(String((demo && demo.last_modified) || ''));
+  if (!isFinite(stored) || !isFinite(fileStampMs)) return true;
+  return fileStampMs > stored;
+}
+
+/** JSON with recursively sorted object keys. Array order is deliberately significant. */
+function stableJson_(value) {
+  if (value === null || value === undefined) return 'null';
+  if (Array.isArray(value)) {
+    return '[' + value.map(function (item) { return stableJson_(item); }).join(',') + ']';
+  }
+  if (typeof value === 'object') {
+    return '{' + Object.keys(value).sort().map(function (key) {
+      return JSON.stringify(key) + ':' + stableJson_(value[key]);
+    }).join(',') + '}';
+  }
+  var encoded = JSON.stringify(value);
+  return encoded === undefined ? 'null' : encoded;
+}
+
+function sha256Hex_(text) {
+  var bytes = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256, String(text), Utilities.Charset.UTF_8);
+  return bytes.map(function (b) {
+    var unsigned = b < 0 ? b + 256 : b;
+    return ('0' + unsigned.toString(16)).slice(-2);
+  }).join('');
+}
+
+/** One deterministic, audience-scoped Registry view shared by manifest and file responses. */
+function registrySnapshot_(ss, cfg, audience) {
+  var site = {
+    title: cfg.site_title || 'AI for Science demos',
+    tagline: cfg.site_tagline || '',
+    categories: readCategories_(ss)
+  };
+  var demos = readDemos_(ss).filter(function (d) {
+    return registryDemoVisible_(d, audience);
+  });
+  var material = {
+    schema: REGISTRY_REVISION_SCHEMA,
+    audience: audience,
+    site: site,
+    demos: demos
+  };
+  return {
+    audience: audience,
+    site: site,
+    demos: demos,
+    registry_revision: 'sha256:' + sha256Hex_(stableJson_(material))
+  };
+}
+
 function doGet(e) {
   var p = (e && e.parameter) || {};
   var ss;
@@ -1242,27 +1714,58 @@ function doGet(e) {
   if (p.action && p.action !== 'manifest' && p.action !== 'file') {
     return jsonOut_({ ok: false, error: 'unknown action' });
   }
-  var visible = readDemos_(ss).filter(function (d) {
-    return registryDemoVisible_(d, audience);
-  });
+  var snapshot = registrySnapshot_(ss, cfg, audience);
+  var expectedRevision = String(p.registry_revision || '').trim();
+  if (expectedRevision && expectedRevision !== snapshot.registry_revision) {
+    return jsonOut_({
+      ok: false,
+      error: 'registry revision changed',
+      registry_revision: snapshot.registry_revision
+    });
+  }
+  var visible = snapshot.demos;
 
   if (p.action === 'file') {
     if (!p.id) return jsonOut_({ ok: false, error: 'unknown file id' });
     var kind = registryFileKind_(visible, p.id);
     if (!kind) return jsonOut_({ ok: false, error: 'unknown file id' });
+    var matchedDemo = registryDemoForFile_(visible, p.id, kind);
     try {
       var file = registryDriveFile_(cfg, p.id, kind);
       if (!file) return jsonOut_({ ok: false, error: 'unknown file id' });
+      var stampBefore = registryFileStampMs_(file);
+      if (registryFileChangedAfterSync_(matchedDemo, stampBefore)) {
+        return jsonOut_({
+          ok: false,
+          error: 'registry source changed; run Drive sync and retry',
+          registry_revision: snapshot.registry_revision
+        });
+      }
       var blob = file.getBlob();
+      var stampAfter = registryFileStampMs_(file);
+      if (stampAfter !== stampBefore
+          || registryFileChangedAfterSync_(matchedDemo, stampAfter)) {
+        return jsonOut_({
+          ok: false,
+          error: 'registry source changed while reading; run Drive sync and retry',
+          registry_revision: snapshot.registry_revision
+        });
+      }
       if (kind === 'page') {
         var pageHtml = blob.getDataAsString();
         if (!String(pageHtml || '').trim()) {
           return jsonOut_({ ok: false, error: 'could not read file' });
         }
-        return jsonOut_({ ok: true, audience: audience, id: p.id, html: pageHtml });
+        return jsonOut_({
+          ok: true,
+          audience: audience,
+          registry_revision: snapshot.registry_revision,
+          id: p.id,
+          html: pageHtml
+        });
       }
       return jsonOut_({
-        ok: true, audience: audience, id: p.id,
+        ok: true, audience: audience, registry_revision: snapshot.registry_revision, id: p.id,
         mime: String(blob.getContentType() || 'application/octet-stream'),
         base64: Utilities.base64Encode(blob.getBytes())
       });
@@ -1275,12 +1778,9 @@ function doGet(e) {
   return jsonOut_({
     ok: true,
     audience: audience,
+    registry_revision: snapshot.registry_revision,
     generated: new Date().toISOString(),
-    site: {
-      title: cfg.site_title || 'AI for Science demos',
-      tagline: cfg.site_tagline || '',
-      categories: readCategories_(ss)
-    },
+    site: snapshot.site,
     demos: visible
   });
 }
@@ -1484,6 +1984,12 @@ function isoOrString_(v) {
 
 function isDate_(v) {
   return Object.prototype.toString.call(v) === '[object Date]' && !isNaN(v.getTime());
+}
+
+/** Compare exact Drive/Sheet timestamps; never hide an edit made within 60 seconds. */
+function driveStampChanged_(stored, current) {
+  if (!isDate_(stored) || !isDate_(current)) return true;
+  return stored.getTime() !== current.getTime();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - filling a row from the sources

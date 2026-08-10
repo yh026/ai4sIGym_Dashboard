@@ -137,9 +137,16 @@ Production 按钮不会执行 Git merge；如果尚未合并，它只会重新�
 
 - `off`：推荐默认值；同步 Drive 不自动部署。
 - `preview`：同步发现变化时只重建配置的 Preview 分支。
-- `production`：同步发现变化时自动重建 `main`，仅在确实需要时启用。
 
-旧配置 `auto_publish=yes` 不会在升级后自动变成 Production 自动发布。
+Production 不属于自动目标，只能通过带 Yes/No 确认的
+`Rebuild production site (main)` 手动触发。旧配置 `auto_publish=yes` 或旧的
+`auto_publish_target=production` 都会在升级后安全回退为 `off`。
+
+Preview 自动化不再只看 `new + updated` 计数，而是比较稳定的 Registry revision，
+所以新增、修改、移出文件夹、文件恢复和可发布的 Sheet 元数据变化都会进入同一流程。
+Build Hook 返回 2xx 只表示 **accepted**；稳定 develop 地址返回完全匹配的
+`/deploy-receipt.json` 后才记为 **ready**。现有每小时 `syncDrive` 触发器负责有限重试，
+不会新增第二个触发器。`Preview publish status` 只读取回执和显示状态，不会触发构建。
 
 ## 6. Registry Web App
 

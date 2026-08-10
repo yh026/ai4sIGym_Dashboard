@@ -1,4 +1,5 @@
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
@@ -118,6 +119,35 @@ function fakeSpreadsheetApp() {
   };
 }
 
+function fakeUtilities(uuid = '11111111-2222-4333-8444-555555555555') {
+  return {
+    DigestAlgorithm: { SHA_256: 'SHA_256' },
+    Charset: { UTF_8: 'UTF_8' },
+    computeDigest(algorithm, value) {
+      assert.equal(algorithm, 'SHA_256');
+      return Array.from(crypto.createHash('sha256').update(String(value), 'utf8').digest(),
+        byte => (byte > 127 ? byte - 256 : byte));
+    },
+    base64Encode: bytes => Buffer.from(bytes).toString('base64'),
+    getUuid: () => uuid,
+  };
+}
+
+function fakeScriptProperties(initial = {}) {
+  const values = { ...initial };
+  return {
+    values,
+    service: {
+      getScriptProperties() {
+        return {
+          getProperty: key => values[key] ?? null,
+          setProperty(key, value) { values[key] = String(value); return this; },
+        };
+      },
+    },
+  };
+}
+
 const PRODUCTION_HOOK = 'https://api.netlify.com/build_hooks/production123';
 const PREVIEW_HOOK = 'https://api.netlify.com/build_hooks/preview123';
 const PREVIEW_BRANCH = 'develop';
@@ -220,7 +250,7 @@ test('legacy auto_publish=yes remains safe-off until a target is explicit', () =
   const script = loadAppsScript();
   assert.equal(script.autoPublishTarget_({ auto_publish: 'yes' }), 'off');
   assert.equal(script.autoPublishTarget_({ auto_publish_target: 'preview' }), 'preview');
-  assert.equal(script.autoPublishTarget_({ auto_publish_target: 'production' }), 'production');
+  assert.equal(script.autoPublishTarget_({ auto_publish_target: 'production' }), 'off');
   assert.equal(script.autoPublishTarget_({ auto_publish_target: 'anything' }), 'off');
 });
 
@@ -277,12 +307,45 @@ test('Registry visibility uses the same safe status matrix for manifest and file
   );
 });
 
+test('Registry revision is deterministic, audience-scoped, and excludes generated time', () => {
+  const script = loadAppsScript();
+  script.Utilities = fakeUtilities();
+  script.readCategories_ = () => ['Physics', 'Biology'];
+
+  let demos = [{
+    title: 'Draft demo', status: 'Draft', file_check: 'ok', file_id: 'draft-id',
+    last_modified: '2026-08-11T01:02:03.000Z', picture_file_id: '',
+  }];
+  script.readDemos_ = () => demos;
+  const cfg = { site_title: 'Gym', site_tagline: 'Preview safely' };
+
+  const first = script.registrySnapshot_({}, cfg, 'preview');
+  demos = [{
+    picture_file_id: '', last_modified: '2026-08-11T01:02:03.000Z',
+    file_id: 'draft-id', file_check: 'ok', status: 'Draft', title: 'Draft demo',
+  }];
+  const reorderedKeys = script.registrySnapshot_({}, cfg, 'preview');
+  const production = script.registrySnapshot_({}, cfg, 'production');
+  demos[0].title = 'Changed title';
+  const changed = script.registrySnapshot_({}, cfg, 'preview');
+
+  assert.match(first.registry_revision, /^sha256:[0-9a-f]{64}$/);
+  assert.equal(first.registry_revision, reorderedKeys.registry_revision);
+  assert.notEqual(first.registry_revision, production.registry_revision);
+  assert.notEqual(first.registry_revision, changed.registry_revision);
+  assert.deepEqual(Array.from(production.demos), []);
+});
+
 test('Registry endpoint never lets legacy status=all bypass its audience', () => {
   const script = loadAppsScript();
+  const syncedAt = '2026-08-11T00:00:00.000Z';
   const demos = [
-    { status: 'Live', file_id: 'live-id', picture_file_id: '', file_check: 'ok' },
-    { status: 'Draft', file_id: 'draft-id', picture_file_id: 'draft-picture-id', file_check: 'ok' },
-    { status: 'Archived', file_id: 'archived-id', picture_file_id: '', file_check: 'ok' },
+    { status: 'Live', file_id: 'live-id', picture_file_id: '', file_check: 'ok',
+      last_modified: syncedAt },
+    { status: 'Draft', file_id: 'draft-id', picture_file_id: 'draft-picture-id',
+      file_check: 'ok', last_modified: syncedAt },
+    { status: 'Archived', file_id: 'archived-id', picture_file_id: '', file_check: 'ok',
+      last_modified: syncedAt },
   ];
   let demoReads = 0;
   script.registrySpreadsheet_ = () => ({});
@@ -290,14 +353,25 @@ test('Registry endpoint never lets legacy status=all bypass its audience', () =>
   script.readCategories_ = () => [];
   script.readDemos_ = () => { demoReads += 1; return demos; };
   script.jsonOut_ = value => value;
-  script.registryDriveFile_ = (cfg, id) => ({
-    getBlob: () => ({
-      getDataAsString: () => `<html>${id}</html>`,
-      getContentType: () => 'text/html',
-      getBytes: () => [],
-    }),
-  });
-  script.Utilities = { base64Encode: () => 'encoded-picture' };
+  let driveReads = 0;
+  let blobReads = 0;
+  const driveStamps = {};
+  script.registryDriveFile_ = (cfg, id) => {
+    driveReads += 1;
+    return ({
+      getLastUpdated: () => new Date(driveStamps[id] || syncedAt),
+      getBlob: () => {
+        blobReads += 1;
+        return ({
+          getDataAsString: () => `<html>${id}</html>`,
+          getContentType: () => 'text/html',
+          getBytes: () => [],
+        });
+      },
+    });
+  };
+  script.Utilities = fakeUtilities();
+  script.Utilities.base64Encode = () => 'encoded-picture';
 
   const production = script.doGet({ parameter: {
     token: 'secret', action: 'manifest', status: 'all',
@@ -310,6 +384,7 @@ test('Registry endpoint never lets legacy status=all bypass its audience', () =>
     token: 'secret', action: 'manifest', audience: 'preview',
   } });
   assert.deepEqual(Array.from(preview.demos, demo => demo.file_id), ['live-id', 'draft-id']);
+  assert.match(preview.registry_revision, /^sha256:[0-9a-f]{64}$/);
 
   const productionDraftFile = script.doGet({ parameter: {
     token: 'secret', action: 'file', id: 'draft-id',
@@ -322,7 +397,29 @@ test('Registry endpoint never lets legacy status=all bypass its audience', () =>
   } });
   assert.equal(previewDraftFile.ok, true);
   assert.equal(previewDraftFile.audience, 'preview');
+  assert.equal(previewDraftFile.registry_revision, preview.registry_revision);
   assert.match(previewDraftFile.html, /draft-id/);
+
+  driveStamps['draft-id'] = '2026-08-11T00:00:00.001Z';
+  const beforeChangedPage = blobReads;
+  const changedDraftFile = script.doGet({ parameter: {
+    token: 'secret', action: 'file', id: 'draft-id', audience: 'preview',
+    registry_revision: preview.registry_revision,
+  } });
+  assert.equal(changedDraftFile.ok, false);
+  assert.match(changedDraftFile.error, /source changed/);
+  assert.equal(blobReads, beforeChangedPage,
+    'a post-sync page change must fail before reading Drive bytes');
+  delete driveStamps['draft-id'];
+
+  const beforeRevisionMismatch = driveReads;
+  const staleDraftFile = script.doGet({ parameter: {
+    token: 'secret', action: 'file', id: 'draft-id', audience: 'preview',
+    registry_revision: `sha256:${'0'.repeat(64)}`,
+  } });
+  assert.equal(staleDraftFile.ok, false);
+  assert.match(staleDraftFile.error, /revision changed/);
+  assert.equal(driveReads, beforeRevisionMismatch, 'stale revision must fail before Drive read');
 
   const productionDraftPicture = script.doGet({ parameter: {
     token: 'secret', action: 'file', id: 'draft-picture-id',
@@ -335,6 +432,17 @@ test('Registry endpoint never lets legacy status=all bypass its audience', () =>
   assert.equal(previewDraftPicture.ok, true);
   assert.equal(previewDraftPicture.audience, 'preview');
   assert.equal(previewDraftPicture.base64, 'encoded-picture');
+
+  driveStamps['draft-picture-id'] = '2026-08-11T00:00:00.002Z';
+  const beforeChangedPicture = blobReads;
+  const changedDraftPicture = script.doGet({ parameter: {
+    token: 'secret', action: 'file', id: 'draft-picture-id', audience: 'preview',
+    registry_revision: preview.registry_revision,
+  } });
+  assert.equal(changedDraftPicture.ok, false);
+  assert.match(changedDraftPicture.error, /source changed/);
+  assert.equal(blobReads, beforeChangedPicture,
+    'a post-sync picture change must fail before reading Drive bytes');
 
   const archivedPreviewFile = script.doGet({ parameter: {
     token: 'secret', action: 'file', id: 'archived-id', audience: 'preview',
@@ -349,6 +457,271 @@ test('Registry endpoint never lets legacy status=all bypass its audience', () =>
   assert.equal(demoReads, beforeBadToken);
 });
 
+test('Drive timestamp comparison catches every sub-minute timestamp change', () => {
+  const script = loadAppsScript();
+  const stored = new Date('2026-08-11T00:00:00.100Z');
+
+  assert.equal(script.driveStampChanged_(stored, new Date('2026-08-11T00:00:00.100Z')), false);
+  assert.equal(script.driveStampChanged_(stored, new Date('2026-08-11T00:00:00.900Z')), true);
+  assert.equal(script.driveStampChanged_(stored, new Date('2026-08-11T00:00:01.000Z')), true);
+  assert.equal(script.driveStampChanged_(stored, new Date('2026-08-11T00:00:59.000Z')), true);
+  assert.equal(script.driveStampChanged_('', new Date('2026-08-11T00:00:01.000Z')), true);
+});
+
+test('Preview publish state survives Script Properties and corrupt state resets safely', () => {
+  const script = loadAppsScript();
+  const properties = fakeScriptProperties();
+  script.PropertiesService = properties.service;
+
+  const state = script.emptyPreviewPublishState_();
+  state.branch = 'develop';
+  state.desired = `sha256:${'a'.repeat(64)}`;
+  state.requested = state.desired;
+  state.requestId = 'request-123';
+  state.attempts = 2;
+  script.writePreviewPublishState_(state);
+
+  const restored = script.readPreviewPublishState_();
+  assert.equal(restored.branch, 'develop');
+  assert.equal(restored.desired, state.desired);
+  assert.equal(restored.requestId, 'request-123');
+  assert.equal(restored.attempts, 2);
+
+  properties.values.AI4S_PREVIEW_PUBLISH_STATE_V1 = '{broken';
+  const reset = script.readPreviewPublishState_();
+  assert.equal(reset.requested, '');
+  assert.match(reset.lastError, /unreadable/);
+});
+
+test('Preview receipt requires verified branch-deploy context, revision, audience, and request ID', () => {
+  const script = loadAppsScript();
+  const expected = {
+    branch: 'develop', revision: `sha256:${'b'.repeat(64)}`, requestId: 'request-456',
+  };
+  const receipt = {
+    schema: 1,
+    verified: true,
+    revision_bound: true,
+    target: 'preview',
+    audience: 'preview',
+    context: 'branch-deploy',
+    branch: 'develop',
+    registry_revision: expected.revision,
+    request_id: expected.requestId,
+  };
+
+  assert.equal(script.previewReceiptMatches_(receipt, expected), true);
+  assert.equal(script.previewReceiptMatches_({ ...receipt, verified: false }, expected), false);
+  assert.equal(script.previewReceiptMatches_({ ...receipt, context: 'production' }, expected), false);
+  assert.equal(script.previewReceiptMatches_({ ...receipt, branch: 'main' }, expected), false);
+  assert.equal(script.previewReceiptMatches_({ ...receipt, request_id: 'older' }, expected), false);
+  assert.equal(script.previewReceiptMatches_({ ...receipt, registry_revision: `sha256:${'c'.repeat(64)}` }, expected), false);
+});
+
+test('Preview receipt reconciliation checks the stable receipt URL without exposing secrets', () => {
+  const script = loadAppsScript();
+  const revision = `sha256:${'d'.repeat(64)}`;
+  const expected = { branch: 'develop', revision, requestId: 'request-789' };
+  const cfg = {
+    preview_branch: 'develop',
+    preview_url_branch: 'develop',
+    preview_url: 'https://develop--aisigym.netlify.app/',
+    production_branch: 'main',
+  };
+  let fetchedUrl = '';
+  script.UrlFetchApp = {
+    fetch(url, options) {
+      fetchedUrl = url;
+      assert.equal(options.method, 'get');
+      assert.equal(options.headers['Cache-Control'], 'no-cache');
+      return {
+        getResponseCode: () => 200,
+        getContentText: () => JSON.stringify({
+          schema: 1, verified: true, revision_bound: true,
+          target: 'preview', audience: 'preview',
+          context: 'branch-deploy',
+          branch: 'develop', registry_revision: revision, request_id: 'request-789',
+        }),
+      };
+    },
+  };
+
+  const match = script.checkPreviewReceipt_(cfg, expected, 123456);
+  assert.equal(match.ready, true);
+  assert.match(fetchedUrl, /\/deploy-receipt\.json\?ai4s_check=123456$/);
+  assert.doesNotMatch(fetchedUrl, /token|build_hooks/);
+
+  script.UrlFetchApp.fetch = () => ({
+    getResponseCode: () => 200,
+    getContentText: () => JSON.stringify({
+      schema: 1, verified: true, revision_bound: true,
+      target: 'preview', audience: 'preview',
+      context: 'branch-deploy',
+      branch: 'develop', registry_revision: revision, request_id: 'old-request',
+    }),
+  });
+  assert.equal(script.checkPreviewReceipt_(cfg, expected, 123457).ready, false);
+});
+
+test('Preview maintenance treats auto-off as a hard POST stop and retries only after enabling Preview', () => {
+  const script = loadAppsScript();
+  const properties = fakeScriptProperties();
+  const revision = `sha256:${'e'.repeat(64)}`;
+  const cfg = {
+    netlify_preview_build_hook: PREVIEW_HOOK,
+    production_branch: 'main',
+    preview_branch: 'develop',
+    preview_url: 'https://develop--aisigym.netlify.app/',
+    preview_url_branch: 'develop',
+    auto_publish_target: 'off',
+  };
+  let receipt = { ok: false, configured: true, ready: false, status: 404, error: 'not ready' };
+  const payloads = [];
+  script.PropertiesService = properties.service;
+  script.Utilities = fakeUtilities('aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee');
+  script.registrySnapshot_ = () => ({
+    audience: 'preview', site: {}, demos: [], registry_revision: revision,
+  });
+  script.checkPreviewReceipt_ = () => receipt;
+  script.triggerBuildRequest_ = (request, payload) => {
+    payloads.push(JSON.parse(JSON.stringify(payload)));
+    return { ok: true, status: 202, target: request.target, branch: request.branch };
+  };
+
+  const observed = script.maintainPreviewPublish_({}, cfg, { now: 1_000, allowAttempt: true });
+  assert.equal(observed.phase, 'dirty');
+  assert.equal(observed.attempted, false, 'auto off must not create a request');
+
+  cfg.auto_publish_target = 'preview';
+  const statusOnly = script.maintainPreviewPublish_({}, cfg, {
+    now: 1_500, allowAttempt: false, allowAutoRequest: false,
+  });
+  assert.equal(statusOnly.state.requested, '', 'a status-only check must not queue a request');
+  cfg.auto_publish_target = 'off';
+
+  const manual = script.maintainPreviewPublish_({}, cfg, {
+    now: 2_000, forceRequest: true, allowAttempt: true,
+  });
+  assert.equal(manual.phase, 'accepted');
+  assert.equal(manual.attempted, true);
+  assert.equal(manual.state.attempts, 1);
+  assert.equal(payloads[0].schema, 1);
+  assert.equal(payloads[0].target, 'preview');
+  assert.equal(payloads[0].branch, 'develop');
+  assert.equal(payloads[0].registry_revision, revision);
+  assert.equal(payloads[0].request_id, 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee');
+
+  const tooSoon = script.maintainPreviewPublish_({}, cfg, {
+    now: 2_000 + 30 * 60 * 1000, allowAttempt: true,
+  });
+  assert.equal(tooSoon.attempted, false);
+  assert.equal(payloads.length, 1);
+
+  const retry = script.maintainPreviewPublish_({}, cfg, {
+    now: 2_000 + 60 * 60 * 1000, allowAttempt: true,
+  });
+  assert.equal(retry.attempted, false, 'auto off must also stop scheduled retries');
+  assert.equal(retry.state.attempts, 1);
+  assert.equal(payloads.length, 1);
+
+  cfg.auto_publish_target = 'preview';
+  const enabledRetry = script.maintainPreviewPublish_({}, cfg, {
+    now: 2_000 + 60 * 60 * 1000, allowAttempt: true,
+  });
+  assert.equal(enabledRetry.attempted, true);
+  assert.equal(enabledRetry.state.attempts, 2);
+  assert.equal(payloads.length, 2);
+  assert.equal(payloads[1].request_id, payloads[0].request_id,
+    'backoff retries must retain the logical request ID');
+
+  receipt = {
+    ok: true, configured: true, ready: true, status: 200, error: '',
+    receipt: {
+      schema: 1, verified: true, revision_bound: true,
+      target: 'preview', audience: 'preview',
+      branch: 'develop', registry_revision: revision,
+      request_id: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+    },
+  };
+  const ready = script.maintainPreviewPublish_({}, cfg, {
+    now: 2_000 + 3 * 60 * 60 * 1000, allowAttempt: true,
+  });
+  assert.equal(ready.phase, 'ready');
+  assert.equal(ready.attempted, false);
+  assert.equal(ready.state.ready, revision);
+  assert.equal(ready.state.nextAttemptAt, 0);
+
+  const exhaustedReady = script.readPreviewPublishState_();
+  exhaustedReady.attempts = script.PREVIEW_MAX_ATTEMPTS;
+  script.writePreviewPublishState_(exhaustedReady);
+
+  receipt = {
+    ok: false, configured: true, ready: false, status: 503, error: 'temporary outage',
+  };
+  const transientFailure = script.maintainPreviewPublish_({}, cfg, {
+    now: 2_000 + 4 * 60 * 60 * 1000, allowAttempt: true,
+  });
+  assert.equal(transientFailure.state.ready, revision,
+    'a transient receipt fetch failure must not erase the last verified observation');
+  assert.equal(transientFailure.attempted, false);
+
+  cfg.auto_publish_target = 'off';
+  receipt = {
+    ok: true, configured: true, ready: false, status: 200, error: '',
+    receipt: { schema: 1, verified: false, context: 'branch-deploy', branch: 'develop' },
+  };
+  const replaced = script.maintainPreviewPublish_({}, cfg, {
+    now: 2_000 + 5 * 60 * 60 * 1000, allowAttempt: true,
+  });
+  assert.equal(replaced.state.ready, '',
+    'a valid nonmatching stable receipt must demote stale ready state');
+  assert.equal(replaced.phase, 'dirty');
+  assert.equal(replaced.state.requested, '');
+  assert.equal(replaced.attempted, false,
+    'auto off must demote stale ready state without posting a repair');
+  assert.equal(payloads.length, 2);
+
+  script.previewRequestId_ = () => 'ffffffff-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+  cfg.auto_publish_target = 'preview';
+  const repaired = script.maintainPreviewPublish_({}, cfg, {
+    now: 2_000 + 6 * 60 * 60 * 1000, allowAttempt: true,
+  });
+  assert.equal(repaired.attempted, true,
+    'Preview automation should repair a replaced verified deploy with a fresh request');
+  assert.equal(repaired.state.attempts, 1, 'a completed request must not consume the repair budget');
+  assert.equal(payloads.length, 3);
+  assert.equal(payloads[2].request_id, 'ffffffff-bbbb-4ccc-8ddd-eeeeeeeeeeee');
+  assert.notEqual(payloads[2].request_id, payloads[0].request_id);
+});
+
+test('Preview retry delays are bounded and revision changes cancel stale requests', () => {
+  const script = loadAppsScript();
+  assert.equal(script.previewRetryDelayMs_(1), 60 * 60 * 1000);
+  assert.equal(script.previewRetryDelayMs_(2), 2 * 60 * 60 * 1000);
+  assert.equal(script.previewRetryDelayMs_(3), 4 * 60 * 60 * 1000);
+  assert.equal(script.previewRetryDelayMs_(4), 8 * 60 * 60 * 1000);
+  assert.equal(script.previewRetryDelayMs_(5), 24 * 60 * 60 * 1000);
+  assert.equal(script.previewRetryDelayMs_(99), 24 * 60 * 60 * 1000);
+
+  let state = script.emptyPreviewPublishState_();
+  state.branch = 'develop';
+  state.desired = `sha256:${'1'.repeat(64)}`;
+  state.requested = state.desired;
+  state.requestId = 'stale-request';
+  state.accepted = state.desired;
+  state.attempts = 5;
+  state.nextAttemptAt = 999;
+  state.ready = `sha256:${'0'.repeat(64)}`;
+  state = script.observePreviewDesired_(state, 'develop', `sha256:${'2'.repeat(64)}`);
+
+  assert.equal(state.requested, '');
+  assert.equal(state.accepted, '');
+  assert.equal(state.attempts, 0);
+  assert.equal(state.nextAttemptAt, 0);
+  assert.equal(state.ready, `sha256:${'0'.repeat(64)}`,
+    'the prior ready revision remains visible as stale status');
+});
+
 test('Config migration is idempotent and preserves tokens, custom rows, and formulas', () => {
   const script = loadAppsScript();
   const sheet = new FakeSheet([
@@ -359,8 +732,9 @@ test('Config migration is idempotent and preserves tokens, custom rows, and form
     ['netlify_build_hook', PRODUCTION_HOOK, 'old production Hook'],
     ['auto_publish', 'yes', 'legacy setting'],
     ['access_token', 'keep-this-token', 'keep token'],
+    ['auto_publish_target', 'production', 'unsafe legacy value'],
     ['custom_formula', 2, 'keep custom row'],
-  ], { '8:2': '=1+1' });
+  ], { '9:2': '=1+1' });
   const spreadsheet = {
     getSheetByName(name) { return name === 'Config' ? sheet : null; },
     insertSheet() { throw new Error('Config should already exist'); },
@@ -384,7 +758,7 @@ test('Config migration is idempotent and preserves tokens, custom rows, and form
   assert.equal(values.access_token, 'keep-this-token');
   assert.equal(values.netlify_build_hook, PRODUCTION_HOOK);
   assert.equal(values.custom_formula, 2);
-  assert.equal(sheet.formulaAt(8, 2), '=1+1');
+  assert.equal(sheet.formulaAt(9, 2), '=1+1');
   assert.equal(configRows.find(row => row[0] === 'custom_formula')[2], 'keep custom row');
   assert.match(configRows.find(row => row[0] === 'auto_publish')[2], /retained but ignored/);
 });

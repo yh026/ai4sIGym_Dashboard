@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "hook_payload": {
+    "schema": 1,
+    "target": "preview",
+    "branch": "develop",
+    "registry_revision": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "request_id": "11111111-2222-4333-8444-555555555555",
+    "requested_at": "2026-08-11T01:02:03.004Z"
+  },
+  "accepted": {
+    "schema": 1,
+    "phase": "accepted",
+    "request_id": "11111111-2222-4333-8444-555555555555",
+    "registry_revision": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "http_status": 200
+  },
+  "ready_receipt": {
+    "schema": 1,
+    "verified": true,
+    "revision_bound": true,
+    "target": "preview",
+    "audience": "preview",
+    "registry_revision": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "built_at": "2026-08-11T01:04:05.006Z",
+    "platform": "netlify",
+    "context": "branch-deploy",
+    "branch": "develop",
+    "commit_ref": "2222222222222222222222222222222222222222",
+    "build_id": "build-0123456789abcdef",
+    "deploy_id": "deploy-0123456789abcdef",
+    "request_id": "11111111-2222-4333-8444-555555555555",
+    "requested_at": "2026-08-11T01:02:03.004Z"
+  }
+}
