@@ -863,10 +863,13 @@ function collectDemoFolder_(sub) {
 /** Download and parse one demo: page HTML, its ai4s-meta, its provenance card. */
 function readDemo_(item) {
   var html = '';
-  try { html = item.file.getBlob().getDataAsString(); }
-  catch (e) { html = ''; }
-
   var notes = [];
+  try { html = item.file.getBlob().getDataAsString(); }
+  catch (e) { notes.push('page unreadable'); }
+  if (!String(html || '').trim() && notes.indexOf('page unreadable') === -1) {
+    notes.push('page empty');
+  }
+
   var card = item.card;
   if (!item.provFile) {
     notes.push(item.folderName ? 'no provenance.md' : 'loose file, no provenance.md');
@@ -1164,15 +1167,18 @@ function showBuildUrl() {
 
 /**
  * JSON endpoint for the Netlify build (deployed later as a web app).
- *   ?token=...&action=manifest          → site config + all Live demos
- *   ?token=...&action=manifest&status=all → every row (debugging)
- *   ?token=...&action=file&id=FILE_ID   → HTML content of one registered demo
+ *   ?token=...&action=manifest          → site config + all healthy Live demos
+ *   ?token=...&action=manifest&audience=preview
+ *                                       → healthy Live + Draft demos
+ *   ?token=...&action=file&id=FILE_ID   → HTML content for the same audience
  *   ?token=...&action=file&id=PICTURE_FILE_ID
  *                                       → that demo's dataset picture, as
  *                                         { mime, base64 } for the build to
  *                                         write back out as a file
- * Only Live ids the sheet actually carries and files physically located in
- * the configured registry folder (or one direct demo sub-folder) are served.
+ * The default/production audience is Live-only. Preview is a closed, explicit
+ * audience; Archived, missing and unreadable rows are never served. Files must
+ * also be physically located in the configured registry folder (or one direct
+ * demo sub-folder).
  */
 function registrySpreadsheet_() {
   // Menus, editor runs and triggers normally have an active container.
@@ -1187,6 +1193,32 @@ function registrySpreadsheet_() {
     throw new Error('Registry Sheet ID is not configured. Run setup() once from the bound Sheet.');
   }
   return SpreadsheetApp.openById(id);
+}
+
+function registryAudience_(raw) {
+  var value = String(raw || '').trim().toLowerCase() || 'production';
+  if (value !== 'production' && value !== 'preview') {
+    return { ok: false, error: 'audience must be production or preview' };
+  }
+  return { ok: true, value: value };
+}
+
+function registryDemoVisible_(demo, audience) {
+  if (!demo) return false;
+  var check = String(demo.file_check || '').trim().toLowerCase();
+  if (check === 'missing' || /\bunreadable\b/.test(check) || /\bpage empty\b/.test(check)) {
+    return false;
+  }
+  var status = String(demo.status || '').trim();
+  return status === 'Live' || (audience === 'preview' && status === 'Draft');
+}
+
+function registryFileKind_(visible, id) {
+  if (visible.some(function (d) { return d.file_id === id; })) return 'page';
+  if (visible.some(function (d) {
+    return d.picture_file_id !== '' && d.picture_file_id === id;
+  })) return 'picture';
+  return '';
 }
 
 function doGet(e) {
@@ -1204,21 +1236,33 @@ function doGet(e) {
     return jsonOut_({ ok: false, error: 'bad token' });
   }
 
+  var audienceResult = registryAudience_(p.audience);
+  if (!audienceResult.ok) return jsonOut_({ ok: false, error: audienceResult.error });
+  var audience = audienceResult.value;
+  if (p.action && p.action !== 'manifest' && p.action !== 'file') {
+    return jsonOut_({ ok: false, error: 'unknown action' });
+  }
+  var visible = readDemos_(ss).filter(function (d) {
+    return registryDemoVisible_(d, audience);
+  });
+
   if (p.action === 'file') {
     if (!p.id) return jsonOut_({ ok: false, error: 'unknown file id' });
-    var demos = readDemos_(ss).filter(function (d) { return d.status === 'Live'; });
-    var isPage = demos.some(function (d) { return d.file_id === p.id; });
-    var isPicture = !isPage && demos.some(function (d) {
-      return d.picture_file_id !== '' && d.picture_file_id === p.id;
-    });
-    if (!isPage && !isPicture) return jsonOut_({ ok: false, error: 'unknown file id' });
+    var kind = registryFileKind_(visible, p.id);
+    if (!kind) return jsonOut_({ ok: false, error: 'unknown file id' });
     try {
-      var file = registryDriveFile_(cfg, p.id, isPage ? 'page' : 'picture');
+      var file = registryDriveFile_(cfg, p.id, kind);
       if (!file) return jsonOut_({ ok: false, error: 'unknown file id' });
       var blob = file.getBlob();
-      if (isPage) return jsonOut_({ ok: true, id: p.id, html: blob.getDataAsString() });
+      if (kind === 'page') {
+        var pageHtml = blob.getDataAsString();
+        if (!String(pageHtml || '').trim()) {
+          return jsonOut_({ ok: false, error: 'could not read file' });
+        }
+        return jsonOut_({ ok: true, audience: audience, id: p.id, html: pageHtml });
+      }
       return jsonOut_({
-        ok: true, id: p.id,
+        ok: true, audience: audience, id: p.id,
         mime: String(blob.getContentType() || 'application/octet-stream'),
         base64: Utilities.base64Encode(blob.getBytes())
       });
@@ -1228,18 +1272,16 @@ function doGet(e) {
   }
 
   // default: manifest
-  var all = readDemos_(ss);
-  var wanted = p.status === 'all' ? all
-    : all.filter(function (d) { return d.status === 'Live'; });
   return jsonOut_({
     ok: true,
+    audience: audience,
     generated: new Date().toISOString(),
     site: {
       title: cfg.site_title || 'AI for Science demos',
       tagline: cfg.site_tagline || '',
       categories: readCategories_(ss)
     },
-    demos: wanted
+    demos: visible
   });
 }
 

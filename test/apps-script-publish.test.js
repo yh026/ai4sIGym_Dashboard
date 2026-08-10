@@ -245,6 +245,110 @@ test('Registry URL safely encodes a migrated custom access token', () => {
   );
 });
 
+test('Registry audience is closed and defaults safely to Production', () => {
+  const script = loadAppsScript();
+
+  assert.equal(script.registryAudience_('').value, 'production');
+  assert.equal(script.registryAudience_('production').value, 'production');
+  assert.equal(script.registryAudience_('preview').value, 'preview');
+  assert.equal(script.registryAudience_('PREVIEW').value, 'preview');
+  assert.equal(script.registryAudience_('all').ok, false);
+  assert.equal(script.registryAudience_('unknown').ok, false);
+});
+
+test('Registry visibility uses the same safe status matrix for manifest and files', () => {
+  const script = loadAppsScript();
+  const rows = [
+    { id: 'live', status: 'Live', file_check: 'ok' },
+    { id: 'draft', status: 'Draft', file_check: 'ok — no provenance.md' },
+    { id: 'archived', status: 'Archived', file_check: 'ok' },
+    { id: 'missing', status: 'Live', file_check: 'missing' },
+    { id: 'unreadable', status: 'Live', file_check: 'ok — page unreadable' },
+    { id: 'unknown', status: 'Published', file_check: 'ok' },
+  ];
+
+  assert.deepEqual(
+    rows.filter(row => script.registryDemoVisible_(row, 'production')).map(row => row.id),
+    ['live'],
+  );
+  assert.deepEqual(
+    rows.filter(row => script.registryDemoVisible_(row, 'preview')).map(row => row.id),
+    ['live', 'draft'],
+  );
+});
+
+test('Registry endpoint never lets legacy status=all bypass its audience', () => {
+  const script = loadAppsScript();
+  const demos = [
+    { status: 'Live', file_id: 'live-id', picture_file_id: '', file_check: 'ok' },
+    { status: 'Draft', file_id: 'draft-id', picture_file_id: 'draft-picture-id', file_check: 'ok' },
+    { status: 'Archived', file_id: 'archived-id', picture_file_id: '', file_check: 'ok' },
+  ];
+  let demoReads = 0;
+  script.registrySpreadsheet_ = () => ({});
+  script.readConfig_ = () => ({ access_token: 'secret' });
+  script.readCategories_ = () => [];
+  script.readDemos_ = () => { demoReads += 1; return demos; };
+  script.jsonOut_ = value => value;
+  script.registryDriveFile_ = (cfg, id) => ({
+    getBlob: () => ({
+      getDataAsString: () => `<html>${id}</html>`,
+      getContentType: () => 'text/html',
+      getBytes: () => [],
+    }),
+  });
+  script.Utilities = { base64Encode: () => 'encoded-picture' };
+
+  const production = script.doGet({ parameter: {
+    token: 'secret', action: 'manifest', status: 'all',
+  } });
+  assert.equal(production.ok, true);
+  assert.equal(production.audience, 'production');
+  assert.deepEqual(Array.from(production.demos, demo => demo.file_id), ['live-id']);
+
+  const preview = script.doGet({ parameter: {
+    token: 'secret', action: 'manifest', audience: 'preview',
+  } });
+  assert.deepEqual(Array.from(preview.demos, demo => demo.file_id), ['live-id', 'draft-id']);
+
+  const productionDraftFile = script.doGet({ parameter: {
+    token: 'secret', action: 'file', id: 'draft-id',
+  } });
+  assert.equal(productionDraftFile.ok, false);
+  assert.equal(productionDraftFile.error, 'unknown file id');
+
+  const previewDraftFile = script.doGet({ parameter: {
+    token: 'secret', action: 'file', id: 'draft-id', audience: 'preview',
+  } });
+  assert.equal(previewDraftFile.ok, true);
+  assert.equal(previewDraftFile.audience, 'preview');
+  assert.match(previewDraftFile.html, /draft-id/);
+
+  const productionDraftPicture = script.doGet({ parameter: {
+    token: 'secret', action: 'file', id: 'draft-picture-id',
+  } });
+  assert.equal(productionDraftPicture.ok, false);
+
+  const previewDraftPicture = script.doGet({ parameter: {
+    token: 'secret', action: 'file', id: 'draft-picture-id', audience: 'preview',
+  } });
+  assert.equal(previewDraftPicture.ok, true);
+  assert.equal(previewDraftPicture.audience, 'preview');
+  assert.equal(previewDraftPicture.base64, 'encoded-picture');
+
+  const archivedPreviewFile = script.doGet({ parameter: {
+    token: 'secret', action: 'file', id: 'archived-id', audience: 'preview',
+  } });
+  assert.equal(archivedPreviewFile.ok, false);
+
+  const beforeBadToken = demoReads;
+  const badToken = script.doGet({ parameter: {
+    token: 'wrong', action: 'manifest', audience: 'preview',
+  } });
+  assert.equal(badToken.error, 'bad token');
+  assert.equal(demoReads, beforeBadToken);
+});
+
 test('Config migration is idempotent and preserves tokens, custom rows, and formulas', () => {
   const script = loadAppsScript();
   const sheet = new FakeSheet([

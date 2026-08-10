@@ -16,7 +16,7 @@ Production Netlify workflows.
 ```
 Drive folder ──▶ Apps Script (sync + JSON feed) ──▶ this build ──▶ Netlify
                      ▲
-              registry sheet (what's Live, all metadata)
+              registry sheet (Draft / Live / Archived + metadata)
 ```
 
 ## One-time setup (~20 min)
@@ -45,6 +45,12 @@ Click Deploy, authorize if asked. Then back in the sheet:
 Paste the build URL into a browser tab and add `&action=manifest` at the end.
 You should see JSON with your site config and every **Live** demo. If `demos`
 is `[]`, nothing is set to Live yet — that's the status column, not a bug.
+
+For an intentional Preview check, add `&action=manifest&audience=preview`.
+That closed audience returns healthy **Live + Draft** rows. The default and
+`audience=production` remain Live-only; Archived, missing, empty, and unreadable
+rows are excluded from both audiences. Treat either URL as a credential because
+it still contains the Registry token.
 
 ### C. Put this repo on GitHub
 ```bash
@@ -84,9 +90,17 @@ each demo at `/demos/<slug>/`.
 
 ## The routine forever after
 1. Drop a new `.html` in the Drive folder.
-2. Sync (menu, or the hourly auto-run) → fill the row → status **Live**.
-3. Build the configured preview branch, review it, merge the code to `main`,
-   then choose **Rebuild production site (main)**.
+2. Sync (menu, or the hourly auto-run) → the new row is created as **Draft**.
+3. Build the stable `develop` Branch Deploy and review the Draft there.
+4. When the content is approved, change its status to **Live**.
+5. Only after explicit approval, choose **Rebuild production site (main)**.
+
+Code changes follow the separate Git review path: review them on `develop`, then
+merge to `main` only when approved. A content-only Drive update does not require
+a Git merge. The stable develop Preview is a shareable URL, not a private vault;
+use Netlify access control before putting confidential material in Draft. Preview
+builds send `X-Robots-Tag: noindex, nofollow`; this discourages indexing but is
+not authentication.
 
 `auto_publish_target` defaults to `off`. Set it explicitly to `preview` or
 `production` only if hourly Drive syncs should also trigger that deployment.
@@ -165,8 +179,11 @@ namespaced (`ai4s-*`), so demos don't need to know about Instrument Gym at all.
   (step D), then trigger a redeploy.
 - **Build fails: "bad token"** — the env var is missing the `?token=…` part;
   re-copy from "Show Registry API URL for Netlify".
-- **Site is empty** — no rows have status **Live**, or the deploy predates
-  them: publish again from the sheet menu.
+- **Production is empty** — no healthy rows have status **Live**, or the deploy
+  predates them: publish again from the sheet menu.
+- **A Draft is absent from Preview** — confirm the deploy is the stable
+  `develop` Branch Deploy (not a PR Deploy Preview) and that `file_check` is not
+  `missing`, `unreadable`, or `page empty`.
 - **A demo is skipped with "file missing in Drive"** — its `file_check` says
   `missing`; the file was removed or unshared. Restore it or set the row to
   Archived.

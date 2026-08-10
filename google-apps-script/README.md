@@ -102,17 +102,25 @@ dashboard-preview
 需要其他命名规则时，应先有意识地修改 `PREVIEW_BRANCH_PREFIXES` 或
 `PREVIEW_BRANCH_NAMES`；不要取消 `main` 防护。
 
+这里的允许名单只控制 Sheet 是否可以触发某个非生产 Hook。内容可见性更严格：只有
+Netlify 的稳定 `branch-deploy + develop` 使用 Preview audience（Live + Draft）；PR 的
+Deploy Preview 和其他分支仍按 Production-safe 的 Live-only 规则构建。
+
 ## 4. 日常工作流
 
-### 查看代码分支效果
+### 查看代码与 Draft 内容
 
-1. 把修改 push 到非 `main` 分支。
-   本项目的稳定 Preview 分支是 `develop`。
-2. Netlify 通常会因为 Git push 自动更新 Branch Deploy。
+1. 新 HTML 同步到 Sheet 后会自动成为 `Draft`，不要先改成 Live。
+2. 把代码修改 push 到 `develop`；Netlify 通常会自动更新 Branch Deploy。
 3. 如果 Registry Sheet / Drive 数据随后发生变化，使用：
    `AI4S dashboard → Build preview branch`。
 4. 使用 `Open preview site` 打开稳定预览地址。
 5. 在预览中检查首页、项目分类、卡片、Hover、移动端和项目链接。
+6. 内容通过审核后，才把对应 Sheet 行改为 `Live`。
+
+稳定 Preview URL 可以被分享，因此 Draft 不等于机密。若 Draft 含有不可公开内容，先为
+Netlify Preview 配置访问控制，不要依赖“没有把 URL 发出去”作为权限机制。Preview 构建
+会发送 `X-Robots-Tag: noindex, nofollow`，但 noindex 不能替代身份验证。
 
 ### 上线生产
 
@@ -135,8 +143,15 @@ Production 按钮不会执行 Git merge；如果尚未合并，它只会重新�
 
 ## 6. Registry Web App
 
-Preview 和 Production 默认读取同一个 `REGISTRY_URL`，并且 Registry API 默认只返回
-`Live` 项目。替换发布控制代码不会改变 Sheet ID 或现有 Web App URL。
+Preview 和 Production 读取同一个 `REGISTRY_URL`，但每次构建都会覆盖查询范围：
+
+- 缺省或 `audience=production`：只返回健康的 `Live` 项目；
+- `audience=preview`：只返回健康的 `Live + Draft` 项目；
+- `Archived`、未知 status、`missing`、`unreadable`、`page empty`：两边都不返回。
+
+Manifest 和 file endpoint 使用同一个 audience，因此 Production 无法通过文件接口读取
+Draft 页面。构建端还会按相同矩阵二次过滤，即使旧的 `REGISTRY_URL` 曾附带
+`status=all`，也会先删除该参数。替换代码不会改变 Sheet ID、token 或现有 Web App URL。
 
 保存代码后，菜单函数会使用新代码。为了让部署的 Registry Web App 也固定到同一版本，建议进入：
 

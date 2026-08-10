@@ -1,0 +1,50 @@
+{
+  "ok": true,
+  "site": {
+    "title": "Status policy test"
+  },
+  "demos": [
+    {
+      "title": "Live policy fixture",
+      "slug": "status-live",
+      "status": "Live",
+      "file_id": "status-live",
+      "file_check": "ok"
+    },
+    {
+      "title": "Draft policy fixture",
+      "slug": "status-draft",
+      "status": "Draft",
+      "file_id": "status-draft",
+      "file_check": "ok — no provenance.md"
+    },
+    {
+      "title": "Archived policy fixture",
+      "slug": "status-archived",
+      "status": "Archived",
+      "file_id": "status-archived",
+      "file_check": "ok"
+    },
+    {
+      "title": "Missing policy fixture",
+      "slug": "status-missing",
+      "status": "Live",
+      "file_id": "status-missing",
+      "file_check": "missing"
+    },
+    {
+      "title": "Unreadable policy fixture",
+      "slug": "status-unreadable",
+      "status": "Live",
+      "file_id": "status-unreadable",
+      "file_check": "ok — page unreadable"
+    },
+    {
+      "title": "Unknown policy fixture",
+      "slug": "status-unknown",
+      "status": "Published",
+      "file_id": "status-unknown",
+      "file_check": "ok"
+    }
+  ]
+}

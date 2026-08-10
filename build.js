@@ -5,10 +5,13 @@
  * Generates:
  *   dist/index.html                         interactive science map
  *   dist/domains/<domain>/index.html       domain project collections
- *   dist/demos/<slug>/index.html           Live demos with atlas navigation
+ *   dist/demos/<slug>/index.html           publishable demos with atlas navigation
  *   dist/manifest.json                     public metadata (no Drive ids)
  *
  * Env: REGISTRY_URL is the Apps Script /exec URL including ?token=...
+ * Netlify's CONTEXT and BRANCH select a fail-closed content policy:
+ *   production/main       -> Live only
+ *   branch-deploy/develop -> Live + Draft
  * Local preview: node build.js --mock
  */
 
@@ -538,7 +541,46 @@ async function getJson(url, label) {
   return response.json();
 }
 
-async function loadRegistry() {
+function resolveBuildContentPolicy(env = process.env) {
+  const context = String(env.CONTEXT || '').trim();
+  const branch = String(env.BRANCH || '').trim();
+  const netlify = String(env.NETLIFY || '').trim().toLowerCase() === 'true';
+
+  if (netlify && context === 'production' && branch !== 'main') {
+    throw new Error('Netlify production builds are locked to the main branch.');
+  }
+
+  const preview = netlify && context === 'branch-deploy' && branch === 'develop';
+  return {
+    audience: preview ? 'preview' : 'production',
+    context: context || 'local',
+    branch: branch || 'local',
+  };
+}
+
+function scopedRegistryUrl(base, action, policy, id) {
+  const url = new URL(base);
+  url.searchParams.delete('status');
+  url.searchParams.delete('audience');
+  url.searchParams.delete('action');
+  url.searchParams.delete('id');
+  url.searchParams.set('audience', policy.audience);
+  url.searchParams.set('action', action);
+  if (id) url.searchParams.set('id', id);
+  return url.toString();
+}
+
+function isPublishableDemo(demo, policy) {
+  if (!demo || typeof demo !== 'object') return false;
+  const status = String(demo.status || '').trim();
+  const fileCheck = String(demo.file_check || '').trim().toLowerCase();
+  if (fileCheck === 'missing' || /\bunreadable\b/.test(fileCheck) || /\bpage empty\b/.test(fileCheck)) {
+    return false;
+  }
+  return status === 'Live' || (policy.audience === 'preview' && status === 'Draft');
+}
+
+async function loadRegistry(policy) {
   if (MOCK) {
     const manifestPath = process.env.MOCK_MANIFEST || path.join(ROOT, 'fixtures', 'manifest.json');
     const fallbackHtml = process.env.MOCK_HTML_FALLBACK;
@@ -556,9 +598,8 @@ async function loadRegistry() {
       + 'Get the value from the sheet: AI4S dashboard → Show Registry API URL for Netlify.');
   }
 
-  const manifestUrl = new URL(base);
-  manifestUrl.searchParams.set('action', 'manifest');
-  const manifest = await getJson(manifestUrl.toString(), 'manifest');
+  const manifestUrl = scopedRegistryUrl(base, 'manifest', policy);
+  const manifest = await getJson(manifestUrl, 'manifest');
   if (!manifest.ok) {
     fail('Registry error: ' + (manifest.error || 'unknown')
       + (manifest.error === 'bad token' ? ' — REGISTRY_URL must include the ?token=... part.' : ''));
@@ -569,10 +610,8 @@ async function loadRegistry() {
     demos: manifest.demos || [],
     getHtml: async id => {
       if (!id) throw new Error('project record is missing file_id');
-      const url = new URL(base);
-      url.searchParams.set('action', 'file');
-      url.searchParams.set('id', id);
-      const result = await getJson(url.toString(), 'project file');
+      const url = scopedRegistryUrl(base, 'file', policy, id);
+      const result = await getJson(url, 'project file');
       if (!result.ok) throw new Error(result.error || 'file fetch failed');
       return result.html;
     },
@@ -914,21 +953,25 @@ function domainSwitcherHtml(currentDomain, grouped) {
 async function main() {
   console.log(MOCK ? 'Build AIS Instrument Gym (mock fixtures)…' : 'Build AIS Instrument Gym (live registry)…');
   validateTaxonomy();
-  const registry = await loadRegistry();
+  const policy = resolveBuildContentPolicy(process.env);
+  console.log('  content policy: ' + policy.audience + ' (' + policy.context + ' / ' + policy.branch + ')');
+  const registry = await loadRegistry(policy);
   const site = registry.site && typeof registry.site === 'object' ? registry.site : {};
   let demos = Array.isArray(registry.demos)
     ? registry.demos.filter(demo => demo && typeof demo === 'object')
     : [];
+
+  const excluded = demos.filter(demo => !isPublishableDemo(demo, policy));
+  excluded.forEach(demo => console.warn('  skipping (not publishable for ' + policy.audience + '): '
+    + (demo.title || demo.file_name || demo.file_id || 'unnamed row')));
+  demos = demos.filter(demo => isPublishableDemo(demo, policy));
 
   const siteRecords = demos.filter(demo => isSiteRecord(demo));
   siteRecords.forEach(demo => console.warn('  skipping (dashboard record, not a project): ' + (demo.title || demo.file_name)));
   const siteRecordSet = new Set(siteRecords);
   demos = demos.filter(demo => !siteRecordSet.has(demo));
 
-  const missing = demos.filter(demo => demo.file_check === 'missing');
-  missing.forEach(demo => console.warn('  skipping (file missing in Drive): ' + demo.title));
-  demos = demos.filter(demo => demo.file_check !== 'missing');
-  if (!demos.length) console.warn('  No Live demos in the registry — the Instrument Gym will show an empty library.');
+  if (!demos.length) console.warn('  No publishable demos in the registry — the Instrument Gym will show an empty library.');
 
   const used = {};
   demos.forEach(demo => {
@@ -957,11 +1000,17 @@ async function main() {
 
   const pages = await inChunks(demos, 3, async demo => {
     const html = await withRetry(() => registry.getHtml(demo.file_id));
+    if (typeof html !== 'string' || html.trim() === '') {
+      throw new Error('project file is empty or unreadable: ' + (demo.title || demo.file_id));
+    }
     return { demo, html };
   });
 
   fs.rmSync(DIST, { recursive: true, force: true });
   fs.mkdirSync(DIST, { recursive: true });
+  if (policy.audience === 'preview') {
+    fs.writeFileSync(path.join(DIST, '_headers'), '/*\n  X-Robots-Tag: noindex, nofollow\n');
+  }
   const assetSource = path.join(SITE, 'assets');
   if (fs.existsSync(assetSource)) fs.cpSync(assetSource, path.join(DIST, 'assets'), { recursive: true });
   for (const { demo, html } of pages) {
@@ -1119,6 +1168,9 @@ module.exports = {
   resolveSubtopic,
   cardPreview,
   repairDemoNavigation,
+  resolveBuildContentPolicy,
   safePreviewUrl,
+  scopedRegistryUrl,
+  isPublishableDemo,
   validateTaxonomy,
 };
