@@ -149,7 +149,7 @@ When no image is available, the card shows a quiet pending state rather than a
 generic science emblem.
 
 ## Local preview
-`node build.js --mock` builds from `fixtures/` into `dist/` with no network —
+Use Node.js 24 or newer. `node build.js --mock` builds from `fixtures/` into `dist/` with no network —
 open `dist/index.html` in a browser. With `REGISTRY_URL` exported in your
 shell, plain `node build.js` builds from the real registry.
 
