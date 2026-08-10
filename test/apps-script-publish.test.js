@@ -120,9 +120,9 @@ function fakeSpreadsheetApp() {
 
 const PRODUCTION_HOOK = 'https://api.netlify.com/build_hooks/production123';
 const PREVIEW_HOOK = 'https://api.netlify.com/build_hooks/preview123';
-const PREVIEW_BRANCH = 'fix/seven-departments-data-previews';
+const PREVIEW_BRANCH = 'develop';
 
-test('Apps Script parses and builds an encoded preview request', () => {
+test('Apps Script accepts develop and builds a preview request', () => {
   const script = loadAppsScript();
   const request = script.configuredBuildRequest_({
     netlify_build_hook: PRODUCTION_HOOK,
@@ -134,8 +134,21 @@ test('Apps Script parses and builds an encoded preview request', () => {
   assert.equal(request.ok, true);
   assert.equal(request.branch, PREVIEW_BRANCH);
   assert.match(request.hookUrl, /^https:\/\/api\.netlify\.com\/build_hooks\/preview123\?/);
-  assert.match(request.hookUrl, /trigger_branch=fix%2Fseven-departments-data-previews/);
+  assert.match(request.hookUrl, /trigger_branch=develop/);
   assert.doesNotMatch(request.hookUrl, /production123/);
+});
+
+test('Apps Script still encodes approved prefixed preview branches', () => {
+  const script = loadAppsScript();
+  const request = script.configuredBuildRequest_({
+    netlify_preview_build_hook: PREVIEW_HOOK,
+    production_branch: 'main',
+    preview_branch: 'feature/encoded-preview',
+  }, 'preview');
+
+  assert.equal(request.ok, true);
+  assert.equal(request.branch, 'feature/encoded-preview');
+  assert.match(request.hookUrl, /trigger_branch=feature%2Fencoded-preview/);
 });
 
 test('preview refuses production and query-injection branch names', () => {
@@ -356,7 +369,7 @@ test('Netlify response codes and network errors are reported accurately', () => 
   assert.equal(accepted.ok, true);
   assert.equal(accepted.status, 202);
   assert.equal(accepted.branch, PREVIEW_BRANCH);
-  assert.match(requestedUrl, /trigger_branch=fix%2Fseven-departments-data-previews/);
+  assert.match(requestedUrl, /trigger_branch=develop/);
   assert.equal(requestedOptions.method, 'post');
   assert.equal(requestedOptions.payload, '{}');
 

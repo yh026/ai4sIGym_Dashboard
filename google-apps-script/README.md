@@ -20,8 +20,7 @@ Google Sheet 按钮只触发构建，不会创建、合并或删除 Git 分支�
 1. `registry production publish`
    - Default branch：`main`
 2. `registry preview publish`
-   - Default branch：一个非生产分支，例如
-     `fix/seven-departments-data-previews`
+   - Default branch：`develop`
 
 复制两个 Hook 的**基础 URL**。格式应为：
 
@@ -70,7 +69,7 @@ Script Properties。这个步骤不能省略：部署成 Web App 后不存在“
 | `netlify_build_hook` | Production Hook 基础 URL |
 | `netlify_preview_build_hook` | Preview Hook 基础 URL |
 | `production_branch` | `main` |
-| `preview_branch` | `fix/seven-departments-data-previews` |
+| `preview_branch` | `develop` |
 | `preview_url` | 从 Netlify Deploy 页面复制的真实 Branch Deploy URL |
 | `preview_url_branch` | 与上面 URL 对应的完整分支名；通常与 `preview_branch` 相同 |
 | `auto_publish_target` | 首次使用保持 `off` |
@@ -86,6 +85,7 @@ Script Properties。这个步骤不能省略：部署成 Web App 后不存在“
 Preview 分支默认允许以下形式：
 
 ```text
+develop
 fix/*
 feature/*
 preview/*
@@ -107,6 +107,7 @@ dashboard-preview
 ### 查看代码分支效果
 
 1. 把修改 push 到非 `main` 分支。
+   本项目的稳定 Preview 分支是 `develop`。
 2. Netlify 通常会因为 Git push 自动更新 Branch Deploy。
 3. 如果 Registry Sheet / Drive 数据随后发生变化，使用：
    `AI4S dashboard → Build preview branch`。

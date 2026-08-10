@@ -63,13 +63,13 @@ var SHEET_LOG = 'Log';
 var REGISTRY_SPREADSHEET_ID_PROPERTY = 'AI4S_REGISTRY_SPREADSHEET_ID';
 
 // Deployment guardrails. Preview publishing accepts these branch families
-// plus the two stable names below. Production is deliberately locked to main.
+// plus the stable names below. Production is deliberately locked to main.
 var PRODUCTION_BRANCH = 'main';
 var PREVIEW_BRANCH_PREFIXES = [
   'fix/', 'feature/', 'preview/', 'chore/', 'docs/', 'test/',
   'refactor/', 'hotfix/', 'release/'
 ];
-var PREVIEW_BRANCH_NAMES = ['staging', 'dashboard-preview'];
+var PREVIEW_BRANCH_NAMES = ['develop', 'staging', 'dashboard-preview'];
 var AUTO_PUBLISH_TARGETS = ['off', 'preview', 'production'];
 
 // Column order for the Demos tab. 1-based indexes.
@@ -428,7 +428,7 @@ function setupConfigSheet_(ss) {
     ['netlify_build_hook', existing.netlify_build_hook || '', 'PRODUCTION Build Hook base URL. Its Netlify default branch must be main. Treat this URL as a secret.'],
     ['netlify_preview_build_hook', existing.netlify_preview_build_hook || '', 'PREVIEW Build Hook base URL. Its Netlify default branch must be non-production. Treat this URL as a secret.'],
     ['production_branch', existing.production_branch || PRODUCTION_BRANCH, 'Safety setting. Production publishing is accepted only when this is main.'],
-    ['preview_branch', existing.preview_branch || '', 'Exact existing GitHub branch to preview, e.g. fix/seven-departments-data-previews. main is always rejected.'],
+    ['preview_branch', existing.preview_branch || '', 'Exact existing GitHub branch to preview, e.g. develop. main is always rejected.'],
     ['preview_url', existing.preview_url || '', 'Actual Branch Deploy URL copied from Netlify. Do not guess it from a branch containing slashes.'],
     ['preview_url_branch', existing.preview_url_branch || '', 'Exact branch served by preview_url. The Open preview link is shown only when this matches preview_branch.'],
     ['auto_publish_target', autoTarget, 'off (recommended), preview, or production. Controls rebuilds after an hourly Drive sync finds changes.'],
