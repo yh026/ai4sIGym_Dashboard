@@ -1,4 +1,5 @@
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
@@ -118,11 +119,45 @@ function fakeSpreadsheetApp() {
   };
 }
 
+function fakeUtilities(uuid = '11111111-2222-4333-8444-555555555555') {
+  return {
+    DigestAlgorithm: { SHA_256: 'SHA_256' },
+    Charset: { UTF_8: 'UTF_8' },
+    computeDigest(algorithm, value) {
+      assert.equal(algorithm, 'SHA_256');
+      return Array.from(crypto.createHash('sha256').update(String(value), 'utf8').digest(),
+        byte => (byte > 127 ? byte - 256 : byte));
+    },
+    computeHmacSha256Signature(value, key) {
+      return Array.from(crypto.createHmac('sha256', String(key))
+        .update(String(value), 'utf8').digest(), byte => (byte > 127 ? byte - 256 : byte));
+    },
+    base64Encode: bytes => Buffer.from(bytes).toString('base64'),
+    getUuid: () => uuid,
+  };
+}
+
+function fakeScriptProperties(initial = {}) {
+  const values = { ...initial };
+  return {
+    values,
+    service: {
+      getScriptProperties() {
+        return {
+          getProperty: key => values[key] ?? null,
+          setProperty(key, value) { values[key] = String(value); return this; },
+        };
+      },
+    },
+  };
+}
+
 const PRODUCTION_HOOK = 'https://api.netlify.com/build_hooks/production123';
 const PREVIEW_HOOK = 'https://api.netlify.com/build_hooks/preview123';
-const PREVIEW_BRANCH = 'fix/seven-departments-data-previews';
+const PREVIEW_BRANCH = 'develop';
+const SITE_ID = '33333333-4444-4555-8666-777777777777';
 
-test('Apps Script parses and builds an encoded preview request', () => {
+test('Apps Script accepts develop and builds a preview request', () => {
   const script = loadAppsScript();
   const request = script.configuredBuildRequest_({
     netlify_build_hook: PRODUCTION_HOOK,
@@ -134,8 +169,21 @@ test('Apps Script parses and builds an encoded preview request', () => {
   assert.equal(request.ok, true);
   assert.equal(request.branch, PREVIEW_BRANCH);
   assert.match(request.hookUrl, /^https:\/\/api\.netlify\.com\/build_hooks\/preview123\?/);
-  assert.match(request.hookUrl, /trigger_branch=fix%2Fseven-departments-data-previews/);
+  assert.match(request.hookUrl, /trigger_branch=develop/);
   assert.doesNotMatch(request.hookUrl, /production123/);
+});
+
+test('Apps Script still encodes approved prefixed preview branches', () => {
+  const script = loadAppsScript();
+  const request = script.configuredBuildRequest_({
+    netlify_preview_build_hook: PREVIEW_HOOK,
+    production_branch: 'main',
+    preview_branch: 'feature/encoded-preview',
+  }, 'preview');
+
+  assert.equal(request.ok, true);
+  assert.equal(request.branch, 'feature/encoded-preview');
+  assert.match(request.hookUrl, /trigger_branch=feature%2Fencoded-preview/);
 });
 
 test('preview refuses production and query-injection branch names', () => {
@@ -207,7 +255,7 @@ test('legacy auto_publish=yes remains safe-off until a target is explicit', () =
   const script = loadAppsScript();
   assert.equal(script.autoPublishTarget_({ auto_publish: 'yes' }), 'off');
   assert.equal(script.autoPublishTarget_({ auto_publish_target: 'preview' }), 'preview');
-  assert.equal(script.autoPublishTarget_({ auto_publish_target: 'production' }), 'production');
+  assert.equal(script.autoPublishTarget_({ auto_publish_target: 'production' }), 'off');
   assert.equal(script.autoPublishTarget_({ auto_publish_target: 'anything' }), 'off');
 });
 
@@ -232,6 +280,547 @@ test('Registry URL safely encodes a migrated custom access token', () => {
   );
 });
 
+test('Registry audience is closed and defaults safely to Production', () => {
+  const script = loadAppsScript();
+
+  assert.equal(script.registryAudience_('').value, 'production');
+  assert.equal(script.registryAudience_('production').value, 'production');
+  assert.equal(script.registryAudience_('preview').value, 'preview');
+  assert.equal(script.registryAudience_('PREVIEW').value, 'preview');
+  assert.equal(script.registryAudience_('all').ok, false);
+  assert.equal(script.registryAudience_('unknown').ok, false);
+});
+
+test('Registry visibility uses the same safe status matrix for manifest and files', () => {
+  const script = loadAppsScript();
+  const rows = [
+    { id: 'live', status: 'Live', file_check: 'ok' },
+    { id: 'draft', status: 'Draft', file_check: 'ok — no provenance.md' },
+    { id: 'archived', status: 'Archived', file_check: 'ok' },
+    { id: 'missing', status: 'Live', file_check: 'missing' },
+    { id: 'unreadable', status: 'Live', file_check: 'ok — page unreadable' },
+    { id: 'unknown', status: 'Published', file_check: 'ok' },
+  ];
+
+  assert.deepEqual(
+    rows.filter(row => script.registryDemoVisible_(row, 'production')).map(row => row.id),
+    ['live'],
+  );
+  assert.deepEqual(
+    rows.filter(row => script.registryDemoVisible_(row, 'preview')).map(row => row.id),
+    ['live', 'draft'],
+  );
+});
+
+test('Registry revision is deterministic, audience-scoped, and excludes generated time', () => {
+  const script = loadAppsScript();
+  script.Utilities = fakeUtilities();
+  script.readCategories_ = () => ['Physics', 'Biology'];
+
+  let demos = [{
+    title: 'Draft demo', status: 'Draft', file_check: 'ok', file_id: 'draft-id',
+    last_modified: '2026-08-11T01:02:03.000Z', picture_file_id: '',
+  }];
+  script.readDemos_ = () => demos;
+  const cfg = { site_title: 'Gym', site_tagline: 'Preview safely' };
+
+  const first = script.registrySnapshot_({}, cfg, 'preview');
+  demos = [{
+    picture_file_id: '', last_modified: '2026-08-11T01:02:03.000Z',
+    file_id: 'draft-id', file_check: 'ok', status: 'Draft', title: 'Draft demo',
+  }];
+  const reorderedKeys = script.registrySnapshot_({}, cfg, 'preview');
+  const production = script.registrySnapshot_({}, cfg, 'production');
+  demos[0].title = 'Changed title';
+  const changed = script.registrySnapshot_({}, cfg, 'preview');
+
+  assert.match(first.registry_revision, /^sha256:[0-9a-f]{64}$/);
+  assert.equal(first.registry_revision, reorderedKeys.registry_revision);
+  assert.notEqual(first.registry_revision, production.registry_revision);
+  assert.notEqual(first.registry_revision, changed.registry_revision);
+  assert.deepEqual(Array.from(production.demos), []);
+});
+
+test('Registry endpoint never lets legacy status=all bypass its audience', () => {
+  const script = loadAppsScript();
+  const syncedAt = '2026-08-11T00:00:00.000Z';
+  const demos = [
+    { status: 'Live', file_id: 'live-id', picture_file_id: '', file_check: 'ok',
+      last_modified: syncedAt },
+    { status: 'Draft', file_id: 'draft-id', picture_file_id: 'draft-picture-id',
+      file_check: 'ok', last_modified: syncedAt },
+    { status: 'Archived', file_id: 'archived-id', picture_file_id: '', file_check: 'ok',
+      last_modified: syncedAt },
+  ];
+  let demoReads = 0;
+  script.registrySpreadsheet_ = () => ({});
+  script.readConfig_ = () => ({ access_token: 'secret' });
+  script.readCategories_ = () => [];
+  script.readDemos_ = () => { demoReads += 1; return demos; };
+  script.jsonOut_ = value => value;
+  let driveReads = 0;
+  let blobReads = 0;
+  const driveStamps = {};
+  script.registryDriveFile_ = (cfg, id) => {
+    driveReads += 1;
+    return ({
+      getLastUpdated: () => new Date(driveStamps[id] || syncedAt),
+      getBlob: () => {
+        blobReads += 1;
+        return ({
+          getDataAsString: () => `<html>${id}</html>`,
+          getContentType: () => 'text/html',
+          getBytes: () => [],
+        });
+      },
+    });
+  };
+  script.Utilities = fakeUtilities();
+  script.Utilities.base64Encode = () => 'encoded-picture';
+
+  const production = script.doGet({ parameter: {
+    token: 'secret', action: 'manifest', status: 'all',
+  } });
+  assert.equal(production.ok, true);
+  assert.equal(production.audience, 'production');
+  assert.deepEqual(Array.from(production.demos, demo => demo.file_id), ['live-id']);
+
+  const preview = script.doGet({ parameter: {
+    token: 'secret', action: 'manifest', audience: 'preview',
+  } });
+  assert.deepEqual(Array.from(preview.demos, demo => demo.file_id), ['live-id', 'draft-id']);
+  assert.match(preview.registry_revision, /^sha256:[0-9a-f]{64}$/);
+
+  const productionDraftFile = script.doGet({ parameter: {
+    token: 'secret', action: 'file', id: 'draft-id',
+  } });
+  assert.equal(productionDraftFile.ok, false);
+  assert.equal(productionDraftFile.error, 'unknown file id');
+
+  const previewDraftFile = script.doGet({ parameter: {
+    token: 'secret', action: 'file', id: 'draft-id', audience: 'preview',
+  } });
+  assert.equal(previewDraftFile.ok, true);
+  assert.equal(previewDraftFile.audience, 'preview');
+  assert.equal(previewDraftFile.registry_revision, preview.registry_revision);
+  assert.match(previewDraftFile.html, /draft-id/);
+
+  driveStamps['draft-id'] = '2026-08-11T00:00:00.001Z';
+  const beforeChangedPage = blobReads;
+  const changedDraftFile = script.doGet({ parameter: {
+    token: 'secret', action: 'file', id: 'draft-id', audience: 'preview',
+    registry_revision: preview.registry_revision,
+  } });
+  assert.equal(changedDraftFile.ok, false);
+  assert.match(changedDraftFile.error, /source changed/);
+  assert.equal(blobReads, beforeChangedPage,
+    'a post-sync page change must fail before reading Drive bytes');
+  delete driveStamps['draft-id'];
+
+  const beforeRevisionMismatch = driveReads;
+  const staleDraftFile = script.doGet({ parameter: {
+    token: 'secret', action: 'file', id: 'draft-id', audience: 'preview',
+    registry_revision: `sha256:${'0'.repeat(64)}`,
+  } });
+  assert.equal(staleDraftFile.ok, false);
+  assert.match(staleDraftFile.error, /revision changed/);
+  assert.equal(driveReads, beforeRevisionMismatch, 'stale revision must fail before Drive read');
+
+  const productionDraftPicture = script.doGet({ parameter: {
+    token: 'secret', action: 'file', id: 'draft-picture-id',
+  } });
+  assert.equal(productionDraftPicture.ok, false);
+
+  const previewDraftPicture = script.doGet({ parameter: {
+    token: 'secret', action: 'file', id: 'draft-picture-id', audience: 'preview',
+  } });
+  assert.equal(previewDraftPicture.ok, true);
+  assert.equal(previewDraftPicture.audience, 'preview');
+  assert.equal(previewDraftPicture.base64, 'encoded-picture');
+
+  driveStamps['draft-picture-id'] = '2026-08-11T00:00:00.002Z';
+  const beforeChangedPicture = blobReads;
+  const changedDraftPicture = script.doGet({ parameter: {
+    token: 'secret', action: 'file', id: 'draft-picture-id', audience: 'preview',
+    registry_revision: preview.registry_revision,
+  } });
+  assert.equal(changedDraftPicture.ok, false);
+  assert.match(changedDraftPicture.error, /source changed/);
+  assert.equal(blobReads, beforeChangedPicture,
+    'a post-sync picture change must fail before reading Drive bytes');
+
+  const archivedPreviewFile = script.doGet({ parameter: {
+    token: 'secret', action: 'file', id: 'archived-id', audience: 'preview',
+  } });
+  assert.equal(archivedPreviewFile.ok, false);
+
+  const beforeBadToken = demoReads;
+  const badToken = script.doGet({ parameter: {
+    token: 'wrong', action: 'manifest', audience: 'preview',
+  } });
+  assert.equal(badToken.error, 'bad token');
+  assert.equal(demoReads, beforeBadToken);
+});
+
+test('Drive timestamp comparison catches every sub-minute timestamp change', () => {
+  const script = loadAppsScript();
+  const stored = new Date('2026-08-11T00:00:00.100Z');
+
+  assert.equal(script.driveStampChanged_(stored, new Date('2026-08-11T00:00:00.100Z')), false);
+  assert.equal(script.driveStampChanged_(stored, new Date('2026-08-11T00:00:00.900Z')), true);
+  assert.equal(script.driveStampChanged_(stored, new Date('2026-08-11T00:00:01.000Z')), true);
+  assert.equal(script.driveStampChanged_(stored, new Date('2026-08-11T00:00:59.000Z')), true);
+  assert.equal(script.driveStampChanged_('', new Date('2026-08-11T00:00:01.000Z')), true);
+});
+
+test('Preview publish state survives Script Properties and corrupt state resets safely', () => {
+  const script = loadAppsScript();
+  const properties = fakeScriptProperties();
+  script.PropertiesService = properties.service;
+
+  const state = script.emptyPreviewPublishState_();
+  state.branch = 'develop';
+  state.desired = `sha256:${'a'.repeat(64)}`;
+  state.requested = state.desired;
+  state.requestId = 'request-123';
+  state.attempts = 2;
+  script.writePreviewPublishState_(state);
+
+  const restored = script.readPreviewPublishState_();
+  assert.equal(restored.branch, 'develop');
+  assert.equal(restored.desired, state.desired);
+  assert.equal(restored.requestId, 'request-123');
+  assert.equal(restored.attempts, 2);
+
+  properties.values.AI4S_PREVIEW_PUBLISH_STATE_V2 = '{broken';
+  const reset = script.readPreviewPublishState_();
+  assert.equal(reset.requested, '');
+  assert.match(reset.lastError, /unreadable/);
+});
+
+test('Preview receipt requires verified branch-deploy context, revision, audience, and request ID', () => {
+  const script = loadAppsScript();
+  const expected = {
+    branch: 'develop', revision: `sha256:${'b'.repeat(64)}`, requestId: 'request-456',
+  };
+  const receipt = {
+    schema: 1,
+    verified: true,
+    revision_bound: true,
+    target: 'preview',
+    audience: 'preview',
+    platform: 'netlify',
+    context: 'branch-deploy',
+    branch: 'develop',
+    registry_revision: expected.revision,
+    request_id: expected.requestId,
+  };
+
+  assert.equal(script.previewReceiptMatches_(receipt, expected), true);
+  assert.equal(script.previewReceiptMatches_({ ...receipt, verified: false }, expected), false);
+  assert.equal(script.previewReceiptMatches_({ ...receipt, context: 'production' }, expected), false);
+  assert.equal(script.previewReceiptMatches_({ ...receipt, branch: 'main' }, expected), false);
+  assert.equal(script.previewReceiptMatches_({ ...receipt, request_id: 'older' }, expected), false);
+  assert.equal(script.previewReceiptMatches_({ ...receipt, registry_revision: `sha256:${'c'.repeat(64)}` }, expected), false);
+});
+
+test('Preview readiness reads authenticated callback state and never fetches the private URL', () => {
+  const script = loadAppsScript();
+  const revision = `sha256:${'d'.repeat(64)}`;
+  const expected = { branch: 'develop', revision, requestId: 'request-789' };
+  const cfg = {
+    preview_branch: 'develop',
+    preview_url_branch: 'develop',
+    preview_url: 'https://develop--aisigym.netlify.app/',
+    production_branch: 'main',
+  };
+  script.UrlFetchApp = { fetch() { throw new Error('private Preview must never be fetched'); } };
+  const state = script.emptyPreviewPublishState_();
+  state.ready = revision;
+  state.readyRequestId = 'request-789';
+  state.readyDeployId = 'deploy-ready-123';
+  const match = script.checkPreviewReceipt_(cfg, expected, 123456, state);
+  assert.equal(match.ready, true);
+  state.readyRequestId = 'old-request';
+  assert.equal(script.checkPreviewReceipt_(cfg, expected, 123457, state).ready, false);
+});
+
+test('authenticated callback adoption is exact, idempotent, and demotes a later unverified develop deploy', () => {
+  const script = loadAppsScript();
+  const revision = `sha256:${'d'.repeat(64)}`;
+  const requestId = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+  const requestedAt = '2026-08-11T01:02:03.004Z';
+  const readyReceipt = {
+    schema: 1, verified: true, revision_bound: true,
+    target: 'preview', audience: 'preview', platform: 'netlify',
+    registry_revision: revision, built_at: '2026-08-11T01:04:05.006Z',
+    context: 'branch-deploy', branch: 'develop', site_id: SITE_ID,
+    commit_ref: 'a'.repeat(40), build_id: 'build-ready-123', deploy_id: 'deploy-ready-123',
+    request_id: requestId, requested_at: requestedAt,
+  };
+  let state = script.emptyPreviewPublishState_();
+  state.branch = 'develop';
+  state.desired = revision;
+  state.requested = revision;
+  state.requestId = requestId;
+  state.requestedAt = requestedAt;
+  state.accepted = revision;
+
+  const callback = {
+    schema: 1, event: 'preview_deploy_succeeded',
+    callback_at: '2026-08-11T01:05:06.007Z', receipt: readyReceipt,
+  };
+  let result = script.adoptPreviewCallback_(state, callback, SITE_ID, 10_000);
+  assert.equal(result.ok, true);
+  assert.equal(result.adopted, true);
+  assert.equal(result.state.ready, revision);
+  assert.equal(result.state.readyDeployId, 'deploy-ready-123');
+
+  result = script.adoptPreviewCallback_(result.state, callback, SITE_ID, 11_000);
+  assert.equal(result.duplicate, true);
+  assert.equal(result.adopted, false);
+
+  const wrongRequest = JSON.parse(JSON.stringify(callback));
+  wrongRequest.receipt.deploy_id = 'deploy-wrong-request';
+  wrongRequest.receipt.request_id = 'ffffffff-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+  result = script.adoptPreviewCallback_(result.state, wrongRequest, SITE_ID, 12_000);
+  assert.equal(result.stale, true);
+  assert.equal(result.state.ready, revision);
+
+  const inFlight = JSON.parse(JSON.stringify(result.state));
+  inFlight.requested = revision;
+  inFlight.requestId = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff';
+  inFlight.requestedAt = '2026-08-11T01:05:30.000Z';
+  inFlight.accepted = revision;
+  inFlight.acceptedAt = 12_500;
+  const concurrentUnverified = JSON.parse(JSON.stringify(callback));
+  concurrentUnverified.callback_at = '2026-08-11T01:07:08.009Z';
+  concurrentUnverified.receipt.verified = false;
+  concurrentUnverified.receipt.built_at = '2026-08-11T01:06:07.008Z';
+  concurrentUnverified.receipt.deploy_id = 'deploy-unverified-concurrent';
+  delete concurrentUnverified.receipt.request_id;
+  delete concurrentUnverified.receipt.requested_at;
+  const concurrent = script.adoptPreviewCallback_(
+    inFlight, concurrentUnverified, SITE_ID, 12_750,
+  );
+  assert.equal(concurrent.invalidated, true);
+  assert.equal(concurrent.state.ready, '');
+  assert.equal(concurrent.state.requestId, inFlight.requestId,
+    'demoting an older ready deploy must preserve a newer accepted request');
+  assert.equal(concurrent.state.accepted, revision);
+
+  const unverified = JSON.parse(JSON.stringify(callback));
+  unverified.callback_at = '2026-08-11T01:07:08.009Z';
+  unverified.receipt.verified = false;
+  unverified.receipt.built_at = '2026-08-11T01:06:07.008Z';
+  unverified.receipt.deploy_id = 'deploy-unverified-2';
+  delete unverified.receipt.request_id;
+  delete unverified.receipt.requested_at;
+  result = script.adoptPreviewCallback_(result.state, unverified, SITE_ID, 13_000);
+  assert.equal(result.invalidated, true);
+  assert.equal(result.state.ready, '');
+  assert.equal(result.state.requested, '');
+  assert.match(result.state.lastError, /unverified deploy/);
+
+  assert.equal(script.adoptPreviewCallback_(state, callback, 'wrong-site', 14_000).ok, false);
+  const production = JSON.parse(JSON.stringify(callback));
+  production.receipt.context = 'production';
+  production.receipt.branch = 'main';
+  assert.equal(script.adoptPreviewCallback_(state, production, SITE_ID, 15_000).ok, false);
+});
+
+test('doPost verifies the raw HMAC before parsing and persists an idempotent acknowledgement', () => {
+  const script = loadAppsScript();
+  const secret = 'callback-secret-with-at-least-thirty-two-characters';
+  const revision = `sha256:${'d'.repeat(64)}`;
+  const requestId = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+  const requestedAt = '2026-08-11T01:02:03.004Z';
+  const properties = fakeScriptProperties({
+    AI4S_PREVIEW_CALLBACK_SECRET: secret,
+    AI4S_NETLIFY_SITE_ID: SITE_ID,
+  });
+  script.PropertiesService = properties.service;
+  script.Utilities = fakeUtilities();
+  script.LockService = {
+    getScriptLock: () => ({ tryLock: () => true, releaseLock() {} }),
+  };
+  script.ContentService = {
+    MimeType: { JSON: 'json' },
+    createTextOutput(text) {
+      return { setMimeType() { return JSON.parse(text); } };
+    },
+  };
+  script.logEvent_ = () => {};
+
+  const state = script.emptyPreviewPublishState_();
+  state.branch = 'develop';
+  state.desired = revision;
+  state.requested = revision;
+  state.requestId = requestId;
+  state.requestedAt = requestedAt;
+  state.accepted = revision;
+  script.writePreviewPublishState_(state);
+
+  const rawPayload = JSON.stringify({
+    schema: 1,
+    event: 'preview_deploy_succeeded',
+    callback_at: '2026-08-11T01:05:06.007Z',
+    receipt: {
+      schema: 1, verified: true, revision_bound: true,
+      target: 'preview', audience: 'preview', platform: 'netlify',
+      registry_revision: revision, built_at: '2026-08-11T01:04:05.006Z',
+      context: 'branch-deploy', branch: 'develop', site_id: SITE_ID,
+      commit_ref: 'a'.repeat(40), build_id: 'build-ready-123', deploy_id: 'deploy-ready-123',
+      request_id: requestId, requested_at: requestedAt,
+    },
+  });
+  const call = outer => script.doPost({
+    parameter: { action: 'preview_callback' },
+    postData: { contents: JSON.stringify(outer) },
+  });
+
+  const rejected = call({ payload: rawPayload, signature: '0'.repeat(64) });
+  assert.equal(rejected.ok, false);
+  assert.match(rejected.error, /signature/);
+  assert.equal(script.readPreviewPublishState_().ready, '');
+
+  const signature = crypto.createHmac('sha256', secret).update(rawPayload, 'utf8').digest('hex');
+  const accepted = call({ payload: rawPayload, signature });
+  assert.equal(accepted.ok, true);
+  assert.equal(accepted.adopted, true);
+  assert.equal(accepted.deploy_id, 'deploy-ready-123');
+  assert.equal(script.readPreviewPublishState_().ready, revision);
+
+  const replay = call({ payload: rawPayload, signature });
+  assert.equal(replay.ok, true);
+  assert.equal(replay.duplicate, true);
+  assert.equal(replay.adopted, false);
+});
+
+test('Preview maintenance treats auto-off as a hard stop and never reposts an accepted Hook', () => {
+  const script = loadAppsScript();
+  const properties = fakeScriptProperties();
+  const revision = `sha256:${'e'.repeat(64)}`;
+  const cfg = {
+    netlify_preview_build_hook: PREVIEW_HOOK,
+    production_branch: 'main',
+    preview_branch: 'develop',
+    preview_url: 'https://develop--aisigym.netlify.app/',
+    preview_url_branch: 'develop',
+    auto_publish_target: 'off',
+  };
+  let receipt = { ok: true, configured: true, ready: false, status: 0, error: '' };
+  const payloads = [];
+  script.PropertiesService = properties.service;
+  script.Utilities = fakeUtilities('aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee');
+  script.registrySnapshot_ = () => ({
+    audience: 'preview', site: {}, demos: [], registry_revision: revision,
+  });
+  script.checkPreviewReceipt_ = () => receipt;
+  script.triggerBuildRequest_ = (request, payload) => {
+    payloads.push(JSON.parse(JSON.stringify(payload)));
+    return { ok: true, status: 202, target: request.target, branch: request.branch };
+  };
+
+  const observed = script.maintainPreviewPublish_({}, cfg, { now: 1_000, allowAttempt: true });
+  assert.equal(observed.phase, 'dirty');
+  assert.equal(observed.attempted, false, 'auto off must not create a request');
+
+  cfg.auto_publish_target = 'preview';
+  const statusOnly = script.maintainPreviewPublish_({}, cfg, {
+    now: 1_500, allowAttempt: false, allowAutoRequest: false,
+  });
+  assert.equal(statusOnly.state.requested, '', 'a status-only check must not queue a request');
+  cfg.auto_publish_target = 'off';
+
+  const manual = script.maintainPreviewPublish_({}, cfg, {
+    now: 2_000, forceRequest: true, allowAttempt: true,
+  });
+  assert.equal(manual.phase, 'accepted');
+  assert.equal(manual.attempted, true);
+  assert.equal(manual.state.attempts, 1);
+  assert.equal(payloads[0].schema, 1);
+  assert.equal(payloads[0].target, 'preview');
+  assert.equal(payloads[0].branch, 'develop');
+  assert.equal(payloads[0].registry_revision, revision);
+  assert.equal(payloads[0].request_id, 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee');
+
+  const tooSoon = script.maintainPreviewPublish_({}, cfg, {
+    now: 2_000 + 30 * 60 * 1000, allowAttempt: true,
+  });
+  assert.equal(tooSoon.attempted, false);
+  assert.equal(payloads.length, 1);
+
+  const retry = script.maintainPreviewPublish_({}, cfg, {
+    now: 2_000 + 60 * 60 * 1000, allowAttempt: true,
+  });
+  assert.equal(retry.attempted, false, 'auto off must also stop scheduled retries');
+  assert.equal(retry.state.attempts, 1);
+  assert.equal(payloads.length, 1);
+
+  cfg.auto_publish_target = 'preview';
+  const enabledRetry = script.maintainPreviewPublish_({}, cfg, {
+    now: 2_000 + 60 * 60 * 1000, allowAttempt: true,
+  });
+  assert.equal(enabledRetry.attempted, false,
+    'a 2xx Hook acceptance must never cause an automatic duplicate deploy');
+  assert.equal(enabledRetry.state.attempts, 1);
+  assert.equal(enabledRetry.phase, 'verification-timeout');
+  assert.equal(payloads.length, 1);
+
+  receipt = {
+    ok: true, configured: true, ready: true, status: 200, error: '',
+    receipt: {
+      schema: 1, verified: true, revision_bound: true,
+      target: 'preview', audience: 'preview', platform: 'netlify',
+      branch: 'develop', registry_revision: revision,
+      request_id: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+    },
+  };
+  const ready = script.maintainPreviewPublish_({}, cfg, {
+    now: 2_000 + 3 * 60 * 60 * 1000, allowAttempt: true,
+  });
+  assert.equal(ready.phase, 'ready');
+  assert.equal(ready.attempted, false);
+  assert.equal(ready.state.ready, revision);
+  assert.equal(ready.state.nextAttemptAt, 0);
+
+  const noChange = script.maintainPreviewPublish_({}, cfg, {
+    now: 2_000 + 4 * 60 * 60 * 1000, allowAttempt: true,
+  });
+  assert.equal(noChange.attempted, false);
+  assert.equal(noChange.state.ready, revision);
+  assert.equal(payloads.length, 1);
+});
+
+test('Preview retry delays are bounded and revision changes cancel stale requests', () => {
+  const script = loadAppsScript();
+  assert.equal(script.previewRetryDelayMs_(1), 60 * 60 * 1000);
+  assert.equal(script.previewRetryDelayMs_(2), 2 * 60 * 60 * 1000);
+  assert.equal(script.previewRetryDelayMs_(3), 4 * 60 * 60 * 1000);
+  assert.equal(script.previewRetryDelayMs_(4), 8 * 60 * 60 * 1000);
+  assert.equal(script.previewRetryDelayMs_(5), 24 * 60 * 60 * 1000);
+  assert.equal(script.previewRetryDelayMs_(99), 24 * 60 * 60 * 1000);
+
+  let state = script.emptyPreviewPublishState_();
+  state.branch = 'develop';
+  state.desired = `sha256:${'1'.repeat(64)}`;
+  state.requested = state.desired;
+  state.requestId = 'stale-request';
+  state.accepted = state.desired;
+  state.attempts = 5;
+  state.nextAttemptAt = 999;
+  state.ready = `sha256:${'0'.repeat(64)}`;
+  state = script.observePreviewDesired_(state, 'develop', `sha256:${'2'.repeat(64)}`);
+
+  assert.equal(state.requested, '');
+  assert.equal(state.accepted, '');
+  assert.equal(state.attempts, 0);
+  assert.equal(state.nextAttemptAt, 0);
+  assert.equal(state.ready, `sha256:${'0'.repeat(64)}`,
+    'the prior ready revision remains visible as stale status');
+});
+
 test('Config migration is idempotent and preserves tokens, custom rows, and formulas', () => {
   const script = loadAppsScript();
   const sheet = new FakeSheet([
@@ -242,8 +831,9 @@ test('Config migration is idempotent and preserves tokens, custom rows, and form
     ['netlify_build_hook', PRODUCTION_HOOK, 'old production Hook'],
     ['auto_publish', 'yes', 'legacy setting'],
     ['access_token', 'keep-this-token', 'keep token'],
+    ['auto_publish_target', 'production', 'unsafe legacy value'],
     ['custom_formula', 2, 'keep custom row'],
-  ], { '8:2': '=1+1' });
+  ], { '9:2': '=1+1' });
   const spreadsheet = {
     getSheetByName(name) { return name === 'Config' ? sheet : null; },
     insertSheet() { throw new Error('Config should already exist'); },
@@ -267,7 +857,7 @@ test('Config migration is idempotent and preserves tokens, custom rows, and form
   assert.equal(values.access_token, 'keep-this-token');
   assert.equal(values.netlify_build_hook, PRODUCTION_HOOK);
   assert.equal(values.custom_formula, 2);
-  assert.equal(sheet.formulaAt(8, 2), '=1+1');
+  assert.equal(sheet.formulaAt(9, 2), '=1+1');
   assert.equal(configRows.find(row => row[0] === 'custom_formula')[2], 'keep custom row');
   assert.match(configRows.find(row => row[0] === 'auto_publish')[2], /retained but ignored/);
 });
@@ -356,7 +946,7 @@ test('Netlify response codes and network errors are reported accurately', () => 
   assert.equal(accepted.ok, true);
   assert.equal(accepted.status, 202);
   assert.equal(accepted.branch, PREVIEW_BRANCH);
-  assert.match(requestedUrl, /trigger_branch=fix%2Fseven-departments-data-previews/);
+  assert.match(requestedUrl, /trigger_branch=develop/);
   assert.equal(requestedOptions.method, 'post');
   assert.equal(requestedOptions.payload, '{}');
 

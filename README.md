@@ -16,7 +16,7 @@ Production Netlify workflows.
 ```
 Drive folder ──▶ Apps Script (sync + JSON feed) ──▶ this build ──▶ Netlify
                      ▲
-              registry sheet (what's Live, all metadata)
+              registry sheet (Draft / Live / Archived + metadata)
 ```
 
 ## One-time setup (~20 min)
@@ -46,6 +46,12 @@ Paste the build URL into a browser tab and add `&action=manifest` at the end.
 You should see JSON with your site config and every **Live** demo. If `demos`
 is `[]`, nothing is set to Live yet — that's the status column, not a bug.
 
+For an intentional Preview check, add `&action=manifest&audience=preview`.
+That closed audience returns healthy **Live + Draft** rows. The default and
+`audience=production` remain Live-only; Archived, missing, empty, and unreadable
+rows are excluded from both audiences. Treat either URL as a credential because
+it still contains the Registry token.
+
 ### C. Put this repo on GitHub
 ```bash
 cd ai4s-dashboard
@@ -62,9 +68,11 @@ pick the repo. Build command and publish directory are read from
 variable: **Site configuration → Environment variables → Add**
 `REGISTRY_URL` = the URL from step A. Deploy.
 
-Give `REGISTRY_URL` the **Builds** scope and the same value in **Production**,
-**Branch deploys**, and **Deploy Previews** contexts, so every Netlify build can
-read the Registry.
+Mark `REGISTRY_URL` as a **secret** and give it the **Builds** scope. Provide it
+to **Production** and the trusted `develop` **Branch deploy**. This repository is
+public, so a Deploy Preview may receive the secret only when Netlify's public-PR
+policy requires approval or deploys untrusted pull requests without sensitive
+variables. Never use an unrestricted sensitive-variable policy for fork PRs.
 
 ### E. Create the build hook and wire it to the sheet
 **Site configuration → Build & deploy → Build hooks → Add build hook** (name it
@@ -77,19 +85,46 @@ non-production branch and paste it into `netlify_preview_build_hook`; see the
 Treat both Hook URLs and `access_token` as credentials. Only fully trusted
 people should be editors of the Registry Sheet / bound Apps Script project.
 
-### F. First publish
-In the sheet, set some demos to **Live**, then
-**AI4S dashboard → Rebuild production site (main)**. ~1–2 minutes later the dashboard is up,
-each demo at `/demos/<slug>/`.
+### F. First content publish
+After reviewing Drafts on the private develop Preview, set the approved demos to
+**Live**, then choose **AI4S dashboard → Rebuild production site (main)** once.
+~1–2 minutes later each demo is available at `/demos/<slug>/`. This button is for
+content-only Drive/Sheet releases when the approved code is already on `main`.
 
 ## The routine forever after
 1. Drop a new `.html` in the Drive folder.
-2. Sync (menu, or the hourly auto-run) → fill the row → status **Live**.
-3. Build the configured preview branch, review it, merge the code to `main`,
-   then choose **Rebuild production site (main)**.
+2. Sync (menu, or the hourly auto-run) → the new row is created as **Draft**.
+3. Build the stable `develop` Branch Deploy and review the Draft there.
+4. When the content is approved, change its status to **Live**.
+5. Only after explicit approval, choose **Rebuild production site (main)**.
 
-`auto_publish_target` defaults to `off`. Set it explicitly to `preview` or
-`production` only if hourly Drive syncs should also trigger that deployment.
+Code changes follow the separate Git review path: review them on `develop`, then
+merge to `main` only when the code is approved **and ready to go live**. With
+Netlify continuous deployment enabled, merging `main` immediately creates the
+Production deploy; do not also press **Rebuild production site (main)** for the
+same release. A content-only Drive update does not require a Git merge and uses
+the confirmed rebuild button instead. Netlify Project Visibility is configured as **Private → Previews
+only**, so the stable develop Branch Deploy and PR Deploy Previews require a
+project team login while Production remains public. Preview builds also send
+`X-Robots-Tag: noindex, nofollow`; noindex is only an indexing hint, not the
+authentication boundary.
+
+`auto_publish_target` defaults to `off`. Set it explicitly to `preview` only
+when hourly Drive syncs should rebuild the stable develop Preview. Production
+is never an Apps Script automatic target; content-only Production releases use
+the confirmed manual action, while approved code merges follow Netlify's Git
+continuous-deployment path.
+
+Preview automation compares a deterministic Registry revision instead of only
+the sync counters, so additions, edits, missing files, recovered files, and
+publishable Sheet metadata changes are handled consistently. A Build Hook 2xx
+means only **accepted**; the request becomes **ready** only after the successful
+develop Branch Deploy sends Apps Script a matching HMAC-authenticated callback.
+The callback is independent of visitor access to the private Preview URL. Hook
+network/non-2xx failures use bounded retries, but an accepted request is never
+automatically deployed again merely because its callback is delayed. Use
+**AI4S dashboard → Preview publish status** for read-only status; after 15 minutes
+without a callback, any retry must be explicitly requested by a person.
 
 ## Science-map taxonomy
 
@@ -149,7 +184,7 @@ When no image is available, the card shows a quiet pending state rather than a
 generic science emblem.
 
 ## Local preview
-`node build.js --mock` builds from `fixtures/` into `dist/` with no network —
+Use Node.js 24 or newer. `node build.js --mock` builds from `fixtures/` into `dist/` with no network —
 open `dist/index.html` in a browser. With `REGISTRY_URL` exported in your
 shell, plain `node build.js` builds from the real registry.
 
@@ -165,8 +200,11 @@ namespaced (`ai4s-*`), so demos don't need to know about Instrument Gym at all.
   (step D), then trigger a redeploy.
 - **Build fails: "bad token"** — the env var is missing the `?token=…` part;
   re-copy from "Show Registry API URL for Netlify".
-- **Site is empty** — no rows have status **Live**, or the deploy predates
-  them: publish again from the sheet menu.
+- **Production is empty** — no healthy rows have status **Live**, or the deploy
+  predates them: publish again from the sheet menu.
+- **A Draft is absent from Preview** — confirm the deploy is the stable
+  `develop` Branch Deploy (not a PR Deploy Preview) and that `file_check` is not
+  `missing`, `unreadable`, or `page empty`.
 - **A demo is skipped with "file missing in Drive"** — its `file_check` says
   `missing`; the file was removed or unshared. Restore it or set the row to
   Archived.

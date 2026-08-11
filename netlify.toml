@@ -3,4 +3,7 @@
   publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "20"
+  NODE_VERSION = "24"
+
+[[context.branch-deploy.plugins]]
+  package = "./netlify/plugins/preview-ready"
