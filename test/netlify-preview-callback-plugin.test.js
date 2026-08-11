@@ -12,7 +12,11 @@ const {
   signedEnvelope,
   fetchWithTimeout,
   deliverPreviewCallback,
-} = require('../netlify/plugins/preview-ready');
+} = require('../netlify/plugins/preview-ready/lib');
+
+test('Build Plugin entry exports only the supported Netlify lifecycle event', () => {
+  assert.deepEqual(Object.keys(require('../netlify/plugins/preview-ready')), ['onSuccess']);
+});
 
 const SITE_ID = '33333333-4444-4555-8666-777777777777';
 const SECRET = 'callback-secret-with-at-least-thirty-two-characters';
