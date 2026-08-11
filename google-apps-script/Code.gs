@@ -449,7 +449,7 @@ function setupConfigSheet_(ss) {
     ['preview_branch', existing.preview_branch || '', 'Exact existing GitHub branch to preview, e.g. develop. main is always rejected.'],
     ['preview_url', existing.preview_url || '', 'Actual Branch Deploy URL copied from Netlify. Do not guess it from a branch containing slashes.'],
     ['preview_url_branch', existing.preview_url_branch || '', 'Exact branch served by preview_url. The Open preview link is shown only when this matches preview_branch.'],
-    ['auto_publish_target', autoTarget, 'off or preview. Production always requires the separate confirmed manual action.'],
+    ['auto_publish_target', autoTarget, 'off or preview. Apps Script never auto-publishes Production; content-only releases use the separate confirmed manual action.'],
     ['access_token', existing.access_token || Utilities.getUuid(), 'Auto-generated secret for the registry endpoint. No need to touch it.']
   ];
 

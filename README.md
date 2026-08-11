@@ -111,7 +111,9 @@ authentication boundary.
 
 `auto_publish_target` defaults to `off`. Set it explicitly to `preview` only
 when hourly Drive syncs should rebuild the stable develop Preview. Production
-is never an automatic target and always requires the confirmed manual action.
+is never an Apps Script automatic target; content-only Production releases use
+the confirmed manual action, while approved code merges follow Netlify's Git
+continuous-deployment path.
 
 Preview automation compares a deterministic Registry revision instead of only
 the sync counters, so additions, edits, missing files, recovered files, and

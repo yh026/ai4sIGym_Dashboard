@@ -126,7 +126,7 @@ test('runbook locks the real canary to develop and preserves the recorded Produc
   assert.match(runbook, /hourly reconciliation never POSTs a duplicate/);
   assert.match(runbook, /restore `auto_publish_target=off`/);
   assert.match(runbook, /Never use the Production Hook as a recovery mechanism/);
-  assert.doesNotMatch(runbook, /1VsnOHEVJ3_OfXlnXqqwQb7u2SQRP9CuK|1epyACodGUHlOeOfbRFUR7FpC4iN9T2fR/);
+  assert.doesNotMatch(runbook, /drive\.google\.com\/(?:file\/d|drive\/folders)\/[A-Za-z0-9_-]+/i);
   assert.match(runbook, /Drive ID intentionally omitted from the public repository/);
 });
 
