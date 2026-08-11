@@ -164,7 +164,11 @@ test('public deploy receipt is allowlisted and Preview/receipt headers discourag
   const previewHeaders = deployHeaders(policy);
   assert.match(previewHeaders, /\/deploy-receipt\.json[\s\S]*Cache-Control: no-store/);
   assert.match(previewHeaders, /\/\*\n  X-Robots-Tag: noindex, nofollow/);
-  const productionHeaders = deployHeaders({ audience: 'production' });
+  const deployPreviewHeaders = deployHeaders({
+    audience: 'production', context: 'deploy-preview',
+  });
+  assert.match(deployPreviewHeaders, /\/\*\n  X-Robots-Tag: noindex, nofollow/);
+  const productionHeaders = deployHeaders({ audience: 'production', context: 'production' });
   assert.match(productionHeaders, /\/deploy-receipt\.json/);
   assert.doesNotMatch(productionHeaders, /\/\*\n/);
 });

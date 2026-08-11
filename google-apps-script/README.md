@@ -132,15 +132,18 @@ Deploy Preview 和其他分支仍按 Production-safe 的 Live-only 规则构建�
 6. 内容通过审核后，才把对应 Sheet 行改为 `Live`。
 
 项目应设置为 `Private → Previews only`。这样 Production 仍公开，而稳定 Branch Deploy
-和 PR Deploy Preview 都要求 Netlify 团队登录。Preview 构建仍发送
+和 PR Deploy Preview 都要求 Netlify 团队登录。所有非 Production 构建仍发送
 `X-Robots-Tag: noindex, nofollow`，但真正的访问边界来自 Netlify 身份验证。
 
 ### 上线生产
 
-1. 在 GitHub 审查并把分支合并到 `main`。
-2. 确认 GitHub 的 `main` 已包含需要的提交。
-3. 使用 `AI4S dashboard → Rebuild production site (main)`。
-4. 在确认框中选择 Yes。
+代码发布：在 GitHub 审查 `develop → main`。只有代码已经可以公开上线时才合并；当前
+Netlify Continuous Deployment 会在 merge 后立即创建一次 Production deploy。不要再为
+同一版本点击 `Rebuild production site (main)`，否则会多创建一次 Production deploy。
+
+纯 Drive/Sheet 内容发布：无需 Git merge。先在私有 develop Preview 审核 Draft，把批准的
+行改为 `Live`，再使用 `AI4S dashboard → Rebuild production site (main)`，并在确认框选择
+Yes。该按钮只重建已经位于 `main` 的代码。
 
 Production 按钮不会执行 Git merge；如果尚未合并，它只会重新构建现有的 `main`。
 
@@ -151,8 +154,9 @@ Production 按钮不会执行 Git merge；如果尚未合并，它只会重新�
 - `off`：推荐默认值；同步 Drive 不自动部署。
 - `preview`：同步发现变化时只重建配置的 Preview 分支。
 
-Production 不属于自动目标，只能通过带 Yes/No 确认的
-`Rebuild production site (main)` 手动触发。旧配置 `auto_publish=yes` 或旧的
+Production 不属于 Apps Script 自动目标。内容发布只能通过带 Yes/No 确认的
+`Rebuild production site (main)` 手动触发；代码 merge 在 Netlify Continuous
+Deployment 开启时会独立触发 Production。旧配置 `auto_publish=yes` 或旧的
 `auto_publish_target=production` 都会在升级后安全回退为 `off`。
 
 Preview 自动化不再只看 `new + updated` 计数，而是比较稳定的 Registry revision，
@@ -200,8 +204,10 @@ Netlify Builds 环境中的共享密钥验证原始 payload 的 HMAC，再解析
 
 - `Preview build was not started`：检查 Preview Hook、分支名以及 Branch Deploy 设置。
 - HTTP 404/401/500：查看 Netlify Deploy log；脚本不会再把这些错误显示成成功。
-- Preview 能构建但 Registry 失败：确认 Netlify 的 `REGISTRY_URL` Scope 包含 `Builds`，
-  并为 `Production`、`Branch deploys`、`Deploy Previews` 三种 Context 使用同一个值。
+- Preview 能构建但 Registry 失败：确认 Netlify 的 `REGISTRY_URL` 已标记为 secret，Scope
+  只包含 `Builds`，并至少提供给 `Production` 与可信的 `develop` Branch Deploy。公共仓库
+  的 fork PR 必须 Require approval 或在没有 sensitive variables 的情况下部署，不能让未审批
+  的 PR 构建读取 Registry token。
 - 状态停在 `verification-timeout`：核对两端的 `AI4S_PREVIEW_CALLBACK_SECRET` 与
   `AI4S_NETLIFY_SITE_ID`；修正后只手动构建一次 Preview，不等待小时同步重复部署。
 - Sheet 的 `Log` 不记录 Hook URL 或 token；失败时可能记录经过脱敏、截断的错误文字。

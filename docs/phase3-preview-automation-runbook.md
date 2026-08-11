@@ -41,11 +41,11 @@ read-only before Phase 3 implementation:
 | Sheet data rows | 20: 15 Live, 4 Draft, 1 Archived |
 | Config safety lock | `auto_publish_target=off`, `auto_publish=no` |
 | Archived Phase 2 fixture row | row 21, `Archived + missing` |
-| Archived Phase 2 fixture file ID | `1VsnOHEVJ3_OfXlnXqqwQb7u2SQRP9CuK` |
-| QA Archive folder | `AIS Dashboard QA Archive` (`1epyACodGUHlOeOfbRFUR7FpC4iN9T2fR`) |
+| Archived Phase 2 fixture | `preview_draft_e2e_20260810_a.html`; Drive ID intentionally omitted from the public repository |
+| QA Archive folder | `AIS Dashboard QA Archive`; Drive ID intentionally omitted from the public repository |
 
-The Phase 2 fixture is audit evidence. Do not move, edit, rename, or reuse its
-file ID. Make a copy with a new file ID for this run.
+The Phase 2 fixture is audit evidence. Do not move, edit, rename, or reuse it.
+Make a copy so the new run receives a new Drive file ID.
 
 ## Commission the accepted-to-ready receipt while automation is off
 

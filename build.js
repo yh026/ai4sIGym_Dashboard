@@ -680,7 +680,9 @@ function deployHeaders(policy) {
     '  Cache-Control: no-store',
     '  X-Content-Type-Options: nosniff',
   ];
-  if (policy.audience === 'preview') {
+  const isNonProductionDeploy = policy.audience === 'preview'
+    || ['branch-deploy', 'deploy-preview', 'dev', 'local'].includes(policy.context);
+  if (isNonProductionDeploy) {
     blocks.push('', '/*', '  X-Robots-Tag: noindex, nofollow');
   }
   return blocks.join('\n') + '\n';

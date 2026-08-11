@@ -13,6 +13,9 @@ const fixturePaths = [
 const contractPath = path.join(root, 'fixtures', 'preview-automation-contract.json');
 const runbookPath = path.join(root, 'docs', 'phase3-preview-automation-runbook.md');
 const netlifyConfigPath = path.join(root, 'netlify.toml');
+const appsScriptPath = path.join(root, 'google-apps-script', 'Code.gs');
+const readmePath = path.join(root, 'README.md');
+const appsReadmePath = path.join(root, 'google-apps-script', 'README.md');
 
 function read(filename) {
   return fs.readFileSync(filename, 'utf8');
@@ -123,4 +126,16 @@ test('runbook locks the real canary to develop and preserves the recorded Produc
   assert.match(runbook, /hourly reconciliation never POSTs a duplicate/);
   assert.match(runbook, /restore `auto_publish_target=off`/);
   assert.match(runbook, /Never use the Production Hook as a recovery mechanism/);
+  assert.doesNotMatch(runbook, /1VsnOHEVJ3_OfXlnXqqwQb7u2SQRP9CuK|1epyACodGUHlOeOfbRFUR7FpC4iN9T2fR/);
+  assert.match(runbook, /Drive ID intentionally omitted from the public repository/);
+});
+
+test('operator guidance reviews Drafts before Live and avoids duplicate Production deploys', () => {
+  const appsScript = read(appsScriptPath);
+  const readmes = `${read(readmePath)}\n${read(appsReadmePath)}`;
+  assert.match(appsScript, /Keep the row as <b>Draft<\/b> while it is under review/);
+  assert.match(appsScript, /Only after the content is approved, set its status to <b>Live<\/b>/);
+  assert.match(appsScript, /do not also press the rebuild button/);
+  assert.match(readmes, /merging `main` immediately creates the\s+Production deploy/);
+  assert.match(readmes, /不要再为\s*同一版本点击 `Rebuild production site \(main\)`/);
 });

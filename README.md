@@ -68,9 +68,11 @@ pick the repo. Build command and publish directory are read from
 variable: **Site configuration → Environment variables → Add**
 `REGISTRY_URL` = the URL from step A. Deploy.
 
-Give `REGISTRY_URL` the **Builds** scope and the same value in **Production**,
-**Branch deploys**, and **Deploy Previews** contexts, so every Netlify build can
-read the Registry.
+Mark `REGISTRY_URL` as a **secret** and give it the **Builds** scope. Provide it
+to **Production** and the trusted `develop` **Branch deploy**. This repository is
+public, so a Deploy Preview may receive the secret only when Netlify's public-PR
+policy requires approval or deploys untrusted pull requests without sensitive
+variables. Never use an unrestricted sensitive-variable policy for fork PRs.
 
 ### E. Create the build hook and wire it to the sheet
 **Site configuration → Build & deploy → Build hooks → Add build hook** (name it
@@ -83,10 +85,11 @@ non-production branch and paste it into `netlify_preview_build_hook`; see the
 Treat both Hook URLs and `access_token` as credentials. Only fully trusted
 people should be editors of the Registry Sheet / bound Apps Script project.
 
-### F. First publish
-In the sheet, set some demos to **Live**, then
-**AI4S dashboard → Rebuild production site (main)**. ~1–2 minutes later the dashboard is up,
-each demo at `/demos/<slug>/`.
+### F. First content publish
+After reviewing Drafts on the private develop Preview, set the approved demos to
+**Live**, then choose **AI4S dashboard → Rebuild production site (main)** once.
+~1–2 minutes later each demo is available at `/demos/<slug>/`. This button is for
+content-only Drive/Sheet releases when the approved code is already on `main`.
 
 ## The routine forever after
 1. Drop a new `.html` in the Drive folder.
@@ -96,8 +99,11 @@ each demo at `/demos/<slug>/`.
 5. Only after explicit approval, choose **Rebuild production site (main)**.
 
 Code changes follow the separate Git review path: review them on `develop`, then
-merge to `main` only when approved. A content-only Drive update does not require
-a Git merge. Netlify Project Visibility is configured as **Private → Previews
+merge to `main` only when the code is approved **and ready to go live**. With
+Netlify continuous deployment enabled, merging `main` immediately creates the
+Production deploy; do not also press **Rebuild production site (main)** for the
+same release. A content-only Drive update does not require a Git merge and uses
+the confirmed rebuild button instead. Netlify Project Visibility is configured as **Private → Previews
 only**, so the stable develop Branch Deploy and PR Deploy Previews require a
 project team login while Production remains public. Preview builds also send
 `X-Robots-Tag: noindex, nofollow`; noindex is only an indexing hint, not the

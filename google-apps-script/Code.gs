@@ -121,7 +121,7 @@ var HEADER_NOTES = {
   category: 'Domain of the demo. Options come from the Categories list on the Config tab. Not in the provenance card — pick it yourself.',
   tags: 'Comma-separated keywords, used by dashboard search. Not in the provenance card — type your own.',
   author: 'Who made it. Pre-filled from PROVENANCE.md notebook.author.',
-  status: 'Draft = hidden. Live = on the site after next publish. Archived = kept in the record, off the site.',
+  status: 'Draft = visible only on the private develop Preview. Live = eligible for Production after explicit release approval. Archived = kept in the record, off both sites.',
   featured: 'Tick to pin this demo to the top of the dashboard.',
   audience: 'Rough level of the intended audience.',
   learning_goal: 'One sentence: what should a student take away? Shown on the demo page. Pre-filled from PROVENANCE.md story.answer — the answer IS the take-away.',
@@ -566,11 +566,14 @@ function showHelp() {
     + '<li>AI4S dashboard → Sync Drive folder now (or wait for the hourly sync). A Draft row '
     + 'appears with the provenance columns, the <code>question</code> and the '
     + '<code>picture</code> already filled from the card and the folder.</li>'
-    + '<li>Check what it filled in, add category + task_type (those two are not in the card), '
-    + 'set status to Live.</li>'
-    + '<li>Use <b>Build preview branch</b> while reviewing changes. Only after the '
-    + 'GitHub branch has been approved and merged into <code>main</code>, use '
-    + '<b>Rebuild production site (main)</b>.</li></ol>'
+    + '<li>Check what it filled in and add category + task_type (those two are not in the card). '
+    + 'Keep the row as <b>Draft</b> while it is under review.</li>'
+    + '<li>Use <b>Build preview branch</b> and review the Draft on the private develop Preview. '
+    + 'Only after the content is approved, set its status to <b>Live</b>.</li>'
+    + '<li>For a content-only Drive/Sheet release, use <b>Rebuild production site (main)</b> '
+    + 'once and confirm Yes. For a code release, approve and merge the pull request into '
+    + '<code>main</code>; with Netlify continuous deployment enabled, that merge is itself the '
+    + 'Production release, so do not also press the rebuild button.</li></ol>'
     + '<b>Notes.</b> Anything you have already typed is never overwritten — sync only ever '
     + 'fills empty cells, so pasting an image URL into <code>picture</code> keeps it. '
     + 'A loose <code>.html</code> dropped straight into the Drive folder still '
@@ -581,7 +584,7 @@ function showHelp() {
     + 'Auto columns (purple headers) are maintained by sync. '
     + 'Hover any column header for an explanation of that field.</div>';
   SpreadsheetApp.getUi().showModalDialog(
-    HtmlService.createHtmlOutput(html).setWidth(560).setHeight(470), 'AI4S dashboard — help');
+    HtmlService.createHtmlOutput(html).setWidth(560).setHeight(535), 'AI4S dashboard — help');
 }
 
 /** Which sheet column each PROVENANCE.md field lands in — read off CARD_MAP itself. */
