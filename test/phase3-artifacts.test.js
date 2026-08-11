@@ -127,7 +127,11 @@ test('runbook locks the real canary to develop and preserves the recorded Produc
   assert.match(runbook, /restore `auto_publish_target=off`/);
   assert.match(runbook, /Never use the Production Hook as a recovery mechanism/);
   assert.doesNotMatch(runbook, /drive\.google\.com\/(?:file\/d|drive\/folders)\/[A-Za-z0-9_-]+/i);
-  assert.match(runbook, /Drive ID intentionally omitted from the public repository/);
+  const archivedFixtureRows = runbook.split('\n').filter(line => (
+    /^\| (?:Archived Phase 2 fixture|QA Archive folder) \|/.test(line)
+  )).join('\n');
+  assert.doesNotMatch(archivedFixtureRows, /(?:`|\()[A-Za-z0-9_-]{25,}(?:`|\))/);
+  assert.match(runbook, /Drive ID removed from the current public tree/);
 });
 
 test('operator guidance reviews Drafts before Live and avoids duplicate Production deploys', () => {
