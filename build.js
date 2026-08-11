@@ -28,6 +28,19 @@ const DEPLOY_RECEIPT_SCHEMA = 1;
 const HOOK_BODY_MAX_BYTES = 2048;
 const REGISTRY_REVISION_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const REQUEST_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const REGISTRY_SCHEMA_V2 = 2;
+const TAXONOMY_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const PUBLIC_CARD_ASSET_PATTERN = /^assets\/cards\/[a-z0-9][a-z0-9/_-]*\.(?:avif|gif|jpe?g|png|webp)$/;
+const MAX_CARD_ASSET_BYTES = 5 * 1024 * 1024;
+const MAX_CARD_ASSET_RESPONSE_BYTES = 4 * Math.ceil(MAX_CARD_ASSET_BYTES / 3) + 4096;
+const CARD_ASSET_MIME_BY_EXTENSION = Object.freeze({
+  avif: 'image/avif',
+  gif: 'image/gif',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+});
 const MAP_DATA = require(path.join(SITE, 'map-regions.js'));
 
 const DOMAIN_DEFINITIONS = [
@@ -308,12 +321,310 @@ function toList(value) {
   return String(value).split(/[,;|]/).map(s => s.trim()).filter(Boolean);
 }
 
+function registrySchemaVersion(value) {
+  if (value == null || value === '') return 1;
+  const version = Number(value);
+  if (version !== 1 && version !== REGISTRY_SCHEMA_V2) {
+    throw new Error('Unsupported Registry schema_version.');
+  }
+  return version;
+}
+
+function v2ContractError(message) {
+  throw new Error('Registry v2 contract: ' + message);
+}
+
+function requireV2Text(value, label) {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (!text) v2ContractError(label + ' is required');
+  return text;
+}
+
+function requireV2Id(value, label) {
+  const id = requireV2Text(value, label);
+  if (!TAXONOMY_ID_PATTERN.test(id)) v2ContractError(label + ' has an invalid ID');
+  return id;
+}
+
+function requireV2String(value, label, required = false) {
+  if (typeof value !== 'string') v2ContractError(label + ' must be a string');
+  const text = value.trim();
+  if (required && !text) v2ContractError(label + ' is required');
+  return text;
+}
+
+function requireV2Enum(value, label, allowed) {
+  const text = requireV2String(value, label, true);
+  if (!allowed.includes(text)) v2ContractError(label + ' has an invalid value');
+  return text;
+}
+
+function requireV2Boolean(value, label) {
+  if (typeof value !== 'boolean') v2ContractError(label + ' must be a boolean');
+  return value;
+}
+
+function requireV2FiniteNumber(value, label) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    v2ContractError(label + ' must be a finite number');
+  }
+  return value;
+}
+
+function requireV2DateString(value, label) {
+  const text = requireV2String(value, label, true);
+  if (!Number.isFinite(Date.parse(text))) v2ContractError(label + ' must be a valid date string');
+  return text;
+}
+
+function v2TermIndex(terms, kind) {
+  if (!Array.isArray(terms)) v2ContractError('taxonomy.' + kind + ' must be an array');
+  const index = new Map();
+  terms.forEach((source, position) => {
+    if (!source || typeof source !== 'object' || Array.isArray(source)) {
+      v2ContractError('taxonomy.' + kind + '[' + position + '] must be an object');
+    }
+    const id = requireV2Id(source.id, 'taxonomy.' + kind + '[' + position + '].id');
+    if (index.has(id)) v2ContractError('duplicate taxonomy ' + kind + ' ID: ' + id);
+    const labelPrefix = 'taxonomy.' + kind + '[' + position + ']';
+    const term = {
+      id,
+      label: requireV2String(source.label, labelPrefix + '.label', true),
+      active: requireV2Boolean(source.active, labelPrefix + '.active'),
+    };
+    if (kind === 'departments') {
+      term.short_label = requireV2String(source.short_label, labelPrefix + '.short_label');
+      term.description = requireV2String(source.description, labelPrefix + '.description');
+      term.display_order = requireV2FiniteNumber(source.display_order, labelPrefix + '.display_order');
+      term.theme_key = requireV2String(source.theme_key, labelPrefix + '.theme_key');
+      term.icon_key = requireV2String(source.icon_key, labelPrefix + '.icon_key');
+    } else if (kind === 'subtopics') {
+      term.department_id = requireV2Id(source.department_id, labelPrefix + '.department_id');
+      term.display_order = requireV2FiniteNumber(source.display_order, labelPrefix + '.display_order');
+    }
+    Object.defineProperty(term, '_position', { value: position, enumerable: false });
+    index.set(id, term);
+  });
+  return index;
+}
+
+/**
+ * Registry v2 owns labels, ordering, and relationships. Git still owns the
+ * seven map regions and their visual theme, so an active department must map
+ * to one of those stable region IDs.
+ */
+function normalizeV2Taxonomy(taxonomy) {
+  if (!taxonomy || typeof taxonomy !== 'object' || Array.isArray(taxonomy)) {
+    v2ContractError('taxonomy must be an object');
+  }
+  const departments = v2TermIndex(taxonomy.departments, 'departments');
+  const subtopics = v2TermIndex(taxonomy.subtopics, 'subtopics');
+  const tasks = v2TermIndex(taxonomy.tasks, 'tasks');
+  const methods = v2TermIndex(taxonomy.methods, 'methods');
+  const staticDomains = new Map(DOMAIN_DEFINITIONS.map(domain => [domain.id, domain]));
+  const usedRegions = new Set();
+
+  departments.forEach(term => {
+    if (!term.active) return;
+    const themeKey = requireV2Id(term.theme_key, 'active department ' + term.id + ' theme_key');
+    const regionId = staticDomains.has(themeKey) ? themeKey : '';
+    if (!regionId || !staticDomains.has(regionId)) {
+      v2ContractError('active department has an unknown theme_key: ' + term.id);
+    }
+    if (usedRegions.has(regionId)) v2ContractError('active departments share map region: ' + regionId);
+    usedRegions.add(regionId);
+    Object.defineProperty(term, '_regionId', { value: regionId, enumerable: false });
+  });
+  subtopics.forEach(term => {
+    if (!departments.has(term.department_id)) {
+      v2ContractError('subtopic ' + term.id + ' references unknown department ' + term.department_id);
+    }
+  });
+
+  const domains = [...departments.values()]
+    .filter(term => term.active)
+    .sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0)
+      || a._position - b._position)
+    .map(term => {
+      const visual = staticDomains.get(term._regionId);
+      const children = [...subtopics.values()]
+        .filter(subtopic => subtopic.active && subtopic.department_id === term.id)
+        .sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0)
+          || a._position - b._position)
+        .map(subtopic => ({ id: subtopic.id, name: subtopic.label, aliases: [], keywords: [] }));
+      return {
+        ...visual,
+        taxonomy_id: term.id,
+        name: term.label,
+        short: String(term.short_label || term.label).trim(),
+        description: String(term.description || '').trim(),
+        subtopics: children,
+        futurePaths: children.map(subtopic => subtopic.name),
+        theme_key: String(term.theme_key || '').trim(),
+        icon_key: String(term.icon_key || '').trim(),
+      };
+    });
+  if (!domains.length) v2ContractError('taxonomy has no active departments');
+
+  return { departments, subtopics, tasks, methods, domains };
+}
+
+function v2Refs(value, field, index) {
+  if (!Array.isArray(value)) v2ContractError('demo ' + index + ' ' + field + ' must be an array');
+  const ids = value.map((item, position) => requireV2Id(
+    item, 'demo ' + index + ' ' + field + '[' + position + ']',
+  ));
+  if (new Set(ids).size !== ids.length) v2ContractError('demo ' + index + ' has duplicate ' + field);
+  return ids;
+}
+
+function safePublicCardAssetUrl(value, hrefBase) {
+  const source = String(value || '').trim();
+  if (!source || /[\\?#%\s]/.test(source) || !PUBLIC_CARD_ASSET_PATTERN.test(source)) return '';
+  if (source.split('/').some(segment => !segment || segment === '.' || segment === '..')) return '';
+  return String(hrefBase || '') + source;
+}
+
+function normalizeV2Demo(source, taxonomy, seen, index) {
+  if (!source || typeof source !== 'object' || Array.isArray(source)) {
+    v2ContractError('demo ' + index + ' must be an object');
+  }
+  const demoId = requireV2Id(source.demo_id, 'demo ' + index + ' demo_id');
+  if (seen.demoIds.has(demoId)) v2ContractError('duplicate demo_id: ' + demoId);
+  seen.demoIds.add(demoId);
+
+  const entryType = requireV2Text(source.entry_type, 'demo ' + index + ' entry_type');
+  if (!['project', 'site'].includes(entryType)) v2ContractError('demo ' + demoId + ' has invalid entry_type');
+  const rawSlug = requireV2Text(source.slug, 'demo ' + demoId + ' slug');
+  if (!TAXONOMY_ID_PATTERN.test(rawSlug)) v2ContractError('demo ' + demoId + ' has an invalid slug');
+  if (seen.slugs.has(rawSlug)) v2ContractError('duplicate slug: ' + rawSlug);
+  seen.slugs.add(rawSlug);
+
+  const isProject = entryType === 'project';
+  const departmentId = requireV2String(source.department_id, 'demo ' + demoId + ' department_id');
+  const subtopicId = requireV2String(source.subtopic_id, 'demo ' + demoId + ' subtopic_id');
+  const taskIds = v2Refs(source.task_ids, 'task_ids', demoId);
+  const methodIds = v2Refs(source.method_ids, 'method_ids', demoId);
+  if (isProject && (!taskIds.length || !methodIds.length)) {
+    v2ContractError('demo ' + demoId + ' task_ids and method_ids must be non-empty');
+  }
+  const status = requireV2Enum(source.status, 'demo ' + demoId + ' status', ['Live', 'Draft']);
+  const permission = requireV2Enum(
+    source.public_page_permission,
+    'demo ' + demoId + ' public_page_permission',
+    ['Public', 'Preview only', 'Private'],
+  );
+  const normalised = {
+    demo_id: demoId,
+    entry_type: entryType,
+    slug: rawSlug,
+    status,
+    featured: requireV2Boolean(source.featured, 'demo ' + demoId + ' featured'),
+    sort_order: requireV2FiniteNumber(source.sort_order, 'demo ' + demoId + ' sort_order'),
+    title: requireV2String(source.title, 'demo ' + demoId + ' title', true),
+    card_summary: requireV2String(
+      source.card_summary, 'demo ' + demoId + ' card_summary', isProject,
+    ),
+    department_id: departmentId,
+    subtopic_id: subtopicId,
+    task_ids: taskIds,
+    method_ids: methodIds,
+    audience: isProject
+      ? requireV2Enum(
+        source.audience,
+        'demo ' + demoId + ' audience',
+        ['General', 'Intro', 'Intermediate', 'Advanced'],
+      )
+      : requireV2String(source.audience, 'demo ' + demoId + ' audience'),
+    data_source_label: requireV2String(
+      source.data_source_label, 'demo ' + demoId + ' data_source_label',
+    ),
+    public_page_permission: permission,
+    card_asset: null,
+    file_id: requireV2String(source.file_id, 'demo ' + demoId + ' file_id', true),
+    file_check: requireV2String(source.file_check, 'demo ' + demoId + ' file_check', true),
+    date_added: requireV2DateString(source.date_added, 'demo ' + demoId + ' date_added'),
+  };
+
+  if (!Object.prototype.hasOwnProperty.call(source, 'card_asset')) {
+    v2ContractError('demo ' + demoId + ' card_asset is required');
+  }
+  if (source.card_asset != null) {
+    if (!isProject) v2ContractError('site record ' + demoId + ' cannot have a card_asset');
+    if (typeof source.card_asset !== 'object' || Array.isArray(source.card_asset)) {
+      v2ContractError('demo ' + demoId + ' card_asset must be an object or null');
+    }
+    const assetId = requireV2Id(source.card_asset.asset_id, 'demo ' + demoId + ' card_asset.asset_id');
+    const publicPath = requireV2Text(
+      source.card_asset.public_path, 'demo ' + demoId + ' card_asset.public_path',
+    );
+    const altText = requireV2Text(
+      source.card_asset.alt_text, 'demo ' + demoId + ' card_asset.alt_text',
+    );
+    if (!safePublicCardAssetUrl(publicPath, '')) {
+      v2ContractError('demo ' + demoId + ' card_asset.public_path is unsafe');
+    }
+    seen.assetIds = seen.assetIds || new Set();
+    seen.assetPaths = seen.assetPaths || new Set();
+    if (seen.assetIds.has(assetId)) v2ContractError('duplicate card_asset.asset_id: ' + assetId);
+    if (seen.assetPaths.has(publicPath)) v2ContractError('duplicate card_asset.public_path: ' + publicPath);
+    seen.assetIds.add(assetId);
+    seen.assetPaths.add(publicPath);
+    normalised.card_asset = { asset_id: assetId, public_path: publicPath, alt_text: altText };
+  }
+
+  if (!isProject) {
+    if (status !== 'Live' || departmentId || subtopicId || taskIds.length || methodIds.length) {
+      v2ContractError('site record ' + demoId + ' has project-only fields or status');
+    }
+    Object.defineProperty(normalised, '_registrySchemaVersion', {
+      value: REGISTRY_SCHEMA_V2, enumerable: false,
+    });
+    return normalised;
+  }
+
+  normalised.department_id = requireV2Id(departmentId, 'demo ' + demoId + ' department_id');
+  normalised.subtopic_id = requireV2Id(subtopicId, 'demo ' + demoId + ' subtopic_id');
+  const department = taxonomy.departments.get(normalised.department_id);
+  if (!department || !department.active) {
+    v2ContractError('demo ' + demoId + ' references an unknown or inactive department');
+  }
+  const subtopic = taxonomy.subtopics.get(normalised.subtopic_id);
+  if (!subtopic || !subtopic.active || subtopic.department_id !== normalised.department_id) {
+    v2ContractError('demo ' + demoId + ' references an invalid or inactive subtopic');
+  }
+  const resolveTerms = (ids, terms, field) => ids.map(id => {
+    const term = terms.get(id);
+    if (!term || !term.active) {
+      v2ContractError('demo ' + demoId + ' references an unknown or inactive ' + field + ': ' + id);
+    }
+    return term;
+  });
+  const taskTerms = resolveTerms(taskIds, taxonomy.tasks, 'task');
+  const methodTerms = resolveTerms(methodIds, taxonomy.methods, 'method');
+
+  const domain = taxonomy.domains.find(candidate => candidate.taxonomy_id === normalised.department_id);
+  const domainSubtopic = domain && domain.subtopics.find(candidate => candidate.id === normalised.subtopic_id);
+  if (!domain || !domainSubtopic) v2ContractError('demo ' + demoId + ' references inactive taxonomy');
+  Object.defineProperties(normalised, {
+    _registrySchemaVersion: { value: REGISTRY_SCHEMA_V2, enumerable: false },
+    _domainDefinition: { value: domain, enumerable: false },
+    _taskTerms: { value: taskTerms, enumerable: false },
+    _methodTerms: { value: methodTerms, enumerable: false },
+    _domain: { value: domain.id, enumerable: false },
+    _subtopic: { value: domainSubtopic.id, enumerable: false },
+    department_label: { value: domain.name, enumerable: false },
+    subtopic_label: { value: domainSubtopic.name, enumerable: false },
+  });
+  return normalised;
+}
+
 function pluralText(count, singular) {
   return count + ' ' + singular + (count === 1 ? '' : 's');
 }
 
 function isSiteRecord(demo) {
-  const recordType = normalKey(demo.record_type);
+  const recordType = normalKey(demo.entry_type || demo.record_type);
   const hasProjectFlag = Object.prototype.hasOwnProperty.call(demo, 'is_project');
 
   // An explicit project declaration always wins, including for a legitimate
@@ -538,12 +849,166 @@ function fillTemplate(template, values, label) {
   return page;
 }
 
+function appScriptForSchema(source, schemaVersion) {
+  if (schemaVersion !== REGISTRY_SCHEMA_V2) return source;
+  const scalarMatch = "if (activeFilters[group] && card.getAttribute('data-' + group) !== activeFilters[group]) matches = false;";
+  const listMatch = "var values = (card.getAttribute('data-' + group) || '').split('|');\n"
+    + "        if (activeFilters[group] && values.indexOf(activeFilters[group]) === -1) matches = false;";
+  if (!source.includes(scalarMatch)) throw new Error('Registry v2 filter script anchor is missing.');
+  return source.replace(scalarMatch, listMatch);
+}
+
 // ------------------------------------------------------------ registry I/O
 
-async function getJson(url, label) {
+async function getJson(url, label, maxBytes = 0) {
   const response = await fetch(url, { redirect: 'follow' });
   if (!response.ok) throw new Error('HTTP ' + response.status + ' while fetching registry ' + (label || 'response'));
+  if (maxBytes) {
+    const advertised = Number(response.headers.get('content-length') || 0);
+    if (Number.isFinite(advertised) && advertised > maxBytes) {
+      throw new Error('Registry ' + (label || 'response') + ' is too large.');
+    }
+    const body = await response.text();
+    if (Buffer.byteLength(body, 'utf8') > maxBytes) {
+      throw new Error('Registry ' + (label || 'response') + ' is too large.');
+    }
+    try { return JSON.parse(body); }
+    catch (error) { throw new Error('Registry ' + (label || 'response') + ' is not valid JSON.'); }
+  }
   return response.json();
+}
+
+function cardAssetError(message) {
+  throw new Error('Registry card asset response ' + message + '.');
+}
+
+function hasCardAssetMagic(bytes, extension) {
+  if (extension === 'jpg' || extension === 'jpeg') {
+    return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  }
+  if (extension === 'png') {
+    return bytes.length >= 8
+      && bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  }
+  if (extension === 'gif') {
+    const signature = bytes.subarray(0, 6).toString('ascii');
+    return signature === 'GIF87a' || signature === 'GIF89a';
+  }
+  if (extension === 'webp') {
+    return bytes.length >= 12
+      && bytes.subarray(0, 4).toString('ascii') === 'RIFF'
+      && bytes.subarray(8, 12).toString('ascii') === 'WEBP';
+  }
+  if (extension === 'avif') {
+    if (bytes.length < 16 || bytes.subarray(4, 8).toString('ascii') !== 'ftyp') return false;
+    const limit = Math.min(bytes.length - 3, 64);
+    for (let offset = 8; offset < limit; offset += 4) {
+      const brand = bytes.subarray(offset, offset + 4).toString('ascii');
+      if (brand === 'avif' || brand === 'avis') return true;
+    }
+  }
+  return false;
+}
+
+function validateCardAssetResponse(response, cardAsset, expectedRevision) {
+  if (!response || typeof response !== 'object' || Array.isArray(response)) {
+    cardAssetError('must be an object');
+  }
+  const allowed = new Set([
+    'ok', 'kind', 'id', 'mime', 'size', 'extension', 'base64', 'registry_revision',
+  ]);
+  if (Object.keys(response).some(key => !allowed.has(key))) {
+    cardAssetError('has unsupported fields');
+  }
+  if (response.ok !== true) cardAssetError('was not successful');
+  if (response.kind !== 'card_image') cardAssetError('has an invalid kind');
+  if (response.id !== cardAsset.asset_id) cardAssetError('does not match the requested asset id');
+  requireMatchingRegistryRevision(
+    response.registry_revision, expectedRevision, 'Card asset',
+  );
+
+  const publicPath = String(cardAsset.public_path || '');
+  if (!safePublicCardAssetUrl(publicPath, '')) cardAssetError('has an unsafe public_path');
+  const expectedExtension = path.extname(publicPath).slice(1).toLowerCase();
+  if (typeof response.extension !== 'string'
+      || response.extension !== response.extension.trim().toLowerCase()
+      || response.extension !== expectedExtension
+      || !CARD_ASSET_MIME_BY_EXTENSION[response.extension]) {
+    cardAssetError('has an invalid extension');
+  }
+  if (typeof response.mime !== 'string'
+      || response.mime !== CARD_ASSET_MIME_BY_EXTENSION[response.extension]) {
+    cardAssetError('has a mime/extension mismatch');
+  }
+  if (!Number.isSafeInteger(response.size)
+      || response.size < 1
+      || response.size > MAX_CARD_ASSET_BYTES) {
+    cardAssetError('has an invalid size');
+  }
+  if (typeof response.base64 !== 'string'
+      || response.base64.length > MAX_CARD_ASSET_RESPONSE_BYTES
+      || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(response.base64)) {
+    cardAssetError('has invalid base64');
+  }
+  const bytes = Buffer.from(response.base64, 'base64');
+  if (!bytes.length || bytes.toString('base64') !== response.base64) {
+    cardAssetError('has invalid base64');
+  }
+  if (bytes.length !== response.size) cardAssetError('size does not match decoded bytes');
+  if (!hasCardAssetMagic(bytes, response.extension)) {
+    cardAssetError('does not contain the declared image format');
+  }
+  return { assetId: cardAsset.asset_id, publicPath, bytes };
+}
+
+async function fetchV2CardAssets(demos, registry, registryRevision) {
+  const cards = demos.filter(demo => demo.card_asset).map(demo => demo.card_asset);
+  return inChunks(cards, 3, async cardAsset => {
+    const response = await withRetry(() => registry.getAsset(
+      cardAsset.asset_id, registryRevision,
+    ));
+    return validateCardAssetResponse(response, cardAsset, registryRevision);
+  });
+}
+
+function materializeCardAssets(assets) {
+  for (const asset of assets) {
+    if (!safePublicCardAssetUrl(asset.publicPath, '')) {
+      throw new Error('Registry card asset has an unsafe output path.');
+    }
+    const destination = path.resolve(DIST, asset.publicPath);
+    const cardRoot = path.resolve(DIST, 'assets', 'cards');
+    const relative = path.relative(cardRoot, destination);
+    if (!relative || relative.startsWith('..' + path.sep) || path.isAbsolute(relative)) {
+      throw new Error('Registry card asset escaped the card output directory.');
+    }
+
+    const directoryParts = ['assets', 'cards']
+      .concat(path.dirname(relative).split(path.sep).filter(part => part && part !== '.'));
+    let directory = DIST;
+    for (const part of directoryParts) {
+      directory = path.join(directory, part);
+      if (fs.existsSync(directory)) {
+        const stat = fs.lstatSync(directory);
+        if (!stat.isDirectory() || stat.isSymbolicLink()) {
+          throw new Error('Registry card asset output path is not a safe directory.');
+        }
+      } else {
+        fs.mkdirSync(directory);
+      }
+    }
+    if (fs.existsSync(destination)) {
+      const stat = fs.lstatSync(destination);
+      if (stat.isSymbolicLink() || !stat.isFile()) {
+        throw new Error('Registry card asset output cannot replace a non-file path.');
+      }
+      if (!fs.readFileSync(destination).equals(asset.bytes)) {
+        throw new Error('Registry card asset output conflicts with a checked-in asset.');
+      }
+      continue;
+    }
+    fs.writeFileSync(destination, asset.bytes);
+  }
 }
 
 function resolveBuildContentPolicy(env = process.env) {
@@ -706,12 +1171,22 @@ function scopedRegistryUrl(base, action, policy, id, registryRevision) {
   return url.toString();
 }
 
-function isPublishableDemo(demo, policy) {
+function isPublishableDemo(demo, policy, schemaVersion = 1) {
   if (!demo || typeof demo !== 'object') return false;
   const status = String(demo.status || '').trim();
   const fileCheck = String(demo.file_check || '').trim().toLowerCase();
   if (fileCheck === 'missing' || /\bunreadable\b/.test(fileCheck) || /\bpage empty\b/.test(fileCheck)) {
     return false;
+  }
+  if (schemaVersion === REGISTRY_SCHEMA_V2) {
+    // Registry v2 is a closed contract. Recheck the compiler's health and
+    // permission matrix here so a hand-written or stale feed cannot bypass it.
+    if (!/^ok(?:\b|\s|[-—:])/.test(fileCheck)) return false;
+    const permission = String(demo.public_page_permission || '').trim();
+    if (status === 'Live') return permission === 'Public';
+    return policy.audience === 'preview'
+      && status === 'Draft'
+      && (permission === 'Public' || permission === 'Preview only');
   }
   return status === 'Live' || (policy.audience === 'preview' && status === 'Draft');
 }
@@ -726,8 +1201,10 @@ async function loadRegistry(policy, expectedRevision) {
       hasOwn(process.env, key) ? String(process.env[key] || '').trim() : fallback
     );
     return {
+      schemaVersion: registrySchemaVersion(manifest.schema_version),
+      taxonomy: manifest.taxonomy,
       site: manifest.site || {},
-      demos: manifest.demos || [],
+      demos: manifest.demos,
       audience: manifest.audience || '',
       registryRevision: manifest.registry_revision || '',
       getHtml: async id => ({
@@ -736,6 +1213,29 @@ async function loadRegistry(policy, expectedRevision) {
           'MOCK_FILE_REGISTRY_REVISION', readManifest().registry_revision || '',
         ),
       }),
+      getAsset: async id => {
+        if (process.env.MOCK_ASSET_RESPONSE) {
+          return JSON.parse(fs.readFileSync(process.env.MOCK_ASSET_RESPONSE, 'utf8'));
+        }
+        const filePath = process.env.MOCK_ASSET_FILE;
+        if (!filePath) throw new Error('mock card asset is not configured');
+        const bytes = fs.readFileSync(filePath);
+        const extension = path.extname(filePath).slice(1).toLowerCase();
+        const mime = CARD_ASSET_MIME_BY_EXTENSION[extension];
+        if (!mime) throw new Error('mock card asset has an unsupported extension');
+        return {
+          ok: true,
+          kind: 'card_image',
+          id,
+          mime,
+          size: bytes.length,
+          extension,
+          base64: bytes.toString('base64'),
+          registry_revision: mockRevision(
+            'MOCK_ASSET_REGISTRY_REVISION', readManifest().registry_revision || '',
+          ),
+        };
+      },
       getRevision: async () => mockRevision(
         'MOCK_FINAL_REGISTRY_REVISION', readManifest().registry_revision || '',
       ),
@@ -763,8 +1263,10 @@ async function loadRegistry(policy, expectedRevision) {
   const manifest = await fetchManifest(expectedRevision, 'manifest');
 
   return {
+    schemaVersion: registrySchemaVersion(manifest.schema_version),
+    taxonomy: manifest.taxonomy,
     site: manifest.site || {},
-    demos: manifest.demos || [],
+    demos: manifest.demos,
     audience: manifest.audience || '',
     registryRevision: manifest.registry_revision || '',
     getHtml: async (id, registryRevision) => {
@@ -773,6 +1275,15 @@ async function loadRegistry(policy, expectedRevision) {
       const result = await getJson(url, 'project file');
       if (!result.ok) throw new Error(result.error || 'file fetch failed');
       return { html: result.html, registryRevision: result.registry_revision || '' };
+    },
+    getAsset: async (id, registryRevision) => {
+      if (!id) throw new Error('card asset record is missing asset_id');
+      const url = scopedRegistryUrl(base, 'asset', policy, id, registryRevision);
+      const result = await getJson(
+        url, 'card asset', MAX_CARD_ASSET_RESPONSE_BYTES,
+      );
+      if (!result || result.ok !== true) throw new Error('Registry card asset fetch failed.');
+      return result;
     },
     getRevision: async registryRevision => {
       const finalManifest = await fetchManifest(registryRevision, 'final manifest');
@@ -908,6 +1419,12 @@ function mobileDomainLinkHtml(domain, demos) {
 function provenanceRows(demo) {
   const rows = [];
   const add = (label, html) => { if (html) rows.push([label, html]); };
+  if (demo._registrySchemaVersion === REGISTRY_SCHEMA_V2) {
+    add('Data', esc(demo.data_source_label));
+    add('Task', esc((demo._taskTerms || []).map(term => term.label).join(', ')));
+    add('Method', esc((demo._methodTerms || []).map(term => term.label).join(', ')));
+    return rows;
+  }
   add('Data', demo.data_link
     ? `<a href="${esc(demo.data_link)}" target="_blank" rel="noopener">${esc(demo.data_source || demo.data_link)}</a>`
     : esc(demo.data_source));
@@ -927,7 +1444,7 @@ function provenanceRows(demo) {
 }
 
 function injectionSnippet(demo) {
-  const domain = domainById(demo._domain);
+  const domain = demo._domainDefinition || domainById(demo._domain);
   const rows = provenanceRows(demo);
   const goal = demo.learning_goal
     ? `<p class="ai4s-goal">${esc(demo.learning_goal)}</p>` : '';
@@ -1032,6 +1549,10 @@ function safePreviewUrl(value, hrefBase) {
 }
 
 function cardPreview(demo, hrefBase) {
+  const isV2 = demo._registrySchemaVersion === REGISTRY_SCHEMA_V2;
+  if (isV2 && demo.card_asset) {
+    return safePublicCardAssetUrl(demo.card_asset.public_path, hrefBase);
+  }
   const previewDirectory = path.join(SITE, 'assets', 'previews');
   // A duplicate Registry row can add a numeric suffix to the public slug even
   // though the underlying project file is unchanged. Try every stable project
@@ -1044,34 +1565,51 @@ function cardPreview(demo, hrefBase) {
       }
     }
   }
+  if (isV2) return '';
   return safePreviewUrl(demo.preview_image || demo.picture || demo.thumbnail, hrefBase);
 }
 
 function cardHtml(demo, domain, isNew, hrefBase, index) {
   const subtopic = subtopicById(domain, demo._subtopic);
-  const meta = [demo.task_type, demo.framework].filter(Boolean).map(esc).join(' &middot; ');
+  const isV2 = demo._registrySchemaVersion === REGISTRY_SCHEMA_V2;
+  const taskTerms = isV2 ? (demo._taskTerms || []) : [];
+  const methodTerms = isV2 ? (demo._methodTerms || []) : [];
+  const taskLabels = taskTerms.map(term => term.label);
+  const methodLabels = methodTerms.map(term => term.label);
+  const meta = (isV2
+    ? taskLabels.concat(methodLabels)
+    : [demo.task_type, demo.framework].filter(Boolean)).map(esc).join(' &middot; ');
   const search = [
     demo.title,
-    demo.description,
+    isV2 ? demo.card_summary : demo.description,
     domain.name,
     subtopic.name,
     demo.category,
-    demo.task_type,
-    demo.method,
+    isV2 ? taskLabels.join(' ') : demo.task_type,
+    isV2 ? methodLabels.join(' ') : demo.method,
     demo.framework,
     toList(demo.tags).join(' '),
   ].filter(Boolean).join(' ').toLowerCase();
   const cardNumber = String(index + 1).padStart(2, '0');
   const preview = cardPreview(demo, hrefBase);
-  const previewAlt = demo.preview_alt
-    || demo.picture_alt
-    || projectOverride(PROJECT_PREVIEW_ALTS, demo)
-    || `Data preview from ${demo.title || 'this project'}`;
+  const previewAlt = isV2
+    ? (demo.card_asset && demo.card_asset.alt_text)
+      || projectOverride(PROJECT_PREVIEW_ALTS, demo)
+      || `Data preview from ${demo.title || 'this project'}`
+    : demo.preview_alt
+      || demo.picture_alt
+      || projectOverride(PROJECT_PREVIEW_ALTS, demo)
+      || `Data preview from ${demo.title || 'this project'}`;
   const visual = preview
     ? `<img class="card-preview" src="${esc(preview)}" alt="${esc(previewAlt)}" loading="lazy" decoding="async" referrerpolicy="no-referrer"><span class="card-preview-pending" hidden>Data preview unavailable</span>`
     : '<span class="card-preview-pending">Data preview coming soon</span>';
 
-  return `<a class="project-card" href="${hrefBase}demos/${esc(demo.slug)}/index.html" style="--card-accent:${domain.color}" data-search="${esc(search)}" data-domain="${domain.id}" data-subtopic="${esc(subtopic.id)}" data-task="${esc(demo.task_type)}">
+  const taskValues = isV2 ? demo.task_ids.join('|') : demo.task_type;
+  const methodValues = isV2 ? demo.method_ids.join('|') : '';
+  const methodAttribute = isV2 ? ` data-method="${esc(methodValues)}"` : '';
+  const domainFilterId = isV2 ? demo.department_id : domain.id;
+  const summary = isV2 ? demo.card_summary : demo.description;
+  return `<a class="project-card" href="${hrefBase}demos/${esc(demo.slug)}/index.html" style="--card-accent:${domain.color}" data-search="${esc(search)}" data-domain="${esc(domainFilterId)}" data-subtopic="${esc(subtopic.id)}" data-task="${esc(taskValues)}"${methodAttribute}>
   <div class="card-visual${preview ? ' has-preview' : ''}">
     ${visual}
   </div>
@@ -1079,7 +1617,7 @@ function cardHtml(demo, domain, isNew, hrefBase, index) {
     <div class="card-utility"><span class="card-index" aria-hidden="true">${cardNumber}</span><span class="badges">${badgeHtml(demo, isNew)}</span></div>
     <p class="card-domain">${esc(domain.name)} <span aria-hidden="true">/</span> ${esc(subtopic.name)}</p>
     <h3>${esc(demo.title || 'Untitled experiment')}</h3>
-    <p class="card-description">${esc(demo.description || 'Open this interactive experiment to explore the project.')}</p>
+    <p class="card-description">${esc(summary || 'Open this interactive experiment to explore the project.')}</p>
     <div class="card-footer">
       <div class="card-meta">${meta || 'Interactive experiment'}</div>
       <span class="card-open"><span>Open project</span><span aria-hidden="true">&#8599;</span></span>
@@ -1100,8 +1638,8 @@ function filterGroupHtml(label, group, items) {
         </div>`;
 }
 
-function domainSwitcherHtml(currentDomain, grouped) {
-  return DOMAIN_DEFINITIONS.map(domain => {
+function domainSwitcherHtml(currentDomain, grouped, domains = DOMAIN_DEFINITIONS) {
+  return domains.map(domain => {
     const count = grouped[domain.id].length;
     const content = `<span><strong>${esc(domain.name)}</strong><small>${count ? pluralText(count, 'project') : 'Coming soon'}</small></span><span aria-hidden="true">${count && domain.id !== currentDomain.id ? '&#8599;' : '&#183;'}</span>`;
     if (domain.id === currentDomain.id) {
@@ -1127,47 +1665,71 @@ async function main() {
   const activeRegistryRevision = requireMatchingRegistryRevision(
     registry.registryRevision, trigger.registryRevision, 'Initial manifest',
   );
+  const schemaVersion = registrySchemaVersion(registry.schemaVersion);
+  if (schemaVersion === REGISTRY_SCHEMA_V2 && !activeRegistryRevision) {
+    v2ContractError('registry_revision is required');
+  }
+  const v2Taxonomy = schemaVersion === REGISTRY_SCHEMA_V2
+    ? normalizeV2Taxonomy(registry.taxonomy)
+    : null;
+  const domains = v2Taxonomy ? v2Taxonomy.domains : DOMAIN_DEFINITIONS;
   const site = registry.site && typeof registry.site === 'object' ? registry.site : {};
-  let demos = Array.isArray(registry.demos)
-    ? registry.demos.filter(demo => demo && typeof demo === 'object')
-    : [];
+  let demos;
+  if (schemaVersion === REGISTRY_SCHEMA_V2) {
+    if (!Array.isArray(registry.demos)) v2ContractError('demos must be an array');
+    const seen = {
+      demoIds: new Set(), slugs: new Set(), assetIds: new Set(), assetPaths: new Set(),
+    };
+    demos = registry.demos.map((demo, index) => (
+      normalizeV2Demo(demo, v2Taxonomy, seen, index)
+    ));
+  } else {
+    demos = Array.isArray(registry.demos)
+      ? registry.demos.filter(demo => demo && typeof demo === 'object')
+      : [];
+  }
 
-  const excluded = demos.filter(demo => !isPublishableDemo(demo, policy));
+  const excluded = demos.filter(demo => !isPublishableDemo(demo, policy, schemaVersion));
   excluded.forEach(demo => console.warn('  skipping (not publishable for ' + policy.audience + '): '
     + (demo.title || demo.file_name || demo.file_id || 'unnamed row')));
-  demos = demos.filter(demo => isPublishableDemo(demo, policy));
+  demos = demos.filter(demo => isPublishableDemo(demo, policy, schemaVersion));
 
   const siteRecords = demos.filter(demo => isSiteRecord(demo));
   siteRecords.forEach(demo => console.warn('  skipping (dashboard record, not a project): ' + (demo.title || demo.file_name)));
   const siteRecordSet = new Set(siteRecords);
   demos = demos.filter(demo => !siteRecordSet.has(demo));
 
+  if (!demos.length && schemaVersion === REGISTRY_SCHEMA_V2) {
+    v2ContractError('no publishable project remains for this build');
+  }
   if (!demos.length) console.warn('  No publishable demos in the registry — the Instrument Gym will show an empty library.');
 
-  const used = {};
-  demos.forEach(demo => {
-    let slug = slugSafe(demo.slug || demo.title);
-    if (used[slug]) {
-      let number = 2;
-      while (used[slug + '-' + number]) number++;
-      slug += '-' + number;
-    }
-    used[slug] = true;
-    demo.slug = slug;
-    demo.tags = toList(demo.tags);
-    demo.featured = toBoolean(demo.featured);
-    demo.provenance = toBoolean(demo.provenance);
-    const domain = resolveDomain(demo);
-    const subtopic = resolveSubtopic(demo, domain);
-    demo._domain = domain.id;
-    demo._subtopic = subtopic.id;
-    demo.domain_id = demo._domain;
-    demo.department_id = demo._domain;
-    demo.department_label = domain.name;
-    demo.subtopic_id = demo._subtopic;
-    demo.department_subtopic_id = demo._subtopic;
-    demo.subtopic_label = subtopic.name;
-  });
+  if (schemaVersion !== REGISTRY_SCHEMA_V2) {
+    const used = {};
+    demos.forEach(demo => {
+      let slug = slugSafe(demo.slug || demo.title);
+      if (used[slug]) {
+        let number = 2;
+        while (used[slug + '-' + number]) number++;
+        slug += '-' + number;
+      }
+      used[slug] = true;
+      demo.slug = slug;
+      demo.tags = toList(demo.tags);
+      demo.featured = toBoolean(demo.featured);
+      demo.provenance = toBoolean(demo.provenance);
+      const domain = resolveDomain(demo);
+      const subtopic = resolveSubtopic(demo, domain);
+      demo._domain = domain.id;
+      demo._subtopic = subtopic.id;
+      demo.domain_id = demo._domain;
+      demo.department_id = demo._domain;
+      demo.department_label = domain.name;
+      demo.subtopic_id = demo._subtopic;
+      demo.department_subtopic_id = demo._subtopic;
+      demo.subtopic_label = subtopic.name;
+    });
+  }
 
   const pages = await inChunks(demos, 3, async demo => {
     const result = await withRetry(() => registry.getHtml(
@@ -1182,6 +1744,9 @@ async function main() {
     }
     return { demo, html };
   });
+  const cardAssets = schemaVersion === REGISTRY_SCHEMA_V2
+    ? await fetchV2CardAssets(demos, registry, activeRegistryRevision)
+    : [];
 
   if (activeRegistryRevision) {
     const finalRegistryRevision = await registry.getRevision(activeRegistryRevision);
@@ -1195,6 +1760,7 @@ async function main() {
   fs.writeFileSync(path.join(DIST, '_headers'), deployHeaders(policy));
   const assetSource = path.join(SITE, 'assets');
   if (fs.existsSync(assetSource)) fs.cpSync(assetSource, path.join(DIST, 'assets'), { recursive: true });
+  materializeCardAssets(cardAssets);
   for (const { demo, html } of pages) {
     const directory = path.join(DIST, 'demos', demo.slug);
     fs.mkdirSync(directory, { recursive: true });
@@ -1203,6 +1769,9 @@ async function main() {
   }
 
   demos.sort((a, b) => Number(b.featured) - Number(a.featured)
+    || (schemaVersion === REGISTRY_SCHEMA_V2
+      ? Number(a.sort_order || 0) - Number(b.sort_order || 0)
+      : 0)
     || ((Date.parse(b.date_added) || 0) - (Date.parse(a.date_added) || 0)));
 
   const now = Date.now();
@@ -1212,30 +1781,39 @@ async function main() {
     return Number.isFinite(date) && elapsed >= 0 && elapsed < NEW_WINDOW_DAYS * 864e5;
   };
 
-  const grouped = Object.fromEntries(DOMAIN_DEFINITIONS.map(domain => [domain.id, []]));
+  const grouped = Object.fromEntries(domains.map(domain => [domain.id, []]));
   demos.forEach(demo => grouped[demo._domain].push(demo));
-  const activeDepartments = DOMAIN_DEFINITIONS.filter(domain => grouped[domain.id].length);
+  const activeDepartments = domains.filter(domain => grouped[domain.id].length);
+  const runtimeDomainById = id => domains.find(domain => domain.id === id);
   const built = new Date().toISOString().slice(0, 10);
   const styles = fs.readFileSync(path.join(SITE, 'styles.css'), 'utf8');
-  const script = fs.readFileSync(path.join(SITE, 'app.js'), 'utf8');
+  const script = appScriptForSchema(
+    fs.readFileSync(path.join(SITE, 'app.js'), 'utf8'), schemaVersion,
+  );
 
   const template = fs.readFileSync(path.join(SITE, 'template.html'), 'utf8');
   const countLine = pluralText(demos.length, 'interactive project')
     + ' · ' + pluralText(activeDepartments.length, 'active department');
   const rootCards = demos.map((demo, index) =>
-    cardHtml(demo, domainById(demo._domain), isNew(demo), '', index)).join('\n');
+    cardHtml(demo, runtimeDomainById(demo._domain), isNew(demo), '', index)).join('\n');
   const domainFilters = filterGroupHtml('Department', 'domain', activeDepartments.map(domain => ({
-    value: domain.id,
+    value: domain.taxonomy_id || domain.id,
     label: domain.short,
   })));
+  const referencedMethodIds = new Set(demos.flatMap(demo => demo.method_ids || []));
+  const methodFilters = schemaVersion === REGISTRY_SCHEMA_V2
+    ? filterGroupHtml('Method', 'method', [...v2Taxonomy.methods.values()]
+      .filter(term => term.active && referencedMethodIds.has(term.id))
+      .map(term => ({ value: term.id, label: term.label })))
+    : '';
 
   const page = fillTemplate(template, {
     PAGE_TITLE: 'AIS Instrument Gym',
     COUNT_LINE: countLine,
-    MAP_HOTSPOTS: DOMAIN_DEFINITIONS.map(mapHotspotHtml).join('\n'),
-    MAP_MARKERS: DOMAIN_DEFINITIONS.map(domain => mapMarkerHtml(domain, grouped[domain.id])).join('\n'),
-    MOBILE_DOMAIN_LINKS: DOMAIN_DEFINITIONS.map(domain => mobileDomainLinkHtml(domain, grouped[domain.id])).join('\n'),
-    DOMAIN_FILTERS: domainFilters,
+    MAP_HOTSPOTS: domains.map(mapHotspotHtml).join('\n'),
+    MAP_MARKERS: domains.map(domain => mapMarkerHtml(domain, grouped[domain.id])).join('\n'),
+    MOBILE_DOMAIN_LINKS: domains.map(domain => mobileDomainLinkHtml(domain, grouped[domain.id])).join('\n'),
+    DOMAIN_FILTERS: domainFilters + (methodFilters ? '\n' + methodFilters : ''),
     CARDS: rootCards,
     BUILT: built,
     STYLES: styles,
@@ -1244,10 +1822,16 @@ async function main() {
   fs.writeFileSync(path.join(DIST, 'index.html'), page);
 
   const domainTemplate = fs.readFileSync(path.join(SITE, 'domain-template.html'), 'utf8');
-  DOMAIN_DEFINITIONS.forEach((domain, domainIndex) => {
+  domains.forEach((domain, domainIndex) => {
     const domainDemos = grouped[domain.id];
-    const tasks = [...new Set(domainDemos.map(demo => demo.task_type).filter(Boolean))].sort();
-    const taskFilters = filterGroupHtml('Task', 'task', tasks.map(task => ({ value: task, label: task })));
+    const taskFilters = schemaVersion === REGISTRY_SCHEMA_V2
+      ? filterGroupHtml('Task', 'task', [...v2Taxonomy.tasks.values()]
+        .filter(term => term.active && domainDemos.some(demo => demo.task_ids.includes(term.id)))
+        .map(term => ({ value: term.id, label: term.label })))
+      : (() => {
+        const tasks = [...new Set(domainDemos.map(demo => demo.task_type).filter(Boolean))].sort();
+        return filterGroupHtml('Task', 'task', tasks.map(task => ({ value: task, label: task })));
+      })();
     const cards = domainDemos.map((demo, index) =>
       cardHtml(demo, domain, isNew(demo), '../../', index)).join('\n');
     const count = domainDemos.length;
@@ -1269,7 +1853,7 @@ async function main() {
       EMPTY_KICKER: count ? 'No signal found' : 'Coming soon',
       EMPTY_TITLE: count ? 'No projects match this search.' : 'This region is ready for its first experiment.',
       EMPTY_TEXT: count ? 'Clear the filters or try a broader term.' : esc(futureText),
-      DOMAIN_LINKS: domainSwitcherHtml(domain, grouped),
+      DOMAIN_LINKS: domainSwitcherHtml(domain, grouped, domains),
       BUILT: built,
       STYLES: styles,
       SCRIPT: script,
@@ -1280,7 +1864,7 @@ async function main() {
     console.log('  domain: /domains/' + domain.id + '/ (' + count + ')');
   });
 
-  DOMAIN_DEFINITIONS.forEach(domain => {
+  domains.forEach(domain => {
     (domain.legacyIds || []).forEach(legacyId => {
       const directory = path.join(DIST, 'domains', legacyId);
       fs.mkdirSync(directory, { recursive: true });
@@ -1300,17 +1884,37 @@ async function main() {
     console.log('  retired collection: /domains/' + legacyId + '/ → science map');
   });
 
-  const publicDemos = demos.map(({
-    file_id,
-    file_check,
-    picture_file_id,
-    preview_file_id,
-    thumbnail_file_id,
-    _domain,
-    _subtopic,
-    ...rest
-  }) => rest);
-  const publicDomains = DOMAIN_DEFINITIONS.map(domain => ({
+  const publicDemos = schemaVersion === REGISTRY_SCHEMA_V2
+    ? demos.map(demo => ({
+      demo_id: demo.demo_id,
+      entry_type: demo.entry_type,
+      slug: demo.slug,
+      status: demo.status,
+      featured: demo.featured,
+      sort_order: demo.sort_order,
+      title: demo.title,
+      card_summary: demo.card_summary,
+      department_id: demo.department_id,
+      subtopic_id: demo.subtopic_id,
+      task_ids: [...demo.task_ids],
+      method_ids: [...demo.method_ids],
+      audience: demo.audience,
+      data_source_label: demo.data_source_label,
+      public_page_permission: demo.public_page_permission,
+      card_asset: demo.card_asset ? { ...demo.card_asset } : null,
+      date_added: demo.date_added,
+    }))
+    : demos.map(({
+      file_id,
+      file_check,
+      picture_file_id,
+      preview_file_id,
+      thumbnail_file_id,
+      _domain,
+      _subtopic,
+      ...rest
+    }) => rest);
+  const publicDomains = domains.map(domain => ({
     id: domain.id,
     name: domain.name,
     short: domain.short,
@@ -1325,13 +1929,45 @@ async function main() {
     legacy_ids: domain.legacyIds,
     project_count: grouped[domain.id].length,
   }));
-  fs.writeFileSync(path.join(DIST, 'manifest.json'), JSON.stringify({
+  const publicManifest = {
     generated: new Date().toISOString(),
     taxonomy_version: 4,
-    site,
+    site: schemaVersion === REGISTRY_SCHEMA_V2
+      ? { title: String(site.title || ''), tagline: String(site.tagline || '') }
+      : site,
     domains: publicDomains,
     demos: publicDemos,
-  }, null, 2));
+  };
+  if (schemaVersion === REGISTRY_SCHEMA_V2) {
+    publicManifest.schema_version = REGISTRY_SCHEMA_V2;
+    const publicTerms = terms => [...terms.values()].map(term => ({
+      id: term.id,
+      label: term.label,
+      active: term.active,
+    }));
+    publicManifest.taxonomy = {
+      departments: [...v2Taxonomy.departments.values()].map(term => ({
+        id: term.id,
+        label: term.label,
+        short_label: String(term.short_label || ''),
+        description: String(term.description || ''),
+        display_order: term.display_order,
+        active: term.active,
+        theme_key: String(term.theme_key || ''),
+        icon_key: String(term.icon_key || ''),
+      })),
+      subtopics: [...v2Taxonomy.subtopics.values()].map(term => ({
+        id: term.id,
+        department_id: term.department_id,
+        label: term.label,
+        display_order: term.display_order,
+        active: term.active,
+      })),
+      tasks: publicTerms(v2Taxonomy.tasks),
+      methods: publicTerms(v2Taxonomy.methods),
+    };
+  }
+  fs.writeFileSync(path.join(DIST, 'manifest.json'), JSON.stringify(publicManifest, null, 2));
   const deployReceipt = createDeployReceipt(
     process.env, policy, trigger, activeRegistryRevision, new Date().toISOString(),
   );
@@ -1355,6 +1991,8 @@ module.exports = {
   resolveDomain,
   resolveSubtopic,
   cardPreview,
+  normalizeV2Taxonomy,
+  normalizeV2Demo,
   repairDemoNavigation,
   resolveBuildContentPolicy,
   resolvePreviewHookReceipt,
@@ -1363,6 +2001,7 @@ module.exports = {
   createDeployReceipt,
   deployHeaders,
   safePreviewUrl,
+  safePublicCardAssetUrl,
   scopedRegistryUrl,
   isPublishableDemo,
   validateTaxonomy,

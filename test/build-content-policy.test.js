@@ -195,6 +195,15 @@ test('registry requests override stale status and audience parameters', () => {
   assert.equal(previewFile.searchParams.get('id'), 'draft-id');
   assert.equal(previewFile.searchParams.get('registry_revision'), STATUS_REVISION);
   assert.equal(previewFile.searchParams.has('status'), false);
+
+  const previewAsset = new URL(scopedRegistryUrl(
+    base, 'asset', preview, 'card-asset-id', STATUS_REVISION,
+  ));
+  assert.equal(previewAsset.searchParams.get('action'), 'asset');
+  assert.equal(previewAsset.searchParams.get('audience'), 'preview');
+  assert.equal(previewAsset.searchParams.get('id'), 'card-asset-id');
+  assert.equal(previewAsset.searchParams.get('registry_revision'), STATUS_REVISION);
+  assert.equal(previewAsset.searchParams.has('status'), false);
 });
 
 test('Production publishes only healthy Live rows; Preview additionally permits Draft', () => {
@@ -218,4 +227,24 @@ test('Production publishes only healthy Live rows; Preview additionally permits 
     rows.filter(row => isPublishableDemo(row, { audience: 'preview' })).map(row => row.name),
     ['live', 'draft', 'asset-warning'],
   );
+  assert.equal(isPublishableDemo(
+    { status: 'Live', file_check: 'ok', public_page_permission: 'Public' },
+    { audience: 'production' }, 2,
+  ), true);
+  assert.equal(isPublishableDemo(
+    { status: 'Live', file_check: 'ok', public_page_permission: 'Preview only' },
+    { audience: 'production' }, 2,
+  ), false);
+  assert.equal(isPublishableDemo(
+    { status: 'Draft', file_check: 'ok', public_page_permission: 'Private' },
+    { audience: 'preview' }, 2,
+  ), false);
+  assert.equal(isPublishableDemo(
+    { status: 'Draft', file_check: 'ok — no provenance.md', public_page_permission: 'Preview only' },
+    { audience: 'preview' }, 2,
+  ), true);
+  assert.equal(isPublishableDemo(
+    { status: 'Live', file_check: 'check assets: missing-image.png', public_page_permission: 'Public' },
+    { audience: 'preview' }, 2,
+  ), false);
 });
