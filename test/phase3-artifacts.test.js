@@ -12,6 +12,7 @@ const fixturePaths = [
 ];
 const contractPath = path.join(root, 'fixtures', 'preview-automation-contract.json');
 const runbookPath = path.join(root, 'docs', 'phase3-preview-automation-runbook.md');
+const netlifyConfigPath = path.join(root, 'netlify.toml');
 
 function read(filename) {
   return fs.readFileSync(filename, 'utf8');
@@ -99,6 +100,13 @@ test('Phase 3 artifacts contain no credential-shaped values', () => {
   forbidden.forEach(pattern => assert.doesNotMatch(material, pattern));
 });
 
+test('the callback plugin is configured only for Branch Deploys', () => {
+  const config = read(netlifyConfigPath);
+  assert.match(config, /^\[\[context\.branch-deploy\.plugins\]\]$/m);
+  assert.doesNotMatch(config, /^\[\[plugins\]\]$/m);
+  assert.match(config, /package\s*=\s*"\.\/netlify\/plugins\/preview-ready"/);
+});
+
 test('runbook locks the real canary to develop and preserves the recorded Production baseline', () => {
   const runbook = read(runbookPath);
   assert.match(runbook, /Git `main` \| `6c5488d9959cb4469c7f8960fb8cff6cdffba0aa`/);
@@ -111,7 +119,8 @@ test('runbook locks the real canary to develop and preserves the recorded Produc
   assert.match(runbook, /do not create a second Drive file/i);
   assert.match(runbook, /row, file ID and slug must\s+be unchanged/i);
   assert.match(runbook, /Repeated no-change syncs do not create Deploys/);
-  assert.match(runbook, /stable alias is the ready signal/);
+  assert.match(runbook, /HMAC-authenticated Netlify `onSuccess` callback as the ready/);
+  assert.match(runbook, /hourly reconciliation never POSTs a duplicate/);
   assert.match(runbook, /restore `auto_publish_target=off`/);
   assert.match(runbook, /Never use the Production Hook as a recovery mechanism/);
 });

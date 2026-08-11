@@ -53,23 +53,26 @@ file ID. Make a copy with a new file ID for this run.
    Deploy to be `ready`. Do not merge or push `main`.
 2. Deploy the Phase 3 Apps Script as a new version of the existing Web App. Do
    not create a second endpoint and do not run `setup()`.
-3. Refresh only the live `auto_publish_target` cell validation so its dropdown
+3. Set `AI4S_NETLIFY_SITE_ID` and `AI4S_PREVIEW_CALLBACK_SECRET` only in Apps
+   Script Properties, and set the same callback secret only in Netlify's Builds
+   environment. Never put either value in the Sheet, Git, screenshots, or logs.
+4. Refresh only the live `auto_publish_target` cell validation so its dropdown
    contains exactly `off` and `preview`; read it back as `off`. Do not run
    `setup()`, recreate the trigger, or change any other Config cell.
-4. Keep `auto_publish_target=off` and request one manual develop Preview build.
-5. Record the first `publish` event whose message says the request was
+5. Keep `auto_publish_target=off` and request one manual develop Preview build.
+6. Record the first `publish` event whose message says the request was
    accepted: request ID prefix, Registry revision prefix, HTTP status and
    timestamp. A 2xx response is not ready.
-6. Wait for the corresponding `publish-ready` event with the same request ID
+7. Wait for the corresponding `publish-ready` event with the same request ID
    and Registry revision. Record the receipt's Deploy ID, develop commit and
    timestamp.
-7. Fetch `/deploy-receipt.json` from the stable develop URL with a cache-busting
-   query. Successful service from that stable alias is the ready signal; the
-   receipt must be `verified`, `preview`, `develop`, and `branch-deploy`, with
-   the exact request ID and Registry revision and no secrets.
-8. Cross-check the receipt Deploy ID with Netlify's read-only Deploy view. Its
+8. Treat only the HMAC-authenticated Netlify `onSuccess` callback as the ready
+   signal. It must match the exact request ID, requested_at, Registry revision,
+   Site ID, `develop` branch and `branch-deploy` context. Do not anonymously
+   fetch the private Preview URL.
+9. Cross-check the callback Deploy ID with Netlify's read-only Deploy view. Its
    state must be `ready` before adopting this Registry revision as the baseline.
-9. Reconfirm the exact Production Deploy ID and `main` SHA.
+10. Reconfirm the exact Production Deploy ID and `main` SHA.
 
 Run two no-change syncs. Both must report `0 new, 0 updated, 0 now missing`, and
 neither may create an accepted event or a new develop Deploy.
@@ -140,10 +143,11 @@ the Archived + missing row as audit evidence.
 The mandatory real-service proof is deliberately non-destructive:
 
 - `accepted` and `ready` are distinct phases with the same request ID.
-- A retry/reconcile call first checks the current receipt and does not POST when
-  the desired Registry revision is already ready.
+- Once the Hook returns 2xx, hourly reconciliation never POSTs a duplicate.
+  A missing callback becomes `verification-timeout` and requires a manual retry.
 - Repeated no-change syncs do not create Deploys.
-- Every retry for a genuinely pending revision preserves its request ID.
+- Automatic retries occur only for an actual non-2xx/network Hook failure and
+  preserve the logical request ID.
 
 Use deterministic local tests for HTTP errors, stale receipts, retry cooldown,
 maximum attempts, and success on a later attempt. Do not add a production-like

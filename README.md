@@ -97,10 +97,11 @@ each demo at `/demos/<slug>/`.
 
 Code changes follow the separate Git review path: review them on `develop`, then
 merge to `main` only when approved. A content-only Drive update does not require
-a Git merge. The stable develop Preview is a shareable URL, not a private vault;
-use Netlify access control before putting confidential material in Draft. Preview
-builds send `X-Robots-Tag: noindex, nofollow`; this discourages indexing but is
-not authentication.
+a Git merge. Netlify Project Visibility is configured as **Private → Previews
+only**, so the stable develop Branch Deploy and PR Deploy Previews require a
+project team login while Production remains public. Preview builds also send
+`X-Robots-Tag: noindex, nofollow`; noindex is only an indexing hint, not the
+authentication boundary.
 
 `auto_publish_target` defaults to `off`. Set it explicitly to `preview` only
 when hourly Drive syncs should rebuild the stable develop Preview. Production
@@ -109,10 +110,13 @@ is never an automatic target and always requires the confirmed manual action.
 Preview automation compares a deterministic Registry revision instead of only
 the sync counters, so additions, edits, missing files, recovered files, and
 publishable Sheet metadata changes are handled consistently. A Build Hook 2xx
-means only **accepted**; the request becomes **ready** only after the stable
-develop URL serves a matching, secret-free `/deploy-receipt.json`. The existing
-hourly `syncDrive` trigger performs bounded retries—no second trigger is added.
-Use **AI4S dashboard → Preview publish status** for a read-only reconciliation.
+means only **accepted**; the request becomes **ready** only after the successful
+develop Branch Deploy sends Apps Script a matching HMAC-authenticated callback.
+The callback is independent of visitor access to the private Preview URL. Hook
+network/non-2xx failures use bounded retries, but an accepted request is never
+automatically deployed again merely because its callback is delayed. Use
+**AI4S dashboard → Preview publish status** for read-only status; after 15 minutes
+without a callback, any retry must be explicitly requested by a person.
 
 ## Science-map taxonomy
 

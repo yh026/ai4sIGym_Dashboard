@@ -61,9 +61,14 @@ var SHEET_DEMOS = 'Demos';
 var SHEET_CONFIG = 'Config';
 var SHEET_LOG = 'Log';
 var REGISTRY_SPREADSHEET_ID_PROPERTY = 'AI4S_REGISTRY_SPREADSHEET_ID';
-var PREVIEW_PUBLISH_STATE_PROPERTY = 'AI4S_PREVIEW_PUBLISH_STATE_V1';
+var PREVIEW_PUBLISH_STATE_PROPERTY = 'AI4S_PREVIEW_PUBLISH_STATE_V2';
+var PREVIEW_CALLBACK_SECRET_PROPERTY = 'AI4S_PREVIEW_CALLBACK_SECRET';
+var NETLIFY_SITE_ID_PROPERTY = 'AI4S_NETLIFY_SITE_ID';
 var REGISTRY_REVISION_SCHEMA = 1;
-var PREVIEW_PUBLISH_STATE_VERSION = 1;
+var PREVIEW_PUBLISH_STATE_VERSION = 2;
+var PREVIEW_CALLBACK_SCHEMA = 1;
+var PREVIEW_CALLBACK_MAX_BYTES = 16 * 1024;
+var PREVIEW_CALLBACK_TIMEOUT_MS = 15 * 60 * 1000;
 var PREVIEW_MAX_ATTEMPTS = 6;
 var PREVIEW_RETRY_DELAYS_MS = [
   60 * 60 * 1000,
@@ -921,6 +926,8 @@ function emptyPreviewPublishState_() {
     branch: '', desired: '', requested: '', requestId: '', requestedAt: '',
     accepted: '', acceptedAt: 0,
     ready: '', readyRequestId: '', readyAt: 0,
+    readyDeployId: '', readyBuildId: '', readyCommitRef: '', readyPublishedAt: '',
+    lastDeployId: '', lastDeployAt: 0,
     attempts: 0, lastAttemptAt: 0, nextAttemptAt: 0,
     lastCheckAt: 0, lastHttpStatus: 0, lastError: ''
   };
@@ -930,11 +937,12 @@ function normalisePreviewPublishState_(value) {
   var out = emptyPreviewPublishState_();
   if (!value || Number(value.v) !== PREVIEW_PUBLISH_STATE_VERSION) return out;
   ['branch', 'desired', 'requested', 'requestId', 'requestedAt', 'accepted',
-    'ready', 'readyRequestId', 'lastError'].forEach(function (key) {
+    'ready', 'readyRequestId', 'readyDeployId', 'readyBuildId', 'readyCommitRef',
+    'readyPublishedAt', 'lastDeployId', 'lastError'].forEach(function (key) {
     out[key] = String(value[key] || '');
   });
   ['acceptedAt', 'readyAt', 'attempts', 'lastAttemptAt', 'nextAttemptAt',
-    'lastCheckAt', 'lastHttpStatus'].forEach(function (key) {
+    'lastCheckAt', 'lastHttpStatus', 'lastDeployAt'].forEach(function (key) {
     var n = Number(value[key]);
     out[key] = isFinite(n) && n >= 0 ? n : 0;
   });
@@ -1017,21 +1025,33 @@ function previewReceiptMatches_(receipt, expected) {
   if (!receipt || receipt.schema !== 1 || receipt.verified !== true) return false;
   if (receipt.revision_bound !== true) return false;
   if (receipt.target !== 'preview' || receipt.audience !== 'preview') return false;
+  if (receipt.platform !== 'netlify') return false;
   if (receipt.context !== 'branch-deploy') return false;
   if (String(receipt.branch || '') !== String(expected.branch || '')) return false;
   if (String(receipt.registry_revision || '') !== String(expected.revision || '')) return false;
   if (expected.requestId
       && String(receipt.request_id || '') !== String(expected.requestId)) return false;
+  if (expected.requestedAt
+      && String(receipt.requested_at || '') !== String(expected.requestedAt)) return false;
+  if (expected.siteId
+      && String(receipt.site_id || '') !== String(expected.siteId)) return false;
   return true;
 }
 
-function previewPublishPhase_(state) {
+function previewPublishPhase_(state, now) {
   state = normalisePreviewPublishState_(state);
   if (!state.desired) return 'unknown';
   if (state.requested === state.desired) {
     if (state.ready === state.desired && state.readyRequestId === state.requestId) return 'ready';
+    if (state.accepted === state.desired) {
+      var checkedAt = Number(now);
+      if (now != null && state.acceptedAt > 0
+          && checkedAt >= state.acceptedAt + PREVIEW_CALLBACK_TIMEOUT_MS) {
+        return 'verification-timeout';
+      }
+      return 'accepted';
+    }
     if (state.attempts >= PREVIEW_MAX_ATTEMPTS) return 'retry-exhausted';
-    if (state.accepted === state.desired) return 'accepted';
     return state.attempts > 0 ? 'retry-scheduled' : 'requested';
   }
   return state.ready === state.desired ? 'ready' : 'dirty';
@@ -1046,41 +1066,166 @@ function previewPublishConfigurationError_(cfg) {
     cfg.production_branch);
 }
 
-function checkPreviewReceipt_(cfg, expected, now) {
+function validPreviewTimestamp_(value) {
+  var text = String(value || '');
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(text)) return false;
+  var milliseconds = Date.parse(text);
+  return isFinite(milliseconds) && new Date(milliseconds).toISOString() === text;
+}
+
+function previewDeployReceiptError_(receipt) {
+  if (!receipt || typeof receipt !== 'object' || Array.isArray(receipt)) {
+    return 'Preview callback receipt must be a JSON object.';
+  }
+  if (receipt.schema !== 1 || receipt.revision_bound !== true) {
+    return 'Preview callback receipt has an unsupported schema.';
+  }
+  if (receipt.target !== 'preview' || receipt.audience !== 'preview'
+      || receipt.platform !== 'netlify' || receipt.context !== 'branch-deploy'
+      || receipt.branch !== 'develop') {
+    return 'Preview callback receipt does not identify the develop Branch Deploy.';
+  }
+  if (!validRegistryRevision_(receipt.registry_revision)) {
+    return 'Preview callback receipt has an invalid Registry revision.';
+  }
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(String(receipt.deploy_id || ''))
+      || !/^[A-Za-z0-9_-]{1,128}$/.test(String(receipt.build_id || ''))
+      || !/^[0-9a-f]{7,64}$/i.test(String(receipt.commit_ref || ''))
+      || !/^[0-9a-f-]{20,64}$/i.test(String(receipt.site_id || ''))) {
+    return 'Preview callback receipt has invalid Netlify deploy identity.';
+  }
+  if (!validPreviewTimestamp_(receipt.built_at)) {
+    return 'Preview callback receipt has an invalid build time.';
+  }
+  if (receipt.verified === true) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      .test(String(receipt.request_id || ''))
+        || !validPreviewTimestamp_(receipt.requested_at)) {
+      return 'Verified Preview callback receipt has invalid request identity.';
+    }
+  } else if (receipt.verified !== false) {
+    return 'Preview callback receipt has an invalid verification flag.';
+  }
+  return '';
+}
+
+function previewCallbackPayloadError_(payload) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return 'Preview callback payload must be a JSON object.';
+  }
+  var allowed = { schema: true, event: true, callback_at: true, receipt: true };
+  if (Object.keys(payload).some(function (key) { return !allowed[key]; })) {
+    return 'Preview callback payload has unsupported fields.';
+  }
+  if (payload.schema !== PREVIEW_CALLBACK_SCHEMA
+      || payload.event !== 'preview_deploy_succeeded'
+      || !validPreviewTimestamp_(payload.callback_at)) {
+    return 'Preview callback payload has an unsupported envelope.';
+  }
+  return previewDeployReceiptError_(payload.receipt);
+}
+
+function clearPreviewReady_(state) {
+  state.ready = '';
+  state.readyRequestId = '';
+  state.readyAt = 0;
+  state.readyDeployId = '';
+  state.readyBuildId = '';
+  state.readyCommitRef = '';
+  state.readyPublishedAt = '';
+  return state;
+}
+
+/** Pure, replay-safe adoption of one authenticated Netlify onSuccess callback. */
+function adoptPreviewCallback_(state, payload, expectedSiteId, now) {
+  state = normalisePreviewPublishState_(state);
+  var error = previewCallbackPayloadError_(payload);
+  if (error) return { ok: false, state: state, error: error };
+  var receipt = payload.receipt;
+  if (!expectedSiteId || String(receipt.site_id) !== String(expectedSiteId)) {
+    return { ok: false, state: state, error: 'Preview callback site does not match.' };
+  }
+
+  if (state.lastDeployId === receipt.deploy_id) {
+    return { ok: true, state: state, duplicate: true, adopted: false, invalidated: false };
+  }
+  var deployedAt = Date.parse(receipt.built_at);
+  if (state.lastDeployAt > deployedAt) {
+    return { ok: true, state: state, stale: true, adopted: false, invalidated: false };
+  }
+  state.lastDeployId = receipt.deploy_id;
+  state.lastDeployAt = deployedAt;
+  state.lastCheckAt = now == null ? Date.now() : Number(now);
+
+  if (receipt.verified === true) {
+    var expected = {
+      branch: state.branch,
+      revision: state.desired,
+      requestId: state.requestId,
+      requestedAt: state.requestedAt,
+      siteId: expectedSiteId
+    };
+    if (state.requested !== state.desired || !previewReceiptMatches_(receipt, expected)) {
+      return { ok: true, state: state, stale: true, adopted: false, invalidated: false };
+    }
+    state.ready = state.desired;
+    state.readyRequestId = state.requestId;
+    state.readyAt = state.lastCheckAt;
+    state.readyDeployId = receipt.deploy_id;
+    state.readyBuildId = receipt.build_id;
+    state.readyCommitRef = receipt.commit_ref;
+    state.readyPublishedAt = payload.callback_at;
+    state.nextAttemptAt = 0;
+    state.lastError = '';
+    return { ok: true, state: state, adopted: true, invalidated: false };
+  }
+
+  var replacedReady = state.ready !== '';
+  var replacedCurrentReady = state.ready === state.desired;
+  var readyBelongsToCurrentRequest = replacedCurrentReady
+    && state.readyRequestId === state.requestId;
+  clearPreviewReady_(state);
+  if (readyBelongsToCurrentRequest) {
+    state.requested = '';
+    state.requestId = '';
+    state.requestedAt = '';
+    state.accepted = '';
+    state.acceptedAt = 0;
+    state.attempts = 0;
+    state.lastAttemptAt = 0;
+    state.nextAttemptAt = 0;
+    state.lastHttpStatus = 0;
+  }
+  if (replacedReady) {
+    state.lastError = 'The stable develop Preview was replaced by an unverified deploy.';
+  }
+  return { ok: true, state: state, adopted: false, invalidated: replacedReady };
+}
+
+/**
+ * Read readiness only from authenticated callback state. Private Preview access
+ * deliberately makes no anonymous request to preview_url.
+ */
+function checkPreviewReceipt_(cfg, expected, now, state) {
   var configError = previewPublishConfigurationError_(cfg);
   if (configError) return { ok: false, configured: false, ready: false, error: configError };
-  var url = String(cfg.preview_url || '').trim().replace(/\/+$/, '')
-    + '/deploy-receipt.json?ai4s_check=' + encodeURIComponent(String(now));
-  try {
-    var response = UrlFetchApp.fetch(url, {
-      method: 'get',
-      followRedirects: true,
-      muteHttpExceptions: true,
-      headers: { 'Cache-Control': 'no-cache' }
-    });
-    var status = Number(response.getResponseCode());
-    if (status !== 200) {
-      return { ok: false, configured: true, ready: false, status: status,
-        error: 'Preview receipt returned HTTP ' + status + '.' };
-    }
-    var receipt;
-    try { receipt = JSON.parse(response.getContentText()); }
-    catch (ignored) {
-      return { ok: false, configured: true, ready: false, status: status,
-        error: 'Preview receipt was not valid JSON.' };
-    }
-    return {
-      ok: true,
-      configured: true,
-      ready: previewReceiptMatches_(receipt, expected),
-      status: status,
-      receipt: receipt,
-      error: ''
-    };
-  } catch (err) {
-    return { ok: false, configured: true, ready: false, status: 0,
-      error: 'Could not check Preview receipt: ' + safeErrorMessage_(err) };
-  }
+  state = normalisePreviewPublishState_(state);
+  var ready = state.ready === expected.revision
+    && state.readyRequestId === expected.requestId
+    && state.readyDeployId !== '';
+  return {
+    ok: true,
+    configured: true,
+    ready: ready,
+    status: 0,
+    receipt: ready ? {
+      request_id: state.readyRequestId,
+      deploy_id: state.readyDeployId,
+      build_id: state.readyBuildId,
+      commit_ref: state.readyCommitRef
+    } : null,
+    error: ''
+  };
 }
 
 function previewBuildPayload_(state) {
@@ -1098,13 +1243,17 @@ function recordPreviewAttempt_(state, result, now) {
   state.attempts += 1;
   state.lastAttemptAt = now;
   state.lastHttpStatus = Number(result.status || 0);
-  state.nextAttemptAt = state.attempts >= PREVIEW_MAX_ATTEMPTS
-    ? 0 : now + previewRetryDelayMs_(state.attempts);
   if (result.ok) {
     state.accepted = state.requested;
     state.acceptedAt = now;
+    // A 2xx means Netlify accepted this logical request. It must never cause an
+    // automatic duplicate deploy merely because the authenticated completion
+    // callback is delayed or unavailable. Explicit manual retry remains possible.
+    state.nextAttemptAt = 0;
     state.lastError = '';
   } else {
+    state.nextAttemptAt = state.attempts >= PREVIEW_MAX_ATTEMPTS
+      ? 0 : now + previewRetryDelayMs_(state.attempts);
     state.lastError = String(result.error || 'Preview Hook failed.')
       .replace(/\s+/g, ' ').slice(0, 300);
   }
@@ -1131,9 +1280,10 @@ function maintainPreviewPublish_(ss, cfg, options) {
   var expected = {
     branch: state.branch,
     revision: state.desired,
-    requestId: state.requested === state.desired ? state.requestId : ''
+    requestId: state.requested === state.desired ? state.requestId : '',
+    requestedAt: state.requested === state.desired ? state.requestedAt : ''
   };
-  var receipt = checkPreviewReceipt_(cfg, expected, now);
+  var receipt = checkPreviewReceipt_(cfg, expected, now, state);
   state.lastCheckAt = now;
   state.lastHttpStatus = Number(receipt.status || state.lastHttpStatus || 0);
   if (receipt.ready) {
@@ -1142,29 +1292,6 @@ function maintainPreviewPublish_(ss, cfg, options) {
     state.readyAt = now;
     state.nextAttemptAt = 0;
     state.lastError = '';
-  } else if (receipt.ok) {
-    // A valid response from the stable alias is authoritative. If another Git
-    // or Netlify deploy replaced the verified receipt, the previous ready state
-    // is stale and must not suppress a repair request.
-    var replacedCurrentReady = state.ready === state.desired;
-    state.ready = '';
-    state.readyRequestId = '';
-    state.readyAt = 0;
-    if (replacedCurrentReady) {
-      // The previous logical request finished successfully. A later deploy that
-      // replaces it must receive a fresh request ID and retry budget; otherwise
-      // old attempts can accumulate until repair becomes permanently exhausted.
-      state.requested = '';
-      state.requestId = '';
-      state.requestedAt = '';
-      state.accepted = '';
-      state.acceptedAt = 0;
-      state.attempts = 0;
-      state.lastAttemptAt = 0;
-      state.nextAttemptAt = 0;
-      state.lastHttpStatus = 0;
-    }
-    state.lastError = 'Stable Preview receipt does not match the desired verified request.';
   } else if (receipt.error) {
     state.lastError = String(receipt.error).replace(/\s+/g, ' ').slice(0, 300);
   }
@@ -1193,7 +1320,7 @@ function maintainPreviewPublish_(ss, cfg, options) {
   return {
     snapshot: snapshot,
     state: state,
-    phase: previewPublishPhase_(state),
+    phase: previewPublishPhase_(state, now),
     receipt: receipt,
     becameReady: state.ready === state.desired
       && (priorReady !== state.ready || priorReadyRequestId !== state.readyRequestId),
@@ -1316,7 +1443,8 @@ function showPreviewPublishStatus() {
     var state = run.state;
     var labels = {
       ready: 'Up to date',
-      accepted: 'Accepted — waiting for verified deploy',
+      accepted: 'Accepted — waiting for authenticated deploy callback',
+      'verification-timeout': 'Verification timed out — manual retry required',
       requested: 'Requested — waiting to be accepted',
       'retry-scheduled': 'Retry scheduled',
       'retry-exhausted': 'Retry exhausted — use Build preview branch to start a new request',
@@ -1352,8 +1480,12 @@ function showPreviewPublishStatus() {
     if (phase === 'dirty' && autoTarget === 'off') {
       html += '<p>Automatic publishing is off. Use <b>Build preview branch</b> when ready.</p>';
     }
+    if (phase === 'verification-timeout') {
+      html += '<p>The Hook was accepted, so hourly sync will not create a duplicate deploy. '
+        + 'Check Netlify, then use <b>Build preview branch</b> only if an explicit retry is needed.</p>';
+    }
     html += '<p style="color:#555">Accepted means Netlify accepted the Hook. Ready is shown only '
-      + 'after the stable Preview returns a matching verified receipt.</p></div>';
+      + 'after a successful develop deploy sends a matching HMAC-authenticated callback.</p></div>';
     SpreadsheetApp.getUi().showModalDialog(
       HtmlService.createHtmlOutput(html).setWidth(570).setHeight(430),
       'Preview publish status');
@@ -1691,6 +1823,99 @@ function registrySnapshot_(ss, cfg, audience) {
     demos: demos,
     registry_revision: 'sha256:' + sha256Hex_(stableJson_(material))
   };
+}
+
+function bytesToHex_(bytes) {
+  return bytes.map(function (b) {
+    var unsigned = b < 0 ? b + 256 : b;
+    return ('0' + unsigned.toString(16)).slice(-2);
+  }).join('');
+}
+
+function previewCallbackSignature_(rawPayload, secret) {
+  return bytesToHex_(Utilities.computeHmacSha256Signature(
+    String(rawPayload), String(secret), Utilities.Charset.UTF_8));
+}
+
+function constantTimeHexEqual_(left, right) {
+  left = String(left || '').toLowerCase();
+  right = String(right || '').toLowerCase();
+  var different = left.length ^ right.length;
+  var length = Math.max(left.length, right.length);
+  for (var i = 0; i < length; i++) {
+    different |= (left.charCodeAt(i % Math.max(left.length, 1)) || 0)
+      ^ (right.charCodeAt(i % Math.max(right.length, 1)) || 0);
+  }
+  return different === 0;
+}
+
+/** Authenticated completion sink used only by the develop onSuccess plugin. */
+function doPost(e) {
+  var p = (e && e.parameter) || {};
+  if (p.action !== 'preview_callback') {
+    return jsonOut_({ ok: false, error: 'unknown action' });
+  }
+  var contents = String(e && e.postData && e.postData.contents || '');
+  if (!contents || contents.length > PREVIEW_CALLBACK_MAX_BYTES) {
+    return jsonOut_({ ok: false, error: 'invalid callback envelope' });
+  }
+  var outer;
+  try { outer = JSON.parse(contents); }
+  catch (ignored) { return jsonOut_({ ok: false, error: 'invalid callback envelope' }); }
+  if (!outer || typeof outer !== 'object' || Array.isArray(outer)
+      || Object.keys(outer).length !== 2
+      || typeof outer.payload !== 'string'
+      || !/^[0-9a-f]{64}$/i.test(String(outer.signature || ''))
+      || outer.payload.length > PREVIEW_CALLBACK_MAX_BYTES) {
+    return jsonOut_({ ok: false, error: 'invalid callback envelope' });
+  }
+
+  var properties = PropertiesService.getScriptProperties();
+  var secret = String(properties.getProperty(PREVIEW_CALLBACK_SECRET_PROPERTY) || '');
+  var expectedSiteId = String(properties.getProperty(NETLIFY_SITE_ID_PROPERTY) || '');
+  if (secret.length < 32 || !expectedSiteId) {
+    return jsonOut_({ ok: false, error: 'Preview callback is not configured.' });
+  }
+  var expectedSignature = previewCallbackSignature_(outer.payload, secret);
+  if (!constantTimeHexEqual_(outer.signature, expectedSignature)) {
+    return jsonOut_({ ok: false, error: 'invalid callback signature' });
+  }
+
+  // Only the authenticated raw string is parsed as the semantic payload.
+  var payload;
+  try { payload = JSON.parse(outer.payload); }
+  catch (ignored2) { return jsonOut_({ ok: false, error: 'invalid callback payload' }); }
+
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) {
+    return jsonOut_({ ok: false, error: 'Preview callback is busy.' });
+  }
+  try {
+    var adopted = adoptPreviewCallback_(readPreviewPublishState_(), payload,
+      expectedSiteId, Date.now());
+    if (!adopted.ok) return jsonOut_({ ok: false, error: adopted.error });
+    writePreviewPublishState_(adopted.state);
+    var deployId = String(payload.receipt.deploy_id);
+    if (adopted.adopted) {
+      logEvent_('publish-ready', 'Authenticated Preview request '
+        + adopted.state.readyRequestId.slice(0, 12) + ' is ready at revision '
+        + adopted.state.ready.slice(0, 19) + ' / deploy ' + deployId.slice(0, 12) + '.');
+    } else if (adopted.invalidated) {
+      logEvent_('publish-stale', 'An unverified develop deploy '
+        + deployId.slice(0, 12) + ' replaced the last verified Preview.');
+    }
+    return jsonOut_({
+      ok: true,
+      event: 'preview_callback',
+      deploy_id: deployId,
+      adopted: adopted.adopted === true,
+      duplicate: adopted.duplicate === true,
+      stale: adopted.stale === true,
+      invalidated: adopted.invalidated === true
+    });
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function doGet(e) {

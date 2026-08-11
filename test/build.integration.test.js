@@ -24,6 +24,7 @@ function statusBuild(context, branch, extraEnv = {}) {
     COMMIT_REF: 'a'.repeat(40),
     BUILD_ID: 'build-test-123',
     DEPLOY_ID: 'deploy-test-456',
+    SITE_ID: '33333333-4444-4555-8666-777777777777',
     MOCK_MANIFEST: statusFixture,
     MOCK_HTML_FALLBACK: fallbackHtml,
   }, extraEnv);
@@ -143,6 +144,7 @@ test('verified Preview Hook build emits a matching secret-free deploy receipt', 
   assert.equal(receipt.requested_at, '2026-08-11T01:02:03.004Z');
   assert.equal(receipt.registry_revision, STATUS_REVISION);
   assert.equal(receipt.context, 'branch-deploy');
+  assert.equal(receipt.site_id, '33333333-4444-4555-8666-777777777777');
   assert.equal(receipt.commit_ref, 'a'.repeat(40));
   assert.doesNotMatch(
     JSON.stringify(receipt), /DO_NOT_PUBLISH_THIS_SECRET|build_hooks|token=/,

@@ -128,6 +128,10 @@ function fakeUtilities(uuid = '11111111-2222-4333-8444-555555555555') {
       return Array.from(crypto.createHash('sha256').update(String(value), 'utf8').digest(),
         byte => (byte > 127 ? byte - 256 : byte));
     },
+    computeHmacSha256Signature(value, key) {
+      return Array.from(crypto.createHmac('sha256', String(key))
+        .update(String(value), 'utf8').digest(), byte => (byte > 127 ? byte - 256 : byte));
+    },
     base64Encode: bytes => Buffer.from(bytes).toString('base64'),
     getUuid: () => uuid,
   };
@@ -151,6 +155,7 @@ function fakeScriptProperties(initial = {}) {
 const PRODUCTION_HOOK = 'https://api.netlify.com/build_hooks/production123';
 const PREVIEW_HOOK = 'https://api.netlify.com/build_hooks/preview123';
 const PREVIEW_BRANCH = 'develop';
+const SITE_ID = '33333333-4444-4555-8666-777777777777';
 
 test('Apps Script accepts develop and builds a preview request', () => {
   const script = loadAppsScript();
@@ -487,7 +492,7 @@ test('Preview publish state survives Script Properties and corrupt state resets 
   assert.equal(restored.requestId, 'request-123');
   assert.equal(restored.attempts, 2);
 
-  properties.values.AI4S_PREVIEW_PUBLISH_STATE_V1 = '{broken';
+  properties.values.AI4S_PREVIEW_PUBLISH_STATE_V2 = '{broken';
   const reset = script.readPreviewPublishState_();
   assert.equal(reset.requested, '');
   assert.match(reset.lastError, /unreadable/);
@@ -504,6 +509,7 @@ test('Preview receipt requires verified branch-deploy context, revision, audienc
     revision_bound: true,
     target: 'preview',
     audience: 'preview',
+    platform: 'netlify',
     context: 'branch-deploy',
     branch: 'develop',
     registry_revision: expected.revision,
@@ -518,7 +524,7 @@ test('Preview receipt requires verified branch-deploy context, revision, audienc
   assert.equal(script.previewReceiptMatches_({ ...receipt, registry_revision: `sha256:${'c'.repeat(64)}` }, expected), false);
 });
 
-test('Preview receipt reconciliation checks the stable receipt URL without exposing secrets', () => {
+test('Preview readiness reads authenticated callback state and never fetches the private URL', () => {
   const script = loadAppsScript();
   const revision = `sha256:${'d'.repeat(64)}`;
   const expected = { branch: 'develop', revision, requestId: 'request-789' };
@@ -528,42 +534,170 @@ test('Preview receipt reconciliation checks the stable receipt URL without expos
     preview_url: 'https://develop--aisigym.netlify.app/',
     production_branch: 'main',
   };
-  let fetchedUrl = '';
-  script.UrlFetchApp = {
-    fetch(url, options) {
-      fetchedUrl = url;
-      assert.equal(options.method, 'get');
-      assert.equal(options.headers['Cache-Control'], 'no-cache');
-      return {
-        getResponseCode: () => 200,
-        getContentText: () => JSON.stringify({
-          schema: 1, verified: true, revision_bound: true,
-          target: 'preview', audience: 'preview',
-          context: 'branch-deploy',
-          branch: 'develop', registry_revision: revision, request_id: 'request-789',
-        }),
-      };
-    },
-  };
-
-  const match = script.checkPreviewReceipt_(cfg, expected, 123456);
+  script.UrlFetchApp = { fetch() { throw new Error('private Preview must never be fetched'); } };
+  const state = script.emptyPreviewPublishState_();
+  state.ready = revision;
+  state.readyRequestId = 'request-789';
+  state.readyDeployId = 'deploy-ready-123';
+  const match = script.checkPreviewReceipt_(cfg, expected, 123456, state);
   assert.equal(match.ready, true);
-  assert.match(fetchedUrl, /\/deploy-receipt\.json\?ai4s_check=123456$/);
-  assert.doesNotMatch(fetchedUrl, /token|build_hooks/);
-
-  script.UrlFetchApp.fetch = () => ({
-    getResponseCode: () => 200,
-    getContentText: () => JSON.stringify({
-      schema: 1, verified: true, revision_bound: true,
-      target: 'preview', audience: 'preview',
-      context: 'branch-deploy',
-      branch: 'develop', registry_revision: revision, request_id: 'old-request',
-    }),
-  });
-  assert.equal(script.checkPreviewReceipt_(cfg, expected, 123457).ready, false);
+  state.readyRequestId = 'old-request';
+  assert.equal(script.checkPreviewReceipt_(cfg, expected, 123457, state).ready, false);
 });
 
-test('Preview maintenance treats auto-off as a hard POST stop and retries only after enabling Preview', () => {
+test('authenticated callback adoption is exact, idempotent, and demotes a later unverified develop deploy', () => {
+  const script = loadAppsScript();
+  const revision = `sha256:${'d'.repeat(64)}`;
+  const requestId = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+  const requestedAt = '2026-08-11T01:02:03.004Z';
+  const readyReceipt = {
+    schema: 1, verified: true, revision_bound: true,
+    target: 'preview', audience: 'preview', platform: 'netlify',
+    registry_revision: revision, built_at: '2026-08-11T01:04:05.006Z',
+    context: 'branch-deploy', branch: 'develop', site_id: SITE_ID,
+    commit_ref: 'a'.repeat(40), build_id: 'build-ready-123', deploy_id: 'deploy-ready-123',
+    request_id: requestId, requested_at: requestedAt,
+  };
+  let state = script.emptyPreviewPublishState_();
+  state.branch = 'develop';
+  state.desired = revision;
+  state.requested = revision;
+  state.requestId = requestId;
+  state.requestedAt = requestedAt;
+  state.accepted = revision;
+
+  const callback = {
+    schema: 1, event: 'preview_deploy_succeeded',
+    callback_at: '2026-08-11T01:05:06.007Z', receipt: readyReceipt,
+  };
+  let result = script.adoptPreviewCallback_(state, callback, SITE_ID, 10_000);
+  assert.equal(result.ok, true);
+  assert.equal(result.adopted, true);
+  assert.equal(result.state.ready, revision);
+  assert.equal(result.state.readyDeployId, 'deploy-ready-123');
+
+  result = script.adoptPreviewCallback_(result.state, callback, SITE_ID, 11_000);
+  assert.equal(result.duplicate, true);
+  assert.equal(result.adopted, false);
+
+  const wrongRequest = JSON.parse(JSON.stringify(callback));
+  wrongRequest.receipt.deploy_id = 'deploy-wrong-request';
+  wrongRequest.receipt.request_id = 'ffffffff-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+  result = script.adoptPreviewCallback_(result.state, wrongRequest, SITE_ID, 12_000);
+  assert.equal(result.stale, true);
+  assert.equal(result.state.ready, revision);
+
+  const inFlight = JSON.parse(JSON.stringify(result.state));
+  inFlight.requested = revision;
+  inFlight.requestId = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff';
+  inFlight.requestedAt = '2026-08-11T01:05:30.000Z';
+  inFlight.accepted = revision;
+  inFlight.acceptedAt = 12_500;
+  const concurrentUnverified = JSON.parse(JSON.stringify(callback));
+  concurrentUnverified.callback_at = '2026-08-11T01:07:08.009Z';
+  concurrentUnverified.receipt.verified = false;
+  concurrentUnverified.receipt.built_at = '2026-08-11T01:06:07.008Z';
+  concurrentUnverified.receipt.deploy_id = 'deploy-unverified-concurrent';
+  delete concurrentUnverified.receipt.request_id;
+  delete concurrentUnverified.receipt.requested_at;
+  const concurrent = script.adoptPreviewCallback_(
+    inFlight, concurrentUnverified, SITE_ID, 12_750,
+  );
+  assert.equal(concurrent.invalidated, true);
+  assert.equal(concurrent.state.ready, '');
+  assert.equal(concurrent.state.requestId, inFlight.requestId,
+    'demoting an older ready deploy must preserve a newer accepted request');
+  assert.equal(concurrent.state.accepted, revision);
+
+  const unverified = JSON.parse(JSON.stringify(callback));
+  unverified.callback_at = '2026-08-11T01:07:08.009Z';
+  unverified.receipt.verified = false;
+  unverified.receipt.built_at = '2026-08-11T01:06:07.008Z';
+  unverified.receipt.deploy_id = 'deploy-unverified-2';
+  delete unverified.receipt.request_id;
+  delete unverified.receipt.requested_at;
+  result = script.adoptPreviewCallback_(result.state, unverified, SITE_ID, 13_000);
+  assert.equal(result.invalidated, true);
+  assert.equal(result.state.ready, '');
+  assert.equal(result.state.requested, '');
+  assert.match(result.state.lastError, /unverified deploy/);
+
+  assert.equal(script.adoptPreviewCallback_(state, callback, 'wrong-site', 14_000).ok, false);
+  const production = JSON.parse(JSON.stringify(callback));
+  production.receipt.context = 'production';
+  production.receipt.branch = 'main';
+  assert.equal(script.adoptPreviewCallback_(state, production, SITE_ID, 15_000).ok, false);
+});
+
+test('doPost verifies the raw HMAC before parsing and persists an idempotent acknowledgement', () => {
+  const script = loadAppsScript();
+  const secret = 'callback-secret-with-at-least-thirty-two-characters';
+  const revision = `sha256:${'d'.repeat(64)}`;
+  const requestId = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+  const requestedAt = '2026-08-11T01:02:03.004Z';
+  const properties = fakeScriptProperties({
+    AI4S_PREVIEW_CALLBACK_SECRET: secret,
+    AI4S_NETLIFY_SITE_ID: SITE_ID,
+  });
+  script.PropertiesService = properties.service;
+  script.Utilities = fakeUtilities();
+  script.LockService = {
+    getScriptLock: () => ({ tryLock: () => true, releaseLock() {} }),
+  };
+  script.ContentService = {
+    MimeType: { JSON: 'json' },
+    createTextOutput(text) {
+      return { setMimeType() { return JSON.parse(text); } };
+    },
+  };
+  script.logEvent_ = () => {};
+
+  const state = script.emptyPreviewPublishState_();
+  state.branch = 'develop';
+  state.desired = revision;
+  state.requested = revision;
+  state.requestId = requestId;
+  state.requestedAt = requestedAt;
+  state.accepted = revision;
+  script.writePreviewPublishState_(state);
+
+  const rawPayload = JSON.stringify({
+    schema: 1,
+    event: 'preview_deploy_succeeded',
+    callback_at: '2026-08-11T01:05:06.007Z',
+    receipt: {
+      schema: 1, verified: true, revision_bound: true,
+      target: 'preview', audience: 'preview', platform: 'netlify',
+      registry_revision: revision, built_at: '2026-08-11T01:04:05.006Z',
+      context: 'branch-deploy', branch: 'develop', site_id: SITE_ID,
+      commit_ref: 'a'.repeat(40), build_id: 'build-ready-123', deploy_id: 'deploy-ready-123',
+      request_id: requestId, requested_at: requestedAt,
+    },
+  });
+  const call = outer => script.doPost({
+    parameter: { action: 'preview_callback' },
+    postData: { contents: JSON.stringify(outer) },
+  });
+
+  const rejected = call({ payload: rawPayload, signature: '0'.repeat(64) });
+  assert.equal(rejected.ok, false);
+  assert.match(rejected.error, /signature/);
+  assert.equal(script.readPreviewPublishState_().ready, '');
+
+  const signature = crypto.createHmac('sha256', secret).update(rawPayload, 'utf8').digest('hex');
+  const accepted = call({ payload: rawPayload, signature });
+  assert.equal(accepted.ok, true);
+  assert.equal(accepted.adopted, true);
+  assert.equal(accepted.deploy_id, 'deploy-ready-123');
+  assert.equal(script.readPreviewPublishState_().ready, revision);
+
+  const replay = call({ payload: rawPayload, signature });
+  assert.equal(replay.ok, true);
+  assert.equal(replay.duplicate, true);
+  assert.equal(replay.adopted, false);
+});
+
+test('Preview maintenance treats auto-off as a hard stop and never reposts an accepted Hook', () => {
   const script = loadAppsScript();
   const properties = fakeScriptProperties();
   const revision = `sha256:${'e'.repeat(64)}`;
@@ -575,7 +709,7 @@ test('Preview maintenance treats auto-off as a hard POST stop and retries only a
     preview_url_branch: 'develop',
     auto_publish_target: 'off',
   };
-  let receipt = { ok: false, configured: true, ready: false, status: 404, error: 'not ready' };
+  let receipt = { ok: true, configured: true, ready: false, status: 0, error: '' };
   const payloads = [];
   script.PropertiesService = properties.service;
   script.Utilities = fakeUtilities('aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee');
@@ -628,17 +762,17 @@ test('Preview maintenance treats auto-off as a hard POST stop and retries only a
   const enabledRetry = script.maintainPreviewPublish_({}, cfg, {
     now: 2_000 + 60 * 60 * 1000, allowAttempt: true,
   });
-  assert.equal(enabledRetry.attempted, true);
-  assert.equal(enabledRetry.state.attempts, 2);
-  assert.equal(payloads.length, 2);
-  assert.equal(payloads[1].request_id, payloads[0].request_id,
-    'backoff retries must retain the logical request ID');
+  assert.equal(enabledRetry.attempted, false,
+    'a 2xx Hook acceptance must never cause an automatic duplicate deploy');
+  assert.equal(enabledRetry.state.attempts, 1);
+  assert.equal(enabledRetry.phase, 'verification-timeout');
+  assert.equal(payloads.length, 1);
 
   receipt = {
     ok: true, configured: true, ready: true, status: 200, error: '',
     receipt: {
       schema: 1, verified: true, revision_bound: true,
-      target: 'preview', audience: 'preview',
+      target: 'preview', audience: 'preview', platform: 'netlify',
       branch: 'develop', registry_revision: revision,
       request_id: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
     },
@@ -651,47 +785,12 @@ test('Preview maintenance treats auto-off as a hard POST stop and retries only a
   assert.equal(ready.state.ready, revision);
   assert.equal(ready.state.nextAttemptAt, 0);
 
-  const exhaustedReady = script.readPreviewPublishState_();
-  exhaustedReady.attempts = script.PREVIEW_MAX_ATTEMPTS;
-  script.writePreviewPublishState_(exhaustedReady);
-
-  receipt = {
-    ok: false, configured: true, ready: false, status: 503, error: 'temporary outage',
-  };
-  const transientFailure = script.maintainPreviewPublish_({}, cfg, {
+  const noChange = script.maintainPreviewPublish_({}, cfg, {
     now: 2_000 + 4 * 60 * 60 * 1000, allowAttempt: true,
   });
-  assert.equal(transientFailure.state.ready, revision,
-    'a transient receipt fetch failure must not erase the last verified observation');
-  assert.equal(transientFailure.attempted, false);
-
-  cfg.auto_publish_target = 'off';
-  receipt = {
-    ok: true, configured: true, ready: false, status: 200, error: '',
-    receipt: { schema: 1, verified: false, context: 'branch-deploy', branch: 'develop' },
-  };
-  const replaced = script.maintainPreviewPublish_({}, cfg, {
-    now: 2_000 + 5 * 60 * 60 * 1000, allowAttempt: true,
-  });
-  assert.equal(replaced.state.ready, '',
-    'a valid nonmatching stable receipt must demote stale ready state');
-  assert.equal(replaced.phase, 'dirty');
-  assert.equal(replaced.state.requested, '');
-  assert.equal(replaced.attempted, false,
-    'auto off must demote stale ready state without posting a repair');
-  assert.equal(payloads.length, 2);
-
-  script.previewRequestId_ = () => 'ffffffff-bbbb-4ccc-8ddd-eeeeeeeeeeee';
-  cfg.auto_publish_target = 'preview';
-  const repaired = script.maintainPreviewPublish_({}, cfg, {
-    now: 2_000 + 6 * 60 * 60 * 1000, allowAttempt: true,
-  });
-  assert.equal(repaired.attempted, true,
-    'Preview automation should repair a replaced verified deploy with a fresh request');
-  assert.equal(repaired.state.attempts, 1, 'a completed request must not consume the repair budget');
-  assert.equal(payloads.length, 3);
-  assert.equal(payloads[2].request_id, 'ffffffff-bbbb-4ccc-8ddd-eeeeeeeeeeee');
-  assert.notEqual(payloads[2].request_id, payloads[0].request_id);
+  assert.equal(noChange.attempted, false);
+  assert.equal(noChange.state.ready, revision);
+  assert.equal(payloads.length, 1);
 });
 
 test('Preview retry delays are bounded and revision changes cancel stale requests', () => {

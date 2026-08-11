@@ -36,6 +36,7 @@ test('a verified mock develop build publishes a matching no-store ready receipt'
       COMMIT_REF: contract.ready_receipt.commit_ref,
       BUILD_ID: contract.ready_receipt.build_id,
       DEPLOY_ID: contract.ready_receipt.deploy_id,
+      SITE_ID: contract.ready_receipt.site_id,
       REGISTRY_URL: `https://example.invalid/exec?token=${secretSentinel}`,
       INCOMING_HOOK_URL: `https://api.netlify.com/build_hooks/${secretSentinel}`,
       INCOMING_HOOK_BODY: JSON.stringify(contract.hook_payload),
@@ -60,6 +61,7 @@ test('a verified mock develop build publishes a matching no-store ready receipt'
   assert.equal(receipt.commit_ref, contract.ready_receipt.commit_ref);
   assert.equal(receipt.build_id, contract.ready_receipt.build_id);
   assert.equal(receipt.deploy_id, contract.ready_receipt.deploy_id);
+  assert.equal(receipt.site_id, contract.ready_receipt.site_id);
   assert.equal(receipt.platform, 'netlify');
   assert.equal(new Date(receipt.built_at).toISOString(), receipt.built_at);
   assert.doesNotMatch(receiptText, new RegExp(secretSentinel, 'i'));

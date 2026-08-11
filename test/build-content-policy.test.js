@@ -146,6 +146,7 @@ test('public deploy receipt is allowlisted and Preview/receipt headers discourag
     COMMIT_REF: 'a'.repeat(40),
     BUILD_ID: 'build-123',
     DEPLOY_ID: 'deploy-456',
+    SITE_ID: '33333333-4444-4555-8666-777777777777',
     REGISTRY_URL: 'https://example.invalid/exec?token=TOP_SECRET_SENTINEL',
     INCOMING_HOOK_URL: 'https://api.netlify.com/build_hooks/TOP_SECRET_SENTINEL',
     INCOMING_HOOK_BODY: 'TOP_SECRET_SENTINEL',
@@ -156,6 +157,7 @@ test('public deploy receipt is allowlisted and Preview/receipt headers discourag
   assert.equal(receipt.request_id, verifiedPreviewPayload.request_id);
   assert.equal(receipt.registry_revision, verifiedPreviewPayload.registry_revision);
   assert.equal(receipt.context, 'branch-deploy');
+  assert.equal(receipt.site_id, '33333333-4444-4555-8666-777777777777');
   assert.equal(receipt.commit_ref, 'a'.repeat(40));
   assert.doesNotMatch(JSON.stringify(receipt), /TOP_SECRET_SENTINEL|build_hooks|token=/i);
 

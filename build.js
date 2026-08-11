@@ -661,6 +661,7 @@ function createDeployReceipt(env, policy, trigger, registryRevision, builtAt) {
     context: safeReceiptValue(policy.context,
       /^(?:production|branch-deploy|deploy-preview|dev|local)$/) || 'unknown',
     branch: safeReceiptValue(policy.branch, /^[A-Za-z0-9._/-]{1,200}$/) || 'unknown',
+    site_id: safeReceiptValue(env.SITE_ID, /^[0-9a-f-]{20,64}$/i),
     commit_ref: safeReceiptValue(env.COMMIT_REF, /^[0-9a-f]{7,64}$/i),
     build_id: safeReceiptValue(env.BUILD_ID, /^[A-Za-z0-9_-]{1,128}$/),
     deploy_id: safeReceiptValue(env.DEPLOY_ID, /^[A-Za-z0-9_-]{1,128}$/),

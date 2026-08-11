@@ -50,6 +50,19 @@ Production branch 必须保持 `main`。`preview_branch` 必须在 Netlify 的 B
 Script Properties。这个步骤不能省略：部署成 Web App 后不存在“当前活动 Sheet”，
 `doGet()` 必须通过保存的 ID 重新打开正确的 Registry。
 
+Private Preview 的完成回调还需要在 **Apps Script → Project Settings → Script
+Properties** 手工加入两项；不要把它们放进 Sheet 或代码：
+
+| property | value |
+| --- | --- |
+| `AI4S_NETLIFY_SITE_ID` | Netlify Project ID（Site ID） |
+| `AI4S_PREVIEW_CALLBACK_SECRET` | 至少 32 个字符的随机密钥 |
+
+同一个 `AI4S_PREVIEW_CALLBACK_SECRET` 只在 Netlify 的环境变量中再保存一份，Scope
+必须是 **Builds**，Deploy context 只给 **Branch deploys**。不要在 Log、截图、聊天
+或 Git 中复制它。新版使用独立的 V2 publish state；旧 V1 状态不会被信任或迁移，
+commissioning 会从安全的未请求状态重新开始。
+
 `setup()` 会：
 
 - 保留 Demos 数据；
@@ -118,9 +131,9 @@ Deploy Preview 和其他分支仍按 Production-safe 的 Live-only 规则构建�
 5. 在预览中检查首页、项目分类、卡片、Hover、移动端和项目链接。
 6. 内容通过审核后，才把对应 Sheet 行改为 `Live`。
 
-稳定 Preview URL 可以被分享，因此 Draft 不等于机密。若 Draft 含有不可公开内容，先为
-Netlify Preview 配置访问控制，不要依赖“没有把 URL 发出去”作为权限机制。Preview 构建
-会发送 `X-Robots-Tag: noindex, nofollow`，但 noindex 不能替代身份验证。
+项目应设置为 `Private → Previews only`。这样 Production 仍公开，而稳定 Branch Deploy
+和 PR Deploy Preview 都要求 Netlify 团队登录。Preview 构建仍发送
+`X-Robots-Tag: noindex, nofollow`，但真正的访问边界来自 Netlify 身份验证。
 
 ### 上线生产
 
@@ -144,9 +157,18 @@ Production 不属于自动目标，只能通过带 Yes/No 确认的
 
 Preview 自动化不再只看 `new + updated` 计数，而是比较稳定的 Registry revision，
 所以新增、修改、移出文件夹、文件恢复和可发布的 Sheet 元数据变化都会进入同一流程。
-Build Hook 返回 2xx 只表示 **accepted**；稳定 develop 地址返回完全匹配的
-`/deploy-receipt.json` 后才记为 **ready**。现有每小时 `syncDrive` 触发器负责有限重试，
-不会新增第二个触发器。`Preview publish status` 只读取回执和显示状态，不会触发构建。
+Build Hook 返回 2xx 只表示 **accepted**；本地 Netlify Build Plugin 只有在
+`branch-deploy + develop` 部署成功后，才把 `dist/deploy-receipt.json` 通过 HMAC
+认证回调给 Apps Script，完全匹配当前 request ID、requested_at、Registry revision、
+Site ID、分支和 context 后才记为 **ready**。它不会匿名读取 Private Preview URL。
+
+Hook 非 2xx 或网络失败仍按有限退避重试；一旦 Hook 已 accepted，即使完成回调丢失，
+小时同步也**不会**重复创建 Branch Deploy。15 分钟后状态显示
+`verification-timeout`，必须先查看 Netlify，再由人明确使用 `Build preview branch`
+重试。`Preview publish status` 只读状态，不会触发构建。
+
+同一个插件也会报告新的、未验证的 `develop` Git Branch Deploy，用来撤销已过期的 ready
+状态。Production、PR Deploy Preview 和其他分支在插件入口即跳过，不发送回调。
 
 ## 6. Registry Web App
 
@@ -171,6 +193,8 @@ Draft 页面。构建端还会按相同矩阵二次过滤，即使旧的 `REGIST
 deployment**。Web App 的访问设置必须允许 Netlify 在**没有登录 Google 账号**时调用；
 界面中通常选择 `Anyone`，不要选择只允许 Google 账号的选项。更新后请在无痕窗口打开
 Registry URL 验证；如果组织策略禁止匿名 Web App，Netlify 将无法读取此 endpoint。
+`doPost?action=preview_callback` 虽然匿名可达，但会先用仅存于 Script Properties 与
+Netlify Builds 环境中的共享密钥验证原始 payload 的 HMAC，再解析内部回执。
 
 ## 7. 出错时检查
 
@@ -178,6 +202,8 @@ Registry URL 验证；如果组织策略禁止匿名 Web App，Netlify 将无法
 - HTTP 404/401/500：查看 Netlify Deploy log；脚本不会再把这些错误显示成成功。
 - Preview 能构建但 Registry 失败：确认 Netlify 的 `REGISTRY_URL` Scope 包含 `Builds`，
   并为 `Production`、`Branch deploys`、`Deploy Previews` 三种 Context 使用同一个值。
+- 状态停在 `verification-timeout`：核对两端的 `AI4S_PREVIEW_CALLBACK_SECRET` 与
+  `AI4S_NETLIFY_SITE_ID`；修正后只手动构建一次 Preview，不等待小时同步重复部署。
 - Sheet 的 `Log` 不记录 Hook URL 或 token；失败时可能记录经过脱敏、截断的错误文字。
 - `Open preview site` 拒绝打开：同时更新 `preview_url` 和 `preview_url_branch`，确保二者
   对应当前 `preview_branch`。
