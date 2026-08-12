@@ -248,6 +248,34 @@ var CARD_MAP = [
     source: 'notebook.file' }
 ];
 
+// Existing rows have three deliberately separate write surfaces. Keeping the
+// lists explicit makes it possible to audit every Sheet write:
+//   MANUAL  — owned by the editor. Sync may only pre-fill an empty IMPORT cell.
+//   AUTO    — owned by Drive sync.
+//   DERIVED — recomputed from the final, concurrency-checked row.
+// A sync never writes any other column on an existing row.
+var MANUAL_COLS = [
+  COLS.TITLE, COLS.SLUG, COLS.DESCRIPTION, COLS.CATEGORY, COLS.TAGS, COLS.AUTHOR,
+  COLS.STATUS, COLS.FEATURED, COLS.AUDIENCE, COLS.LEARNING_GOAL, COLS.QUESTION,
+  COLS.PICTURE, COLS.DATA_SOURCE, COLS.DATA_LINK, COLS.DATA_ACCESSED,
+  COLS.DATA_LICENSE, COLS.DATA_NOTES, COLS.TASK_TYPE, COLS.METHOD, COLS.FRAMEWORK,
+  COLS.TRAINING, COLS.METRICS, COLS.WORKFLOW_LINK
+];
+var IMPORT_COLS = [
+  COLS.TITLE, COLS.DESCRIPTION, COLS.CATEGORY, COLS.TAGS, COLS.AUTHOR,
+  COLS.AUDIENCE, COLS.LEARNING_GOAL, COLS.QUESTION, COLS.PICTURE,
+  COLS.DATA_SOURCE, COLS.DATA_LINK, COLS.DATA_ACCESSED, COLS.DATA_LICENSE,
+  COLS.DATA_NOTES, COLS.TASK_TYPE, COLS.METHOD, COLS.FRAMEWORK, COLS.TRAINING,
+  COLS.METRICS, COLS.WORKFLOW_LINK
+];
+var AUTO_COLS = [
+  COLS.FILE_NAME, COLS.FILE_ID, COLS.PICTURE_FILE_ID, COLS.DATE_ADDED,
+  COLS.LAST_MODIFIED, COLS.FILE_CHECK
+];
+var DERIVED_COLS = [COLS.PROVENANCE];
+
+var DRIVE_SHORTCUT_MIME = 'application/vnd.google-apps.shortcut';
+
 // Licence text → the data_license dropdown's own wording. Order matters:
 // the ShareAlike test has to run before the plain Attribution one. Anything
 // not matched here is carried over from the card verbatim, never guessed.
@@ -715,12 +743,20 @@ function syncDriveUnlocked_() {
   // can make it report the end of the formatted band (row 1000) instead of the
   // end of the data. Scan for the last row with real content instead.
   var gridLast = sh.getLastRow();
-  var all = gridLast > 1 ? sh.getRange(2, 1, gridLast - 1, N_COLS).getValues() : [];
+  var dataRange = gridLast > 1 ? sh.getRange(2, 1, gridLast - 1, N_COLS) : null;
+  var all = dataRange ? dataRange.getValues() : [];
+  var allFormulas = dataRange ? dataRange.getFormulas() : [];
   var dataEnd = 1; // header row; data starts at 2
   for (var s = all.length - 1; s >= 0; s--) {
     if (rowHasContent_(all[s])) { dataEnd = s + 2; break; }
   }
   var rows = all.slice(0, Math.max(dataEnd - 1, 0));
+  // Keep the values exactly as first observed. A Sheet editor is not governed
+  // by ScriptLock, so these snapshots are checked again immediately before
+  // any existing-row write.
+  var originalRows = rows.map(function (r) { return r.slice(); });
+  var originalFormulas = allFormulas.slice(0, Math.max(dataEnd - 1, 0))
+    .map(function (r) { return r.slice(); });
   var byId = {};
   rows.forEach(function (r, i) { if (r[COLS.FILE_ID - 1]) byId[r[COLS.FILE_ID - 1]] = i; });
   var slugsInUse = {};
@@ -789,20 +825,142 @@ function syncDriveUnlocked_() {
     }
   });
 
-  // Recompute the provenance flag everywhere (existing + new).
-  rows.forEach(function (r) { r[COLS.PROVENANCE - 1] = provenanceFlag_(r); });
+  // Existing-row provenance is recomputed only after the optimistic
+  // concurrency check has overlaid any human edits made during this scan.
   newRows.forEach(function (r) { r[COLS.PROVENANCE - 1] = provenanceFlag_(r); });
 
-  if (rows.length) sh.getRange(2, 1, rows.length, N_COLS).setValues(rows);
-  if (newRows.length) sh.getRange(dataEnd + 1, 1, newRows.length, N_COLS).setValues(newRows);
+  var writeResult = writeExistingRowsSafely_(sh, rows, originalRows, originalFormulas);
+  appendNewRows_(sh, newRows);
   // Commit Registry changes before a Build Hook can make Netlify read them.
   SpreadsheetApp.flush();
 
   var summary = nNew + ' new, ' + nUpdated + ' updated, ' + nWarn + ' now missing.';
+  if (writeResult.conflicts) {
+    summary += ' ' + writeResult.conflicts + ' concurrent edit conflict(s) preserved.';
+  }
   logEvent_('sync', summary);
   ss.toast(summary, 'Drive sync', 6);
 
-  return { nNew: nNew, nUpdated: nUpdated, nWarn: nWarn };
+  return {
+    nNew: nNew, nUpdated: nUpdated, nWarn: nWarn,
+    nConflicts: writeResult.conflicts
+  };
+}
+
+/**
+ * Apply an existing-row reconciliation without ever writing a whole row.
+ *
+ * `originalRows` is the first Sheet snapshot; `desiredRows` is that snapshot
+ * after Drive/import reconciliation. Immediately before writing, the current
+ * rows are read again. Concurrent human edits are overlaid onto the desired
+ * rows, listed in the Log, and never replaced. A changed FILE_ID means rows may
+ * have moved or been deleted, so the whole write fails before the first patch.
+ */
+function writeExistingRowsSafely_(sh, desiredRows, originalRows, originalFormulas) {
+  if (!desiredRows.length) return { conflicts: 0, patches: 0 };
+  if (desiredRows.length !== originalRows.length) {
+    throw new Error('Drive sync stopped: its Sheet snapshots do not match. No existing rows were updated.');
+  }
+
+  var currentRange = sh.getRange(2, 1, originalRows.length, N_COLS);
+  var currentRows = currentRange.getValues();
+  var currentFormulas = currentRange.getFormulas();
+  originalFormulas = originalFormulas || blankFormulaRows_(originalRows.length);
+  var i, c;
+  // Verify every row identity before making any write. This turns a concurrent
+  // sort, deletion or system-column edit into a fail-closed retry instead of a
+  // patch applied to the wrong demo.
+  for (i = 0; i < originalRows.length; i++) {
+    if (!sameCellValue_(currentRows[i][COLS.FILE_ID - 1], originalRows[i][COLS.FILE_ID - 1])
+        || currentFormulas[i][COLS.FILE_ID - 1] !== originalFormulas[i][COLS.FILE_ID - 1]) {
+      throw new Error('Drive sync stopped: Demos row ' + (i + 2)
+        + ' moved or its file_id changed during the scan. No existing rows were updated; run sync again.');
+    }
+  }
+
+  var patches = [];
+  var conflictCount = 0;
+  for (i = 0; i < originalRows.length; i++) {
+    var desired = desiredRows[i].slice();
+    var current = currentRows[i];
+    var changedHeaders = [];
+
+    for (var m = 0; m < MANUAL_COLS.length; m++) {
+      c = MANUAL_COLS[m];
+      var formulaChanged = currentFormulas[i][c - 1] !== originalFormulas[i][c - 1];
+      if (!sameCellValue_(current[c - 1], originalRows[i][c - 1]) || formulaChanged) {
+        changedHeaders.push(HEADERS[c - 1]);
+        // Only a value that changed since the initial snapshot replaces the
+        // import candidate. An unchanged empty cell remains eligible for the
+        // pre-fill computed in `desired`.
+        desired[c - 1] = current[c - 1];
+      } else if (currentFormulas[i][c - 1]) {
+        // A pre-existing formula that currently evaluates to an empty string
+        // is still human-owned and must not be replaced by an import.
+        desired[c - 1] = current[c - 1];
+      }
+    }
+
+    // Derived values must see the editor's current metadata, not the stale
+    // values that were present at the beginning of the scan.
+    desired[COLS.PROVENANCE - 1] = provenanceFlag_(desired);
+
+    if (changedHeaders.length) {
+      conflictCount++;
+      logEvent_('sync-conflict', 'Preserved concurrent manual edit(s) on Demos row '
+        + (i + 2) + ': ' + changedHeaders.join(', ') + '.');
+    }
+
+    collectColumnPatches_(patches, i + 2, current, desired, IMPORT_COLS);
+    collectColumnPatches_(patches, i + 2, current, desired, AUTO_COLS);
+    collectColumnPatches_(patches, i + 2, current, desired, DERIVED_COLS);
+  }
+
+  // Each patch targets one explicitly managed cell. In particular, status,
+  // slug, title and other neighbouring manual cells are never collateral
+  // damage from a wide setValues call.
+  for (i = 0; i < patches.length; i++) {
+    sh.getRange(patches[i].row, patches[i].col).setValue(patches[i].value);
+  }
+  return { conflicts: conflictCount, patches: patches.length };
+}
+
+function collectColumnPatches_(patches, rowNumber, current, desired, columns) {
+  for (var i = 0; i < columns.length; i++) {
+    var c = columns[i];
+    if (!sameCellValue_(current[c - 1], desired[c - 1])) {
+      patches.push({ row: rowNumber, col: c, value: desired[c - 1] });
+    }
+  }
+}
+
+function sameCellValue_(a, b) {
+  if (isDate_(a) || isDate_(b)) {
+    return isDate_(a) && isDate_(b) && a.getTime() === b.getTime();
+  }
+  return a === b;
+}
+
+function blankFormulaRows_(count) {
+  var rows = [];
+  for (var i = 0; i < count; i++) {
+    var row = [];
+    for (var c = 0; c < N_COLS; c++) row.push('');
+    rows.push(row);
+  }
+  return rows;
+}
+
+/** Append complete new records after the current last content row. */
+function appendNewRows_(sh, newRows) {
+  if (!newRows.length) return;
+  var gridLast = sh.getLastRow();
+  var values = gridLast > 1 ? sh.getRange(2, 1, gridLast - 1, N_COLS).getValues() : [];
+  var dataEnd = 1;
+  for (var i = values.length - 1; i >= 0; i--) {
+    if (rowHasContent_(values[i])) { dataEnd = i + 2; break; }
+  }
+  sh.getRange(dataEnd + 1, 1, newRows.length, N_COLS).setValues(newRows);
 }
 
 /**
@@ -830,11 +988,18 @@ function fillPicture_(row, picFile) {
  */
 function collectDemos_(folder) {
   var out = [];
+  var rootId = driveEntryIdOrThrow_(folder, 'configured Drive root');
 
   // One sub-folder per demo — page + PROVENANCE.md.
   var subs = folder.getFolders();
   while (subs.hasNext()) {
-    var item = collectDemoFolder_(subs.next());
+    var sub = subs.next();
+    if (!hasDirectParentOrThrow_(sub, rootId, 'folder')) {
+      logEvent_('sync-skip', 'Skipped folder "' + driveEntryName_(sub)
+        + '" because it is no longer directly inside the configured Drive root.');
+      continue;
+    }
+    var item = collectDemoFolder_(sub);
     if (item) out.push(item);
   }
 
@@ -843,6 +1008,15 @@ function collectDemos_(folder) {
   var files = folder.getFiles();
   while (files.hasNext()) {
     var f = files.next();
+    if (!hasDirectParentOrThrow_(f, rootId, 'file')) {
+      logEvent_('sync-skip', 'Skipped file "' + driveEntryName_(f)
+        + '" because it is no longer directly inside the configured Drive root.');
+      continue;
+    }
+    if (isShortcutFile_(f)) {
+      logEvent_('sync-skip', 'Skipped Drive shortcut "' + driveEntryName_(f) + '".');
+      continue;
+    }
     if (!isHtmlFile_(f)) continue;
     out.push({ file: f, folderName: '', provFile: null, picFile: null, card: null,
       stamp: f.getLastUpdated(), notes: [] });
@@ -853,11 +1027,22 @@ function collectDemos_(folder) {
 /** One demo sub-folder → an item for collectDemos_, or null if it holds no page. */
 function collectDemoFolder_(sub) {
   var name = sub.getName();
+  var subId = driveEntryIdOrThrow_(sub, 'demo folder "' + name + '"');
   var pages = [], images = [], prov = null;
 
   var files = sub.getFiles();
   while (files.hasNext()) {
     var f = files.next();
+    if (!hasDirectParentOrThrow_(f, subId, 'file')) {
+      logEvent_('sync-skip', 'Skipped file "' + driveEntryName_(f)
+        + '" because it is no longer directly inside demo folder "' + name + '".');
+      continue;
+    }
+    if (isShortcutFile_(f)) {
+      logEvent_('sync-skip', 'Skipped Drive shortcut "' + driveEntryName_(f)
+        + '" in demo folder "' + name + '".');
+      continue;
+    }
     if (isHtmlFile_(f)) pages.push(f);
     else if (isImageFile_(f)) images.push(f);
     else if (String(f.getName()).toLowerCase() === PROVENANCE_FILE) prov = f;
@@ -890,6 +1075,44 @@ function collectDemoFolder_(sub) {
 
   return { file: file, folderName: name, provFile: prov, picFile: picFile, card: card,
     stamp: stamp, notes: notes };
+}
+
+/** True only for a current, direct parent edge; lookup failures stop the sync. */
+function hasDirectParentOrThrow_(entry, wantedParentId, kind) {
+  var parents;
+  try { parents = entry.getParents(); }
+  catch (e) {
+    throw new Error('Drive sync stopped: parent lookup failed for ' + kind + ' "'
+      + driveEntryName_(entry) + '". No registry changes were written.');
+  }
+  if (!parents || typeof parents.hasNext !== 'function' || typeof parents.next !== 'function') {
+    throw new Error('Drive sync stopped: parent lookup failed for ' + kind + ' "'
+      + driveEntryName_(entry) + '". No registry changes were written.');
+  }
+  try {
+    while (parents.hasNext()) {
+      var parent = parents.next();
+      if (parent && String(parent.getId()) === String(wantedParentId)) return true;
+    }
+  } catch (e2) {
+    throw new Error('Drive sync stopped: parent lookup failed for ' + kind + ' "'
+      + driveEntryName_(entry) + '". No registry changes were written.');
+  }
+  return false;
+}
+
+function driveEntryIdOrThrow_(entry, label) {
+  try {
+    var id = entry.getId();
+    if (id !== null && id !== undefined && String(id) !== '') return String(id);
+  } catch (ignored) { /* converted to a stable fail-closed error below */ }
+  throw new Error('Drive sync stopped: could not identify ' + label
+    + '. No registry changes were written.');
+}
+
+function driveEntryName_(entry) {
+  try { return String(entry.getName() || '(unnamed)'); }
+  catch (ignored) { return '(unreadable name)'; }
 }
 
 /** Download and parse one demo: page HTML, its ai4s-meta, its provenance card. */
@@ -3024,6 +3247,7 @@ function yamlFlowColon_(s) {
 // ------------------------------------------------------------------- misc
 
 function isHtmlFile_(f) {
+  if (isShortcutFile_(f)) return false;
   var name = f.getName().toLowerCase();
   if (/\.html?$/.test(name)) return true;
   var mime = String(f.getMimeType() || '').toLowerCase();
@@ -3031,8 +3255,17 @@ function isHtmlFile_(f) {
 }
 
 function isImageFile_(f) {
+  if (isShortcutFile_(f)) return false;
   if (IMAGE_EXT.test(String(f.getName()))) return true;
   return String(f.getMimeType() || '').toLowerCase().indexOf('image/') === 0;
+}
+
+function isShortcutFile_(f) {
+  try { return String(f.getMimeType() || '').toLowerCase() === DRIVE_SHORTCUT_MIME; }
+  catch (e) {
+    throw new Error('Drive sync stopped: MIME lookup failed for file "'
+      + driveEntryName_(f) + '". No registry changes were written.');
+  }
 }
 
 function jsonOut_(obj) {
