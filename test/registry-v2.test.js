@@ -255,10 +255,31 @@ test('a card image without human alt text blocks a Live row', () => {
 test('card asset source uses XOR and a safe local public path', async t => {
   await t.test('both Drive and external sources are rejected', () => {
     const data = copyFixture();
-    data.assets[0].drive_file_id = 'drive-image-id';
+    data.assets[0].external_url = 'https://images.example.org/road-speed.jpg';
     const compiled = compileRegistryV2(data);
     assert.equal(compiled.ok, false);
     assert.ok(errorCodes(compiled).includes('asset_source_xor'));
+  });
+
+  await t.test('external image sources are outside the first-round contract', () => {
+    const data = copyFixture();
+    data.assets[0].source_type = 'external';
+    data.assets[0].drive_file_id = '';
+    data.assets[0].source_file_name = '';
+    data.assets[0].external_url = 'https://images.example.org/road-speed.jpg';
+    data.projects.find(project => project.row_number === 10).card_image = data.assets[0].external_url;
+    const compiled = compileRegistryV2(data);
+    assert.equal(compiled.ok, false);
+    assert.ok(errorCodes(compiled).includes('asset_source_type_invalid'));
+  });
+
+  await t.test('a Drive card is selected by its direct-child relative filename', () => {
+    const data = copyFixture();
+    const compiled = compileRegistryV2(data);
+    assert.equal(compiled.ok, true);
+    const card = compiled.demos.find(demo => demo.demo_id === 'demo-singapore-road-speed').card_asset;
+    assert.equal(card.asset_id, 'asset-road-speed-card');
+    assert.equal(card.public_path, 'assets/cards/road-speed.jpg');
   });
 
   await t.test('unsafe public paths are rejected for Live cards', () => {
@@ -350,6 +371,17 @@ test('empty numeric cells use deterministic fallbacks instead of becoming zero',
   assert.equal(compiled.ok, true);
   assert.equal(demo.sort_order, 2);
   assert.equal(department.display_order, 1);
+});
+
+test('readable HTML with an asset warning remains eligible during v1 to v2 migration', () => {
+  const data = copyFixture();
+  data.sourceProjections[1].file_check = 'check assets: ../index.html';
+  const compiled = compileRegistryV2(data);
+  assert.equal(compiled.ok, true);
+  assert.equal(
+    compiled.readiness.find(item => item.demo_id === 'demo-soh-battery').status,
+    'ready',
+  );
 });
 
 test('the compiler requires an explicit boolean for every taxonomy active field', async t => {

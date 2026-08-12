@@ -175,7 +175,7 @@ test('public deploy receipt is allowlisted and Preview/receipt headers discourag
 
 test('registry requests override stale status and audience parameters', () => {
   const base = 'https://example.invalid/exec?token=secret&status=all&status=Draft'
-    + '&audience=preview&registry_revision=stale-revision';
+    + '&audience=preview&registry_revision=stale-revision&schema=2';
   const production = { audience: 'production' };
   const preview = { audience: 'preview' };
 
@@ -186,6 +186,7 @@ test('registry requests override stale status and audience parameters', () => {
   assert.equal(productionManifest.searchParams.has('status'), false);
   assert.equal(productionManifest.searchParams.has('id'), false);
   assert.equal(productionManifest.searchParams.has('registry_revision'), false);
+  assert.equal(productionManifest.searchParams.get('schema'), '1');
 
   const previewFile = new URL(scopedRegistryUrl(
     base, 'file', preview, 'draft-id', STATUS_REVISION,
@@ -195,6 +196,7 @@ test('registry requests override stale status and audience parameters', () => {
   assert.equal(previewFile.searchParams.get('id'), 'draft-id');
   assert.equal(previewFile.searchParams.get('registry_revision'), STATUS_REVISION);
   assert.equal(previewFile.searchParams.has('status'), false);
+  assert.equal(previewFile.searchParams.get('schema'), '2');
 
   const previewAsset = new URL(scopedRegistryUrl(
     base, 'asset', preview, 'card-asset-id', STATUS_REVISION,
@@ -204,6 +206,7 @@ test('registry requests override stale status and audience parameters', () => {
   assert.equal(previewAsset.searchParams.get('id'), 'card-asset-id');
   assert.equal(previewAsset.searchParams.get('registry_revision'), STATUS_REVISION);
   assert.equal(previewAsset.searchParams.has('status'), false);
+  assert.equal(previewAsset.searchParams.get('schema'), '2');
 });
 
 test('Production publishes only healthy Live rows; Preview additionally permits Draft', () => {
@@ -246,5 +249,5 @@ test('Production publishes only healthy Live rows; Preview additionally permits 
   assert.equal(isPublishableDemo(
     { status: 'Live', file_check: 'check assets: missing-image.png', public_page_permission: 'Public' },
     { audience: 'preview' }, 2,
-  ), false);
+  ), true);
 });

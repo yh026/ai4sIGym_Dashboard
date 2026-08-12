@@ -1157,10 +1157,14 @@ function scopedRegistryUrl(base, action, policy, id, registryRevision) {
   const url = new URL(base);
   url.searchParams.delete('status');
   url.searchParams.delete('audience');
+  url.searchParams.delete('schema');
   url.searchParams.delete('action');
   url.searchParams.delete('id');
   url.searchParams.delete('registry_revision');
   url.searchParams.set('audience', policy.audience);
+  // Only the stable develop Branch Deploy receives Registry v2. Production,
+  // PR Deploy Previews and local fallbacks stay on the proven v1 contract.
+  url.searchParams.set('schema', policy.audience === 'preview' ? '2' : '1');
   url.searchParams.set('action', action);
   if (id) url.searchParams.set('id', id);
   if (registryRevision) {
@@ -1181,7 +1185,7 @@ function isPublishableDemo(demo, policy, schemaVersion = 1) {
   if (schemaVersion === REGISTRY_SCHEMA_V2) {
     // Registry v2 is a closed contract. Recheck the compiler's health and
     // permission matrix here so a hand-written or stale feed cannot bypass it.
-    if (!/^ok(?:\b|\s|[-—:])/.test(fileCheck)) return false;
+    if (!/^(?:ok(?:\b|\s|[-—:])|check assets:)/.test(fileCheck)) return false;
     const permission = String(demo.public_page_permission || '').trim();
     if (status === 'Live') return permission === 'Public';
     return policy.audience === 'preview'

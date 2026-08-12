@@ -6,16 +6,17 @@ engineering contract; it is not the project-owner status report.
 
 ## Delivery boundary
 
-This first round is a foundation and migration sandbox, not a live Registry
-cutover. The compiler, Sheet adapter, strict build consumer, image
-materialisation client and private owner-only shadow Sheet are implemented and
-tested locally. The current production Registry Web App still serves schema v1.
+Registry v2 is a develop-only data source. The compiler, Sheet adapter, strict
+build consumer, Apps Script snapshot/file/asset endpoints and owner-only V2
+Sheet use one explicit contract. The stable `branch-deploy + develop` build
+requests `schema=2`; Production/main and PR Deploy Previews force `schema=1`
+and therefore remain on the proven V1 Registry.
 
-Before schema v2 can become an automated data source, a later commissioning
-stage must add and deploy the Apps Script v2 snapshot adapter plus the private
-`action=asset` response, bind the live Sheet safely, and pass a real private
-develop Preview canary. Until that stage, the shadow Sheet has no trigger,
-Build Hook, Registry token or Netlify connection and cannot affect Production.
+The V2 Sheet has no sync trigger or credentials of its own. Its ID is stored in
+the existing Apps Script project's `AI4S_REGISTRY_V2_SPREADSHEET_ID` Script
+Property. `AI4S_PREVIEW_REGISTRY_SCHEMA=2` switches only Preview automation's
+desired revision to V2. The default for both properties is safe V1 behaviour,
+and no token or Hook is stored in the V2 workbook.
 
 ## Human sheet
 
@@ -114,11 +115,17 @@ These content requirements apply to Drafts too. A newly discovered HTML file
 may enter as a blocked Draft, but it enters private Preview only after the
 simple human fields are complete.
 
-Each asset has exactly one source:
+In the first round each selected asset has one Drive source:
 
 ```text
-drive_file_id XOR external_url
+source_type=drive + drive_file_id + source_file_name
 ```
+
+`Projects.Card Image` is the direct-child relative file name, such as
+`card.jpg`; it is not a Drive ID or URL. The server requires that the registered
+HTML and image share the same allowed Registry parent. External URLs remain in
+the reserved machine schema for a future policy, but are rejected by both the
+compiler and Apps Script today.
 
 Card image output paths are limited to:
 
@@ -189,13 +196,18 @@ legacy `site` record to model the actual 20-project shadow Sheet, reads site
 title/tagline from `_Config`, reverses project row order, and proves that all
 source state remains attached through hidden `demo_id` rather than row number.
 
-## Next server-side integration
+## Server-side integration
 
-The v2 build client intentionally does not fetch a human-entered image URL
-directly. It asks the authenticated Registry service for
-`action=asset&id=<asset_id>&registry_revision=<revision>` and accepts only a
-small, revision-bound image envelope. The later Apps Script adapter must map
-that asset ID through `_Assets`, re-check the source boundary, enforce MIME and
-size limits, and return the exact tested response contract. External HTTPS
-sources require an explicit redirect/host/size policy at that server boundary;
-they are not live-enabled merely because the compiler can model them.
+The v2 build client never fetches a human-entered image URL directly. It asks
+the authenticated Registry service for
+`action=asset&id=<asset_id>&registry_revision=<revision>`. Apps Script maps the
+ID through `_Assets`, verifies that the HTML and image are direct children of
+the same allowed Registry folder, rejects shortcuts and unsupported MIME types,
+enforces the 5 MiB limit, checks the image signature, and rechecks Drive
+metadata before and after reading. The response is the exact small envelope
+tested by `build.js`; Drive IDs and tokens never enter public output.
+
+The Registry revision includes current Drive modification state for visible
+HTML and card-image sources. Replacing `card.jpg` in place therefore changes
+the revision, invalidates the previous revision, and is observed by the next
+private develop build without changing Production.

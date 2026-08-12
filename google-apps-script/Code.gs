@@ -61,10 +61,47 @@ var SHEET_DEMOS = 'Demos';
 var SHEET_CONFIG = 'Config';
 var SHEET_LOG = 'Log';
 var REGISTRY_SPREADSHEET_ID_PROPERTY = 'AI4S_REGISTRY_SPREADSHEET_ID';
+var REGISTRY_V2_SPREADSHEET_ID_PROPERTY = 'AI4S_REGISTRY_V2_SPREADSHEET_ID';
+var PREVIEW_REGISTRY_SCHEMA_PROPERTY = 'AI4S_PREVIEW_REGISTRY_SCHEMA';
 var PREVIEW_PUBLISH_STATE_PROPERTY = 'AI4S_PREVIEW_PUBLISH_STATE_V2';
 var PREVIEW_CALLBACK_SECRET_PROPERTY = 'AI4S_PREVIEW_CALLBACK_SECRET';
 var NETLIFY_SITE_ID_PROPERTY = 'AI4S_NETLIFY_SITE_ID';
 var REGISTRY_REVISION_SCHEMA = 1;
+var REGISTRY_V2_REVISION_SCHEMA = 2;
+var REGISTRY_V2_MAX_CARD_ASSET_BYTES = 5 * 1024 * 1024;
+var REGISTRY_V2_IMAGE_MIME_BY_EXTENSION = {
+  avif: 'image/avif', gif: 'image/gif', jpg: 'image/jpeg', jpeg: 'image/jpeg',
+  png: 'image/png', webp: 'image/webp'
+};
+var REGISTRY_V2_PROJECT_FIELDS = [
+  ['status', 'Status'], ['readiness', 'Readiness'], ['preview_url', 'Preview URL'],
+  ['title', 'Project Title'], ['card_summary', 'Card Summary'],
+  ['department', 'Department'], ['subtopic', 'Subtopic'], ['task', 'Task Type'],
+  ['methods', 'Methods'], ['card_image', 'Card Image'],
+  ['image_alt', 'Image Alt Text'], ['audience', 'Audience'],
+  ['featured', 'Featured'], ['data_source', 'Data Source'],
+  ['public_permission', 'Public Permission'], ['demo_id', 'demo_id']
+];
+var REGISTRY_V2_HEADERS = {
+  _Registry: [
+    'schema_version', 'row_number', 'demo_id', 'entry_type', 'slug', 'status',
+    'readiness', 'featured', 'sort_order', 'title', 'card_summary',
+    'department_id', 'subtopic_id', 'task_ids', 'method_ids', 'audience',
+    'data_source_label', 'public_page_permission', 'card_asset_id', 'file_id',
+    'file_check', 'date_added'
+  ],
+  _Taxonomy: [
+    'term_type', 'term_id', 'parent_id', 'label', 'short_label', 'description',
+    'display_order', 'active', 'theme_key', 'icon_key', 'aliases'
+  ],
+  _Facets: ['demo_id', 'facet_type', 'term_id', 'display_order'],
+  _Assets: [
+    'asset_id', 'demo_id', 'role', 'source_type', 'drive_file_id',
+    'external_url', 'mime_type', 'alt_text', 'credit', 'license', 'checksum',
+    'public_path', 'sync_status', 'source_modified_at', 'source_file_name'
+  ],
+  _Config: ['key', 'value', 'visibility', 'description']
+};
 var PREVIEW_PUBLISH_STATE_VERSION = 2;
 var PREVIEW_CALLBACK_SCHEMA = 1;
 var PREVIEW_CALLBACK_MAX_BYTES = 16 * 1024;
@@ -1495,7 +1532,9 @@ function recordPreviewAttempt_(state, result, now) {
 function maintainPreviewPublish_(ss, cfg, options) {
   options = options || {};
   var now = options.now == null ? Date.now() : Number(options.now);
-  var snapshot = registrySnapshot_(ss, cfg, 'preview');
+  var snapshot = previewRegistrySchema_() === 2
+    ? registryV2Snapshot_(registryV2Spreadsheet_(), cfg, 'preview')
+    : registrySnapshot_(ss, cfg, 'preview');
   if (!snapshot || !validRegistryRevision_(snapshot.registry_revision)) {
     throw new Error('Preview Registry produced an invalid registry_revision; no build was requested.');
   }
@@ -1950,6 +1989,34 @@ function registrySpreadsheet_() {
   return SpreadsheetApp.openById(id);
 }
 
+/** Registry v2 lives in a separate owner-only Sheet until explicit cutover. */
+function registryV2Spreadsheet_() {
+  var id = PropertiesService.getScriptProperties()
+    .getProperty(REGISTRY_V2_SPREADSHEET_ID_PROPERTY);
+  if (!id) throw new Error('Registry v2 Sheet ID is not configured.');
+  return SpreadsheetApp.openById(String(id));
+}
+
+function registrySchema_(raw) {
+  var value = String(raw || '').trim() || '1';
+  if (value !== '1' && value !== '2') {
+    return { ok: false, error: 'schema must be 1 or 2' };
+  }
+  return { ok: true, value: Number(value) };
+}
+
+function previewRegistrySchema_() {
+  var value = '';
+  try {
+    if (typeof PropertiesService !== 'undefined' && PropertiesService
+        && typeof PropertiesService.getScriptProperties === 'function') {
+      value = PropertiesService.getScriptProperties()
+        .getProperty(PREVIEW_REGISTRY_SCHEMA_PROPERTY);
+    }
+  } catch (ignored) { value = ''; }
+  return String(value || '').trim() === '2' ? 2 : 1;
+}
+
 function registryAudience_(raw) {
   var value = String(raw || '').trim().toLowerCase() || 'production';
   if (value !== 'production' && value !== 'preview') {
@@ -2048,6 +2115,609 @@ function registrySnapshot_(ss, cfg, audience) {
     site: site,
     demos: demos,
     registry_revision: 'sha256:' + sha256Hex_(stableJson_(material))
+  };
+}
+
+function registryV2Clean_(value) {
+  return String(value == null ? '' : value).trim();
+}
+
+function registryV2Number_(value, fallback) {
+  var number = Number(value);
+  return isFinite(number) ? number : fallback;
+}
+
+function registryV2List_(value) {
+  if (Array.isArray(value)) return value.map(registryV2Clean_).filter(Boolean);
+  return registryV2Clean_(value).split(/[,;|\n]+/).map(registryV2Clean_).filter(Boolean);
+}
+
+function registryV2ContainsCjk_(value) {
+  return typeof value === 'string'
+    && /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u
+      .test(value);
+}
+
+function registryV2AssertEnglishRows_(sheetName, rows) {
+  rows.forEach(function (row) {
+    row.forEach(function (value) {
+      if (registryV2ContainsCjk_(value)) {
+        throw new Error('Registry v2 sheet ' + sheetName + ' must use English-only text.');
+      }
+    });
+  });
+}
+
+function registryV2Table_(ss, sheetName, expectedHeaders, projectHeaders) {
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) throw new Error('Registry v2 is missing sheet ' + sheetName + '.');
+  var lastColumn = sheet.getLastColumn();
+  if (lastColumn < 1) throw new Error('Registry v2 sheet ' + sheetName + ' has no header.');
+  var headerRows = sheet.getRange(1, 1, 1, lastColumn).getValues();
+  registryV2AssertEnglishRows_(sheetName, headerRows);
+  var headers = headerRows[0].map(registryV2Clean_);
+  var accepted = {};
+  var canonical = [];
+  if (projectHeaders) {
+    REGISTRY_V2_PROJECT_FIELDS.forEach(function (field) {
+      accepted[field[0].toLowerCase()] = field[0];
+      accepted[field[1].toLowerCase()] = field[0];
+      canonical.push(field[0]);
+    });
+  } else {
+    expectedHeaders.forEach(function (header) {
+      accepted[String(header).toLowerCase()] = header;
+      canonical.push(header);
+    });
+  }
+  var keys = [];
+  var seen = {};
+  headers.forEach(function (header) {
+    var key = accepted[String(header).toLowerCase()];
+    if (!key || seen[key]) {
+      throw new Error('Registry v2 sheet ' + sheetName + ' has an invalid header.');
+    }
+    seen[key] = true;
+    keys.push(key);
+  });
+  canonical.forEach(function (key) {
+    if (!seen[key]) throw new Error('Registry v2 sheet ' + sheetName + ' is missing ' + key + '.');
+  });
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  var rows = sheet.getRange(2, 1, lastRow - 1, lastColumn).getValues();
+  registryV2AssertEnglishRows_(sheetName, rows);
+  return rows
+    .filter(function (row) {
+      return row.some(function (value) { return value !== '' && value != null; });
+    })
+    .map(function (row, rowIndex) {
+      var object = { _row_number: rowIndex + 2 };
+      keys.forEach(function (key, columnIndex) { object[key] = row[columnIndex]; });
+      return object;
+    });
+}
+
+function registryV2Config_(rows) {
+  var config = {};
+  rows.forEach(function (row) {
+    var key = registryV2Clean_(row.key);
+    if (!key || Object.prototype.hasOwnProperty.call(config, key)) {
+      throw new Error('Registry v2 _Config has an invalid key.');
+    }
+    config[key] = row.value;
+  });
+  if (String(config.schema_version || '') !== '2') {
+    throw new Error('Registry v2 _Config schema_version must be 2.');
+  }
+  return config;
+}
+
+function registryV2Taxonomy_(rows) {
+  var result = { departments: [], subtopics: [], tasks: [], methods: [] };
+  var groups = {
+    department: 'departments', departments: 'departments',
+    subtopic: 'subtopics', subtopics: 'subtopics',
+    task: 'tasks', tasks: 'tasks', method: 'methods', methods: 'methods'
+  };
+  var ids = {};
+  rows.forEach(function (row) {
+    var type = registryV2Clean_(row.term_type).toLowerCase();
+    var group = groups[type];
+    var id = registryV2Clean_(row.term_id);
+    if (!group || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id) || ids[id]) {
+      throw new Error('Registry v2 _Taxonomy has an invalid term.');
+    }
+    if (row.active !== true && row.active !== false) {
+      throw new Error('Registry v2 taxonomy active values must be booleans.');
+    }
+    ids[id] = true;
+    var term = { id: id, label: registryV2Clean_(row.label), active: row.active };
+    if (group === 'departments') {
+      term.short_label = registryV2Clean_(row.short_label);
+      term.description = registryV2Clean_(row.description);
+      term.display_order = registryV2Number_(row.display_order, 0);
+      term.theme_key = registryV2Clean_(row.theme_key);
+      term.icon_key = registryV2Clean_(row.icon_key);
+    } else if (group === 'subtopics') {
+      term.department_id = registryV2Clean_(row.parent_id);
+      term.display_order = registryV2Number_(row.display_order, 0);
+    }
+    result[group].push(term);
+  });
+  return result;
+}
+
+function registryV2PageHealthy_(value) {
+  var check = registryV2Clean_(value).toLowerCase();
+  return /^ok(?:\b|\s|[-—:])/.test(check) || /^check assets:/.test(check);
+}
+
+function registryV2Visible_(demo, audience) {
+  if (!demo || demo.readiness !== 'ready' || !registryV2PageHealthy_(demo.file_check)) {
+    return false;
+  }
+  if (demo.status === 'Live') return demo.public_page_permission === 'Public';
+  return audience === 'preview' && demo.status === 'Draft'
+    && (demo.public_page_permission === 'Public'
+      || demo.public_page_permission === 'Preview only');
+}
+
+function registryV2LookupKey_(value) {
+  return registryV2Clean_(value).toLowerCase().replace(/\s+/g, ' ');
+}
+
+function registryV2TaxonomyIndex_(taxonomy, taxonomyRows) {
+  var index = {
+    departments: {}, subtopics: {}, tasks: {}, methods: {},
+    lookup: { departments: {}, subtopics: {}, tasks: {}, methods: {} }
+  };
+  Object.keys(index).forEach(function (group) {
+    if (group === 'lookup') return;
+    taxonomy[group].forEach(function (term) { index[group][term.id] = term; });
+  });
+  var groups = {
+    department: 'departments', departments: 'departments',
+    subtopic: 'subtopics', subtopics: 'subtopics',
+    task: 'tasks', tasks: 'tasks', method: 'methods', methods: 'methods'
+  };
+  taxonomyRows.forEach(function (row) {
+    var group = groups[registryV2Clean_(row.term_type).toLowerCase()];
+    var id = registryV2Clean_(row.term_id);
+    if (!group || !index[group][id]) return;
+    var candidates = [id, row.label, row.short_label]
+      .concat(registryV2List_(row.aliases));
+    candidates.forEach(function (candidate) {
+      var key = registryV2LookupKey_(candidate);
+      if (!key) return;
+      var current = index.lookup[group][key];
+      if (current && current !== id) index.lookup[group][key] = null;
+      else if (current === undefined) index.lookup[group][key] = id;
+    });
+  });
+  return index;
+}
+
+function registryV2ResolveHumanTerm_(value, group, taxonomyIndex) {
+  var key = registryV2LookupKey_(value);
+  var id = key ? taxonomyIndex.lookup[group][key] : '';
+  if (!id) throw new Error('Registry v2 Projects has an unknown or ambiguous taxonomy value.');
+  return id;
+}
+
+function registryV2ResolveHumanList_(value, group, taxonomyIndex) {
+  var ids = registryV2List_(value).map(function (item) {
+    return registryV2ResolveHumanTerm_(item, group, taxonomyIndex);
+  });
+  if (ids.length !== Object.keys(ids.reduce(function (out, id) {
+    out[id] = true;
+    return out;
+  }, {})).length) {
+    throw new Error('Registry v2 Projects has a duplicate taxonomy selection.');
+  }
+  return ids;
+}
+
+function registryV2SameIdSet_(left, right) {
+  if (left.length !== right.length) return false;
+  var leftSorted = left.slice().sort();
+  var rightSorted = right.slice().sort();
+  for (var i = 0; i < leftSorted.length; i++) {
+    if (leftSorted[i] !== rightSorted[i]) return false;
+  }
+  return true;
+}
+
+function registryV2HumanTaxonomy_(project, source, demoFacets, taxonomyIndex) {
+  var resolved = {
+    department_id: registryV2ResolveHumanTerm_(
+      project.department, 'departments', taxonomyIndex),
+    subtopic_id: registryV2ResolveHumanTerm_(
+      project.subtopic, 'subtopics', taxonomyIndex),
+    task_ids: registryV2ResolveHumanList_(project.task, 'tasks', taxonomyIndex),
+    method_ids: registryV2ResolveHumanList_(project.methods, 'methods', taxonomyIndex)
+  };
+  var indexedTasks = demoFacets.task.map(function (item) { return item.id; });
+  var indexedMethods = demoFacets.method.map(function (item) { return item.id; });
+  if (resolved.department_id !== registryV2Clean_(source.department_id)
+      || resolved.subtopic_id !== registryV2Clean_(source.subtopic_id)
+      || !registryV2SameIdSet_(resolved.task_ids, indexedTasks)
+      || !registryV2SameIdSet_(resolved.method_ids, indexedMethods)) {
+    throw new Error('Registry v2 human taxonomy does not match its hidden index.');
+  }
+  return resolved;
+}
+
+function registryV2ReadinessError_(demo, project, taxonomyIndex) {
+  if (demo.entry_type !== 'project') return 'entry_type';
+  if (demo.status !== 'Live' && demo.status !== 'Draft' && demo.status !== 'Archived') {
+    return 'status';
+  }
+  if (demo.status === 'Archived') return 'archived';
+  if (!demo.title || !demo.card_summary) return 'card copy';
+  if (project.featured !== true && project.featured !== false) return 'featured';
+  if (['General', 'Intro', 'Intermediate', 'Advanced'].indexOf(demo.audience) === -1) {
+    return 'audience';
+  }
+  var department = taxonomyIndex.departments[demo.department_id];
+  var subtopic = taxonomyIndex.subtopics[demo.subtopic_id];
+  if (!department || department.active !== true || !subtopic || subtopic.active !== true
+      || subtopic.department_id !== demo.department_id) return 'taxonomy';
+  if (!demo.task_ids.length || demo.task_ids.some(function (id) {
+    return !taxonomyIndex.tasks[id] || taxonomyIndex.tasks[id].active !== true;
+  })) return 'task';
+  if (!demo.method_ids.length || demo.method_ids.some(function (id) {
+    return !taxonomyIndex.methods[id] || taxonomyIndex.methods[id].active !== true;
+  })) return 'method';
+  if (!demo.file_id || !registryV2PageHealthy_(demo.file_check)) return 'source file';
+  if (demo.status === 'Live' && demo.public_page_permission !== 'Public') {
+    return 'public permission';
+  }
+  if (demo.status === 'Draft'
+      && ['Public', 'Preview only'].indexOf(demo.public_page_permission) === -1) {
+    return 'preview permission';
+  }
+  return '';
+}
+
+function registryV2AllowedParentIds_(file, rootId) {
+  var parents = file.getParents();
+  var allowed = [];
+  while (parents.hasNext()) {
+    var parent = parents.next();
+    var id = String(parent.getId());
+    if (id === String(rootId) || folderHasParentId_(parent, rootId)) allowed.push(id);
+  }
+  allowed.sort();
+  return allowed;
+}
+
+function registryV2DriveInfo_(cfg, fileId, kind) {
+  var rootId = folderIdFromUrl_(cfg && cfg.drive_folder_url);
+  if (!rootId || !/^[-\w]{10,}$/.test(String(fileId || ''))) return null;
+  var file = DriveApp.getFileById(String(fileId));
+  var mime = registryV2Clean_(file.getMimeType()).toLowerCase();
+  if (mime === DRIVE_SHORTCUT_MIME) return null;
+  var name = String(file.getName() || '');
+  var extensionMatch = /\.([A-Za-z0-9]+)$/.exec(name);
+  var extension = extensionMatch ? extensionMatch[1].toLowerCase() : '';
+  if (kind === 'page') {
+    if (!/\.html?$/.test(name.toLowerCase()) && mime.indexOf('html') === -1) return null;
+  } else if (kind === 'asset') {
+    if (!REGISTRY_V2_IMAGE_MIME_BY_EXTENSION[extension]
+        || mime !== REGISTRY_V2_IMAGE_MIME_BY_EXTENSION[extension]) return null;
+  } else {
+    return null;
+  }
+  var parents = registryV2AllowedParentIds_(file, rootId);
+  if (!parents.length) return null;
+  var stamp = registryFileStampMs_(file);
+  if (!isFinite(stamp)) return null;
+  return {
+    file: file, id: String(fileId), name: name, mime: mime, extension: extension,
+    parent_ids: parents, modified_ms: stamp
+  };
+}
+
+function registryV2SharesParent_(left, right) {
+  return left.parent_ids.some(function (id) { return right.parent_ids.indexOf(id) !== -1; });
+}
+
+function registryV2SameDriveInfo_(left, right) {
+  return left && right && left.id === right.id && left.name === right.name
+    && left.mime === right.mime && left.modified_ms === right.modified_ms
+    && stableJson_(left.parent_ids) === stableJson_(right.parent_ids);
+}
+
+function registryV2Snapshot_(ss, cfg, audience) {
+  var projects = registryV2Table_(ss, 'Projects', [], true);
+  var registry = registryV2Table_(ss, '_Registry', REGISTRY_V2_HEADERS._Registry, false);
+  var taxonomyRows = registryV2Table_(ss, '_Taxonomy', REGISTRY_V2_HEADERS._Taxonomy, false);
+  var facets = registryV2Table_(ss, '_Facets', REGISTRY_V2_HEADERS._Facets, false);
+  var assets = registryV2Table_(ss, '_Assets', REGISTRY_V2_HEADERS._Assets, false);
+  var v2Config = registryV2Config_(
+    registryV2Table_(ss, '_Config', REGISTRY_V2_HEADERS._Config, false));
+  var taxonomy = registryV2Taxonomy_(taxonomyRows);
+  var taxonomyIndex = registryV2TaxonomyIndex_(taxonomy, taxonomyRows);
+  var projectsById = {};
+  projects.forEach(function (project) {
+    var id = registryV2Clean_(project.demo_id);
+    if (!id || projectsById[id]) throw new Error('Registry v2 Projects has duplicate identity.');
+    projectsById[id] = project;
+  });
+  var registryIds = {};
+  registry.forEach(function (source) {
+    var id = registryV2Clean_(source.demo_id);
+    if (!id || registryIds[id]) throw new Error('Registry v2 _Registry has duplicate identity.');
+    registryIds[id] = true;
+  });
+  var projectIds = Object.keys(projectsById);
+  var sourceIds = Object.keys(registryIds);
+  if (projectIds.length !== sourceIds.length
+      || projectIds.some(function (id) { return !registryIds[id]; })) {
+    throw new Error('Registry v2 Projects and _Registry identities do not match.');
+  }
+  var facetsByDemo = {};
+  facets.forEach(function (facet) {
+    var id = registryV2Clean_(facet.demo_id);
+    var type = registryV2Clean_(facet.facet_type).toLowerCase();
+    if (type !== 'task' && type !== 'method') return;
+    if (!facetsByDemo[id]) facetsByDemo[id] = { task: [], method: [] };
+    facetsByDemo[id][type].push({
+      id: registryV2Clean_(facet.term_id),
+      order: registryV2Number_(facet.display_order, 0)
+    });
+  });
+  Object.keys(facetsByDemo).forEach(function (id) {
+    ['task', 'method'].forEach(function (type) {
+      facetsByDemo[id][type].sort(function (a, b) { return a.order - b.order; });
+    });
+  });
+  var assetsByDemo = {};
+  var assetsById = {};
+  assets.forEach(function (asset) {
+    var id = registryV2Clean_(asset.asset_id);
+    var demoId = registryV2Clean_(asset.demo_id);
+    if (!id || assetsById[id]) throw new Error('Registry v2 _Assets has duplicate identity.');
+    assetsById[id] = asset;
+    if (registryV2Clean_(asset.role) === 'card_image') {
+      if (!assetsByDemo[demoId]) assetsByDemo[demoId] = [];
+      assetsByDemo[demoId].push(asset);
+    }
+  });
+  Object.keys(assetsByDemo).forEach(function (id) {
+    if (assetsByDemo[id].length > 1) {
+      throw new Error('Registry v2 permits only one card image per project.');
+    }
+  });
+
+  var publicDemos = [];
+  var fileSources = {};
+  var assetSources = {};
+  var seenFiles = {};
+  var seenSlugs = {};
+  registry.forEach(function (source) {
+    var demoId = registryV2Clean_(source.demo_id);
+    var project = projectsById[demoId];
+    if (!project) throw new Error('Registry v2 _Registry has no matching Project.');
+    var fileId = registryV2Clean_(source.file_id);
+    var slug = registryV2Clean_(source.slug);
+    if (!fileId || seenFiles[fileId] || !slug || seenSlugs[slug]) {
+      throw new Error('Registry v2 has duplicate or missing page identity.');
+    }
+    seenFiles[fileId] = true;
+    seenSlugs[slug] = true;
+    var demoFacets = facetsByDemo[demoId] || { task: [], method: [] };
+    var humanTaxonomy = registryV2HumanTaxonomy_(
+      project, source, demoFacets, taxonomyIndex);
+    var demo = {
+      demo_id: demoId,
+      entry_type: registryV2Clean_(source.entry_type) || 'project',
+      slug: slug,
+      status: registryV2Clean_(project.status),
+      readiness: '',
+      featured: project.featured === true,
+      sort_order: registryV2Number_(source.sort_order, Number(source.row_number) || 0),
+      title: registryV2Clean_(project.title),
+      card_summary: registryV2Clean_(project.card_summary),
+      department_id: humanTaxonomy.department_id,
+      subtopic_id: humanTaxonomy.subtopic_id,
+      task_ids: humanTaxonomy.task_ids,
+      method_ids: humanTaxonomy.method_ids,
+      audience: registryV2Clean_(project.audience),
+      data_source_label: registryV2Clean_(project.data_source),
+      public_page_permission: registryV2Clean_(project.public_permission),
+      card_asset: null,
+      file_id: fileId,
+      file_check: registryV2Clean_(source.file_check),
+      date_added: isoOrString_(source.date_added)
+    };
+    var readinessError = registryV2ReadinessError_(demo, project, taxonomyIndex);
+    demo.readiness = readinessError ? 'blocked' : 'ready';
+    if (demo.status === 'Live' && readinessError) {
+      throw new Error('Registry v2 Live project is not ready: ' + readinessError + '.');
+    }
+    if (!registryV2Visible_(demo, audience)) return;
+    delete demo.readiness;
+    var pageInfo = registryV2DriveInfo_(cfg, fileId, 'page');
+    if (!pageInfo) {
+      if (demo.status === 'Live') {
+        throw new Error('Registry v2 page is outside the Drive boundary.');
+      }
+      return;
+    }
+    fileSources[fileId] = pageInfo;
+
+    var selectedImage = registryV2Clean_(project.card_image);
+    if (selectedImage) {
+      if (selectedImage.indexOf('/') !== -1 || selectedImage.indexOf('\\') !== -1
+          || selectedImage === '.' || selectedImage === '..') {
+        throw new Error('Registry v2 Card Image must be a direct-child file name.');
+      }
+      var cardRows = assetsByDemo[demoId] || [];
+      var asset = cardRows.length === 1 ? cardRows[0] : null;
+      if (!asset || registryV2Clean_(source.card_asset_id) !== registryV2Clean_(asset.asset_id)) {
+        throw new Error('Registry v2 selected Card Image has no indexed asset.');
+      }
+      if (registryV2Clean_(asset.source_type).toLowerCase() !== 'drive'
+          || registryV2Clean_(asset.external_url)) {
+        throw new Error('Registry v2 external card images are not enabled.');
+      }
+      if (registryV2Clean_(asset.sync_status) !== 'ok') {
+        throw new Error('Registry v2 Card Image sync_status must be ok.');
+      }
+      var assetInfo = registryV2DriveInfo_(cfg,
+        registryV2Clean_(asset.drive_file_id), 'asset');
+      if (!assetInfo || assetInfo.name !== selectedImage
+          || registryV2Clean_(asset.source_file_name) !== selectedImage
+          || !registryV2SharesParent_(pageInfo, assetInfo)) {
+        throw new Error('Registry v2 Card Image is not beside its project page.');
+      }
+      var publicPath = registryV2Clean_(asset.public_path);
+      var publicExtension = (/\.([A-Za-z0-9]+)$/.exec(publicPath) || [])[1] || '';
+      if (!/^assets\/cards\/[a-z0-9][a-z0-9/_-]*\.(?:avif|gif|jpe?g|png|webp)$/.test(publicPath)
+          || publicExtension.toLowerCase() !== assetInfo.extension
+          || registryV2Clean_(asset.mime_type).toLowerCase() !== assetInfo.mime) {
+        throw new Error('Registry v2 Card Image metadata does not match Drive.');
+      }
+      var assetId = registryV2Clean_(asset.asset_id);
+      demo.card_asset = {
+        asset_id: assetId,
+        public_path: publicPath,
+        alt_text: registryV2Clean_(project.image_alt)
+      };
+      if (!demo.card_asset.alt_text) throw new Error('Registry v2 Card Image needs alt text.');
+      assetSources[assetId] = {
+        row: asset, info: assetInfo, page_info: pageInfo,
+        public_path: publicPath
+      };
+    }
+    publicDemos.push(demo);
+  });
+  publicDemos.sort(function (a, b) {
+    return Number(a.sort_order) - Number(b.sort_order) || a.demo_id.localeCompare(b.demo_id);
+  });
+  var site = {
+    title: registryV2Clean_(v2Config.site_title) || 'AI for Science demos',
+    tagline: registryV2Clean_(v2Config.site_tagline)
+  };
+  var sourceState = {
+    pages: Object.keys(fileSources).sort().map(function (id) {
+      var info = fileSources[id];
+      return { id: id, modified_ms: info.modified_ms, parent_ids: info.parent_ids };
+    }),
+    assets: Object.keys(assetSources).sort().map(function (id) {
+      var info = assetSources[id].info;
+      return { id: id, drive_file_id: info.id, modified_ms: info.modified_ms,
+        parent_ids: info.parent_ids };
+    })
+  };
+  var material = {
+    schema: REGISTRY_V2_REVISION_SCHEMA,
+    audience: audience,
+    site: site,
+    taxonomy: taxonomy,
+    demos: publicDemos,
+    sources: sourceState
+  };
+  return {
+    audience: audience, site: site, taxonomy: taxonomy, demos: publicDemos,
+    files_by_id: fileSources, assets_by_id: assetSources,
+    registry_revision: 'sha256:' + sha256Hex_(stableJson_(material))
+  };
+}
+
+function registryV2ReadBlob_(cfg, expectedInfo, kind) {
+  var before = registryV2DriveInfo_(cfg, expectedInfo.id, kind);
+  if (!registryV2SameDriveInfo_(before, expectedInfo)) {
+    throw new Error('Registry v2 source changed before reading.');
+  }
+  if (kind === 'asset' && typeof before.file.getSize === 'function'
+      && Number(before.file.getSize()) > REGISTRY_V2_MAX_CARD_ASSET_BYTES) {
+    throw new Error('Registry v2 card image is too large.');
+  }
+  var blob = before.file.getBlob();
+  var after = registryV2DriveInfo_(cfg, expectedInfo.id, kind);
+  if (!registryV2SameDriveInfo_(after, expectedInfo)) {
+    throw new Error('Registry v2 source changed while reading.');
+  }
+  return blob;
+}
+
+function registryV2UnsignedBytes_(bytes) {
+  return bytes.map(function (value) { return value < 0 ? value + 256 : value; });
+}
+
+function registryV2ImageBytesMatch_(bytes, extension) {
+  var b = registryV2UnsignedBytes_(bytes);
+  if (extension === 'png') {
+    return b.length >= 8 && b[0] === 137 && b[1] === 80 && b[2] === 78
+      && b[3] === 71 && b[4] === 13 && b[5] === 10 && b[6] === 26 && b[7] === 10;
+  }
+  if (extension === 'jpg' || extension === 'jpeg') {
+    return b.length >= 3 && b[0] === 255 && b[1] === 216 && b[2] === 255;
+  }
+  if (extension === 'gif') {
+    var gif = String.fromCharCode.apply(null, b.slice(0, 6));
+    return gif === 'GIF87a' || gif === 'GIF89a';
+  }
+  if (extension === 'webp') {
+    return b.length >= 12 && String.fromCharCode.apply(null, b.slice(0, 4)) === 'RIFF'
+      && String.fromCharCode.apply(null, b.slice(8, 12)) === 'WEBP';
+  }
+  if (extension === 'avif') {
+    if (b.length < 16 || String.fromCharCode.apply(null, b.slice(4, 8)) !== 'ftyp') {
+      return false;
+    }
+    var limit = Math.min(b.length - 3, 64);
+    for (var offset = 8; offset < limit; offset += 4) {
+      var brand = String.fromCharCode.apply(null, b.slice(offset, offset + 4));
+      if (brand === 'avif' || brand === 'avis') return true;
+    }
+    return false;
+  }
+  return false;
+}
+
+function registryV2Response_(snapshot, cfg, action, id) {
+  if (action === 'file') {
+    var expectedPage = snapshot.files_by_id[id];
+    if (!expectedPage) return { ok: false, error: 'unknown file id' };
+    var pageBlob = registryV2ReadBlob_(cfg, expectedPage, 'page');
+    var html = pageBlob.getDataAsString();
+    if (!registryV2Clean_(html)) return { ok: false, error: 'could not read file' };
+    return { ok: true, audience: snapshot.audience,
+      registry_revision: snapshot.registry_revision, id: id, html: html };
+  }
+  if (action === 'asset') {
+    var source = snapshot.assets_by_id[id];
+    if (!source) return { ok: false, error: 'unknown asset id' };
+    var blob = registryV2ReadBlob_(cfg, source.info, 'asset');
+    var bytes = blob.getBytes();
+    if (!bytes.length || bytes.length > REGISTRY_V2_MAX_CARD_ASSET_BYTES
+        || !registryV2ImageBytesMatch_(bytes, source.info.extension)) {
+      return { ok: false, error: 'could not read asset' };
+    }
+    return {
+      ok: true,
+      kind: 'card_image',
+      id: id,
+      mime: source.info.mime,
+      size: bytes.length,
+      extension: source.info.extension,
+      base64: Utilities.base64Encode(bytes),
+      registry_revision: snapshot.registry_revision
+    };
+  }
+  return {
+    ok: true,
+    schema_version: 2,
+    audience: snapshot.audience,
+    registry_revision: snapshot.registry_revision,
+    generated: new Date().toISOString(),
+    site: snapshot.site,
+    taxonomy: snapshot.taxonomy,
+    demos: snapshot.demos
   };
 }
 
@@ -2162,6 +2832,39 @@ function doGet(e) {
   var audienceResult = registryAudience_(p.audience);
   if (!audienceResult.ok) return jsonOut_({ ok: false, error: audienceResult.error });
   var audience = audienceResult.value;
+  var schemaResult = registrySchema_(p.schema);
+  if (!schemaResult.ok) return jsonOut_({ ok: false, error: schemaResult.error });
+  if (schemaResult.value === 2) {
+    if (p.action && p.action !== 'manifest' && p.action !== 'file'
+        && p.action !== 'asset') {
+      return jsonOut_({ ok: false, error: 'unknown action' });
+    }
+    var v2Snapshot;
+    try {
+      v2Snapshot = registryV2Snapshot_(registryV2Spreadsheet_(), cfg, audience);
+    } catch (v2SnapshotError) {
+      return jsonOut_({ ok: false, error: 'registry v2 unavailable' });
+    }
+    var v2ExpectedRevision = String(p.registry_revision || '').trim();
+    if (v2ExpectedRevision && v2ExpectedRevision !== v2Snapshot.registry_revision) {
+      return jsonOut_({
+        ok: false,
+        error: 'registry revision changed',
+        registry_revision: v2Snapshot.registry_revision
+      });
+    }
+    if ((p.action === 'file' || p.action === 'asset') && !p.id) {
+      return jsonOut_({ ok: false,
+        error: p.action === 'asset' ? 'unknown asset id' : 'unknown file id' });
+    }
+    try {
+      return jsonOut_(registryV2Response_(v2Snapshot, cfg,
+        p.action || 'manifest', String(p.id || '')));
+    } catch (v2ReadError) {
+      return jsonOut_({ ok: false,
+        error: p.action === 'asset' ? 'could not read asset' : 'could not read file' });
+    }
+  }
   if (p.action && p.action !== 'manifest' && p.action !== 'file') {
     return jsonOut_({ ok: false, error: 'unknown action' });
   }

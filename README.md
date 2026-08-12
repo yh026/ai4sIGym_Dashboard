@@ -178,10 +178,14 @@ Resolved records publish `department_subtopic_id`, `subtopic_id`, and
 subtopics and live `project_count`, so hover panels always reflect the current
 registry rather than hard-coded project totals.
 
-Project cards use real 16:9 data previews from `site/assets/previews/<slug>.*`.
-A record may instead provide an HTTPS `preview_image`, `picture`, or `thumbnail`.
-When no image is available, the card shows a quiet pending state rather than a
-generic science emblem.
+Registry v2 gives each project zero or one optional card image. Editors put the
+image beside that project's HTML in Drive and enter only its direct-child file
+name (for example `card.jpg`) in **Card Image**, plus human-written alt text.
+The authenticated Registry service downloads the image during the build and
+writes it to `dist/assets/cards/`; external image URLs are not enabled in the
+first round. When **Card Image** is blank, the build reuses the matching
+`site/assets/previews/<slug>.*` image. If neither source exists, the card shows a
+quiet pending state rather than a generic science emblem.
 
 ## Local preview
 Use Node.js 24 or newer. `node build.js --mock` builds from `fixtures/` into `dist/` with no network —

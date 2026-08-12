@@ -200,6 +200,31 @@ Registry URL 验证；如果组织策略禁止匿名 Web App，Netlify 将无法
 `doPost?action=preview_callback` 虽然匿名可达，但会先用仅存于 Script Properties 与
 Netlify Builds 环境中的共享密钥验证原始 payload 的 HMAC，再解析内部回执。
 
+### Registry v2 的 develop-only 接线
+
+Registry v2 使用独立、owner-only 的 Sheet，但继续复用现有 Web App、access token 和
+V1 Config 中的 Drive root。升级现有项目时不要运行 `setup()`，也不要创建第二个 Web App
+或第二个 trigger。在 Script Properties 增加：
+
+| property | value |
+| --- | --- |
+| `AI4S_REGISTRY_V2_SPREADSHEET_ID` | Registry v2 Sheet ID |
+| `AI4S_PREVIEW_REGISTRY_SCHEMA` | `2` |
+
+缺失第二项或值不是精确的 `2` 时，Preview 自动化继续使用 V1 revision。Web App 请求没有
+`schema=2` 时也继续返回 V1。构建端仅对稳定的 `branch-deploy + develop` 强制
+`schema=2`；Production/main 与 PR Deploy Preview 强制 `schema=1`。
+
+V2 每个项目最多选择一张卡片图片。把图片作为项目 HTML 同一 Drive 文件夹的直接子文件，
+在 `Projects → Card Image` 只填写文件名（例如 `card.jpg`），并填写英文 Image Alt Text。
+第一轮只支持 Drive 图片；外部 URL 不启用。图片为空时继续使用仓库内匹配的静态预览图。
+`action=asset` 会按同一 V2 audience 与 Registry revision 授权，并返回不含 Drive ID 的小型
+base64 envelope；构建再把它写入 `dist/assets/cards/`。
+
+发布时编辑**现有** deployment，选择 New version，保持 Deployment ID、URL、execute-as
+和访问范围不变。不要运行 `setup()`；唯一的 `syncDrive` trigger 与其他 Script Properties
+必须保持不变。
+
 ## 7. 出错时检查
 
 - `Preview build was not started`：检查 Preview Hook、分支名以及 Branch Deploy 设置。
