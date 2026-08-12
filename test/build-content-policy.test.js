@@ -10,6 +10,7 @@ const {
   createDeployReceipt,
   deployHeaders,
   scopedRegistryUrl,
+  registryReadBatchSize,
   isPublishableDemo,
 } = require('../build.js');
 
@@ -38,6 +39,11 @@ test('only the stable develop Branch Deploy gets Preview content', () => {
   ]) {
     assert.equal(resolveBuildContentPolicy(env).audience, 'production');
   }
+});
+
+test('Registry v2 reads Drive-backed content serially while v1 keeps its existing batch size', () => {
+  assert.equal(registryReadBatchSize(2), 1);
+  assert.equal(registryReadBatchSize(1), 3);
 });
 
 test('a Netlify production deploy is locked to main', () => {

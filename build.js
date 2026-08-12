@@ -963,7 +963,7 @@ function validateCardAssetResponse(response, cardAsset, expectedRevision) {
 
 async function fetchV2CardAssets(demos, registry, registryRevision) {
   const cards = demos.filter(demo => demo.card_asset).map(demo => demo.card_asset);
-  return inChunks(cards, 3, async cardAsset => {
+  return inChunks(cards, registryReadBatchSize(REGISTRY_SCHEMA_V2), async cardAsset => {
     const response = await withRetry(() => registry.getAsset(
       cardAsset.asset_id, registryRevision,
     ));
@@ -1302,6 +1302,10 @@ async function inChunks(items, size, fn) {
     output.push(...await Promise.all(items.slice(i, i + size).map(fn)));
   }
   return output;
+}
+
+function registryReadBatchSize(schemaVersion) {
+  return schemaVersion === REGISTRY_SCHEMA_V2 ? 1 : 3;
 }
 
 async function withRetry(fn) {
@@ -1735,7 +1739,7 @@ async function main() {
     });
   }
 
-  const pages = await inChunks(demos, 3, async demo => {
+  const pages = await inChunks(demos, registryReadBatchSize(schemaVersion), async demo => {
     const result = await withRetry(() => registry.getHtml(
       demo.file_id, activeRegistryRevision,
     ));
@@ -2007,6 +2011,7 @@ module.exports = {
   safePreviewUrl,
   safePublicCardAssetUrl,
   scopedRegistryUrl,
+  registryReadBatchSize,
   isPublishableDemo,
   validateTaxonomy,
 };
