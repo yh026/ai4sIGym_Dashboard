@@ -22,17 +22,61 @@ class FakeRange {
   }
 
   getValues() {
+    this.sheet.beforeRead?.(this);
     return Array.from({ length: this.rowCount }, (_, rowOffset) => (
       Array.from({ length: this.columnCount }, (_, columnOffset) => (
         this.sheet.rows[this.row - 1 + rowOffset]?.[this.column - 1 + columnOffset] ?? ''
       ))
     ));
   }
+
+  getFormulas() {
+    return Array.from({ length: this.rowCount }, (_, rowOffset) => (
+      Array.from({ length: this.columnCount }, (_, columnOffset) => (
+        this.sheet.formulas[`${this.row + rowOffset}:${this.column + columnOffset}`] || ''
+      ))
+    ));
+  }
+
+  setValues(values) {
+    this.sheet.writeCalls.push({
+      kind: 'values', row: this.row, column: this.column,
+      rowCount: this.rowCount, columnCount: this.columnCount,
+    });
+    values.forEach((valuesRow, rowOffset) => valuesRow.forEach((value, columnOffset) => {
+      this.sheet.setCell(this.row + rowOffset, this.column + columnOffset, value, '');
+    }));
+    return this;
+  }
+
+  setFormulas(formulas) {
+    this.sheet.writeCalls.push({
+      kind: 'formulas', row: this.row, column: this.column,
+      rowCount: this.rowCount, columnCount: this.columnCount,
+    });
+    formulas.forEach((formulaRow, rowOffset) => formulaRow.forEach((formula, columnOffset) => {
+      const display = /^=HYPERLINK\(/.test(formula) ? 'Open Preview' : '';
+      this.sheet.setCell(this.row + rowOffset, this.column + columnOffset, display, formula);
+    }));
+    return this;
+  }
 }
 
 class FakeSheet {
-  constructor(rows) {
+  constructor(rows, formulas = {}) {
     this.rows = rows.map(row => row.slice());
+    this.formulas = { ...formulas };
+    this.writeCalls = [];
+    this.beforeRead = null;
+  }
+
+  setCell(row, column, value, formula) {
+    while (this.rows.length < row) this.rows.push([]);
+    while (this.rows[row - 1].length < column) this.rows[row - 1].push('');
+    this.rows[row - 1][column - 1] = value;
+    const key = `${row}:${column}`;
+    if (formula) this.formulas[key] = formula;
+    else delete this.formulas[key];
   }
 
   getLastColumn() {
@@ -62,6 +106,8 @@ class FakeSpreadsheet {
   getSheetByName(name) {
     return this.sheets[name] || null;
   }
+
+  toast() {}
 }
 
 function iterator(values) {
@@ -229,6 +275,7 @@ function fixture(script, options = {}) {
   const configRows = [
     configHeader,
     row(configHeader, { key: 'schema_version', value: 2, visibility: 'internal' }),
+    row(configHeader, { key: 'preview_base_url', value: 'https://develop--aisigym.netlify.app/', visibility: 'internal' }),
     row(configHeader, { key: 'site_title', value: 'Registry v2', visibility: 'public' }),
     row(configHeader, { key: 'site_tagline', value: 'Private preview.', visibility: 'public' }),
   ];
@@ -248,6 +295,10 @@ function installServices(script, v2Sheet, files, properties = {}) {
       ['key', 'value'],
       ['access_token', 'secret'],
       ['drive_folder_url', 'https://drive.google.com/drive/folders/root-folder-12345'],
+      ['preview_branch', 'develop'],
+      ['preview_url', 'https://develop--aisigym.netlify.app/'],
+      ['preview_url_branch', 'develop'],
+      ['production_branch', 'main'],
     ],
   });
   const values = {
@@ -266,6 +317,7 @@ function installServices(script, v2Sheet, files, properties = {}) {
       if (id === 'v2-sheet-id') return v2Sheet;
       throw new Error(`unknown fake spreadsheet ${id}`);
     },
+    flush: () => {},
   };
   script.registrySpreadsheet_ = () => configSheet;
   script.DriveApp = { getFileById: id => {
@@ -273,6 +325,9 @@ function installServices(script, v2Sheet, files, properties = {}) {
     return files[id];
   } };
   script.Utilities = utilities();
+  script.LockService = {
+    getScriptLock: () => ({ tryLock: () => true, releaseLock: () => {} }),
+  };
   script.jsonOut_ = value => value;
   return values;
 }
@@ -486,6 +541,202 @@ test('Projects and _Registry demo_id sets must match exactly', async t => {
     } });
     assert.equal(result.error, 'registry v2 unavailable');
   });
+});
+
+test('manual Registry v2 status refresh writes exactly three derived columns by demo_id', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script);
+  installServices(script, sheet, standardDrive());
+  const cfg = script.readConfig_(script.registrySpreadsheet_());
+  const revisionBefore = script.registryV2Snapshot_(sheet, cfg, 'preview').registry_revision;
+
+  const result = script.refreshRegistryV2Status();
+  assert.deepEqual({ ok: result.ok, ready: result.ready, total: result.total },
+    { ok: true, ready: 2, total: 2 });
+
+  const projects = sheet.getSheetByName('Projects');
+  const registry = sheet.getSheetByName('_Registry');
+  assert.deepEqual(projects.writeCalls, [
+    { kind: 'values', row: 2, column: 2, rowCount: 2, columnCount: 1 },
+    { kind: 'formulas', row: 2, column: 3, rowCount: 2, columnCount: 1 },
+  ]);
+  assert.deepEqual(registry.writeCalls, [
+    { kind: 'values', row: 2, column: 7, rowCount: 2, columnCount: 1 },
+  ]);
+  for (const name of ['_Taxonomy', '_Facets', '_Assets', '_Config']) {
+    assert.equal(sheet.getSheetByName(name).writeCalls.length, 0);
+  }
+  assert.equal(projects.rows[1][1], '✅ Publication ready');
+  assert.equal(projects.rows[2][1], '✅ Preview ready');
+  assert.equal(projects.formulas['2:3'],
+    '=HYPERLINK("https://develop--aisigym.netlify.app/demos/live-project/","Open Preview")');
+  assert.equal(projects.formulas['3:3'],
+    '=HYPERLINK("https://develop--aisigym.netlify.app/demos/draft-project/","Open Preview")');
+  assert.deepEqual(registry.rows.slice(1).map(row => row[6]), ['ready', 'ready']);
+  assert.equal(projects.rows[1][3], 'Live project', 'human-owned fields stay unchanged');
+  assert.equal(script.registryV2Snapshot_(sheet, cfg, 'preview').registry_revision,
+    revisionBefore, 'derived writes do not change the build-facing Registry revision');
+
+  const firstState = JSON.stringify({
+    projects: projects.rows,
+    projectFormulas: projects.formulas,
+    registry: registry.rows,
+  });
+  projects.writeCalls.length = 0;
+  registry.writeCalls.length = 0;
+  const second = script.refreshRegistryV2Status();
+  assert.equal(second.registry_revision, result.registry_revision);
+  assert.equal(JSON.stringify({
+    projects: projects.rows,
+    projectFormulas: projects.formulas,
+    registry: registry.rows,
+  }), firstState, 'running twice is idempotent');
+});
+
+test('manual Registry v2 status refresh writes blocked and archived status without publishing', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script);
+  const projects = sheet.getSheetByName('Projects');
+  const header = projects.rows[0];
+  projects.rows[1][header.indexOf('Status')] = 'Archived';
+  projects.rows[2][header.indexOf('Public Permission')] = 'Private';
+  installServices(script, sheet, standardDrive());
+
+  const result = script.refreshRegistryV2Status();
+  assert.deepEqual({ ready: result.ready, total: result.total }, { ready: 0, total: 2 });
+  assert.equal(projects.rows[1][header.indexOf('Readiness')], '— Archived');
+  assert.equal(projects.rows[2][header.indexOf('Readiness')],
+    '⛔ Action needed: Public Permission');
+  assert.equal(projects.formulas['2:3'] || '', '');
+  assert.equal(projects.formulas['3:3'] || '', '');
+  const registry = sheet.getSheetByName('_Registry');
+  assert.deepEqual(registry.rows.slice(1).map(row => row[6]), ['not_applicable', 'blocked']);
+});
+
+test('manual Registry v2 status refresh stops before its first write on concurrent edits', async t => {
+  async function expectNoWrite(mutate) {
+    const script = loadAppsScript();
+    const sheet = fixture(script);
+    installServices(script, sheet, standardDrive());
+    const projects = sheet.getSheetByName('Projects');
+    let fullReads = 0;
+    projects.beforeRead = range => {
+      if (range.row !== 1 || range.column !== 1) return;
+      fullReads += 1;
+      if (fullReads === 2) mutate(projects);
+    };
+    assert.throws(() => script.refreshRegistryV2Status(), /Sheet changed during compilation/);
+    assert.equal(projects.writeCalls.length, 0);
+    assert.equal(sheet.getSheetByName('_Registry').writeCalls.length, 0);
+  }
+
+  await t.test('human field edit', () => expectNoWrite(projects => {
+    projects.rows[1][3] = 'Edited while compiling';
+  }));
+  await t.test('row move', () => expectNoWrite(projects => {
+    [projects.rows[1], projects.rows[2]] = [projects.rows[2], projects.rows[1]];
+  }));
+  await t.test('formula edit', () => expectNoWrite(projects => {
+    projects.formulas['2:3'] = '=HYPERLINK("https://example.invalid/","Changed")';
+  }));
+  await t.test('derived target value edit', () => expectNoWrite(projects => {
+    projects.rows[1][1] = 'Manually changed readiness';
+  }));
+
+  await t.test('_Registry row move', () => {
+    const script = loadAppsScript();
+    const sheet = fixture(script);
+    installServices(script, sheet, standardDrive());
+    const registry = sheet.getSheetByName('_Registry');
+    let reads = 0;
+    registry.beforeRead = range => {
+      if (range.row !== 1 || range.column !== 1) return;
+      reads += 1;
+      if (reads === 2) [registry.rows[1], registry.rows[2]] = [registry.rows[2], registry.rows[1]];
+    };
+    assert.throws(() => script.refreshRegistryV2Status(), /Sheet changed during compilation/);
+    assert.equal(sheet.getSheetByName('Projects').writeCalls.length, 0);
+    assert.equal(registry.writeCalls.length, 0);
+  });
+
+  await t.test('edit during second compiler pass', () => {
+    const script = loadAppsScript();
+    const sheet = fixture(script);
+    installServices(script, sheet, standardDrive());
+    const projects = sheet.getSheetByName('Projects');
+    let reads = 0;
+    projects.beforeRead = range => {
+      if (range.row !== 1 || range.column !== 1) return;
+      reads += 1;
+      if (reads === 3) projects.rows[1][3] = 'Edited immediately before writing';
+    };
+    assert.throws(() => script.refreshRegistryV2Status(), /Sheet changed before writing/);
+    assert.equal(projects.writeCalls.length, 0);
+    assert.equal(sheet.getSheetByName('_Registry').writeCalls.length, 0);
+  });
+});
+
+test('manual Registry v2 status refresh rejects missing or duplicate identity with zero writes', async t => {
+  for (const [name, mutate] of [
+    ['missing', (projects, idColumn) => { projects.rows[1][idColumn] = ''; }],
+    ['duplicate', (projects, idColumn) => {
+      projects.rows[2][idColumn] = projects.rows[1][idColumn];
+    }],
+  ]) {
+    await t.test(name, () => {
+      const script = loadAppsScript();
+      const sheet = fixture(script);
+      const projects = sheet.getSheetByName('Projects');
+      mutate(projects, projects.rows[0].indexOf('demo_id'));
+      installServices(script, sheet, standardDrive());
+      assert.throws(() => script.refreshRegistryV2Status(), /identity|identities/);
+      assert.equal(projects.writeCalls.length, 0);
+      assert.equal(sheet.getSheetByName('_Registry').writeCalls.length, 0);
+    });
+  }
+});
+
+test('manual Registry v2 status refresh requires its V2 HTTPS Preview base before writing', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script);
+  const config = sheet.getSheetByName('_Config');
+  const keyColumn = config.rows[0].indexOf('key');
+  const valueColumn = config.rows[0].indexOf('value');
+  const previewRow = config.rows.find(row => row[keyColumn] === 'preview_base_url');
+  previewRow[valueColumn] = 'http://develop.example.invalid/';
+  installServices(script, sheet, standardDrive());
+  assert.throws(() => script.refreshRegistryV2Status(), /preview_base_url.*HTTPS/);
+  assert.equal(sheet.getSheetByName('Projects').writeCalls.length, 0);
+  assert.equal(sheet.getSheetByName('_Registry').writeCalls.length, 0);
+});
+
+test('manual Registry v2 status refresh leaves a formula-only middle row untouched', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script);
+  const projects = sheet.getSheetByName('Projects');
+  const registry = sheet.getSheetByName('_Registry');
+  projects.rows.splice(2, 0, Array(projects.rows[0].length).fill(''));
+  registry.rows.splice(2, 0, Array(registry.rows[0].length).fill(''));
+  const protectedFormula = '=IF(TRUE,"","")';
+  projects.formulas['3:3'] = protectedFormula;
+  registry.formulas['3:7'] = protectedFormula;
+  installServices(script, sheet, standardDrive());
+
+  script.refreshRegistryV2Status();
+
+  assert.equal(projects.formulas['3:3'], protectedFormula);
+  assert.equal(registry.formulas['3:7'], protectedFormula);
+  assert.equal(projects.rows[2][2], '');
+  assert.deepEqual(projects.writeCalls, [
+    { kind: 'values', row: 2, column: 2, rowCount: 1, columnCount: 1 },
+    { kind: 'formulas', row: 2, column: 3, rowCount: 1, columnCount: 1 },
+    { kind: 'values', row: 4, column: 2, rowCount: 1, columnCount: 1 },
+    { kind: 'formulas', row: 4, column: 3, rowCount: 1, columnCount: 1 },
+  ]);
+  assert.deepEqual(registry.writeCalls, [
+    { kind: 'values', row: 2, column: 7, rowCount: 1, columnCount: 1 },
+    { kind: 'values', row: 4, column: 7, rowCount: 1, columnCount: 1 },
+  ]);
 });
 
 test('v2 file responses are visible, revision-bound, read-only, and race-safe', () => {

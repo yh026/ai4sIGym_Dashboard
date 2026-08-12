@@ -605,6 +605,7 @@ function installTrigger_() {
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('AI4S dashboard')
     .addItem('Sync Drive folder now', 'syncDriveFromMenu')
+    .addItem('Refresh Registry v2 status', 'refreshRegistryV2Status')
     .addItem('Build preview branch', 'publishPreview')
     .addItem('Preview publish status', 'showPreviewPublishStatus')
     .addItem('Open preview site', 'showPreviewSite')
@@ -2153,9 +2154,18 @@ function registryV2Table_(ss, sheetName, expectedHeaders, projectHeaders) {
   if (!sheet) throw new Error('Registry v2 is missing sheet ' + sheetName + '.');
   var lastColumn = sheet.getLastColumn();
   if (lastColumn < 1) throw new Error('Registry v2 sheet ' + sheetName + ' has no header.');
-  var headerRows = sheet.getRange(1, 1, 1, lastColumn).getValues();
-  registryV2AssertEnglishRows_(sheetName, headerRows);
-  var headers = headerRows[0].map(registryV2Clean_);
+  var lastRow = Math.max(sheet.getLastRow(), 1);
+  return registryV2RowsFromGrid_(sheetName,
+    sheet.getRange(1, 1, lastRow, lastColumn).getValues(),
+    expectedHeaders, projectHeaders);
+}
+
+function registryV2RowsFromGrid_(sheetName, grid, expectedHeaders, projectHeaders) {
+  if (!grid || !grid.length || !grid[0].length) {
+    throw new Error('Registry v2 sheet ' + sheetName + ' has no header.');
+  }
+  registryV2AssertEnglishRows_(sheetName, grid);
+  var headers = grid[0].map(registryV2Clean_);
   var accepted = {};
   var canonical = [];
   if (projectHeaders) {
@@ -2183,19 +2193,68 @@ function registryV2Table_(ss, sheetName, expectedHeaders, projectHeaders) {
   canonical.forEach(function (key) {
     if (!seen[key]) throw new Error('Registry v2 sheet ' + sheetName + ' is missing ' + key + '.');
   });
-  var lastRow = sheet.getLastRow();
-  if (lastRow < 2) return [];
-  var rows = sheet.getRange(2, 1, lastRow - 1, lastColumn).getValues();
-  registryV2AssertEnglishRows_(sheetName, rows);
-  return rows
-    .filter(function (row) {
-      return row.some(function (value) { return value !== '' && value != null; });
-    })
+  return grid.slice(1)
     .map(function (row, rowIndex) {
+      if (!row.some(function (value) { return value !== '' && value != null; })) return null;
       var object = { _row_number: rowIndex + 2 };
       keys.forEach(function (key, columnIndex) { object[key] = row[columnIndex]; });
       return object;
-    });
+    })
+    .filter(function (row) { return row !== null; });
+}
+
+var REGISTRY_V2_COMPILE_SHEETS = [
+  'Projects', '_Registry', '_Taxonomy', '_Facets', '_Assets', '_Config'
+];
+
+/** Capture all compiler inputs, including formulas, without changing the workbook. */
+function registryV2WorkbookState_(ss) {
+  var state = {};
+  REGISTRY_V2_COMPILE_SHEETS.forEach(function (sheetName) {
+    var sheet = ss.getSheetByName(sheetName);
+    if (!sheet) throw new Error('Registry v2 is missing sheet ' + sheetName + '.');
+    var rows = Math.max(sheet.getLastRow(), 1);
+    var columns = sheet.getLastColumn();
+    if (columns < 1) throw new Error('Registry v2 sheet ' + sheetName + ' has no header.');
+    var range = sheet.getRange(1, 1, rows, columns);
+    var values = range.getValues();
+    var formulas = typeof range.getFormulas === 'function'
+      ? range.getFormulas()
+      : Array.from({ length: rows }, function () {
+        return Array.from({ length: columns }, function () { return ''; });
+      });
+    state[sheetName] = {
+      rows: rows,
+      columns: columns,
+      values: values,
+      formulas: formulas
+    };
+  });
+  return state;
+}
+
+function registryV2RowsFromState_(state, sheetName, expectedHeaders, projectHeaders) {
+  if (!state || !state[sheetName]) {
+    throw new Error('Registry v2 compiler state is missing sheet ' + sheetName + '.');
+  }
+  return registryV2RowsFromGrid_(sheetName, state[sheetName].values,
+    expectedHeaders, projectHeaders);
+}
+
+function registryV2WorkbookStatesEqual_(left, right) {
+  for (var s = 0; s < REGISTRY_V2_COMPILE_SHEETS.length; s++) {
+    var name = REGISTRY_V2_COMPILE_SHEETS[s];
+    var a = left && left[name];
+    var b = right && right[name];
+    if (!a || !b || a.rows !== b.rows || a.columns !== b.columns) return false;
+    for (var r = 0; r < a.rows; r++) {
+      for (var c = 0; c < a.columns; c++) {
+        if (!sameCellValue_(a.values[r][c], b.values[r][c])
+            || a.formulas[r][c] !== b.formulas[r][c]) return false;
+      }
+    }
+  }
+  return true;
 }
 
 function registryV2Config_(rows) {
@@ -2429,14 +2488,19 @@ function registryV2SameDriveInfo_(left, right) {
     && stableJson_(left.parent_ids) === stableJson_(right.parent_ids);
 }
 
-function registryV2Snapshot_(ss, cfg, audience) {
-  var projects = registryV2Table_(ss, 'Projects', [], true);
-  var registry = registryV2Table_(ss, '_Registry', REGISTRY_V2_HEADERS._Registry, false);
-  var taxonomyRows = registryV2Table_(ss, '_Taxonomy', REGISTRY_V2_HEADERS._Taxonomy, false);
-  var facets = registryV2Table_(ss, '_Facets', REGISTRY_V2_HEADERS._Facets, false);
-  var assets = registryV2Table_(ss, '_Assets', REGISTRY_V2_HEADERS._Assets, false);
+function registryV2CompileState_(ss, cfg, audience, workbookState) {
+  var state = workbookState || registryV2WorkbookState_(ss);
+  var projects = registryV2RowsFromState_(state, 'Projects', [], true);
+  var registry = registryV2RowsFromState_(
+    state, '_Registry', REGISTRY_V2_HEADERS._Registry, false);
+  var taxonomyRows = registryV2RowsFromState_(
+    state, '_Taxonomy', REGISTRY_V2_HEADERS._Taxonomy, false);
+  var facets = registryV2RowsFromState_(
+    state, '_Facets', REGISTRY_V2_HEADERS._Facets, false);
+  var assets = registryV2RowsFromState_(
+    state, '_Assets', REGISTRY_V2_HEADERS._Assets, false);
   var v2Config = registryV2Config_(
-    registryV2Table_(ss, '_Config', REGISTRY_V2_HEADERS._Config, false));
+    registryV2RowsFromState_(state, '_Config', REGISTRY_V2_HEADERS._Config, false));
   var taxonomy = registryV2Taxonomy_(taxonomyRows);
   var taxonomyIndex = registryV2TaxonomyIndex_(taxonomy, taxonomyRows);
   var projectsById = {};
@@ -2492,6 +2556,7 @@ function registryV2Snapshot_(ss, cfg, audience) {
   });
 
   var publicDemos = [];
+  var readiness = [];
   var fileSources = {};
   var assetSources = {};
   var seenFiles = {};
@@ -2533,10 +2598,18 @@ function registryV2Snapshot_(ss, cfg, audience) {
       date_added: isoOrString_(source.date_added)
     };
     var readinessError = registryV2ReadinessError_(demo, project, taxonomyIndex);
-    demo.readiness = readinessError ? 'blocked' : 'ready';
-    if (demo.status === 'Live' && readinessError) {
-      throw new Error('Registry v2 Live project is not ready: ' + readinessError + '.');
-    }
+    var readinessStatus = demo.status === 'Archived'
+      ? 'not_applicable' : readinessError ? 'blocked' : 'ready';
+    readiness.push({
+      demo_id: demoId,
+      project_row: project._row_number,
+      registry_row: source._row_number,
+      project_status: demo.status,
+      slug: slug,
+      status: readinessStatus,
+      issue: readinessError
+    });
+    demo.readiness = readinessStatus === 'ready' ? 'ready' : 'blocked';
     if (!registryV2Visible_(demo, audience)) return;
     delete demo.readiness;
     var pageInfo = registryV2DriveInfo_(cfg, fileId, 'page');
@@ -2623,8 +2696,238 @@ function registryV2Snapshot_(ss, cfg, audience) {
   return {
     audience: audience, site: site, taxonomy: taxonomy, demos: publicDemos,
     files_by_id: fileSources, assets_by_id: assetSources,
+    readiness: readiness,
+    config: v2Config,
+    workbook_state: state,
     registry_revision: 'sha256:' + sha256Hex_(stableJson_(material))
   };
+}
+
+/** Build-facing view. A blocked Live row keeps the API fail-closed. */
+function registryV2Snapshot_(ss, cfg, audience) {
+  var compiled = registryV2CompileState_(ss, cfg, audience);
+  var blockedLive = compiled.readiness.filter(function (item) {
+    return item.project_status === 'Live' && item.status !== 'ready';
+  })[0];
+  if (blockedLive) {
+    throw new Error('Registry v2 Live project is not ready: '
+      + (blockedLive.issue || 'needs review') + '.');
+  }
+  return {
+    audience: compiled.audience,
+    site: compiled.site,
+    taxonomy: compiled.taxonomy,
+    demos: compiled.demos,
+    files_by_id: compiled.files_by_id,
+    assets_by_id: compiled.assets_by_id,
+    registry_revision: compiled.registry_revision
+  };
+}
+
+function registryV2ReadinessText_(item) {
+  if (item.status === 'not_applicable') return '— Archived';
+  if (item.status === 'ready') {
+    return item.project_status === 'Draft'
+      ? '✅ Preview ready' : '✅ Publication ready';
+  }
+  var labels = {
+    'entry_type': 'Record Type',
+    'status': 'Status',
+    'archived': 'Archived',
+    'card copy': 'Card Summary',
+    'featured': 'Featured',
+    'audience': 'Audience',
+    'taxonomy': 'Department / Subtopic',
+    'task': 'Task Type',
+    'method': 'Methods',
+    'source file': 'Source File Check',
+    'public permission': 'Public Permission',
+    'preview permission': 'Public Permission'
+  };
+  return '⛔ Action needed: ' + (labels[item.issue] || 'Needs review');
+}
+
+function registryV2PreviewPageUrl_(baseUrl, slug) {
+  var base = registryV2Clean_(baseUrl);
+  var cleanSlug = registryV2Clean_(slug);
+  if (!isSafeHttpsUrl_(base) || !cleanSlug) return '';
+  if (base.slice(-1) !== '/') base += '/';
+  return base + 'demos/' + encodeURIComponent(cleanSlug) + '/';
+}
+
+function registryV2PreviewBaseUrl_(config) {
+  var base = registryV2Clean_(config && config.preview_base_url);
+  if (!isSafeHttpsUrl_(base) || !/^https:\/\/[^/?#]+(?:\/[^?#]*)?$/.test(base)) {
+    throw new Error('Registry v2 _Config preview_base_url must be a valid HTTPS base URL.');
+  }
+  return base;
+}
+
+function registryV2ProjectColumn_(header, fieldKey) {
+  for (var i = 0; i < REGISTRY_V2_PROJECT_FIELDS.length; i++) {
+    if (REGISTRY_V2_PROJECT_FIELDS[i][0] !== fieldKey) continue;
+    var label = REGISTRY_V2_PROJECT_FIELDS[i][1];
+    for (var c = 0; c < header.length; c++) {
+      var value = registryV2Clean_(header[c]).toLowerCase();
+      if (value === fieldKey.toLowerCase() || value === label.toLowerCase()) return c + 1;
+    }
+  }
+  throw new Error('Registry v2 Projects is missing ' + fieldKey + '.');
+}
+
+function registryV2MachineColumn_(header, fieldKey) {
+  for (var c = 0; c < header.length; c++) {
+    if (registryV2Clean_(header[c]).toLowerCase() === fieldKey.toLowerCase()) return c + 1;
+  }
+  throw new Error('Registry v2 _Registry is missing ' + fieldKey + '.');
+}
+
+function registryV2WritePlan_(compiled, state, previewBaseUrl) {
+  var projectsGrid = state.Projects.values;
+  var registryGrid = state._Registry.values;
+  var projectReadinessColumn = registryV2ProjectColumn_(projectsGrid[0], 'readiness');
+  var projectPreviewColumn = registryV2ProjectColumn_(projectsGrid[0], 'preview_url');
+  var registryReadinessColumn = registryV2MachineColumn_(registryGrid[0], 'readiness');
+  var projectWrites = [];
+  var registryWrites = [];
+
+  compiled.readiness.forEach(function (item) {
+    if (!projectsGrid[item.project_row - 1] || !registryGrid[item.registry_row - 1]) {
+      throw new Error('Registry v2 identity points outside its current physical row.');
+    }
+    var previewUrl = item.status === 'ready'
+      ? registryV2PreviewPageUrl_(previewBaseUrl, item.slug) : '';
+    projectWrites.push({
+      row: item.project_row,
+      readiness: registryV2ReadinessText_(item),
+      preview_formula: previewUrl
+        ? '=HYPERLINK("' + previewUrl + '","Open Preview")' : ''
+    });
+    registryWrites.push({ row: item.registry_row, readiness: item.status });
+  });
+  projectWrites.sort(function (a, b) { return a.row - b.row; });
+  registryWrites.sort(function (a, b) { return a.row - b.row; });
+  return {
+    project_readiness_column: projectReadinessColumn,
+    project_preview_column: projectPreviewColumn,
+    registry_readiness_column: registryReadinessColumn,
+    project_writes: projectWrites,
+    registry_writes: registryWrites
+  };
+}
+
+function registryV2ContiguousRuns_(writes) {
+  var runs = [];
+  writes.forEach(function (write) {
+    var current = runs[runs.length - 1];
+    if (!current || write.row !== current[current.length - 1].row + 1) {
+      current = [];
+      runs.push(current);
+    }
+    current.push(write);
+  });
+  return runs;
+}
+
+function registryV2StateMatchesWrite_(state, before, plan) {
+  for (var s = 0; s < REGISTRY_V2_COMPILE_SHEETS.length; s++) {
+    var sheetName = REGISTRY_V2_COMPILE_SHEETS[s];
+    var current = state[sheetName];
+    var original = before[sheetName];
+    if (!current || !original || current.rows !== original.rows
+        || current.columns !== original.columns) return false;
+    for (var r = 0; r < current.rows; r++) {
+      for (var c = 0; c < current.columns; c++) {
+        var managed = (sheetName === 'Projects'
+            && (c + 1 === plan.project_readiness_column
+              || c + 1 === plan.project_preview_column))
+          || (sheetName === '_Registry' && c + 1 === plan.registry_readiness_column);
+        if (managed) continue;
+        if (!sameCellValue_(current.values[r][c], original.values[r][c])
+            || current.formulas[r][c] !== original.formulas[r][c]) return false;
+      }
+    }
+  }
+  for (var i = 0; i < plan.project_writes.length; i++) {
+    var projectWrite = plan.project_writes[i];
+    if (!sameCellValue_(state.Projects.values[projectWrite.row - 1]
+      [plan.project_readiness_column - 1], projectWrite.readiness)) return false;
+    if (state.Projects.formulas[projectWrite.row - 1][plan.project_preview_column - 1]
+        !== projectWrite.preview_formula) return false;
+    var expectedPreviewDisplay = projectWrite.preview_formula ? 'Open Preview' : '';
+    if (!sameCellValue_(state.Projects.values[projectWrite.row - 1]
+      [plan.project_preview_column - 1],
+      expectedPreviewDisplay)) return false;
+  }
+  for (var j = 0; j < plan.registry_writes.length; j++) {
+    var registryWrite = plan.registry_writes[j];
+    if (!sameCellValue_(state._Registry.values[registryWrite.row - 1]
+      [plan.registry_readiness_column - 1], registryWrite.readiness)) return false;
+  }
+  return true;
+}
+
+/** Explicit owner action; it never publishes, installs triggers, or runs setup(). */
+function refreshRegistryV2Status() {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) {
+    throw new Error('Registry v2 status refresh is already running.');
+  }
+  try {
+    var v2Sheet = registryV2Spreadsheet_();
+    var cfg = readConfig_(registrySpreadsheet_());
+
+    var before = registryV2WorkbookState_(v2Sheet);
+    var compiled = registryV2CompileState_(v2Sheet, cfg, 'preview', before);
+    var previewBaseUrl = registryV2PreviewBaseUrl_(compiled.config);
+    var plan = registryV2WritePlan_(compiled, before, previewBaseUrl);
+
+    // Editors are not governed by ScriptLock. Re-read every compiler input,
+    // including formulas, and verify the revision before the first write.
+    var checked = registryV2WorkbookState_(v2Sheet);
+    if (!registryV2WorkbookStatesEqual_(before, checked)) {
+      throw new Error('Registry v2 status refresh stopped: the Sheet changed during compilation. No cells were updated.');
+    }
+    var checkedCompile = registryV2CompileState_(v2Sheet, cfg, 'preview', checked);
+    if (checkedCompile.registry_revision !== compiled.registry_revision) {
+      throw new Error('Registry v2 status refresh stopped: the Registry revision changed. No cells were updated.');
+    }
+    var aboutToWrite = registryV2WorkbookState_(v2Sheet);
+    if (!registryV2WorkbookStatesEqual_(before, aboutToWrite)) {
+      throw new Error('Registry v2 status refresh stopped: the Sheet changed before writing. No cells were updated.');
+    }
+
+    var projects = v2Sheet.getSheetByName('Projects');
+    var registry = v2Sheet.getSheetByName('_Registry');
+    registryV2ContiguousRuns_(plan.project_writes).forEach(function (run) {
+      projects.getRange(run[0].row, plan.project_readiness_column, run.length, 1)
+        .setValues(run.map(function (write) { return [write.readiness]; }));
+      projects.getRange(run[0].row, plan.project_preview_column, run.length, 1)
+        .setFormulas(run.map(function (write) { return [write.preview_formula]; }));
+    });
+    registryV2ContiguousRuns_(plan.registry_writes).forEach(function (run) {
+      registry.getRange(run[0].row, plan.registry_readiness_column, run.length, 1)
+        .setValues(run.map(function (write) { return [write.readiness]; }));
+    });
+    SpreadsheetApp.flush();
+
+    var after = registryV2WorkbookState_(v2Sheet);
+    var afterCompile = registryV2CompileState_(v2Sheet, cfg, 'preview', after);
+    if (afterCompile.registry_revision !== compiled.registry_revision
+        || !registryV2StateMatchesWrite_(after, before, plan)) {
+      throw new Error('Registry v2 status refresh could not verify the completed write.');
+    }
+    var ready = compiled.readiness.filter(function (item) {
+      return item.status === 'ready';
+    }).length;
+    var summary = ready + ' ready, ' + (compiled.readiness.length - ready)
+      + ' blocked or archived.';
+    if (typeof v2Sheet.toast === 'function') v2Sheet.toast(summary, 'Registry v2', 6);
+    return { ok: true, ready: ready, total: compiled.readiness.length,
+      registry_revision: compiled.registry_revision };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function registryV2ReadBlob_(cfg, expectedInfo, kind) {
