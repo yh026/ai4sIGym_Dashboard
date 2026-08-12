@@ -18,6 +18,7 @@ const {
   compileRegistryV2Sheet,
   configToSheetRows,
   facetsToSheetRows,
+  formatReadiness,
   projectsRowsToProjects,
   projectsToSheetRows,
   registryToSheetRows,
@@ -54,25 +55,74 @@ function removeColumn(rows, header) {
   rows.forEach(row => row.splice(index, 1));
 }
 
-test('Projects exposes fifteen Chinese-labelled fields and one hidden identity field', () => {
+test('Projects exposes fifteen English-labelled fields and one hidden identity field', () => {
   assert.equal(HUMAN_PROJECT_HEADERS.length, 15);
   assert.equal(PROJECTS_SHEET_COLUMNS.length, 16);
   assert.deepEqual(PROJECTS_SHEET_HEADERS, [
-    '状态', '发布检查', '预览', '项目标题', '卡片摘要', '部门', '子主题', '任务类型', '方法', '卡片图片',
-    '图片说明', '受众', '精选', '数据来源', '公开许可', 'demo_id',
+    'Status', 'Readiness', 'Preview URL', 'Project Title', 'Card Summary',
+    'Department', 'Subtopic', 'Task Type', 'Methods', 'Card Image',
+    'Image Alt Text', 'Audience', 'Featured', 'Data Source',
+    'Public Permission', 'demo_id',
   ]);
+  assert.equal(PROJECTS_SHEET_HEADERS.some(header => /\p{Script=Han}/u.test(header)), false);
   assert.equal(PROJECTS_SHEET_COLUMNS.at(-1).hidden, true);
   assert.equal(PROJECTS_SHEET_COLUMNS.at(-1).editable, false);
   assert.equal(PROJECTS_SHEET_COLUMNS.slice(0, -1).every(column => !column.hidden), true);
 
-  const decodedChinese = projectsRowsToProjects(makeTwentyProjectSnapshot().Projects);
-  assert.equal(decodedChinese.projects.length, 20);
-  assert.equal(decodedChinese.identities[0].demo_id, 'demo-soh-battery');
+  const decodedLabels = projectsRowsToProjects(makeTwentyProjectSnapshot().Projects);
+  assert.equal(decodedLabels.projects.length, 20);
+  assert.equal(decodedLabels.identities[0].demo_id, 'demo-soh-battery');
 
   const englishHeaders = makeTwentyProjectSnapshot().Projects;
   englishHeaders[0] = [...HUMAN_PROJECT_HEADERS, 'demo_id'];
   const decodedEnglish = projectsRowsToProjects(englishHeaders);
-  assert.deepEqual(decodedEnglish.projects[0], decodedChinese.projects[0]);
+  assert.deepEqual(decodedEnglish.projects[0], decodedLabels.projects[0]);
+});
+
+test('any CJK text in a visible or hidden v2 Sheet cell fails closed', () => {
+  for (const mutate of [
+    snapshot => {
+      const titleIndex = snapshot.Projects[0].indexOf('Project Title');
+      snapshot.Projects[1][titleIndex] = '\u9879\u76ee';
+    },
+    snapshot => {
+      const labelIndex = snapshot._Taxonomy[0].indexOf('label');
+      snapshot._Taxonomy[1][labelIndex] = '\u5206\u7c7b';
+    },
+    snapshot => {
+      const valueIndex = snapshot._Config[0].indexOf('value');
+      snapshot._Config[1][valueIndex] = '\u7ad9\u70b9';
+    },
+  ]) {
+    const snapshot = makeTwentyProjectSnapshot();
+    mutate(snapshot);
+    assert.throws(
+      () => adaptRegistryV2Sheet(snapshot),
+      error => error instanceof RegistryV2SheetAdapterError
+        && adapterErrorCodes(error).includes('sheet_text_not_english'),
+    );
+  }
+});
+
+test('all Sheet-facing readiness messages are English-only', () => {
+  const values = [
+    formatReadiness({ status: 'not_applicable', issues: [] }, 'Archived'),
+    formatReadiness({ status: 'ready', issues: [] }, 'Draft'),
+    formatReadiness({ status: 'ready', issues: [] }, 'Live'),
+    formatReadiness({ status: 'blocked', issues: [] }, 'Draft'),
+    formatReadiness({
+      status: 'blocked',
+      issues: [{ code: 'card_summary_missing' }, { code: 'file_check_unhealthy' }],
+    }, 'Live'),
+  ];
+  assert.deepEqual(values, [
+    '— Archived',
+    '✅ Preview ready',
+    '✅ Publication ready',
+    '⛔ Action needed: Needs review',
+    '⛔ Action needed: Card Summary, Source File Check',
+  ]);
+  assert.equal(values.some(value => /\p{Script=Han}/u.test(value)), false);
 });
 
 test('the shadow 20-project subset compiles while site metadata lives only in _Config', () => {
@@ -144,7 +194,8 @@ test('derived write-back patches touch only readiness and preview_url with a dem
   });
   assert.deepEqual(readyDraft.writes.map(write => write.field_key), ['readiness', 'preview_url']);
   assert.equal(readyDraft.writes[0].range, "'Projects'!B16");
-  assert.equal(readyDraft.writes[0].value, '✅ 可预览');
+  assert.equal(readyDraft.writes[0].value, '✅ Preview ready');
+  assert.equal(/\p{Script=Han}/u.test(readyDraft.writes[0].value), false);
   assert.equal(
     readyDraft.writes[1].value,
     'https://develop--aisigym.netlify.app/demos/draft-preview-a/',
@@ -227,7 +278,7 @@ test('_Taxonomy active cells must contain an explicit valid boolean', async t =>
   const activeIndex = SHEET_HEADERS._Taxonomy.indexOf('active');
   assert.notEqual(activeIndex, -1);
 
-  for (const value of ['', 'inherit', null]) {
+  for (const value of ['', 'inherit', null, 'true', 'yes', '1', '✓']) {
     await t.test(`active=${String(value)} fails closed`, () => {
       const snapshot = makeTwentyProjectSnapshot();
       snapshot._Taxonomy[1][activeIndex] = value;

@@ -19,13 +19,18 @@ Build Hook, Registry token or Netlify connection and cannot affect Production.
 
 ## Human sheet
 
-`Projects` has exactly 15 visible columns, in this order:
+`Projects` has exactly 15 visible English-labelled columns, in this order:
 
 ```text
-status, readiness, preview_url, title, card_summary,
-department, subtopic, task, methods, card_image, image_alt,
-audience, featured, data_source, public_permission
+Status, Readiness, Preview URL, Project Title, Card Summary,
+Department, Subtopic, Task Type, Methods, Card Image, Image Alt Text,
+Audience, Featured, Data Source, Public Permission
 ```
+
+The corresponding stable machine keys are `status`, `readiness`,
+`preview_url`, `title`, `card_summary`, `department`, `subtopic`, `task`,
+`methods`, `card_image`, `image_alt`, `audience`, `featured`, `data_source`
+and `public_permission`.
 
 - Editors own `status`, `title`, `card_summary`, taxonomy selections, image,
   image alt text, audience, featured and `public_permission`.
@@ -44,11 +49,17 @@ joins this hidden ID to `_Registry`, then supplies the compiler with the row's
 current position. `_Registry.row_number` may be stale during that read and is
 never used as the join key. Title and physical row position are not identities.
 
-The adapter accepts either Chinese display labels (`状态`, `发布检查`, `项目标题`,
-etc.) or the stable English keys in the header row. It emits write-back patches
-only for `readiness` and `preview_url`. Every patch carries a `demo_id` cell
-guard; a writer must re-read that hidden cell immediately before applying the
-patch and re-adapt if the row has moved.
+The adapter accepts either the canonical English display labels or the stable
+English keys in the header row. Non-English headers are not compatibility
+aliases. It emits write-back patches only for `readiness` and `preview_url`.
+Every patch carries a `demo_id` cell guard; a writer must re-read that hidden
+cell immediately before applying the patch and re-adapt if the row has moved.
+
+All visible tabs, hidden tabs, headers, taxonomy labels, dropdown values and
+derived Sheet messages are English-only. Chinese is used only in operator
+conversation and is not part of the Sheet or Registry contract. The adapter
+rejects CJK text in any visible or hidden v2 Sheet cell, and the standalone
+compiler enforces the same boundary for non-Sheet callers.
 
 ## Hidden sheets
 

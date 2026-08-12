@@ -17,6 +17,7 @@ const {
   RegistryV2ValidationError,
   SCHEMA_VERSION,
   compileRegistryV2,
+  normalizeFeatured,
   normalizePublicPermission,
   toRegistryV2,
 } = require('../lib/registry-v2');
@@ -43,6 +44,16 @@ test('the human Projects sheet stays at exactly fifteen simple columns', () => {
   assert.equal(new Set(HUMAN_PROJECT_HEADERS).size, 15);
   assert.equal(HUMAN_PROJECT_HEADERS.includes('demo_id'), false);
   assert.equal(HUMAN_PROJECT_HEADERS.includes('question'), false);
+  assert.deepEqual(HUMAN_PROJECT_COLUMNS.map(column => column.label), [
+    'Status', 'Readiness', 'Preview URL', 'Project Title', 'Card Summary',
+    'Department', 'Subtopic', 'Task Type', 'Methods', 'Card Image',
+    'Image Alt Text', 'Audience', 'Featured', 'Data Source',
+    'Public Permission',
+  ]);
+  assert.equal(
+    HUMAN_PROJECT_COLUMNS.some(column => /\p{Script=Han}/u.test(column.label)),
+    false,
+  );
 
   const byKey = Object.fromEntries(HUMAN_PROJECT_COLUMNS.map(column => [column.key, column]));
   assert.equal(byKey.title.owner, FIELD_OWNERS.EDITOR);
@@ -53,6 +64,21 @@ test('the human Projects sheet stays at exactly fifteen simple columns', () => {
   assert.equal(byKey.data_source.editable, false);
   assert.equal(byKey.public_permission.owner, FIELD_OWNERS.EDITOR);
   assert.equal(byKey.public_permission.editable, true);
+});
+
+test('the direct compiler rejects CJK text anywhere in Registry input', () => {
+  for (const mutate of [
+    data => { findProject(data, 3).title = '\u9879\u76ee'; },
+    data => { data.taxonomy.departments[0].label = '\u7269\u7406'; },
+    data => { data.sourceProjections[1].file_check = 'ok — \u5df2\u68c0\u67e5'; },
+  ]) {
+    const data = copyFixture();
+    mutate(data);
+    const compiled = compileRegistryV2(data);
+    assert.equal(compiled.ok, false);
+    assert.ok(errorCodes(compiled).includes('non_english_text'));
+    assert.throws(() => toRegistryV2(compiled), RegistryV2ValidationError);
+  }
 });
 
 test('hidden table headers and ownership are complete and machine-facing', () => {
@@ -301,6 +327,17 @@ test('first-round card gates require task, method, audience and an explicit feat
       );
     });
   }
+
+  await t.test('featured string aliases never become an approval boolean', () => {
+    for (const value of ['true', 'yes', '1', '✓']) {
+      const data = copyFixture();
+      findProject(data, 3).featured = value;
+      const compiled = compileRegistryV2(data);
+      assert.equal(compiled.ok, false, value);
+      assert.ok(errorCodes(compiled).includes('featured_invalid'), value);
+      assert.equal(normalizeFeatured(value).valid, false, value);
+    }
+  });
 });
 
 test('empty numeric cells use deterministic fallbacks instead of becoming zero', () => {
@@ -358,11 +395,14 @@ test('the compiler requires an explicit boolean for every taxonomy active field'
 
 test('only Public permission passes the Live publication gate', () => {
   assert.equal(normalizePublicPermission('Public'), 'Public');
+  assert.equal(normalizePublicPermission(' public '), 'Public');
   assert.equal(normalizePublicPermission('Preview only'), 'Preview only');
   assert.equal(normalizePublicPermission('Private'), 'Private');
-  assert.equal(normalizePublicPermission('yes'), 'Public');
+  for (const unsafeAlias of [true, 'true', 'yes', 'approved', 'allow', 'preview', '\u5141\u8bb8']) {
+    assert.equal(normalizePublicPermission(unsafeAlias), 'Private', String(unsafeAlias));
+  }
 
-  for (const permission of ['Preview only', 'Private']) {
+  for (const permission of ['Preview only', 'Private', true, 'yes', 'approved', '\u5141\u8bb8']) {
     const data = copyFixture();
     findProject(data, 3).public_permission = permission;
     const compiled = compileRegistryV2(data);
