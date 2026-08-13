@@ -106,6 +106,12 @@ class FakeSheet {
   getRange(row, column, rowCount, columnCount) {
     return new FakeRange(this, row, column, rowCount, columnCount);
   }
+
+  appendRow(values) {
+    this.rows.push(values.slice());
+    this.writeCalls.push({ kind: 'append', values: values.slice() });
+    return this;
+  }
 }
 
 class FakeSpreadsheet {
@@ -117,6 +123,10 @@ class FakeSpreadsheet {
 
   getSheetByName(name) {
     return this.sheets[name] || null;
+  }
+
+  getId() {
+    return 'v2-sheet-id';
   }
 
   toast() {}
@@ -139,6 +149,7 @@ function folder(id, parents = []) {
 
 function driveFile(options) {
   let modified = options.modified || Date.parse('2026-08-12T00:00:00.000Z');
+  const created = options.created || Date.parse('2026-08-11T00:00:00.000Z');
   const bytes = options.bytes || Buffer.from(`<html>${options.name}</html>`);
   return {
     getId: () => options.id || options.name,
@@ -146,6 +157,7 @@ function driveFile(options) {
     getMimeType: () => options.mime,
     getParents: () => iterator(options.parents),
     getLastUpdated: () => new Date(modified),
+    getDateCreated: () => new Date(created),
     getSize: () => options.declaredSize ?? bytes.length,
     getBlob: () => {
       options.onBlob?.();
@@ -170,6 +182,7 @@ function utilities() {
     },
     base64Encode: bytes => Buffer.from(bytes.map(byte => (byte < 0 ? byte + 256 : byte)))
       .toString('base64'),
+    getUuid: () => '11111111-2222-4333-8444-555555555555',
   };
 }
 
@@ -187,6 +200,7 @@ function fixture(script, options = {}) {
   const taxonomyHeader = Array.from(script.REGISTRY_V2_HEADERS._Taxonomy);
   const facetsHeader = Array.from(script.REGISTRY_V2_HEADERS._Facets);
   const assetsHeader = Array.from(script.REGISTRY_V2_HEADERS._Assets);
+  const auditHeader = Array.from(script.REGISTRY_V2_HEADERS._Audit);
   const configHeader = Array.from(script.REGISTRY_V2_HEADERS._Config);
   const cardName = options.cardName ?? '';
   const projectRows = [
@@ -298,24 +312,27 @@ function fixture(script, options = {}) {
     _Taxonomy: taxonomyRows,
     _Facets: facetRows,
     _Assets: assetRows,
+    _Audit: [auditHeader],
     _Config: configRows,
   });
 }
 
 function installServices(script, v2Sheet, files, properties = {}) {
-  const configSheet = new FakeSpreadsheet({
-    Config: [
-      ['key', 'value'],
-      ['access_token', 'secret'],
-      ['drive_folder_url', 'https://drive.google.com/drive/folders/root-folder-12345'],
-      ['preview_branch', 'develop'],
-      ['preview_url', 'https://develop--aisigym.netlify.app/'],
-      ['preview_url_branch', 'develop'],
-      ['production_branch', 'main'],
-    ],
-  });
   const values = {
     AI4S_REGISTRY_V2_SPREADSHEET_ID: 'v2-sheet-id',
+    AI4S_REGISTRY_ACCESS_TOKEN: 'secret',
+    AI4S_DRIVE_FOLDER_URL: 'https://drive.google.com/drive/folders/root-folder-12345',
+    AI4S_NETLIFY_PRODUCTION_BUILD_HOOK:
+      'https://api.netlify.com/build_hooks/production-hook',
+    AI4S_NETLIFY_PREVIEW_BUILD_HOOK:
+      'https://api.netlify.com/build_hooks/preview-hook',
+    AI4S_PRODUCTION_BRANCH: 'main',
+    AI4S_PREVIEW_BRANCH: 'develop',
+    AI4S_PREVIEW_URL: 'https://develop--aisigym.netlify.app/',
+    AI4S_PREVIEW_URL_BRANCH: 'develop',
+    AI4S_AUTO_PUBLISH_TARGET: 'off',
+    AI4S_NETLIFY_SITE_ID: '33333333-4444-4555-8666-777777777777',
+    AI4S_PREVIEW_CALLBACK_SECRET: 'callback-secret-with-at-least-thirty-two-characters',
     ...properties,
   };
   script.PropertiesService = {
@@ -332,11 +349,16 @@ function installServices(script, v2Sheet, files, properties = {}) {
     },
     flush: () => {},
   };
-  script.registrySpreadsheet_ = () => configSheet;
-  script.DriveApp = { getFileById: id => {
-    if (!files[id]) throw new Error('missing fake Drive file');
-    return files[id];
-  } };
+  script.DriveApp = {
+    getFileById: id => {
+      if (!files[id]) throw new Error('missing fake Drive file');
+      return files[id];
+    },
+    getFolderById: id => {
+      if (id !== 'root-folder-12345') throw new Error('missing fake Drive folder');
+      return folder(id);
+    },
+  };
   script.Utilities = utilities();
   script.LockService = {
     getScriptLock: () => ({ tryLock: () => true, releaseLock: () => {} }),
@@ -351,16 +373,17 @@ function standardDrive(options = {}) {
   const otherFolder = folder('other-folder-12345', [root]);
   const files = {
     'page-live-12345': driveFile({
-      name: 'live.html', mime: 'text/html', parents: [demoFolder],
+      id: 'page-live-12345', name: 'live.html', mime: 'text/html', parents: [demoFolder],
       mutateOnBlob: options.mutatePageOnBlob,
     }),
     'page-draft-12345': driveFile({
-      name: 'draft.html', mime: 'text/html', parents: [demoFolder],
+      id: 'page-draft-12345', name: 'draft.html', mime: 'text/html', parents: [demoFolder],
     }),
   };
   if (options.withAsset) {
     files['asset-live-12345'] = driveFile({
-      name: options.assetName || 'card.png', mime: options.assetMime || 'image/png',
+      id: 'asset-live-12345', name: options.assetName || 'card.png',
+      mime: options.assetMime || 'image/png',
       parents: [options.assetOtherParent ? otherFolder : demoFolder],
       bytes: options.assetBytes || Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
       declaredSize: options.assetDeclaredSize,
@@ -371,16 +394,300 @@ function standardDrive(options = {}) {
   return files;
 }
 
-test('Registry v2 is explicit while schema and Preview defaults remain v1', () => {
+test('Registry v2 is the sole runtime schema and the legacy resolver aliases V2 only', () => {
   const script = loadAppsScript();
-  script.PropertiesService = {
-    getScriptProperties: () => ({ getProperty: () => null }),
+  const sheet = fixture(script);
+  installServices(script, sheet, standardDrive(), {
+    AI4S_REGISTRY_SPREADSHEET_ID: 'archived-v1-must-not-open',
+  });
+  assert.deepEqual({ ok: script.registrySchema_('').ok, value: script.registrySchema_('').value },
+    { ok: true, value: 2 });
+  assert.equal(script.registrySchema_('1').ok, false);
+  assert.equal(script.previewRegistrySchema_(), 2);
+  assert.equal(script.registrySpreadsheet_(), sheet);
+});
+
+test('setup refuses a V1-shaped active workbook before properties, triggers, or tabs change', () => {
+  const script = loadAppsScript();
+  const legacy = new FakeSpreadsheet({
+    Demos: [['title', 'file_id']],
+    Config: [['key', 'value']],
+    Log: [['timestamp', 'event', 'details']],
+  });
+  const originalNames = Object.keys(legacy.sheets);
+  let propertyWrites = 0;
+  script.SpreadsheetApp = {
+    getActive: () => legacy,
+    getUi: () => { throw new Error('menu must not be installed'); },
   };
-  assert.equal(script.registrySchema_('').value, 1);
-  assert.equal(script.registrySchema_('1').value, 1);
-  assert.equal(script.registrySchema_('2').value, 2);
-  assert.equal(script.registrySchema_('3').ok, false);
-  assert.equal(script.previewRegistrySchema_(), 1);
+  script.PropertiesService = {
+    getScriptProperties: () => ({
+      getProperty: () => null,
+      setProperty: () => { propertyWrites += 1; },
+    }),
+  };
+  script.ScriptApp = {
+    getProjectTriggers: () => { throw new Error('trigger must not be inspected'); },
+  };
+
+  assert.throws(() => script.setup(), /missing sheet Projects/);
+  assert.equal(propertyWrites, 0);
+  assert.deepEqual(Object.keys(legacy.sheets), originalNames);
+});
+
+test('setup commissions only V2 and repeated setup leaves one hourly sync trigger', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script);
+  const properties = installServices(script, sheet, standardDrive());
+  const menus = [];
+  const ui = { createMenu(name) {
+    const menu = { name, items: [],
+      addItem(label, handler) { this.items.push({ label, handler }); return this; },
+      addSeparator() { this.items.push({ separator: true }); return this; },
+      addToUi() { menus.push(this); return this; },
+    };
+    return menu;
+  } };
+  script.SpreadsheetApp.getActive = () => sheet;
+  script.SpreadsheetApp.getUi = () => ui;
+  const projects = sheet.getSheetByName('Projects');
+  script.registryV2SheetsMetadata_ = id => {
+    assert.equal(id, 'v2-sheet-id');
+    return {
+      Projects: { sheet_id: 1, table_id: 'projects-table-id',
+        table_name: 'ProjectsCatalogV2', table_count: 1,
+        table_range: { startRowIndex: 0, startColumnIndex: 0,
+          endRowIndex: projects.getLastRow(), endColumnIndex: projects.getLastColumn() } },
+      _Registry: { sheet_id: 2, table_id: '', table_count: 0 },
+      _Facets: { sheet_id: 3, table_id: '', table_count: 0 },
+      _Assets: { sheet_id: 4, table_id: '', table_count: 0 },
+      _Audit: { sheet_id: 5, table_id: '', table_count: 0 },
+    };
+  };
+  let triggers = [];
+  let deleted = 0;
+  script.ScriptApp = {
+    getProjectTriggers: () => triggers.slice(),
+    deleteTrigger(trigger) {
+      deleted += 1;
+      triggers = triggers.filter(candidate => candidate !== trigger);
+    },
+    newTrigger(handler) {
+      const builder = {
+        timeBased() { return this; },
+        everyHours(hours) { assert.equal(hours, 1); return this; },
+        create() {
+          const trigger = { getHandlerFunction: () => handler };
+          triggers.push(trigger);
+          return trigger;
+        },
+      };
+      return builder;
+    },
+  };
+
+  script.setup();
+  script.setup();
+
+  assert.equal(properties.AI4S_REGISTRY_V2_SPREADSHEET_ID, 'v2-sheet-id');
+  assert.equal(properties.AI4S_REGISTRY_SPREADSHEET_ID, undefined,
+    'setup must not restore a V1 workbook property');
+  assert.equal(triggers.length, 1);
+  assert.equal(triggers[0].getHandlerFunction(), 'syncDrive');
+  assert.equal(deleted, 1);
+  assert.equal(menus.length, 2);
+  assert.deepEqual(Object.keys(sheet.sheets).sort(), [
+    'Projects', '_Assets', '_Audit', '_Config', '_Facets', '_Registry', '_Taxonomy',
+  ].sort());
+  assert.equal(sheet.getSheetByName('_Audit').rows.length, 3);
+});
+
+test('setup validates commissioning properties and Drive access before any control-plane write', async t => {
+  const cases = [
+    ['missing callback secret', values => {
+      delete values.AI4S_PREVIEW_CALLBACK_SECRET;
+    }, /AI4S_PREVIEW_CALLBACK_SECRET/],
+    ['short callback secret', values => {
+      values.AI4S_PREVIEW_CALLBACK_SECRET = 'too-short';
+    }, /at least 32 characters/],
+    ['invalid Netlify site id', values => {
+      values.AI4S_NETLIFY_SITE_ID = 'not-a-site-id';
+    }, /valid Netlify Site ID/],
+    ['unreadable Drive root', () => {}, /accessible Drive folder/],
+  ];
+  for (const [name, mutate, expected] of cases) {
+    await t.test(name, () => {
+      const script = loadAppsScript();
+      const sheet = fixture(script);
+      const values = installServices(script, sheet, standardDrive());
+      mutate(values);
+      let propertyWrites = 0;
+      script.PropertiesService = {
+        getScriptProperties: () => ({
+          getProperty: key => values[key] ?? null,
+          setProperty(key, value) {
+            propertyWrites += 1;
+            values[key] = String(value);
+          },
+        }),
+      };
+      script.SpreadsheetApp.getActive = () => sheet;
+      const projects = sheet.getSheetByName('Projects');
+      script.registryV2SheetsMetadata_ = () => ({
+        Projects: { sheet_id: 1, table_id: 'projects-table-id',
+          table_name: 'ProjectsCatalogV2', table_count: 1,
+          table_range: { startRowIndex: 0, startColumnIndex: 0,
+            endRowIndex: projects.getLastRow(), endColumnIndex: projects.getLastColumn() } },
+        _Registry: { sheet_id: 2, table_id: '', table_count: 0 },
+        _Facets: { sheet_id: 3, table_id: '', table_count: 0 },
+        _Assets: { sheet_id: 4, table_id: '', table_count: 0 },
+        _Audit: { sheet_id: 5, table_id: '', table_count: 0 },
+      });
+      if (name === 'unreadable Drive root') {
+        script.DriveApp.getFolderById = () => { throw new Error('HTTP 403'); };
+      }
+      let triggerReads = 0;
+      script.ScriptApp = {
+        getProjectTriggers() { triggerReads += 1; return []; },
+      };
+
+      assert.throws(() => script.setup(), expected);
+      assert.equal(propertyWrites, 0);
+      assert.equal(triggerReads, 0);
+      assert.equal(values.AI4S_REGISTRY_V2_SPREADSHEET_ID, 'v2-sheet-id',
+        'the pre-existing stable ID is unchanged');
+      assert.equal(sheet.getSheetByName('_Audit').rows.length, 1,
+        'failed commissioning does not append an audit event');
+    });
+  }
+});
+
+test('onOpen exposes the V2 owner workflow and no archived V1 menu actions', () => {
+  const script = loadAppsScript();
+  let menu;
+  script.SpreadsheetApp = { getUi: () => ({ createMenu(name) {
+    menu = { name, items: [],
+      addItem(label, handler) { this.items.push({ label, handler }); return this; },
+      addSeparator() { return this; },
+      addToUi() { return this; },
+    };
+    return menu;
+  } }) };
+
+  script.onOpen();
+
+  assert.equal(menu.name, 'AI4S dashboard');
+  assert.deepEqual(menu.items.map(item => item.handler), [
+    'syncDriveFromMenu', 'refreshRegistryV2Status', 'publishPreview',
+    'showPreviewPublishStatus', 'showPreviewSite', 'publishProduction',
+    'showBuildUrl', 'setup', 'showHelp',
+  ]);
+  assert.equal(menu.items.some(item => [
+    'showCardMapping', 'showMetaTemplate', 'publishSite',
+  ].includes(item.handler)), false);
+});
+
+test('V2 operational config keeps public metadata in _Config and overrides controls from properties', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script);
+  const config = sheet.getSheetByName('_Config');
+  const header = config.rows[0];
+  Object.keys(script.REGISTRY_V2_OPERATION_PROPERTIES).forEach(key => {
+    config.rows.push(row(header, {
+      key, value: `sheet-${key}-must-not-win`, visibility: 'internal',
+    }));
+  });
+  installServices(script, sheet, standardDrive());
+  const getSheetByName = sheet.getSheetByName.bind(sheet);
+  sheet.getSheetByName = name => {
+    if (['Demos', 'Config', 'Log'].includes(name)) {
+      throw new Error(`archived V1 sheet ${name} must not be read`);
+    }
+    return getSheetByName(name);
+  };
+
+  const cfg = script.registryV2OperationalConfig_(sheet);
+
+  assert.equal(cfg.site_title, 'Registry v2');
+  assert.equal(cfg.access_token, 'secret');
+  assert.equal(cfg.drive_folder_url,
+    'https://drive.google.com/drive/folders/root-folder-12345');
+  assert.equal(cfg.netlify_build_hook,
+    'https://api.netlify.com/build_hooks/production-hook');
+  assert.equal(cfg.netlify_preview_build_hook,
+    'https://api.netlify.com/build_hooks/preview-hook');
+  assert.equal(cfg.production_branch, 'main');
+  assert.equal(cfg.preview_branch, 'develop');
+  assert.equal(cfg.auto_publish_target, 'off');
+  assert.equal(cfg.netlify_site_id, '33333333-4444-4555-8666-777777777777');
+  assert.equal(cfg.preview_callback_secret,
+    'callback-secret-with-at-least-thirty-two-characters');
+});
+
+test('syncDriveUnlocked reconciles V2 items directly with no V1 row map', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script);
+  const before = { captured: 'v2-state' };
+  const root = { id: 'root-folder-12345' };
+  const items = [{ file: { getId: () => 'page-new-12345' } }];
+  const cfg = {
+    drive_folder_url: 'https://drive.google.com/drive/folders/root-folder-12345',
+  };
+  script.registryV2Spreadsheet_ = () => sheet;
+  script.registryV2WorkbookState_ = value => {
+    assert.equal(value, sheet);
+    return before;
+  };
+  script.registryV2OperationalConfig_ = (value, state) => {
+    assert.equal(value, sheet);
+    assert.equal(state, before);
+    return cfg;
+  };
+  script.registrySpreadsheet_ = () => { throw new Error('V1 resolver must not run'); };
+  script.readConfig_ = () => { throw new Error('V1 Config must not run'); };
+  script.DriveApp = { getFolderById(id) {
+    assert.equal(id, 'root-folder-12345');
+    return root;
+  } };
+  script.collectDemos_ = value => {
+    assert.equal(value, root);
+    return items;
+  };
+  script.registryV2AutoIngest_ = function (context, receivedCfg, receivedItems) {
+    assert.equal(arguments.length, 3, 'there is no fourth v1ByFileId argument');
+    assert.equal(context.enabled, true);
+    assert.equal(context.spreadsheet, sheet);
+    assert.equal(context.spreadsheet_id, 'v2-sheet-id');
+    assert.equal(context.before, before);
+    assert.equal(receivedCfg, cfg);
+    assert.equal(receivedItems, items);
+    return { added: 1, updated: 0, checked: 1, skipped: 0, missing: 0 };
+  };
+  script.logEvent_ = () => {};
+
+  const result = script.syncDriveUnlocked_();
+
+  assert.equal(result.nNew, 1);
+  assert.equal(result.registryV2.checked, 1);
+});
+
+test('audit logging writes the nine-column V2 record and removes CJK text', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script);
+  installServices(script, sheet, standardDrive());
+
+  script.logEvent_('sync-error 中文', 'Drive scan failed 中文');
+
+  const audit = sheet.getSheetByName('_Audit');
+  assert.equal(audit.rows.length, 2);
+  const record = audit.rows[1];
+  assert.equal(record.length, 9);
+  assert.equal(record[0], '11111111-2222-4333-8444-555555555555');
+  assert.equal(record[2], 'apps_script');
+  assert.match(record[3], /^sync-error \[non-English text omitted\]$/);
+  assert.equal(record[7], 'error');
+  assert.match(record[8], /^Drive scan failed \[non-English text omitted\]$/);
+  assert.doesNotMatch(record.join(' '), /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u);
 });
 
 test('v2 manifest reads all six tables, keeps default images null, and applies audience', () => {
@@ -389,7 +696,7 @@ test('v2 manifest reads all six tables, keeps default images null, and applies a
   installServices(script, sheet, standardDrive());
 
   const production = script.doGet({ parameter: {
-    token: 'secret', schema: '2', action: 'manifest', audience: 'production',
+    token: 'secret', action: 'manifest', audience: 'production',
   } });
   assert.equal(production.ok, true);
   assert.equal(production.schema_version, 2);
@@ -412,6 +719,13 @@ test('v2 manifest reads all six tables, keeps default images null, and applies a
   } });
   assert.deepEqual(Array.from(preview.demos, demo => demo.demo_id), ['demo-live', 'demo-draft']);
   assert.notEqual(preview.registry_revision, production.registry_revision);
+
+  const archived = script.doGet({ parameter: {
+    token: 'secret', schema: '1', action: 'manifest', audience: 'production',
+  } });
+  assert.deepEqual({ ok: archived.ok, error: archived.error }, {
+    ok: false, error: 'schema 1 is archived; schema must be 2',
+  });
 });
 
 test('v2 human taxonomy must match _Registry and _Facets before serving', async t => {
@@ -560,7 +874,7 @@ test('manual Registry v2 status refresh writes exactly three derived columns by 
   const script = loadAppsScript();
   const sheet = fixture(script);
   installServices(script, sheet, standardDrive());
-  const cfg = script.readConfig_(script.registrySpreadsheet_());
+  const cfg = script.registryV2OperationalConfig_(script.registrySpreadsheet_());
   const revisionBefore = script.registryV2Snapshot_(sheet, cfg, 'preview').registry_revision;
 
   const result = script.refreshRegistryV2Status();
@@ -872,16 +1186,15 @@ test('v2 card images fail closed for external, parent, MIME, size, and read race
   });
 });
 
-test('the explicit Preview schema switch binds Hook state to the v2 revision', () => {
+test('Preview always binds Hook state to V2 and a legacy schema property cannot downgrade it', () => {
   const script = loadAppsScript();
-  const revisionV1 = `sha256:${'1'.repeat(64)}`;
   const revisionV2 = `sha256:${'2'.repeat(64)}`;
   script.PropertiesService = {
     getScriptProperties: () => ({
-      getProperty: key => key === 'AI4S_PREVIEW_REGISTRY_SCHEMA' ? '2' : null,
+      getProperty: key => key === 'AI4S_PREVIEW_REGISTRY_SCHEMA' ? '1' : null,
     }),
   };
-  script.registrySnapshot_ = () => ({ registry_revision: revisionV1 });
+  script.registrySnapshot_ = () => { throw new Error('archived V1 must not be read'); };
   script.registryV2Spreadsheet_ = () => ({});
   script.registryV2Snapshot_ = () => ({ registry_revision: revisionV2 });
   script.readPreviewPublishState_ = () => script.emptyPreviewPublishState_();
@@ -893,14 +1206,6 @@ test('the explicit Preview schema switch binds Hook state to the v2 revision', (
   assert.equal(run.snapshot.registry_revision, revisionV2);
   assert.equal(run.state.desired, revisionV2);
 });
-
-function v1Row(script, values = {}) {
-  const rowValues = Array(Number(script.N_COLS)).fill('');
-  Object.entries(values).forEach(([key, value]) => {
-    rowValues[Number(script.COLS[key]) - 1] = value;
-  });
-  return rowValues;
-}
 
 function autoItem(file, folderName, meta = {}) {
   return {
@@ -918,6 +1223,13 @@ function autoItem(file, folderName, meta = {}) {
       notes: [],
     },
   };
+}
+
+function existingItems(files) {
+  return [
+    autoItem(files['page-live-12345'], 'live'),
+    autoItem(files['page-draft-12345'], 'draft'),
+  ];
 }
 
 function installAutoCandidate(script, sheet, options = {}) {
@@ -938,23 +1250,114 @@ function installAutoCandidate(script, sheet, options = {}) {
     audience: 'Not a supported audience',
   };
   const item = autoItem(file, options.folderName ?? 'new-demo', meta);
-  const v1 = v1Row(script, {
-    TITLE: meta.title || 'New demo', DESCRIPTION: meta.description || '',
-    AUDIENCE: meta.audience || '', DATA_SOURCE: meta.data_source || '',
-    TASK_TYPE: meta.task_type || '', METHOD: meta.method || '',
-    FILE_ID: file.getId(), FILE_NAME: file.getName(),
-    DATE_ADDED: new Date('2026-08-13T00:00:00.000Z'), FILE_CHECK: 'ok',
-  });
-  return { files, file, item, cfg, v1ByFileId: {
-    'page-live-12345': v1Row(script, {
-      FILE_ID: 'page-live-12345', FILE_CHECK: 'check assets: legacy local file',
-    }),
-    'page-draft-12345': v1Row(script, {
-      FILE_ID: 'page-draft-12345', FILE_CHECK: 'ok',
-    }),
-    [file.getId()]: v1,
-  } };
+  const registry = sheet.getSheetByName('_Registry');
+  const fileCheckColumn = registry.rows[0].indexOf('file_check');
+  registry.rows[1][fileCheckColumn] = 'ok';
+  return {
+    files, file, item, cfg,
+    existingItems: existingItems(files),
+    items: [...existingItems(files), item],
+  };
 }
+
+function selectedCardScenario(script, options = {}) {
+  const sheet = fixture(script);
+  const files = standardDrive();
+  installServices(script, sheet, files);
+  const projects = sheet.getSheetByName('Projects');
+  const cardColumn = projects.rows[0].indexOf('Card Image');
+  const altColumn = projects.rows[0].indexOf('Image Alt Text');
+  projects.rows[1][cardColumn] = options.name || 'card.png';
+  projects.rows[1][altColumn] = 'Selected Drive card.';
+  const parent = files['page-live-12345'].getParents().next();
+  const card = driveFile({
+    id: options.id || 'asset-live-first-12345',
+    name: options.name || 'card.png',
+    mime: options.mime || 'image/png',
+    parents: [parent],
+    modified: options.modified || Date.parse('2026-08-13T01:00:00.000Z'),
+    bytes: Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+  });
+  files[card.getId()] = card;
+  const items = existingItems(files);
+  items[0].imageFiles = [card];
+  items[1].imageFiles = [];
+  const cfg = {
+    drive_folder_url: 'https://drive.google.com/drive/folders/root-folder-12345',
+  };
+  const before = script.registryV2WorkbookState_(sheet);
+  const plan = script.registryV2AutoPlan_(before, cfg, items);
+  return { sheet, files, card, items, cfg, before, plan };
+}
+
+test('Drive asset reconciliation adds a selected direct-child card in the same atomic batch', () => {
+  const script = loadAppsScript();
+  const scenario = selectedCardScenario(script);
+  const assets = scenario.plan.target._Assets.values;
+  const ah = assets[0];
+  assert.equal(assets.length, 2);
+  assert.equal(assets[1][ah.indexOf('asset_id')], 'asset-live-project-card');
+  assert.equal(assets[1][ah.indexOf('drive_file_id')], 'asset-live-first-12345');
+  assert.equal(assets[1][ah.indexOf('source_type')], 'drive');
+  assert.equal(assets[1][ah.indexOf('external_url')], '');
+  assert.equal(assets[1][ah.indexOf('public_path')], 'assets/cards/live-project.png');
+  const registry = scenario.plan.target._Registry.values;
+  assert.equal(registry[1][registry[0].indexOf('card_asset_id')], 'asset-live-project-card');
+
+  let payload;
+  script.Sheets = { Spreadsheets: { batchUpdate: body => { payload = body; } } };
+  script.registryV2BatchWrite_('v2-sheet-id', scenario.before, scenario.plan, {
+    Projects: { sheet_id: 1, table_id: 'ProjectsCatalogV2' },
+    _Registry: { sheet_id: 2, table_id: '' },
+    _Facets: { sheet_id: 3, table_id: '' },
+    _Assets: { sheet_id: 4, table_id: '' },
+  });
+  assert.ok(payload.requests.some(request => request.appendCells?.sheetId === 4),
+    JSON.stringify(payload.requests));
+  assert.ok(payload.requests.some(request => request.updateCells?.range.sheetId === 2
+    && request.updateCells.range.startColumnIndex === registry[0].indexOf('card_asset_id')),
+  JSON.stringify(payload.requests));
+});
+
+test('Drive asset reconciliation follows a same-name replacement to its new Drive ID', () => {
+  const script = loadAppsScript();
+  const scenario = selectedCardScenario(script);
+  const parent = scenario.files['page-live-12345'].getParents().next();
+  const replacement = driveFile({
+    id: 'asset-live-replacement-67890', name: 'card.png', mime: 'image/png',
+    parents: [parent], modified: Date.parse('2026-08-13T02:00:00.000Z'),
+    bytes: Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+  });
+  scenario.files[replacement.getId()] = replacement;
+  const items = existingItems(scenario.files);
+  items[0].imageFiles = [replacement];
+  items[1].imageFiles = [];
+  const next = script.registryV2AutoPlan_(scenario.plan.target, scenario.cfg, items);
+  const assets = next.target._Assets.values;
+  const ah = assets[0];
+  assert.equal(assets.length, 2);
+  assert.equal(assets[1][ah.indexOf('asset_id')], 'asset-live-project-card',
+    'the public asset identity remains stable');
+  assert.equal(assets[1][ah.indexOf('drive_file_id')], replacement.getId());
+  assert.equal(assets.flat().includes(scenario.card.getId()), false);
+  assert.equal(assets[1][ah.indexOf('source_modified_at')], '2026-08-13T02:00:00.000Z');
+});
+
+test('clearing Card Image removes the _Assets row and _Registry link', () => {
+  const script = loadAppsScript();
+  const scenario = selectedCardScenario(script);
+  const projects = scenario.plan.target.Projects.values;
+  projects[1][projects[0].indexOf('Card Image')] = '';
+  projects[1][projects[0].indexOf('Image Alt Text')] = '';
+  const next = script.registryV2AutoPlan_(
+    scenario.plan.target, scenario.cfg, scenario.items,
+  );
+  assert.equal(next.target._Assets.rows, 1);
+  assert.equal(next.target._Assets.values.length, 1);
+  const registry = next.target._Registry.values;
+  assert.equal(registry[1][registry[0].indexOf('card_asset_id')], '');
+  assert.equal(next.compiled.demos[0].card_asset, null);
+});
 
 test('Drive auto-ingest creates one blocked v2 Draft pair and is idempotent by file_id', () => {
   const script = loadAppsScript();
@@ -963,7 +1366,7 @@ test('Drive auto-ingest creates one blocked v2 Draft pair and is idempotent by f
   const before = script.registryV2WorkbookState_(sheet);
   const baseline = script.registryV2CompileState_(sheet, candidate.cfg, 'preview', before);
   const plan = script.registryV2AutoPlan_(
-    before, candidate.cfg, [candidate.item], candidate.v1ByFileId,
+    before, candidate.cfg, candidate.items,
   );
 
   assert.equal(plan.added, 1);
@@ -994,7 +1397,7 @@ test('Drive auto-ingest creates one blocked v2 Draft pair and is idempotent by f
     'a blocked Draft is not build-facing and cannot request a deploy');
 
   const again = script.registryV2AutoPlan_(
-    plan.target, candidate.cfg, [candidate.item], candidate.v1ByFileId,
+    plan.target, candidate.cfg, candidate.items,
   );
   assert.equal(again.added, 0);
   assert.equal(again.target.Projects.rows, plan.target.Projects.rows);
@@ -1013,7 +1416,7 @@ test('v2 auto-ingest projects exact taxonomy and leaves unknown initial taxonomy
   } });
   const exactPlan = exactScript.registryV2AutoPlan_(
     exactScript.registryV2WorkbookState_(exactSheet), exact.cfg,
-    [exact.item], exact.v1ByFileId,
+    exact.items,
   );
   const registryHeader = exactPlan.target._Registry.values[0];
   const registry = exactPlan.target._Registry.values.at(-1);
@@ -1031,7 +1434,7 @@ test('v2 auto-ingest projects exact taxonomy and leaves unknown initial taxonomy
   } });
   const badPlan = badScript.registryV2AutoPlan_(
     badScript.registryV2WorkbookState_(badSheet), bad.cfg,
-    [bad.item], bad.v1ByFileId,
+    bad.items,
   );
   const badHeader = badPlan.target.Projects.values[0];
   const badProject = badPlan.target.Projects.values.at(-1);
@@ -1049,7 +1452,7 @@ test('v2 auto-ingest sanitises CJK initial copy without weakening existing Engli
   } });
   const plan = script.registryV2AutoPlan_(
     script.registryV2WorkbookState_(sheet), candidate.cfg,
-    [candidate.item], candidate.v1ByFileId,
+    candidate.items,
   );
   const header = plan.target.Projects.values[0];
   const project = plan.target.Projects.values.at(-1);
@@ -1075,15 +1478,9 @@ test('v2 auto-ingest excludes loose HTML and skips identity conflicts without re
   });
   const ambiguous = autoItem(ambiguousFile, 'ambiguous-demo', { title: 'Ambiguous' });
   ambiguous.notes = ['primary page unclear (first.html, second.html) — using first.html'];
-  loose.v1ByFileId[conflictFile.getId()] = v1Row(script, {
-    TITLE: 'Replacement', FILE_ID: conflictFile.getId(), FILE_CHECK: 'ok',
-  });
-  loose.v1ByFileId[ambiguousFile.getId()] = v1Row(script, {
-    TITLE: 'Ambiguous', FILE_ID: ambiguousFile.getId(), FILE_CHECK: 'ok',
-  });
   const before = script.registryV2WorkbookState_(sheet);
   const plan = script.registryV2AutoPlan_(
-    before, loose.cfg, [loose.item, conflict, ambiguous], loose.v1ByFileId,
+    before, loose.cfg, [...loose.existingItems, loose.item, conflict, ambiguous],
   );
   assert.equal(plan.added, 0);
   assert.equal(plan.skipped, 2);
@@ -1105,10 +1502,9 @@ test('Projects edits project to machine tables while missing files remain record
   projects.rows[1][titleColumn] = 'Human-edited title';
   projects.rows[1][methodsColumn] = 'UMAP';
   const cfg = { drive_folder_url: 'https://drive.google.com/drive/folders/root-folder-12345' };
-  const live = v1Row(script, { FILE_ID: 'page-live-12345', FILE_CHECK: 'ok' });
+  const live = autoItem(files['page-live-12345'], 'live');
   const plan = script.registryV2AutoPlan_(
-    script.registryV2WorkbookState_(sheet), cfg, [],
-    { 'page-live-12345': live },
+    script.registryV2WorkbookState_(sheet), cfg, [live],
   );
   const rh = plan.target._Registry.values[0];
   assert.equal(plan.target._Registry.values[1][rh.indexOf('title')], 'Human-edited title');
@@ -1118,10 +1514,7 @@ test('Projects edits project to machine tables while missing files remain record
   assert.ok(plan.target._Facets.values.some(row => row[0] === 'demo-live'
     && row[1] === 'method' && row[2] === 'umap'));
 
-  const restored = script.registryV2AutoPlan_(plan.target, cfg, [], {
-    'page-live-12345': v1Row(script, { FILE_ID: 'page-live-12345', FILE_CHECK: 'ok' }),
-    'page-draft-12345': v1Row(script, { FILE_ID: 'page-draft-12345', FILE_CHECK: 'ok' }),
-  });
+  const restored = script.registryV2AutoPlan_(plan.target, cfg, existingItems(files));
   assert.equal(restored.target._Registry.values[2][rh.indexOf('file_check')], 'ok');
   assert.equal(restored.target._Registry.values.length, 3,
     'restoring a file updates its machine check without replacing its identity');
@@ -1147,11 +1540,12 @@ test('v2 guarded auto-ingest detects a concurrent human edit before its first wr
       table_range: { startRowIndex: 0, startColumnIndex: 0, endRowIndex: 3, endColumnIndex: 16 } },
     _Registry: { sheet_id: 2, table_id: '' },
     _Facets: { sheet_id: 3, table_id: '' },
+    _Assets: { sheet_id: 4, table_id: '' },
   });
   script.registryV2BatchWrite_ = () => { writes += 1; };
   assert.throws(
     () => script.registryV2AutoIngest_(
-      context, candidate.cfg, [candidate.item], candidate.v1ByFileId,
+      context, candidate.cfg, candidate.items,
     ),
     /changed during Drive scan/,
   );
@@ -1173,11 +1567,12 @@ test('v2 guarded auto-ingest reports failure when post-write state is not exact'
       table_range: { startRowIndex: 0, startColumnIndex: 0, endRowIndex: 3, endColumnIndex: 16 } },
     _Registry: { sheet_id: 2, table_id: '' },
     _Facets: { sheet_id: 3, table_id: '' },
+    _Assets: { sheet_id: 4, table_id: '' },
   });
   script.registryV2BatchWrite_ = () => {};
   assert.throws(
     () => script.registryV2AutoIngest_(
-      context, candidate.cfg, [candidate.item], candidate.v1ByFileId,
+      context, candidate.cfg, candidate.items,
     ),
     /could not verify the completed write/,
   );
@@ -1202,7 +1597,7 @@ test('v2 guarded auto-ingest detects a concurrent formula before its first write
   script.registryV2BatchWrite_ = () => { writes += 1; };
   assert.throws(
     () => script.registryV2AutoIngest_(
-      context, candidate.cfg, [candidate.item], candidate.v1ByFileId,
+      context, candidate.cfg, candidate.items,
     ),
     /changed during Drive scan/,
   );
@@ -1222,6 +1617,7 @@ test('v2 guarded auto-ingest verifies success from a freshly opened spreadsheet'
       table_range: { startRowIndex: 0, startColumnIndex: 0, endRowIndex: 3, endColumnIndex: 16 } },
     _Registry: { sheet_id: 2, table_id: '' },
     _Facets: { sheet_id: 3, table_id: '' },
+    _Assets: { sheet_id: 4, table_id: '' },
   });
   let target;
   script.registryV2BatchWrite_ = (id, before, plan) => { target = plan.target; };
@@ -1241,7 +1637,7 @@ test('v2 guarded auto-ingest verifies success from a freshly opened spreadsheet'
     return fresh;
   };
   const result = script.registryV2AutoIngest_(
-    context, candidate.cfg, [candidate.item], candidate.v1ByFileId,
+    context, candidate.cfg, candidate.items,
   );
   assert.equal(result.added, 1);
   assert.equal(freshOpens, 1);
@@ -1259,6 +1655,8 @@ test('v2 native table metadata uses the Sheets advanced service', () => {
       }] },
       { properties: { sheetId: 2, title: '_Registry' } },
       { properties: { sheetId: 3, title: '_Facets' }, tables: [] },
+      { properties: { sheetId: 4, title: '_Assets' }, tables: [] },
+      { properties: { sheetId: 5, title: '_Audit' }, tables: [] },
     ] };
   } } };
   const metadata = script.registryV2SheetsMetadata_('v2-sheet-id');
@@ -1268,6 +1666,8 @@ test('v2 native table metadata uses the Sheets advanced service', () => {
   assert.equal(metadata.Projects.table_id, 'projects-table-id');
   assert.equal(metadata._Registry.sheet_id, 2);
   assert.equal(metadata._Facets.table_count, 0);
+  assert.equal(metadata._Assets.table_count, 0);
+  assert.equal(metadata._Audit.table_count, 0);
 });
 
 test('v2 batch append addresses Projects by native tableId and machines by sheetId', () => {
@@ -1276,7 +1676,7 @@ test('v2 batch append addresses Projects by native tableId and machines by sheet
   const candidate = installAutoCandidate(script, sheet);
   const before = script.registryV2WorkbookState_(sheet);
   const plan = script.registryV2AutoPlan_(
-    before, candidate.cfg, [candidate.item], candidate.v1ByFileId,
+    before, candidate.cfg, candidate.items,
   );
   let payload;
   script.Sheets = { Spreadsheets: { batchUpdate: (body, spreadsheetId) => {
@@ -1287,6 +1687,7 @@ test('v2 batch append addresses Projects by native tableId and machines by sheet
     Projects: { sheet_id: 1, table_id: 'ProjectsCatalogV2' },
     _Registry: { sheet_id: 2, table_id: '' },
     _Facets: { sheet_id: 3, table_id: '' },
+    _Assets: { sheet_id: 4, table_id: '' },
   });
   const appends = payload.requests.map(request => request.appendCells).filter(Boolean);
   assert.ok(appends.some(request => request.tableId === 'ProjectsCatalogV2'));
@@ -1296,17 +1697,15 @@ test('v2 batch append addresses Projects by native tableId and machines by sheet
 test('v2 batch clears stale _Facets formulas even when their display value matches', () => {
   const script = loadAppsScript();
   const sheet = fixture(script);
-  installServices(script, sheet, standardDrive());
+  const files = standardDrive();
+  installServices(script, sheet, files);
   const facets = sheet.getSheetByName('_Facets');
   facets.formulas['2:3'] = '="classification"';
   facets.rows[1][2] = 'classification';
   const before = script.registryV2WorkbookState_(sheet);
   const plan = script.registryV2AutoPlan_(before, {
     drive_folder_url: 'https://drive.google.com/drive/folders/root-folder-12345',
-  }, [], {
-    'page-live-12345': v1Row(script, { FILE_ID: 'page-live-12345', FILE_CHECK: 'check assets: legacy local file' }),
-    'page-draft-12345': v1Row(script, { FILE_ID: 'page-draft-12345', FILE_CHECK: 'ok' }),
-  });
+  }, existingItems(files));
   let payload;
   script.Sheets = { Spreadsheets: { batchUpdate: (body, spreadsheetId) => {
     assert.equal(spreadsheetId, 'v2-sheet-id');
@@ -1316,6 +1715,7 @@ test('v2 batch clears stale _Facets formulas even when their display value match
     Projects: { sheet_id: 1, table_id: 'ProjectsCatalogV2' },
     _Registry: { sheet_id: 2, table_id: '' },
     _Facets: { sheet_id: 3, table_id: '' },
+    _Assets: { sheet_id: 4, table_id: '' },
   });
   const cleared = payload.requests.filter(request => request.updateCells
     && request.updateCells.range.sheetId === 3);
@@ -1333,8 +1733,8 @@ test('a v2 sync error disables both automatic Preview requests and retries', () 
   };
   script.SpreadsheetApp = { flush: () => {} };
   script.syncDriveUnlocked_ = () => ({ error: 'Registry v2 auto-ingest failed' });
-  script.registrySpreadsheet_ = () => ({});
-  script.readConfig_ = () => ({});
+  script.registryV2Spreadsheet_ = () => ({});
+  script.registryV2OperationalConfig_ = () => ({});
   script.logEvent_ = () => {};
   let observed;
   script.maintainPreviewPublish_ = (ss, cfg, options) => {

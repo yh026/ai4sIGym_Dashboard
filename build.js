@@ -1162,9 +1162,10 @@ function scopedRegistryUrl(base, action, policy, id, registryRevision) {
   url.searchParams.delete('id');
   url.searchParams.delete('registry_revision');
   url.searchParams.set('audience', policy.audience);
-  // Only the stable develop Branch Deploy receives Registry v2. Production,
-  // PR Deploy Previews and local fallbacks stay on the proven v1 contract.
-  url.searchParams.set('schema', policy.audience === 'preview' ? '2' : '1');
+  // Registry v2 is the sole content source after cutover. Audience still
+  // separates Production (Live only) from the stable develop Preview
+  // (Live + Draft), but no build context may reopen the archived V1 schema.
+  url.searchParams.set('schema', '2');
   url.searchParams.set('action', action);
   if (id) url.searchParams.set('id', id);
   if (registryRevision) {

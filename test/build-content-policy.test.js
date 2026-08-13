@@ -41,9 +41,8 @@ test('only the stable develop Branch Deploy gets Preview content', () => {
   }
 });
 
-test('Registry v2 reads Drive-backed content serially while v1 keeps its existing batch size', () => {
+test('Registry v2 reads Drive-backed content serially', () => {
   assert.equal(registryReadBatchSize(2), 1);
-  assert.equal(registryReadBatchSize(1), 3);
 });
 
 test('a Netlify production deploy is locked to main', () => {
@@ -181,7 +180,7 @@ test('public deploy receipt is allowlisted and Preview/receipt headers discourag
 
 test('registry requests override stale status and audience parameters', () => {
   const base = 'https://example.invalid/exec?token=secret&status=all&status=Draft'
-    + '&audience=preview&registry_revision=stale-revision&schema=2';
+    + '&audience=preview&registry_revision=stale-revision&schema=1';
   const production = { audience: 'production' };
   const preview = { audience: 'preview' };
 
@@ -192,7 +191,7 @@ test('registry requests override stale status and audience parameters', () => {
   assert.equal(productionManifest.searchParams.has('status'), false);
   assert.equal(productionManifest.searchParams.has('id'), false);
   assert.equal(productionManifest.searchParams.has('registry_revision'), false);
-  assert.equal(productionManifest.searchParams.get('schema'), '1');
+  assert.equal(productionManifest.searchParams.get('schema'), '2');
 
   const previewFile = new URL(scopedRegistryUrl(
     base, 'file', preview, 'draft-id', STATUS_REVISION,

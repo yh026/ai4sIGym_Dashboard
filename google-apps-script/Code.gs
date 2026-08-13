@@ -1,8 +1,9 @@
 /**
- * AI4S demo registry — sheet generator & Drive sync
- * ==================================================
- * Paste this whole file into Extensions → Apps Script (replacing the
- * placeholder), save, then run setup() once from the toolbar.
+ * AI4S demo registry v2 — Drive sync, build API and publishing controls
+ * =====================================================================
+ * This project is bound to the Registry v2 Google Sheet. V2 is the only live
+ * Registry and the only operator entry point; the former V1 workbook is an
+ * archive and is never opened by setup, sync, menus, publishing or the Web App.
  *
  * How a demo is uploaded now — one folder per demo:
  *
@@ -14,45 +15,24 @@
  *     superconductor_regression_explorer/
  *         superconductor_regression_explorer.html
  *         PROVENANCE.md
- *     old_one_off.html                     ← still fine: a loose .html in the
- *                                            root is registered exactly as
- *                                            before, just with no card to
- *                                            pre-fill the provenance columns.
+ * New loose root HTML is intentionally not auto-created in V2.
  *
  * What it does:
- *   setup()        builds the Demos / Config / Log tabs, dropdowns, column
- *                  groups, hourly sync trigger and the custom menu. It also
- *                  MIGRATES an older Demos tab in place: any column this
- *                  version adds is inserted where it belongs with
- *                  insertColumnAfter, so existing data slides across with the
- *                  grid instead of falling out of alignment. Never deletes.
- *   syncDrive()    walks the Drive folder — every sub-folder, plus any loose
- *                  .html left over from the old layout — appends new demos as
- *                  Draft rows and pre-fills them from three sources, in this
- *                  order of authority:
- *                    1. whatever is already typed in the sheet — NEVER touched
- *                    2. the ai4s-meta JSON block inside the demo's HTML
- *                    3. the YAML frontmatter of the demo's PROVENANCE.md
- *                  It also picks up the demo's dataset picture, and flags
- *                  missing files and non-self-contained demos.
- *   doGet()        (used later) JSON endpoint the Netlify build reads —
- *                  the manifest, one demo page, or one dataset picture.
+ *   setup()        validates the existing V2 workbook, records its ID, installs
+ *                  this project's single hourly trigger and adds the menu. It
+ *                  never creates or migrates V1 tabs.
+ *   syncDrive()    scans the configured Drive root once and reconciles it
+ *                  directly with Projects / _Registry / _Facets. New eligible
+ *                  folders enter as Draft + Preview only. Human project fields
+ *                  are never overwritten.
+ *   doGet()        serves only the revision-bound Registry v2 manifest, page
+ *                  and card-image contracts used by Netlify.
  *   publishPreview()    rebuilds a configured non-production branch deploy.
  *   publishProduction() rebuilds main only, after an explicit confirmation.
  *
- * The dashboard card shows the demo's `question` (the one it answers) and its
- * `picture` (the dataset's own image), so both are columns here: question is
- * pre-filled from PROVENANCE.md story.question, picture from an image dropped
- * into the demo folder — or paste your own http(s) URL over it, and sync will
- * leave it alone like any other cell you have typed in.
- *
- * Column order is never rearranged and no column is ever renamed, so an older
- * registry keeps working after the paste: re-run setup() once and the three
- * columns this version adds (question, picture, picture_file_id) appear in
- * place, with every existing row intact.
- *
- * Safe to re-run setup() at any time — it repairs formatting and never
- * deletes your rows.
+ * Non-secret site metadata lives in V2 `_Config`. Drive, token, Hook and branch
+ * controls live only in Script Properties. Operational events append to
+ * `_Audit`; no credential is copied into any workbook cell or public output.
  */
 
 // ---------------------------------------------------------------- constants
@@ -66,6 +46,28 @@ var PREVIEW_REGISTRY_SCHEMA_PROPERTY = 'AI4S_PREVIEW_REGISTRY_SCHEMA';
 var PREVIEW_PUBLISH_STATE_PROPERTY = 'AI4S_PREVIEW_PUBLISH_STATE_V2';
 var PREVIEW_CALLBACK_SECRET_PROPERTY = 'AI4S_PREVIEW_CALLBACK_SECRET';
 var NETLIFY_SITE_ID_PROPERTY = 'AI4S_NETLIFY_SITE_ID';
+// Registry v2 is the only live control plane.  Human-readable, non-secret site
+// metadata stays in `_Config`; operational values and every credential belong
+// to the bound Apps Script project's properties and never to a Sheet cell.
+var REGISTRY_V2_OPERATION_PROPERTIES = {
+  drive_folder_url: 'AI4S_DRIVE_FOLDER_URL',
+  access_token: 'AI4S_REGISTRY_ACCESS_TOKEN',
+  netlify_build_hook: 'AI4S_NETLIFY_PRODUCTION_BUILD_HOOK',
+  netlify_preview_build_hook: 'AI4S_NETLIFY_PREVIEW_BUILD_HOOK',
+  production_branch: 'AI4S_PRODUCTION_BRANCH',
+  preview_branch: 'AI4S_PREVIEW_BRANCH',
+  preview_url: 'AI4S_PREVIEW_URL',
+  preview_url_branch: 'AI4S_PREVIEW_URL_BRANCH',
+  auto_publish_target: 'AI4S_AUTO_PUBLISH_TARGET',
+  netlify_site_id: NETLIFY_SITE_ID_PROPERTY,
+  preview_callback_secret: PREVIEW_CALLBACK_SECRET_PROPERTY
+};
+var REGISTRY_V2_REQUIRED_OPERATION_KEYS = [
+  'drive_folder_url', 'access_token', 'netlify_build_hook',
+  'netlify_preview_build_hook', 'production_branch', 'preview_branch',
+  'preview_url', 'preview_url_branch', 'netlify_site_id',
+  'preview_callback_secret'
+];
 var REGISTRY_REVISION_SCHEMA = 1;
 var REGISTRY_V2_REVISION_SCHEMA = 2;
 var REGISTRY_V2_MAX_CARD_ASSET_BYTES = 5 * 1024 * 1024;
@@ -99,6 +101,10 @@ var REGISTRY_V2_HEADERS = {
     'asset_id', 'demo_id', 'role', 'source_type', 'drive_file_id',
     'external_url', 'mime_type', 'alt_text', 'credit', 'license', 'checksum',
     'public_path', 'sync_status', 'source_modified_at', 'source_file_name'
+  ],
+  _Audit: [
+    'event_id', 'occurred_at', 'actor_type', 'action', 'demo_id',
+    'row_version_before', 'row_version_after', 'result', 'detail'
   ],
   _Config: ['key', 'value', 'visibility', 'description']
 };
@@ -328,25 +334,67 @@ var LICENCE_ALIASES = [
 
 // ------------------------------------------------------------------- setup
 
-/** Run this once after pasting the script. Safe to re-run any time. */
+/**
+ * Commission the script project bound to the Registry v2 workbook.
+ *
+ * This function deliberately does not create, migrate or repair legacy V1
+ * tabs.  It validates the existing V2 workbook, records its stable ID for
+ * trigger/Web App contexts, and installs this project's single hourly sync.
+ */
 function setup() {
   var ss = SpreadsheetApp.getActive();
-  if (!ss) throw new Error('Run setup() from the Apps Script project bound to the Registry Sheet.');
+  if (!ss) {
+    throw new Error('Run setup() from the Apps Script project bound to the Registry v2 Sheet.');
+  }
+  // Validate before changing a property or trigger. A mistaken run from V1
+  // therefore fails without mutating either workbook or automation.
+  var state = registryV2WorkbookState_(ss);
+  registryV2ConfigFromSheet_(ss, state);
+  registryV2Table_(ss, '_Audit', REGISTRY_V2_HEADERS._Audit, false);
+  var metadata = registryV2SheetsMetadata_(ss.getId());
+  registryV2VerifyTableMetadata_(metadata, state);
 
-  // A deployed web app has no active spreadsheet. Persist the bound Sheet ID
-  // once so doGet() can reopen this exact Registry by ID in web-app context.
-  PropertiesService.getScriptProperties()
-    .setProperty(REGISTRY_SPREADSHEET_ID_PROPERTY, ss.getId());
-
-  setupConfigSheet_(ss);
-  setupDemosSheet_(ss);
-  setupLogSheet_(ss);
+  var config = registryV2OperationalConfig_(ss, state);
+  var scriptProperties = PropertiesService.getScriptProperties();
+  var missing = REGISTRY_V2_REQUIRED_OPERATION_KEYS.filter(function (key) {
+    return !registryV2Clean_(scriptProperties.getProperty(
+      REGISTRY_V2_OPERATION_PROPERTIES[key]));
+  });
+  if (missing.length) {
+    throw new Error('Registry v2 setup is missing required Script Properties: '
+      + missing.map(function (key) { return REGISTRY_V2_OPERATION_PROPERTIES[key]; }).join(', '));
+  }
+  if (!folderIdFromUrl_(config.drive_folder_url)) {
+    throw new Error('AI4S_DRIVE_FOLDER_URL is not a valid Drive folder URL or ID.');
+  }
+  var driveRootId = folderIdFromUrl_(config.drive_folder_url);
+  try {
+    var driveRoot = DriveApp.getFolderById(driveRootId);
+    if (!driveRoot || String(driveRoot.getId()) !== String(driveRootId)) {
+      throw new Error('Drive root identity mismatch.');
+    }
+  } catch (driveError) {
+    throw new Error('AI4S_DRIVE_FOLDER_URL is not an accessible Drive folder.');
+  }
+  var previewRequest = configuredBuildRequest_(config, 'preview');
+  var productionRequest = configuredBuildRequest_(config, 'production');
+  var previewConfigError = previewPublishConfigurationError_(config);
+  if (!previewRequest.ok) throw new Error(previewRequest.error);
+  if (!productionRequest.ok) throw new Error(productionRequest.error);
+  if (previewConfigError) throw new Error(previewConfigError);
+  if (String(config.preview_callback_secret || '').length < 32) {
+    throw new Error('AI4S_PREVIEW_CALLBACK_SECRET must contain at least 32 characters.');
+  }
+  if (!/^[0-9a-f-]{20,64}$/i.test(String(config.netlify_site_id || ''))) {
+    throw new Error('AI4S_NETLIFY_SITE_ID is not a valid Netlify Site ID.');
+  }
+  scriptProperties.setProperty(REGISTRY_V2_SPREADSHEET_ID_PROPERTY, ss.getId());
   installTrigger_();
   onOpen();
 
-  logEvent_('setup', 'Sheet structure created / repaired.');
-  ss.toast('Next: paste your Drive folder URL into Config, then run "AI4S dashboard → Sync Drive folder now".',
-    'Setup complete', 10);
+  logEvent_('setup', 'Registry v2 control plane commissioned.');
+  ss.toast('Registry v2 is commissioned and its Script Properties are validated. Run Sync Drive folder now.',
+    'Registry v2 setup complete', 10);
 }
 
 function setupDemosSheet_(ss) {
@@ -605,7 +653,7 @@ function installTrigger_() {
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('AI4S dashboard')
     .addItem('Sync Drive folder now', 'syncDriveFromMenu')
-    .addItem('Refresh Registry v2 status', 'refreshRegistryV2Status')
+    .addItem('Refresh publishing status', 'refreshRegistryV2Status')
     .addItem('Build preview branch', 'publishPreview')
     .addItem('Preview publish status', 'showPreviewPublishStatus')
     .addItem('Open preview site', 'showPreviewSite')
@@ -613,10 +661,8 @@ function onOpen() {
     .addItem('Rebuild production site (main)', 'publishProduction')
     .addSeparator()
     .addItem('Show Registry API URL for Netlify', 'showBuildUrl')
-    .addItem('What PROVENANCE.md fills in', 'showCardMapping')
-    .addItem('Copy ai4s-meta template', 'showMetaTemplate')
     .addSeparator()
-    .addItem('Re-run setup / repair sheet', 'setup')
+    .addItem('Recommission V2 controls', 'setup')
     .addItem('Help — the routine', 'showHelp')
     .addToUi();
 }
@@ -628,27 +674,24 @@ function showHelp() {
     + 'named after the folder (<code>my_demo/my_demo.html</code>), its '
     + '<code>PROVENANCE.md</code>, and — if you have one — the <b>dataset picture</b> for the '
     + 'dashboard card, named <code>card</code>, <code>cover</code>, <code>thumbnail</code>, '
-    + '<code>picture</code> or after the folder (png / jpg / webp / gif / svg).</li>'
-    + '<li>AI4S dashboard → Sync Drive folder now (or wait for the hourly sync). A Draft row '
-    + 'appears with the provenance columns, the <code>question</code> and the '
-    + '<code>picture</code> already filled from the card and the folder.</li>'
-    + '<li>Check what it filled in and add category + task_type (those two are not in the card). '
-    + 'Keep the row as <b>Draft</b> while it is under review.</li>'
+    + '<code>picture</code> or after the folder (avif / gif / jpg / jpeg / png / webp).</li>'
+    + '<li>AI4S dashboard → Sync Drive folder now (or wait for the hourly sync). A safe '
+    + '<b>Draft / Preview only</b> project is added to this V2 Registry.</li>'
+    + '<li>Complete Card Summary, Department, Subtopic, Task Type and Methods in '
+    + '<b>Projects</b>. Keep the project as <b>Draft</b> while it is under review.</li>'
     + '<li>Use <b>Build preview branch</b> and review the Draft on the private develop Preview. '
     + 'Only after the content is approved, set its status to <b>Live</b>.</li>'
     + '<li>For a content-only Drive/Sheet release, use <b>Rebuild production site (main)</b> '
     + 'once and confirm Yes. For a code release, approve and merge the pull request into '
     + '<code>main</code>; with Netlify continuous deployment enabled, that merge is itself the '
     + 'Production release, so do not also press the rebuild button.</li></ol>'
-    + '<b>Notes.</b> Anything you have already typed is never overwritten — sync only ever '
-    + 'fills empty cells, so pasting an image URL into <code>picture</code> keeps it. '
-    + 'A loose <code>.html</code> dropped straight into the Drive folder still '
-    + 'works, it just has no card to read, and its <code>file_check</code> says so. '
+    + '<b>Notes.</b> Human fields in <b>Projects</b> are never overwritten. New projects must '
+    + 'be direct English-named subfolders; loose root HTML is not auto-created. '
     + 'If a folder holds several pages, the one named after the folder wins; otherwise the card’s '
     + '<code>pages:</code> entry marked <code>role: primary</code> decides. Several images with '
     + 'no such name and none is chosen — <code>file_check</code> says which ones it saw. '
-    + 'Auto columns (purple headers) are maintained by sync. '
-    + 'Hover any column header for an explanation of that field.</div>';
+    + 'Readiness, Preview URL and the hidden machine tabs are maintained by the V2 compiler. '
+    + 'Credentials and publishing controls live only in Apps Script Properties.</div>';
   SpreadsheetApp.getUi().showModalDialog(
     HtmlService.createHtmlOutput(html).setWidth(560).setHeight(535), 'AI4S dashboard — help');
 }
@@ -719,10 +762,17 @@ function syncDrive() {
     return { error: busy };
   }
   try {
-    var result = syncDriveUnlocked_();
+    var result;
     try {
-      var publishSs = registrySpreadsheet_();
-      var publishCfg = readConfig_(publishSs);
+      result = syncDriveUnlocked_();
+    } catch (syncError) {
+      var syncMessage = 'Registry v2 sync failed: ' + safeErrorMessage_(syncError);
+      logEvent_('sync-error', syncMessage);
+      result = { error: syncMessage };
+    }
+    try {
+      var publishSs = registryV2Spreadsheet_();
+      var publishCfg = registryV2OperationalConfig_(publishSs);
       var previewRun = maintainPreviewPublish_(publishSs, publishCfg,
         {
           allowAttempt: !(result && result.error),
@@ -756,11 +806,12 @@ function syncDrive() {
 }
 
 function syncDriveUnlocked_() {
-  var ss = registrySpreadsheet_();
-  var cfg = readConfig_(ss);
+  var ss = registryV2Spreadsheet_();
+  var before = registryV2WorkbookState_(ss);
+  var cfg = registryV2OperationalConfig_(ss, before);
   var folderId = folderIdFromUrl_(cfg.drive_folder_url || '');
   if (!folderId) {
-    var msg = 'No Drive folder set. Paste the folder URL into Config (drive_folder_url), then sync again.';
+    var msg = 'No Drive folder is configured. Set the AI4S_DRIVE_FOLDER_URL Script Property, then sync again.';
     logEvent_('sync', msg);
     return { error: msg };
   }
@@ -768,161 +819,27 @@ function syncDriveUnlocked_() {
   var folder;
   try { folder = DriveApp.getFolderById(folderId); }
   catch (e) {
-    var msg2 = 'Could not open that folder. Check the URL in Config and that this account can access it.';
+    var msg2 = 'Could not open the configured Drive folder. Check AI4S_DRIVE_FOLDER_URL and this account\'s access.';
     logEvent_('sync', msg2);
     return { error: msg2 };
   }
-
-  var sh = ss.getSheetByName(SHEET_DEMOS);
-  // In case this script was pasted over an older one and sync ran before
-  // setup: bring the columns up to date first, or every row below would be
-  // written one schema against another. Both calls are no-ops once migrated.
-  migrateColumns_(sh);
-  ensureColumns_(sh);
-
-  // Don't trust getLastRow() here: the pre-applied checkbox/dropdown formatting
-  // can make it report the end of the formatted band (row 1000) instead of the
-  // end of the data. Scan for the last row with real content instead.
-  var gridLast = sh.getLastRow();
-  var dataRange = gridLast > 1 ? sh.getRange(2, 1, gridLast - 1, N_COLS) : null;
-  var all = dataRange ? dataRange.getValues() : [];
-  var allFormulas = dataRange ? dataRange.getFormulas() : [];
-  var dataEnd = 1; // header row; data starts at 2
-  for (var s = all.length - 1; s >= 0; s--) {
-    if (rowHasContent_(all[s])) { dataEnd = s + 2; break; }
-  }
-  var rows = all.slice(0, Math.max(dataEnd - 1, 0));
-  // Keep the values exactly as first observed. A Sheet editor is not governed
-  // by ScriptLock, so these snapshots are checked again immediately before
-  // any existing-row write.
-  var originalRows = rows.map(function (r) { return r.slice(); });
-  var originalFormulas = allFormulas.slice(0, Math.max(dataEnd - 1, 0))
-    .map(function (r) { return r.slice(); });
-  var byId = {};
-  rows.forEach(function (r, i) { if (r[COLS.FILE_ID - 1]) byId[r[COLS.FILE_ID - 1]] = i; });
-  var slugsInUse = {};
-  rows.forEach(function (r) { if (r[COLS.SLUG - 1]) slugsInUse[String(r[COLS.SLUG - 1])] = true; });
-
-  var seen = {};
-  var newRows = [];
-  var nNew = 0, nUpdated = 0, nWarn = 0;
-
-  // Capture Registry v2 before Drive is scanned. Sheet editors are not bound
-  // by ScriptLock, so this snapshot is compared twice more immediately before
-  // the first v2 write. A missing v2 property deliberately keeps v1 working.
-  var v2Context;
-  try { v2Context = registryV2AutoIngestContext_(); }
-  catch (v2ContextError) {
-    v2Context = { enabled: true, error: v2ContextError };
-  }
-
-  // This is the only Drive collection pass used by both registries.
+  // V2 is the sole Registry. Drive is collected once, then reconciled directly
+  // against `_Registry.file_id`; no V1 Demos, Config or Log tab is opened.
   var items = collectDemos_(folder);
-  for (var k = 0; k < items.length; k++) {
-    var it = items[k];
-    var id = it.file.getId();
-    if (seen[id]) continue;   // the same page reachable twice — register it once
-    seen[id] = true;
-
-    if (byId.hasOwnProperty(id)) {
-      // Known page — refresh if the page or its card changed in Drive.
-      var i = byId[id];
-      var stored = rows[i][COLS.LAST_MODIFIED - 1];
-      var changed = driveStampChanged_(stored, it.stamp);
-      if (changed) {
-        var read = readDemo_(it);
-        it.registryRead = read;
-        rows[i][COLS.LAST_MODIFIED - 1] = it.stamp;
-        rows[i][COLS.FILE_NAME - 1] = it.file.getName();
-        rows[i][COLS.FILE_CHECK - 1] = fileCheck_(checkAssets_(read.html), it.notes.concat(read.notes));
-        if (!rows[i][COLS.TITLE - 1]) rows[i][COLS.TITLE - 1] = extractTitle_(read.html, it.file.getName());
-        fillRow_(rows[i], read.meta, read.card);
-        fillPicture_(rows[i], it.picFile);
-        nUpdated++;
-      } else if (rows[i][COLS.FILE_CHECK - 1] === 'missing') {
-        rows[i][COLS.FILE_CHECK - 1] = 'ok'; // it came back
-      }
-    } else {
-      // New demo — build a Draft row.
-      var fresh = readDemo_(it);
-      it.registryRead = fresh;
-      var title = String(fresh.meta.title || extractTitle_(fresh.html, it.file.getName()));
-      // The folder name is the demo's name by convention (design §10.2), so it
-      // makes the steadier URL; a loose file has only its title to go on.
-      var slug = uniqueSlug_(slugify_(it.folderName || title), slugsInUse);
-      slugsInUse[slug] = true;
-
-      var row = new Array(N_COLS).fill('');
-      row[COLS.TITLE - 1] = title;
-      row[COLS.SLUG - 1] = slug;
-      row[COLS.STATUS - 1] = 'Draft';
-      row[COLS.FEATURED - 1] = false;
-      fillRow_(row, fresh.meta, fresh.card);
-      fillPicture_(row, it.picFile);
-      row[COLS.FILE_NAME - 1] = it.file.getName();
-      row[COLS.FILE_ID - 1] = id;
-      row[COLS.DATE_ADDED - 1] = it.file.getDateCreated();
-      row[COLS.LAST_MODIFIED - 1] = it.stamp;
-      row[COLS.FILE_CHECK - 1] = fileCheck_(checkAssets_(fresh.html), it.notes.concat(fresh.notes));
-      newRows.push(row);
-      nNew++;
-    }
-  }
-
-  // Files that vanished from the folder.
-  rows.forEach(function (r) {
-    var id = r[COLS.FILE_ID - 1];
-    if (id && !seen[id] && r[COLS.FILE_CHECK - 1] !== 'missing') {
-      r[COLS.FILE_CHECK - 1] = 'missing';
-      nWarn++;
-    }
-  });
-
-  // Existing-row provenance is recomputed only after the optimistic
-  // concurrency check has overlaid any human edits made during this scan.
-  newRows.forEach(function (r) { r[COLS.PROVENANCE - 1] = provenanceFlag_(r); });
-
-  var writeResult = writeExistingRowsSafely_(sh, rows, originalRows, originalFormulas);
-  appendNewRows_(sh, newRows);
-  // Commit Registry changes before a Build Hook can make Netlify read them.
-  SpreadsheetApp.flush();
-
-  var v1ByFileId = {};
-  rows.concat(newRows).forEach(function (row) {
-    var fileId = String(row[COLS.FILE_ID - 1] || '');
-    if (fileId) v1ByFileId[fileId] = row.slice();
-  });
-  var v2Result = { enabled: false, added: 0, checked: 0, skipped: 0 };
-  var v2Error = '';
-  if (v2Context && v2Context.enabled) {
-    try {
-      if (v2Context.error) throw v2Context.error;
-      v2Result = registryV2AutoIngest_(v2Context, cfg, items, v1ByFileId);
-    } catch (v2Err) {
-      v2Error = 'Registry v2 auto-ingest failed: ' + safeErrorMessage_(v2Err);
-      logEvent_('sync-v2-error', v2Error);
-    }
-  }
-
-  var summary = nNew + ' new, ' + nUpdated + ' updated, ' + nWarn + ' now missing.';
-  if (writeResult.conflicts) {
-    summary += ' ' + writeResult.conflicts + ' concurrent edit conflict(s) preserved.';
-  }
-  if (v2Result.enabled) {
-    summary += ' Registry v2: ' + v2Result.added + ' added, '
-      + v2Result.checked + ' checked, ' + v2Result.skipped + ' skipped.';
-  }
-  if (v2Error) summary += ' ' + v2Error;
+  var context = {
+    enabled: true,
+    spreadsheet: ss,
+    spreadsheet_id: ss.getId(),
+    before: before
+  };
+  var result = registryV2AutoIngest_(context, cfg, items);
+  var summary = 'Registry v2: ' + result.added + ' added, '
+    + result.checked + ' checked, ' + result.skipped + ' skipped, '
+    + result.missing + ' missing.';
   logEvent_('sync', summary);
   ss.toast(summary, 'Drive sync', 6);
-
-  var result = {
-    nNew: nNew, nUpdated: nUpdated, nWarn: nWarn,
-    nConflicts: writeResult.conflicts,
-    registryV2: v2Result
-  };
-  if (v2Error) result.error = v2Error;
-  return result;
+  return { registryV2: result, nNew: result.added, nUpdated: result.updated,
+    nWarn: result.missing, nConflicts: 0 };
 }
 
 /**
@@ -1057,7 +974,7 @@ function fillPicture_(row, picFile) {
 
 /**
  * Everything in the Drive folder that counts as a demo, newest layout first.
- * Each item is { file, folderName, provFile, picFile, card, stamp, notes }
+ * Each item is { file, folderName, provFile, picFile, imageFiles, card, stamp, notes }
  * where `file` is the demo's primary page, `picFile` its dataset picture (or
  * null) and `stamp` the newest change across the page, its card and its
  * picture. Nothing is downloaded here except a card that has to be read to
@@ -1096,8 +1013,8 @@ function collectDemos_(folder) {
       continue;
     }
     if (!isHtmlFile_(f)) continue;
-    out.push({ file: f, folderName: '', provFile: null, picFile: null, card: null,
-      stamp: f.getLastUpdated(), notes: [] });
+    out.push({ file: f, folderName: '', provFile: null, picFile: null,
+      imageFiles: [], card: null, stamp: f.getLastUpdated(), notes: [] });
   }
   return out;
 }
@@ -1151,8 +1068,8 @@ function collectDemoFolder_(sub) {
   if (pick.note) notes.push(pick.note);
   if (picked.note) notes.push(picked.note);
 
-  return { file: file, folderName: name, provFile: prov, picFile: picFile, card: card,
-    stamp: stamp, notes: notes };
+  return { file: file, folderName: name, provFile: prov, picFile: picFile,
+    imageFiles: images.slice(), card: card, stamp: stamp, notes: notes };
 }
 
 /** True only for a current, direct parent edge; lookup failures stop the sync. */
@@ -1573,9 +1490,7 @@ function recordPreviewAttempt_(state, result, now) {
 function maintainPreviewPublish_(ss, cfg, options) {
   options = options || {};
   var now = options.now == null ? Date.now() : Number(options.now);
-  var snapshot = previewRegistrySchema_() === 2
-    ? registryV2Snapshot_(registryV2Spreadsheet_(), cfg, 'preview')
-    : registrySnapshot_(ss, cfg, 'preview');
+  var snapshot = registryV2Snapshot_(ss, cfg, 'preview');
   if (!snapshot || !validRegistryRevision_(snapshot.registry_revision)) {
     throw new Error('Preview Registry produced an invalid registry_revision; no build was requested.');
   }
@@ -1645,8 +1560,8 @@ function publishPreview() {
     return;
   }
   try {
-    var ss = SpreadsheetApp.getActive();
-    var cfg = readConfig_(ss);
+    var ss = registryV2Spreadsheet_();
+    var cfg = registryV2OperationalConfig_(ss);
     var run = maintainPreviewPublish_(ss, cfg, { forceRequest: true, allowAttempt: true });
     var result = run.attemptResult;
     if (!run.attempted || !result || !result.ok) {
@@ -1672,10 +1587,17 @@ function publishPreview() {
 
 /** Rebuild main only, with a visible confirmation before the Hook is called. */
 function publishProduction() {
-  var ss = SpreadsheetApp.getActive();
-  var cfg = readConfig_(ss);
-  var request = configuredBuildRequest_(cfg, 'production');
   var ui = SpreadsheetApp.getUi();
+  var ss = registryV2Spreadsheet_();
+  var cfg;
+  try { cfg = registryV2OperationalConfig_(ss); }
+  catch (configError) {
+    ui.alert('Production build is not configured safely',
+      'Registry v2 configuration could not be read: ' + safeErrorMessage_(configError),
+      ui.ButtonSet.OK);
+    return;
+  }
+  var request = configuredBuildRequest_(cfg, 'production');
   if (!request.ok) {
     ui.alert('Production build is not configured safely', request.error, ui.ButtonSet.OK);
     return;
@@ -1709,7 +1631,7 @@ function publishSite() {
 
 /** Show the real Branch Deploy URL copied from Netlify. */
 function showPreviewSite() {
-  var cfg = readConfig_(SpreadsheetApp.getActive());
+  var cfg = registryV2OperationalConfig_(registryV2Spreadsheet_());
   var branch = String(cfg.preview_branch || '').trim();
   var url = String(cfg.preview_url || '').trim();
   var urlError = previewUrlError_(branch, url, cfg.preview_url_branch,
@@ -1742,8 +1664,8 @@ function showPreviewPublishStatus() {
     return;
   }
   try {
-    var ss = SpreadsheetApp.getActive();
-    var cfg = readConfig_(ss);
+    var ss = registryV2Spreadsheet_();
+    var cfg = registryV2OperationalConfig_(ss);
     var run = maintainPreviewPublish_(ss, cfg,
       { allowAttempt: false, allowAutoRequest: false });
     var state = run.state;
@@ -1983,7 +1905,7 @@ function htmlEscape_(value) {
 
 function showBuildUrl() {
   var url = ScriptApp.getService().getUrl();
-  var cfg = readConfig_(SpreadsheetApp.getActive());
+  var cfg = registryV2OperationalConfig_(registryV2Spreadsheet_());
   if (!url) {
     SpreadsheetApp.getUi().alert('Deploy this script as a web app first (Deploy → New deployment → Web app, execute as Me, and allow requests without Google sign-in — usually access: Anyone). Then run this again.');
     return;
@@ -2016,46 +1938,42 @@ function showBuildUrl() {
  * demo sub-folder).
  */
 function registrySpreadsheet_() {
-  // Menus, editor runs and triggers normally have an active container.
-  try {
-    var active = SpreadsheetApp.getActive();
-    if (active) return active;
-  } catch (ignored) { /* web apps do not expose bound-script active methods */ }
-
-  var id = PropertiesService.getScriptProperties()
-    .getProperty(REGISTRY_SPREADSHEET_ID_PROPERTY);
-  if (!id) {
-    throw new Error('Registry Sheet ID is not configured. Run setup() once from the bound Sheet.');
-  }
-  return SpreadsheetApp.openById(id);
+  return registryV2Spreadsheet_();
 }
 
-/** Registry v2 lives in a separate owner-only Sheet until explicit cutover. */
+function isRegistryV2Spreadsheet_(ss) {
+  if (!ss || typeof ss.getSheetByName !== 'function') return false;
+  return REGISTRY_V2_COMPILE_SHEETS.every(function (name) {
+    return Boolean(ss.getSheetByName(name));
+  });
+}
+
+/** Resolve the sole live Registry: the V2 workbook bound to this script. */
 function registryV2Spreadsheet_() {
+  try {
+    var active = SpreadsheetApp.getActive();
+    if (isRegistryV2Spreadsheet_(active)) return active;
+  } catch (ignored) { /* Web Apps and timed triggers reopen by stable ID. */ }
   var id = PropertiesService.getScriptProperties()
     .getProperty(REGISTRY_V2_SPREADSHEET_ID_PROPERTY);
   if (!id) throw new Error('Registry v2 Sheet ID is not configured.');
-  return SpreadsheetApp.openById(String(id));
+  var spreadsheet = SpreadsheetApp.openById(String(id));
+  if (!isRegistryV2Spreadsheet_(spreadsheet)) {
+    throw new Error('Configured Registry v2 Sheet does not match the V2 contract.');
+  }
+  return spreadsheet;
 }
 
 function registrySchema_(raw) {
-  var value = String(raw || '').trim() || '1';
-  if (value !== '1' && value !== '2') {
-    return { ok: false, error: 'schema must be 1 or 2' };
+  var value = String(raw || '').trim() || '2';
+  if (value !== '2') {
+    return { ok: false, error: 'schema 1 is archived; schema must be 2' };
   }
-  return { ok: true, value: Number(value) };
+  return { ok: true, value: 2 };
 }
 
 function previewRegistrySchema_() {
-  var value = '';
-  try {
-    if (typeof PropertiesService !== 'undefined' && PropertiesService
-        && typeof PropertiesService.getScriptProperties === 'function') {
-      value = PropertiesService.getScriptProperties()
-        .getProperty(PREVIEW_REGISTRY_SCHEMA_PROPERTY);
-    }
-  } catch (ignored) { value = ''; }
-  return String(value || '').trim() === '2' ? 2 : 1;
+  return 2;
 }
 
 function registryAudience_(raw) {
@@ -2391,6 +2309,80 @@ function registryV2AutoProjectRow_(header, demoId, title, summary, dataSource,
   return row;
 }
 
+/**
+ * Resolve one human-selected Card Image against the already boundary-checked
+ * Drive collection. Card Image is a direct-child file name, never a URL or a
+ * nested path. A non-empty selection must identify exactly one supported image
+ * beside the project's HTML; otherwise the guarded sync fails before writing.
+ */
+function registryV2CardAssetRow_(header, demoId, slug, project, current) {
+  var selected = registryV2Clean_(project && project.card_image);
+  if (!selected) return null;
+  if (selected === '.' || selected === '..' || /[\\/]/.test(selected)
+      || /^[a-z][a-z0-9+.-]*:/i.test(selected)) {
+    throw new Error('Registry v2 Card Image for ' + demoId
+      + ' must be one direct-child Drive file name, not a path or URL.');
+  }
+  var extensionMatch = /\.([A-Za-z0-9]+)$/.exec(selected);
+  var extension = extensionMatch ? extensionMatch[1].toLowerCase() : '';
+  var expectedMime = REGISTRY_V2_IMAGE_MIME_BY_EXTENSION[extension];
+  if (!expectedMime) {
+    throw new Error('Registry v2 Card Image for ' + demoId
+      + ' must use avif, gif, jpg, jpeg, png or webp.');
+  }
+  // A missing page remains a row-local source-file problem. Remove its stale
+  // machine asset link now; the human Card Image choice stays in Projects and
+  // will be rebound automatically when the same page returns.
+  if (!current) return null;
+
+  var matches = (current.item.imageFiles || []).filter(function (file) {
+    return String(file.getName()) === selected;
+  });
+  if (matches.length !== 1) {
+    throw new Error('Registry v2 Card Image "' + selected + '" for ' + demoId
+      + ' must match exactly one direct-child Drive image beside its HTML.');
+  }
+  var file = matches[0];
+  var fileId;
+  var mime;
+  var modified;
+  try {
+    fileId = String(file.getId());
+    mime = registryV2Clean_(file.getMimeType()).toLowerCase();
+    modified = file.getLastUpdated();
+    if (!fileId || mime !== expectedMime || !modified
+        || !isFinite(modified.getTime())) throw new Error('invalid image metadata');
+    if (typeof file.getSize === 'function'
+        && Number(file.getSize()) > REGISTRY_V2_MAX_CARD_ASSET_BYTES) {
+      throw new Error('image exceeds 5 MiB');
+    }
+  } catch (imageError) {
+    throw new Error('Registry v2 Card Image "' + selected + '" for ' + demoId
+      + ' has invalid Drive image metadata: ' + safeErrorMessage_(imageError));
+  }
+
+  var map = registryV2HeaderMap_(header, false);
+  var row = header.map(function () { return ''; });
+  var assetId = 'asset-' + slug + '-card';
+  registryV2SetRowField_(row, map, 'asset_id', assetId);
+  registryV2SetRowField_(row, map, 'demo_id', demoId);
+  registryV2SetRowField_(row, map, 'role', 'card_image');
+  registryV2SetRowField_(row, map, 'source_type', 'drive');
+  registryV2SetRowField_(row, map, 'drive_file_id', fileId);
+  registryV2SetRowField_(row, map, 'external_url', '');
+  registryV2SetRowField_(row, map, 'mime_type', mime);
+  registryV2SetRowField_(row, map, 'alt_text', registryV2Clean_(project.image_alt));
+  registryV2SetRowField_(row, map, 'credit', '');
+  registryV2SetRowField_(row, map, 'license', '');
+  registryV2SetRowField_(row, map, 'checksum', '');
+  registryV2SetRowField_(row, map, 'public_path',
+    'assets/cards/' + slug + '.' + extension);
+  registryV2SetRowField_(row, map, 'sync_status', 'ok');
+  registryV2SetRowField_(row, map, 'source_modified_at', isoOrString_(modified));
+  registryV2SetRowField_(row, map, 'source_file_name', selected);
+  return { asset_id: assetId, row: row };
+}
+
 function registryV2FacetRowsFor_(demoId, type, ids, header) {
   var map = registryV2HeaderMap_(header, false);
   return ids.map(function (id, index) {
@@ -2441,11 +2433,52 @@ function registryV2SeedList_(value, group, taxonomyIndex) {
   return labels.join(', ');
 }
 
-function registryV2AutoPlan_(before, cfg, items, v1ByFileId) {
+function registryV2ItemRecord_(item, cfg) {
+  // collectDemos_ has already verified every root/folder/file parent edge and
+  // excluded shortcuts. Keep this compiler step focused on translating that
+  // trusted collection result into V2 fields instead of repeating Drive I/O.
+  var read = registryV2AutoRead_(item);
+  item.registryRead = read;
+  var seed = new Array(N_COLS).fill('');
+  fillRow_(seed, read.meta || {}, read.card || {});
+  var meta = read.meta || {};
+  var title = registryV2Clean_(meta.title)
+    || extractTitle_(read.html, item.file.getName());
+  var summary = registryV2Clean_(meta.card_summary || meta.description)
+    || registryV2Clean_(seed[COLS.DESCRIPTION - 1]);
+  var dataSource = registryV2Clean_(meta.data_source)
+    || registryV2Clean_(seed[COLS.DATA_SOURCE - 1]);
+  if (registryV2ContainsCjk_(title)) title = registryV2Clean_(item.folderName);
+  if (registryV2ContainsCjk_(summary)) summary = '';
+  if (registryV2ContainsCjk_(dataSource)) dataSource = '';
+  var dateAdded = '';
+  try { dateAdded = isoOrString_(item.file.getDateCreated()); }
+  catch (ignored) { dateAdded = ''; }
+  return {
+    file_id: String(item.file.getId()),
+    title: title,
+    summary: summary,
+    data_source: dataSource,
+    audience: registryV2Audience_(meta.audience || seed[COLS.AUDIENCE - 1]),
+    department: meta.department,
+    subtopic: meta.subtopic,
+    task: meta.task_type || seed[COLS.TASK_TYPE - 1],
+    methods: meta.methods || meta.method || seed[COLS.METHOD - 1],
+    file_check: fileCheck_(checkAssets_(read.html),
+      (item.notes || []).concat(read.notes || [])),
+    date_added: dateAdded
+  };
+}
+
+function registryV2AutoPlan_(before, cfg, items) {
   var target = registryV2CloneState_(before);
   var projects = registryV2RowsFromState_(before, 'Projects', [], true);
   var registry = registryV2RowsFromState_(
     before, '_Registry', REGISTRY_V2_HEADERS._Registry, false);
+  // Validate the current machine grid shape and English-only boundary before
+  // replacing its auto-managed rows.
+  registryV2RowsFromState_(
+    before, '_Assets', REGISTRY_V2_HEADERS._Assets, false);
   var taxonomyRows = registryV2RowsFromState_(
     before, '_Taxonomy', REGISTRY_V2_HEADERS._Taxonomy, false);
   var taxonomy = registryV2Taxonomy_(taxonomyRows);
@@ -2478,7 +2511,15 @@ function registryV2AutoPlan_(before, cfg, items, v1ByFileId) {
   }
 
   var seen = {};
+  var itemByFile = {};
+  (items || []).forEach(function (item) {
+    var fileId = String(item.file.getId());
+    if (itemByFile[fileId]) return;
+    itemByFile[fileId] = { item: item, record: registryV2ItemRecord_(item, cfg) };
+  });
   var added = 0;
+  var updated = 0;
+  var missing = 0;
   var skipped = 0;
   var events = [];
   items.forEach(function (item) {
@@ -2511,30 +2552,21 @@ function registryV2AutoPlan_(before, cfg, items, v1ByFileId) {
         + item.folderName + '" because its identity conflicts with an existing project.' });
       return;
     }
-    var read = registryV2AutoRead_(item);
-    var v1 = v1ByFileId[fileId] || [];
-    var meta = read.meta || {};
-    var title = registryV2Clean_(meta.title)
-      || registryV2Clean_(v1[COLS.TITLE - 1])
-      || extractTitle_(read.html, item.file.getName());
-    var summary = registryV2Clean_(meta.card_summary || meta.description)
-      || registryV2Clean_(v1[COLS.DESCRIPTION - 1]);
-    var dataSource = registryV2Clean_(meta.data_source)
-      || registryV2Clean_(v1[COLS.DATA_SOURCE - 1]);
-    if (registryV2ContainsCjk_(title)) title = registryV2Clean_(item.folderName);
-    if (registryV2ContainsCjk_(summary)) summary = '';
-    if (registryV2ContainsCjk_(dataSource)) dataSource = '';
-    var audience = registryV2Audience_(meta.audience || v1[COLS.AUDIENCE - 1]);
+    var itemRecord = itemByFile[fileId].record;
+    var title = itemRecord.title;
+    var summary = itemRecord.summary;
+    var dataSource = itemRecord.data_source;
+    var audience = itemRecord.audience;
     // Initial metadata is only a convenience seed. Keep an exact taxonomy
     // value and quietly leave an unrecognised natural-language value empty so
     // the new Draft is blocked for owner review. Once present in Projects,
     // any later non-empty unknown value remains a strict compiler error.
-    var department = registryV2SeedTerm_(meta.department, 'departments', taxonomyIndex);
-    var subtopic = registryV2SeedTerm_(meta.subtopic, 'subtopics', taxonomyIndex);
+    var department = registryV2SeedTerm_(itemRecord.department, 'departments', taxonomyIndex);
+    var subtopic = registryV2SeedTerm_(itemRecord.subtopic, 'subtopics', taxonomyIndex);
     var task = registryV2SeedList_(
-      meta.task_type || v1[COLS.TASK_TYPE - 1], 'tasks', taxonomyIndex);
+      itemRecord.task, 'tasks', taxonomyIndex);
     var methods = registryV2SeedList_(
-      meta.methods || meta.method || v1[COLS.METHOD - 1], 'methods', taxonomyIndex);
+      itemRecord.methods, 'methods', taxonomyIndex);
     if (department && subtopic) {
       var seededDepartment = registryV2ResolveHumanTerm_(
         department, 'departments', taxonomyIndex);
@@ -2570,10 +2602,8 @@ function registryV2AutoPlan_(before, cfg, items, v1ByFileId) {
     registryV2SetRowField_(registryRow, registryMap, 'public_page_permission', 'Preview only');
     registryV2SetRowField_(registryRow, registryMap, 'card_asset_id', '');
     registryV2SetRowField_(registryRow, registryMap, 'file_id', fileId);
-    registryV2SetRowField_(registryRow, registryMap, 'file_check',
-      registryV2Clean_(v1[COLS.FILE_CHECK - 1]) || 'missing');
-    registryV2SetRowField_(registryRow, registryMap, 'date_added',
-      isoOrString_(v1[COLS.DATE_ADDED - 1]));
+    registryV2SetRowField_(registryRow, registryMap, 'file_check', itemRecord.file_check);
+    registryV2SetRowField_(registryRow, registryMap, 'date_added', itemRecord.date_added);
     registryV2AppendStateRow_(target._Registry, registryRow);
     projectsById[demoId] = registryV2RowsFromGrid_(
       'Projects', [target.Projects.values[0], projectRow], [], true)[0];
@@ -2590,7 +2620,8 @@ function registryV2AutoPlan_(before, cfg, items, v1ByFileId) {
   // Re-project every human-owned Projects row. No Projects human field is ever
   // changed here; only its hidden machine representation is reconciled.
   var desiredFacets = [];
-  Object.keys(projectsById).forEach(function (demoId) {
+  var desiredAssets = [];
+  Object.keys(projectsById).sort().forEach(function (demoId) {
     var project = projectsById[demoId];
     var source = registryById[demoId];
     var projection = registryV2ProjectProjection_(project, taxonomyIndex);
@@ -2606,9 +2637,21 @@ function registryV2AutoPlan_(before, cfg, items, v1ByFileId) {
     registryV2SetRowField_(registryRow, registryMap, 'audience', project.audience);
     registryV2SetRowField_(registryRow, registryMap, 'data_source_label', project.data_source);
     registryV2SetRowField_(registryRow, registryMap, 'public_page_permission', project.public_permission);
-    var v1 = v1ByFileId[registryV2Clean_(source.file_id)];
-    registryV2SetRowField_(registryRow, registryMap, 'file_check',
-      v1 ? registryV2Clean_(v1[COLS.FILE_CHECK - 1]) || 'missing' : 'missing');
+    var current = itemByFile[registryV2Clean_(source.file_id)];
+    var asset = registryV2CardAssetRow_(target._Assets.values[0], demoId,
+      registryV2Clean_(source.slug), project, current);
+    registryV2SetRowField_(registryRow, registryMap, 'card_asset_id',
+      asset ? asset.asset_id : '');
+    if (asset) desiredAssets.push(asset.row);
+    var priorCheck = registryV2Clean_(source.file_check);
+    var nextCheck = current ? current.record.file_check : 'missing';
+    if (priorCheck !== nextCheck) updated++;
+    if (!current) missing++;
+    registryV2SetRowField_(registryRow, registryMap, 'file_check', nextCheck);
+    if (!registryV2Clean_(source.date_added) && current && current.record.date_added) {
+      registryV2SetRowField_(registryRow, registryMap, 'date_added', current.record.date_added);
+      updated++;
+    }
     desiredFacets = desiredFacets.concat(
       registryV2FacetRowsFor_(demoId, 'task', projection.task_ids, target._Facets.values[0]),
       registryV2FacetRowsFor_(demoId, 'method', projection.method_ids, target._Facets.values[0]));
@@ -2618,6 +2661,15 @@ function registryV2AutoPlan_(before, cfg, items, v1ByFileId) {
     return row.map(function () { return ''; });
   });
   target._Facets.rows = target._Facets.values.length;
+  var assetIdColumn = registryV2HeaderMap_(target._Assets.values[0], false).asset_id;
+  desiredAssets.sort(function (left, right) {
+    return String(left[assetIdColumn]).localeCompare(String(right[assetIdColumn]));
+  });
+  target._Assets.values = [target._Assets.values[0]].concat(desiredAssets);
+  target._Assets.formulas = target._Assets.values.map(function (row) {
+    return row.map(function () { return ''; });
+  });
+  target._Assets.rows = target._Assets.values.length;
 
   var compiled = registryV2CompileState_(null, cfg, 'preview', target);
   var previewBase = registryV2PreviewBaseUrl_(compiled.config);
@@ -2638,6 +2690,8 @@ function registryV2AutoPlan_(before, cfg, items, v1ByFileId) {
     target: target,
     compiled: compiled,
     added: added,
+    updated: updated,
+    missing: missing,
     skipped: skipped,
     events: events,
     checked: Object.keys(projectsById).length - added,
@@ -2693,7 +2747,7 @@ function registryV2SheetsMetadata_(spreadsheetId) {
       || !sheets.Projects.table_id) {
     throw new Error('Registry v2 Projects must remain a native Google Sheets table.');
   }
-  ['_Registry', '_Facets'].forEach(function (name) {
+  ['_Registry', '_Facets', '_Assets', '_Audit'].forEach(function (name) {
     if (!sheets[name] || sheets[name].table_count !== 0) {
       throw new Error('Registry v2 machine sheet ' + name + ' must remain a plain grid.');
     }
@@ -2754,31 +2808,34 @@ function registryV2BatchWrite_(spreadsheetId, before, plan, metadata) {
     }
   });
 
-  var facets = plan.target._Facets;
-  var maxFacetRows = Math.max(before._Facets.rows, facets.rows);
-  for (var fr = 1; fr < maxFacetRows; fr++) {
-    for (var fc = 0; fc < facets.columns; fc++) {
-      var desiredValue = fr < facets.rows ? facets.values[fr][fc] : '';
-      var oldValue = fr < before._Facets.rows ? before._Facets.values[fr][fc] : '';
-      var desiredFormula = fr < facets.rows ? facets.formulas[fr][fc] : '';
-      var oldFormula = fr < before._Facets.rows ? before._Facets.formulas[fr][fc] : '';
-      if (sameCellValue_(oldValue, desiredValue) && oldFormula === desiredFormula) continue;
-      if (fr < before._Facets.rows) {
-        requests.push(registryV2UpdateRequest_(metadata._Facets.sheet_id, fr, fc,
-          registryV2RestCell_(desiredValue, desiredFormula)));
+  ['_Facets', '_Assets'].forEach(function (name) {
+    var desired = plan.target[name];
+    var original = before[name];
+    var maxRows = Math.max(original.rows, desired.rows);
+    for (var r = 1; r < maxRows; r++) {
+      for (var c = 0; c < desired.columns; c++) {
+        var desiredValue = r < desired.rows ? desired.values[r][c] : '';
+        var oldValue = r < original.rows ? original.values[r][c] : '';
+        var desiredFormula = r < desired.rows ? desired.formulas[r][c] : '';
+        var oldFormula = r < original.rows ? original.formulas[r][c] : '';
+        if (sameCellValue_(oldValue, desiredValue) && oldFormula === desiredFormula) continue;
+        if (r < original.rows) {
+          requests.push(registryV2UpdateRequest_(metadata[name].sheet_id, r, c,
+            registryV2RestCell_(desiredValue, desiredFormula)));
+        }
       }
     }
-  }
-  if (facets.rows > before._Facets.rows) {
-    requests.push({ appendCells: {
-      tableId: metadata._Facets.table_id || undefined,
-      sheetId: metadata._Facets.table_id ? undefined : metadata._Facets.sheet_id,
-      rows: facets.values.slice(before._Facets.rows).map(function (row) {
-        return registryV2RestRow_(row, null);
-      }),
-      fields: 'userEnteredValue'
-    } });
-  }
+    if (desired.rows > original.rows) {
+      requests.push({ appendCells: {
+        tableId: metadata[name].table_id || undefined,
+        sheetId: metadata[name].table_id ? undefined : metadata[name].sheet_id,
+        rows: desired.values.slice(original.rows).map(function (row) {
+          return registryV2RestRow_(row, null);
+        }),
+        fields: 'userEnteredValue'
+      } });
+    }
+  });
   if (!requests.length) return;
   try {
     Sheets.Spreadsheets.batchUpdate({ requests: requests }, spreadsheetId);
@@ -2788,8 +2845,8 @@ function registryV2BatchWrite_(spreadsheetId, before, plan, metadata) {
   }
 }
 
-function registryV2AutoIngest_(context, cfg, items, v1ByFileId) {
-  var plan = registryV2AutoPlan_(context.before, cfg, items, v1ByFileId);
+function registryV2AutoIngest_(context, cfg, items) {
+  var plan = registryV2AutoPlan_(context.before, cfg, items);
   var checked = registryV2WorkbookState_(context.spreadsheet);
   if (!registryV2WorkbookStatesEqual_(context.before, checked)) {
     throw new Error('Registry v2 changed during Drive scan. No v2 cells were updated.');
@@ -2814,6 +2871,8 @@ function registryV2AutoIngest_(context, cfg, items, v1ByFileId) {
   return {
     enabled: true,
     added: plan.added,
+    updated: plan.updated,
+    missing: plan.missing,
     checked: plan.checked,
     skipped: plan.skipped,
     registry_revision: plan.compiled.registry_revision
@@ -2832,6 +2891,30 @@ function registryV2Config_(rows) {
   if (String(config.schema_version || '') !== '2') {
     throw new Error('Registry v2 _Config schema_version must be 2.');
   }
+  return config;
+}
+
+/** Read the non-secret Registry v2 configuration from its hidden `_Config` tab. */
+function registryV2ConfigFromSheet_(ss, workbookState) {
+  var state = workbookState || registryV2WorkbookState_(ss);
+  return registryV2Config_(registryV2RowsFromState_(
+    state, '_Config', REGISTRY_V2_HEADERS._Config, false));
+}
+
+/**
+ * Merge V2's non-secret workbook metadata with operational Script Properties.
+ * There is intentionally no V1 Config fallback: an archived V1 workbook must
+ * be removable without affecting sync, menus, the Web App or publishing.
+ */
+function registryV2OperationalConfig_(ss, workbookState) {
+  var config = registryV2ConfigFromSheet_(ss, workbookState);
+  var properties = PropertiesService.getScriptProperties();
+  Object.keys(REGISTRY_V2_OPERATION_PROPERTIES).forEach(function (key) {
+    var propertyName = REGISTRY_V2_OPERATION_PROPERTIES[key];
+    config[key] = String(properties.getProperty(propertyName) || '').trim();
+  });
+  if (!config.production_branch) config.production_branch = PRODUCTION_BRANCH;
+  if (!config.auto_publish_target) config.auto_publish_target = 'off';
   return config;
 }
 
@@ -3445,9 +3528,8 @@ function refreshRegistryV2Status() {
   }
   try {
     var v2Sheet = registryV2Spreadsheet_();
-    var cfg = readConfig_(registrySpreadsheet_());
-
     var before = registryV2WorkbookState_(v2Sheet);
+    var cfg = registryV2OperationalConfig_(v2Sheet, before);
     var compiled = registryV2CompileState_(v2Sheet, cfg, 'preview', before);
     var previewBaseUrl = registryV2PreviewBaseUrl_(compiled.config);
     var plan = registryV2WritePlan_(compiled, before, previewBaseUrl);
@@ -3689,59 +3771,42 @@ function doPost(e) {
 
 function doGet(e) {
   var p = (e && e.parameter) || {};
+  var accessToken = String(PropertiesService.getScriptProperties()
+    .getProperty(REGISTRY_V2_OPERATION_PROPERTIES.access_token) || '');
+  if (!p.token || !accessToken || p.token !== accessToken) {
+    return jsonOut_({ ok: false, error: 'bad token' });
+  }
   var ss;
   try {
-    ss = registrySpreadsheet_();
+    ss = registryV2Spreadsheet_();
   } catch (err) {
     return jsonOut_({ ok: false,
-      error: 'registry spreadsheet unavailable — run setup() and deploy a new web-app version' });
+      error: 'registry v2 unavailable — commission the V2-bound script and deploy a new Web App version' });
   }
-  var cfg = readConfig_(ss);
-
-  if (!p.token || p.token !== cfg.access_token) {
-    return jsonOut_({ ok: false, error: 'bad token' });
+  var cfg;
+  try {
+    cfg = registryV2OperationalConfig_(ss);
+  } catch (configError) {
+    return jsonOut_({ ok: false, error: 'registry v2 unavailable' });
   }
 
   var audienceResult = registryAudience_(p.audience);
   if (!audienceResult.ok) return jsonOut_({ ok: false, error: audienceResult.error });
   var audience = audienceResult.value;
+  // V2 is the only served schema. An explicit schema=1 is rejected instead of
+  // silently reopening the archived V1 data plane.
   var schemaResult = registrySchema_(p.schema);
   if (!schemaResult.ok) return jsonOut_({ ok: false, error: schemaResult.error });
-  if (schemaResult.value === 2) {
-    if (p.action && p.action !== 'manifest' && p.action !== 'file'
-        && p.action !== 'asset') {
-      return jsonOut_({ ok: false, error: 'unknown action' });
-    }
-    var v2Snapshot;
-    try {
-      v2Snapshot = registryV2Snapshot_(registryV2Spreadsheet_(), cfg, audience);
-    } catch (v2SnapshotError) {
-      return jsonOut_({ ok: false, error: 'registry v2 unavailable' });
-    }
-    var v2ExpectedRevision = String(p.registry_revision || '').trim();
-    if (v2ExpectedRevision && v2ExpectedRevision !== v2Snapshot.registry_revision) {
-      return jsonOut_({
-        ok: false,
-        error: 'registry revision changed',
-        registry_revision: v2Snapshot.registry_revision
-      });
-    }
-    if ((p.action === 'file' || p.action === 'asset') && !p.id) {
-      return jsonOut_({ ok: false,
-        error: p.action === 'asset' ? 'unknown asset id' : 'unknown file id' });
-    }
-    try {
-      return jsonOut_(registryV2Response_(v2Snapshot, cfg,
-        p.action || 'manifest', String(p.id || '')));
-    } catch (v2ReadError) {
-      return jsonOut_({ ok: false,
-        error: p.action === 'asset' ? 'could not read asset' : 'could not read file' });
-    }
-  }
-  if (p.action && p.action !== 'manifest' && p.action !== 'file') {
+  if (p.action && p.action !== 'manifest' && p.action !== 'file'
+      && p.action !== 'asset') {
     return jsonOut_({ ok: false, error: 'unknown action' });
   }
-  var snapshot = registrySnapshot_(ss, cfg, audience);
+  var snapshot;
+  try {
+    snapshot = registryV2Snapshot_(ss, cfg, audience);
+  } catch (snapshotError) {
+    return jsonOut_({ ok: false, error: 'registry v2 unavailable' });
+  }
   var expectedRevision = String(p.registry_revision || '').trim();
   if (expectedRevision && expectedRevision !== snapshot.registry_revision) {
     return jsonOut_({
@@ -3750,66 +3815,17 @@ function doGet(e) {
       registry_revision: snapshot.registry_revision
     });
   }
-  var visible = snapshot.demos;
-
-  if (p.action === 'file') {
-    if (!p.id) return jsonOut_({ ok: false, error: 'unknown file id' });
-    var kind = registryFileKind_(visible, p.id);
-    if (!kind) return jsonOut_({ ok: false, error: 'unknown file id' });
-    var matchedDemo = registryDemoForFile_(visible, p.id, kind);
-    try {
-      var file = registryDriveFile_(cfg, p.id, kind);
-      if (!file) return jsonOut_({ ok: false, error: 'unknown file id' });
-      var stampBefore = registryFileStampMs_(file);
-      if (registryFileChangedAfterSync_(matchedDemo, stampBefore)) {
-        return jsonOut_({
-          ok: false,
-          error: 'registry source changed; run Drive sync and retry',
-          registry_revision: snapshot.registry_revision
-        });
-      }
-      var blob = file.getBlob();
-      var stampAfter = registryFileStampMs_(file);
-      if (stampAfter !== stampBefore
-          || registryFileChangedAfterSync_(matchedDemo, stampAfter)) {
-        return jsonOut_({
-          ok: false,
-          error: 'registry source changed while reading; run Drive sync and retry',
-          registry_revision: snapshot.registry_revision
-        });
-      }
-      if (kind === 'page') {
-        var pageHtml = blob.getDataAsString();
-        if (!String(pageHtml || '').trim()) {
-          return jsonOut_({ ok: false, error: 'could not read file' });
-        }
-        return jsonOut_({
-          ok: true,
-          audience: audience,
-          registry_revision: snapshot.registry_revision,
-          id: p.id,
-          html: pageHtml
-        });
-      }
-      return jsonOut_({
-        ok: true, audience: audience, registry_revision: snapshot.registry_revision, id: p.id,
-        mime: String(blob.getContentType() || 'application/octet-stream'),
-        base64: Utilities.base64Encode(blob.getBytes())
-      });
-    } catch (err) {
-      return jsonOut_({ ok: false, error: 'could not read file' });
-    }
+  if ((p.action === 'file' || p.action === 'asset') && !p.id) {
+    return jsonOut_({ ok: false,
+      error: p.action === 'asset' ? 'unknown asset id' : 'unknown file id' });
   }
-
-  // default: manifest
-  return jsonOut_({
-    ok: true,
-    audience: audience,
-    registry_revision: snapshot.registry_revision,
-    generated: new Date().toISOString(),
-    site: snapshot.site,
-    demos: visible
-  });
+  try {
+    return jsonOut_(registryV2Response_(snapshot, cfg,
+      p.action || 'manifest', String(p.id || '')));
+  } catch (readError) {
+    return jsonOut_({ ok: false,
+      error: p.action === 'asset' ? 'could not read asset' : 'could not read file' });
+  }
 }
 
 /**
@@ -4851,9 +4867,24 @@ function jsonOut_(obj) {
 
 function logEvent_(event, details) {
   try {
-    var sh = registrySpreadsheet_().getSheetByName(SHEET_LOG);
-    if (sh) sh.appendRow([new Date(), event, details]);
+    var sh = registryV2Spreadsheet_().getSheetByName('_Audit');
+    if (!sh) return;
+    var action = registryV2AuditText_(event, 120);
+    var detail = registryV2AuditText_(details, 1000);
+    var result = /error|fail/i.test(action) ? 'error'
+      : /skip|cancel|stale/i.test(action) ? 'skipped' : 'ok';
+    sh.appendRow([
+      Utilities.getUuid(), new Date(), 'apps_script', action, '', '', '', result, detail
+    ]);
   } catch (e) { /* logging must never break the main action */ }
+}
+
+function registryV2AuditText_(value, maxLength) {
+  var text = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+  text = text.replace(
+    /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]+/gu,
+    '[non-English text omitted]');
+  return text.slice(0, Number(maxLength) || 1000);
 }
 
 function paint_(sh, row, colFrom, colTo, color) {

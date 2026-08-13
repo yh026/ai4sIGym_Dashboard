@@ -6,20 +6,43 @@ engineering contract; it is not the project-owner status report.
 
 ## Delivery boundary
 
-Registry v2 is a develop-only data source. The compiler, Sheet adapter, strict
-build consumer, Apps Script snapshot/file/asset endpoints and owner-only V2
-Sheet use one explicit contract. The stable `branch-deploy + develop` build
-requests `schema=2`; Production/main and PR Deploy Previews force `schema=1`
-and therefore remain on the proven V1 Registry.
+Registry v2 is the sole live Registry and operator control plane. The compiler,
+Sheet adapter, Apps Script sync/snapshot/file/asset endpoints and every Netlify
+context use one schema-2 contract. Audience remains separate: Production gets
+healthy `Live + Public` projects, while stable `branch-deploy + develop` may
+also get healthy Draft projects. `schema=1` is rejected and cannot reopen the
+archived V1 data plane.
 
-The V2 Sheet has no trigger or credentials of its own. Its ID is stored in the
-existing Apps Script project's `AI4S_REGISTRY_V2_SPREADSHEET_ID` Script
-Property. The existing single `syncDrive` trigger reconciles both registries
-from one Drive collection pass. `AI4S_PREVIEW_REGISTRY_SCHEMA=2` switches only
-Preview automation's desired revision to V2. The default for both properties
-is safe V1 behaviour, and no token or Hook is stored in the V2 workbook.
+The Apps Script project is container-bound to V2. `setup()` validates the
+existing workbook, records its ID in `AI4S_REGISTRY_V2_SPREADSHEET_ID`, installs
+the single owner-controlled hourly `syncDrive` trigger and adds the V2 menu. It
+never creates or migrates legacy `Demos`, `Config` or `Log` tabs. Trigger and Web
+App contexts reopen V2 by its stable ID.
 
-V2 automatic discovery accepts only an English-named direct child folder of the
+Non-secret site metadata stays in V2 `_Config`. Operational values and every
+credential are Script Properties only:
+
+```text
+AI4S_DRIVE_FOLDER_URL
+AI4S_REGISTRY_ACCESS_TOKEN
+AI4S_NETLIFY_PRODUCTION_BUILD_HOOK
+AI4S_NETLIFY_PREVIEW_BUILD_HOOK
+AI4S_PRODUCTION_BRANCH
+AI4S_PREVIEW_BRANCH
+AI4S_PREVIEW_URL
+AI4S_PREVIEW_URL_BRANCH
+AI4S_AUTO_PUBLISH_TARGET
+AI4S_NETLIFY_SITE_ID
+AI4S_PREVIEW_CALLBACK_SECRET
+```
+
+There is no V1 Config fallback. V1 can be moved, protected or archived without
+affecting V2 sync, menus, publishing or the Web App. Operational events append
+to V2 `_Audit`; tokens and Hooks never enter a workbook cell or public artifact.
+
+V2 sync scans Drive once and reconciles directly against `_Registry.file_id`;
+it never reads or writes a V1 row. Automatic discovery accepts only an
+English-named direct child folder of the
 configured Drive root with one unambiguous direct-child HTML page. A new page
 is appended to the native `ProjectsCatalogV2` table and the plain-grid
 `_Registry` / `_Facets` indexes in one Sheets API batch. It starts as `Draft`,
@@ -37,6 +60,12 @@ build-facing manifest, so its creation does not change the Registry revision or
 request a deploy. Missing files remain as tombstones and recover when the same
 Drive file returns. A delete/re-upload with a new `file_id` is deliberately not
 guessed as a replacement and requires explicit migration.
+
+Every existing source is checked directly from Drive during reconciliation.
+The current page boundary and content health produce `_Registry.file_check`,
+and Drive creation time seeds `date_added`. Human-owned `Projects` fields are
+never overwritten. Optimistic workbook checks, native-table metadata checks,
+one Sheets batch write and exact post-write verification remain mandatory.
 
 ## Human sheet
 
@@ -146,6 +175,16 @@ source_type=drive + drive_file_id + source_file_name
 HTML and image share the same allowed Registry parent. External URLs remain in
 the reserved machine schema for a future policy, but are rejected by both the
 compiler and Apps Script today.
+
+Drive sync resolves a non-empty selection against the images collected from
+that exact project folder. It must match one supported, non-shortcut file
+exactly. The same guarded Sheets batch updates `_Registry.card_asset_id` and the
+single `_Assets` row with stable `asset-<slug>-card` identity. Replacing the
+selected file under the same name updates its Drive ID and modification time;
+clearing `Card Image` removes both machine links. A missing project page clears
+the stale asset link but preserves the human filename so it can rebind when the
+same page returns. Invalid paths, URLs, unsupported types and ambiguous names
+stop the sync before any V2 write.
 
 Card image output paths are limited to:
 
