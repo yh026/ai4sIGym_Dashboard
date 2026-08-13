@@ -236,7 +236,9 @@ base64 envelope；构建再把它写入 `dist/assets/cards/`。
 
 发布时编辑**现有** deployment，选择 New version，保持 Deployment ID、URL、execute-as
 和访问范围不变。不要运行 `setup()`；唯一的 `syncDrive` trigger 与其他 Script Properties
-必须保持不变。
+必须保持不变。部署内容必须同时包含 `Code.gs` 与版本控制中的 `appsscript.json`；manifest
+启用 Sheets API v4 advanced service，供 V2 原生表 metadata 检查与单次原子 batch write 使用。
+不要只复制 `Code.gs`，也不要把这两次调用改回手工 `UrlFetchApp` OAuth 请求。
 
 ## 7. 出错时检查
 

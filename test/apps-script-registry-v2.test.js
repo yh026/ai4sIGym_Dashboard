@@ -12,6 +12,18 @@ function loadAppsScript() {
   return context;
 }
 
+test('Apps Script manifest enables the Sheets v4 advanced service', () => {
+  const manifest = JSON.parse(fs.readFileSync(
+    path.join(__dirname, '..', 'google-apps-script', 'appsscript.json'), 'utf8',
+  ));
+  assert.deepEqual(manifest.dependencies.enabledAdvancedServices, [{
+    userSymbol: 'Sheets', version: 'v4', serviceId: 'sheets',
+  }]);
+  assert.deepEqual(manifest.webapp, {
+    executeAs: 'USER_DEPLOYING', access: 'ANYONE_ANONYMOUS',
+  });
+});
+
 class FakeRange {
   constructor(sheet, row, column, rowCount, columnCount) {
     this.sheet = sheet;
@@ -1235,6 +1247,29 @@ test('v2 guarded auto-ingest verifies success from a freshly opened spreadsheet'
   assert.equal(freshOpens, 1);
 });
 
+test('v2 native table metadata uses the Sheets advanced service', () => {
+  const script = loadAppsScript();
+  let call;
+  script.Sheets = { Spreadsheets: { get: (spreadsheetId, options) => {
+    call = { spreadsheetId, options };
+    return { sheets: [
+      { properties: { sheetId: 1, title: 'Projects' }, tables: [{
+        tableId: 'projects-table-id', name: 'ProjectsCatalogV2',
+        range: { startRowIndex: 0, endRowIndex: 16, startColumnIndex: 0, endColumnIndex: 16 },
+      }] },
+      { properties: { sheetId: 2, title: '_Registry' } },
+      { properties: { sheetId: 3, title: '_Facets' }, tables: [] },
+    ] };
+  } } };
+  const metadata = script.registryV2SheetsMetadata_('v2-sheet-id');
+  assert.equal(call.spreadsheetId, 'v2-sheet-id');
+  assert.equal(call.options.fields,
+    'sheets(properties(sheetId,title),tables(tableId,name,range))');
+  assert.equal(metadata.Projects.table_id, 'projects-table-id');
+  assert.equal(metadata._Registry.sheet_id, 2);
+  assert.equal(metadata._Facets.table_count, 0);
+});
+
 test('v2 batch append addresses Projects by native tableId and machines by sheetId', () => {
   const script = loadAppsScript();
   const sheet = fixture(script);
@@ -1244,11 +1279,10 @@ test('v2 batch append addresses Projects by native tableId and machines by sheet
     before, candidate.cfg, [candidate.item], candidate.v1ByFileId,
   );
   let payload;
-  script.ScriptApp = { getOAuthToken: () => 'oauth-token' };
-  script.UrlFetchApp = { fetch: (url, options) => {
-    payload = JSON.parse(options.payload);
-    return { getResponseCode: () => 200, getContentText: () => '{}' };
-  } };
+  script.Sheets = { Spreadsheets: { batchUpdate: (body, spreadsheetId) => {
+    assert.equal(spreadsheetId, 'v2-sheet-id');
+    payload = body;
+  } } };
   script.registryV2BatchWrite_('v2-sheet-id', before, plan, {
     Projects: { sheet_id: 1, table_id: 'ProjectsCatalogV2' },
     _Registry: { sheet_id: 2, table_id: '' },
@@ -1274,11 +1308,10 @@ test('v2 batch clears stale _Facets formulas even when their display value match
     'page-draft-12345': v1Row(script, { FILE_ID: 'page-draft-12345', FILE_CHECK: 'ok' }),
   });
   let payload;
-  script.ScriptApp = { getOAuthToken: () => 'oauth-token' };
-  script.UrlFetchApp = { fetch: (url, options) => {
-    payload = JSON.parse(options.payload);
-    return { getResponseCode: () => 200, getContentText: () => '{}' };
-  } };
+  script.Sheets = { Spreadsheets: { batchUpdate: (body, spreadsheetId) => {
+    assert.equal(spreadsheetId, 'v2-sheet-id');
+    payload = body;
+  } } };
   script.registryV2BatchWrite_('v2-sheet-id', before, plan, {
     Projects: { sheet_id: 1, table_id: 'ProjectsCatalogV2' },
     _Registry: { sheet_id: 2, table_id: '' },

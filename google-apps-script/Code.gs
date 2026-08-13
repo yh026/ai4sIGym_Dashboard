@@ -2666,19 +2666,15 @@ function registryV2RestRow_(values, formulas) {
 }
 
 function registryV2SheetsMetadata_(spreadsheetId) {
-  var url = 'https://sheets.googleapis.com/v4/spreadsheets/'
-    + encodeURIComponent(spreadsheetId)
-    + '?fields=sheets(properties(sheetId,title),tables(tableId,name,range))';
-  var response = UrlFetchApp.fetch(url, {
-    method: 'get',
-    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
-    muteHttpExceptions: true
-  });
-  if (response.getResponseCode() !== 200) {
-    throw new Error('Registry v2 could not inspect its native tables (HTTP '
-      + response.getResponseCode() + ').');
+  var body;
+  try {
+    body = Sheets.Spreadsheets.get(spreadsheetId, {
+      fields: 'sheets(properties(sheetId,title),tables(tableId,name,range))'
+    });
+  } catch (err) {
+    throw new Error('Registry v2 could not inspect its native tables: '
+      + safeErrorMessage_(err));
   }
-  var body = JSON.parse(response.getContentText());
   var sheets = {};
   (body.sheets || []).forEach(function (sheet) {
     var title = sheet.properties && sheet.properties.title;
@@ -2784,18 +2780,11 @@ function registryV2BatchWrite_(spreadsheetId, before, plan, metadata) {
     } });
   }
   if (!requests.length) return;
-  var url = 'https://sheets.googleapis.com/v4/spreadsheets/'
-    + encodeURIComponent(spreadsheetId) + ':batchUpdate';
-  var response = UrlFetchApp.fetch(url, {
-    method: 'post',
-    contentType: 'application/json',
-    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
-    muteHttpExceptions: true,
-    payload: JSON.stringify({ requests: requests })
-  });
-  if (response.getResponseCode() < 200 || response.getResponseCode() >= 300) {
-    throw new Error('Registry v2 guarded batch write failed (HTTP '
-      + response.getResponseCode() + ').');
+  try {
+    Sheets.Spreadsheets.batchUpdate({ requests: requests }, spreadsheetId);
+  } catch (err) {
+    throw new Error('Registry v2 guarded batch write failed: '
+      + safeErrorMessage_(err));
   }
 }
 
