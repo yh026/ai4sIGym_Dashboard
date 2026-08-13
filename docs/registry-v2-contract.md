@@ -12,11 +12,31 @@ Sheet use one explicit contract. The stable `branch-deploy + develop` build
 requests `schema=2`; Production/main and PR Deploy Previews force `schema=1`
 and therefore remain on the proven V1 Registry.
 
-The V2 Sheet has no sync trigger or credentials of its own. Its ID is stored in
-the existing Apps Script project's `AI4S_REGISTRY_V2_SPREADSHEET_ID` Script
-Property. `AI4S_PREVIEW_REGISTRY_SCHEMA=2` switches only Preview automation's
-desired revision to V2. The default for both properties is safe V1 behaviour,
-and no token or Hook is stored in the V2 workbook.
+The V2 Sheet has no trigger or credentials of its own. Its ID is stored in the
+existing Apps Script project's `AI4S_REGISTRY_V2_SPREADSHEET_ID` Script
+Property. The existing single `syncDrive` trigger reconciles both registries
+from one Drive collection pass. `AI4S_PREVIEW_REGISTRY_SCHEMA=2` switches only
+Preview automation's desired revision to V2. The default for both properties
+is safe V1 behaviour, and no token or Hook is stored in the V2 workbook.
+
+V2 automatic discovery accepts only an English-named direct child folder of the
+configured Drive root with one unambiguous direct-child HTML page. A new page
+is appended to the native `ProjectsCatalogV2` table and the plain-grid
+`_Registry` / `_Facets` indexes in one Sheets API batch. It starts as `Draft`,
+`Preview only`, `Featured=false`, with a stable `demo-<folder-slug>` identity.
+Loose root HTML, shortcuts, non-English folder names and ambiguous primary
+pages are outside this creation boundary. Re-running with the same Drive
+`file_id` is idempotent; a slug or identity collision is reported and never
+replaces an existing source.
+
+Initial HTML or provenance metadata is only a convenience seed. Taxonomy is
+copied only when the complete field resolves exactly; unknown initial values
+remain blank and make that Draft locally blocked. Later non-empty unknown human
+values remain structural errors. A blocked Draft is excluded from the
+build-facing manifest, so its creation does not change the Registry revision or
+request a deploy. Missing files remain as tombstones and recover when the same
+Drive file returns. A delete/re-upload with a new `file_id` is deliberately not
+guessed as a replacement and requires explicit migration.
 
 ## Human sheet
 

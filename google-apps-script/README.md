@@ -215,6 +215,19 @@ V1 Config 中的 Drive root。升级现有项目时不要运行 `setup()`，也�
 `schema=2` 时也继续返回 V1。构建端仅对稳定的 `branch-deploy + develop` 强制
 `schema=2`；Production/main 与 PR Deploy Preview 强制 `schema=1`。
 
+现有的唯一 `syncDrive` 同时维护 V1 与 V2，不需要第二个 trigger。V2 自动发现范围刻意保持
+简单：Drive root 的英文命名直接子文件夹，且其中有一个可明确选定的直接子 HTML。第一次
+发现时，会把项目作为 `Draft`、`Preview only`、`Featured=false` 追加到 `ProjectsCatalogV2`
+原生表，并以 `demo-<folder-slug>` 与 Drive `file_id` 建立稳定身份。根目录 loose HTML、
+shortcut、非英文文件夹和主页面不明确的多 HTML 文件夹不会自动进入 V2。
+
+新行只把 HTML/`ai4s-meta`/`PROVENANCE.md` 中可精确识别的英文内容作为首次填写建议；
+不会猜测 taxonomy，也不会自动升级为 Live 或 Public。之后人工只编辑 `Projects`，同步会按
+隐藏的 `demo_id` 更新 `_Registry` 与 `_Facets`。未补完的 Draft 显示 `Action needed`，不会
+进入 build-facing manifest、不会改变 Preview revision，也不会触发部署。删除或移出 HTML
+只会把机器状态标为 missing 并保留记录；同一 Drive 文件恢复后会恢复。删除后重新上传得到
+新的 `file_id` 时不会被猜成原项目，需要人工迁移。
+
 V2 每个项目最多选择一张卡片图片。把图片作为项目 HTML 同一 Drive 文件夹的直接子文件，
 在 `Projects → Card Image` 只填写文件名（例如 `card.jpg`），并填写英文 Image Alt Text。
 第一轮只支持 Drive 图片；外部 URL 不启用。图片为空时继续使用仓库内匹配的静态预览图。
