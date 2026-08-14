@@ -79,6 +79,12 @@ var REGISTRY_V2_SNAPSHOT_CACHE_TTL_SECONDS = 30 * 60;
 var REGISTRY_V2_SNAPSHOT_CACHE_PREFIX = 'registry-v2-snapshot-v1:';
 var REGISTRY_V2_SNAPSHOT_MARKER_PREFIX = 'registry-v2-current-v1:';
 var REGISTRY_V2_SNAPSHOT_CACHE_MAX_BYTES = 95 * 1024;
+// Drive sync keeps only versioned hashes in Script Properties. Parsed page or
+// provenance content is never persisted. A warm hit is accepted only when the
+// complete Drive metadata contract and the current machine output still match.
+var REGISTRY_V2_INGEST_CACHE_SCHEMA = 1;
+var REGISTRY_V2_INGEST_CACHE_PREFIX = 'AI4S_V2_INGEST_FP_V1:';
+var REGISTRY_V2_INGEST_CACHE_MAX_VALUE_BYTES = 1024;
 var REGISTRY_V2_IMAGE_MIME_BY_EXTENSION = {
   avif: 'image/avif', gif: 'image/gif', jpg: 'image/jpeg', jpeg: 'image/jpeg',
   png: 'image/png', webp: 'image/webp'
@@ -778,14 +784,34 @@ function syncDrive() {
       logEvent_('sync-error', syncMessage);
       result = { error: syncMessage };
     }
+    // Successful auto-ingest has already captured and verified this exact V2
+    // state. Carry only the non-secret Sheet config base plus the Preview
+    // snapshot internally; operational properties are refreshed below and no
+    // internal object is returned to a caller or written to Audit.
+    var syncedConfigBase = result && result._configBase;
+    var syncedPreviewSnapshot = result && result._previewSnapshot;
+    if (result && typeof result === 'object') {
+      delete result._configBase;
+      delete result._previewSnapshot;
+    }
     try {
       var publishSs = registryV2Spreadsheet_();
-      var publishCfg = registryV2OperationalConfig_(publishSs);
+      var publishCfg = syncedConfigBase
+        ? registryV2RefreshOperationalProperties_(syncedConfigBase)
+        : registryV2OperationalConfig_(publishSs);
+      var publishOptions = {
+        allowAttempt: !(result && result.error),
+        allowAutoRequest: !(result && result.error)
+      };
+      // Automation-off syncs still reconcile desired/callback state, but they
+      // can do so from the exact post-verified revision instead of capturing
+      // and compiling all six workbook inputs a second time. Explicit Preview
+      // publishing and automatic Preview mode always compile live state.
+      if (syncedPreviewSnapshot && autoPublishTarget_(publishCfg) === 'off') {
+        publishOptions.snapshot = syncedPreviewSnapshot;
+      }
       var previewRun = maintainPreviewPublish_(publishSs, publishCfg,
-        {
-          allowAttempt: !(result && result.error),
-          allowAutoRequest: !(result && result.error)
-        });
+        publishOptions);
       if (previewRun.attempted) {
         if (previewRun.attemptResult.ok) {
           logEvent_('publish', 'Hourly Preview request '
@@ -809,8 +835,7 @@ function syncDrive() {
     return result;
   } finally {
     registryV2InvalidateSnapshotMarkers_();
-    try { SpreadsheetApp.flush(); }
-    finally { lock.releaseLock(); }
+    lock.releaseLock();
   }
 }
 
@@ -835,20 +860,29 @@ function syncDriveUnlocked_() {
   // V2 is the sole Registry. Drive is collected once, then reconciled directly
   // against `_Registry.file_id`; no V1 Demos, Config or Log tab is opened.
   var items = collectDemos_(folder);
+  var ingestCache = registryV2PrepareIngestCache_(
+    items, ss.getId(), folderId);
   var context = {
     enabled: true,
     spreadsheet: ss,
     spreadsheet_id: ss.getId(),
-    before: before
+    before: before,
+    ingest_cache: ingestCache
   };
   var result = registryV2AutoIngest_(context, cfg, items);
   var summary = 'Registry v2: ' + result.added + ' added, '
     + result.checked + ' checked, ' + result.skipped + ' skipped, '
-    + result.missing + ' missing.';
+    + result.missing + ' missing; ' + result.cache_hits
+    + ' unchanged reused, ' + result.source_reads + ' source pairs parsed; '
+    + (result.sheet_changed ? 'Sheet updated.' : 'Sheet already current.');
   logEvent_('sync', summary);
   ss.toast(summary, 'Drive sync', 6);
+  var previewSnapshot = result.preview_snapshot;
+  delete result.preview_snapshot;
   return { registryV2: result, nNew: result.added, nUpdated: result.updated,
-    nWarn: result.missing, nConflicts: 0 };
+    nWarn: result.missing, nConflicts: 0,
+    _configBase: registryV2NonOperationalConfig_(cfg),
+    _previewSnapshot: previewSnapshot };
 }
 
 /**
@@ -1003,7 +1037,7 @@ function collectDemos_(folder) {
         + '" because it is no longer directly inside the configured Drive root.');
       continue;
     }
-    var item = collectDemoFolder_(sub);
+    var item = collectDemoFolder_(sub, rootId);
     if (item) out.push(item);
   }
 
@@ -1022,14 +1056,15 @@ function collectDemos_(folder) {
       continue;
     }
     if (!isHtmlFile_(f)) continue;
-    out.push({ file: f, folderName: '', provFile: null, picFile: null,
+    out.push({ file: f, pageFiles: [f], folder: folder, folderId: rootId,
+      rootId: rootId, folderName: '', provFile: null, picFile: null,
       imageFiles: [], card: null, stamp: f.getLastUpdated(), notes: [] });
   }
   return out;
 }
 
 /** One demo sub-folder → an item for collectDemos_, or null if it holds no page. */
-function collectDemoFolder_(sub) {
+function collectDemoFolder_(sub, rootId) {
   var name = sub.getName();
   var subId = driveEntryIdOrThrow_(sub, 'demo folder "' + name + '"');
   var pages = [], images = [], prov = null;
@@ -1059,8 +1094,11 @@ function collectDemoFolder_(sub) {
   var names = pages.map(function (f) { return f.getName(); });
   var pick = pickPrimaryPage_(name, names, null);
   var card = null;
+  var selectionProvenanceContract = null;
   if (pick.needsCard && prov) {           // several pages and no name match:
-    card = readCard_(prov);               // the card's pages[] is the tie-break
+    var selection = registryV2ReadStableSelectionCard_(prov, subId);
+    card = selection.card;                // the card's pages[] is the tie-break
+    selectionProvenanceContract = selection.contract;
     pick = pickPrimaryPage_(name, names, card);
   }
 
@@ -1077,8 +1115,11 @@ function collectDemoFolder_(sub) {
   if (pick.note) notes.push(pick.note);
   if (picked.note) notes.push(picked.note);
 
-  return { file: file, folderName: name, provFile: prov, picFile: picFile,
-    imageFiles: images.slice(), card: card, stamp: stamp, notes: notes };
+  return { file: file, pageFiles: pages.slice(), folder: sub, folderId: subId,
+    rootId: String(rootId || ''), folderName: name, provFile: prov, picFile: picFile,
+    imageFiles: images.slice(), card: card,
+    selectionProvenanceContract: selectionProvenanceContract,
+    stamp: stamp, notes: notes };
 }
 
 /** True only for a current, direct parent edge; lookup failures stop the sync. */
@@ -1119,6 +1160,312 @@ function driveEntryName_(entry) {
   catch (ignored) { return '(unreadable name)'; }
 }
 
+/** All current direct parents, used by the incremental-ingest safety contract. */
+function registryV2SyncParentIds_(entry, expectedParentId, label) {
+  var parents;
+  try { parents = entry.getParents(); }
+  catch (err) {
+    throw new Error('Drive sync stopped: parent lookup failed for ' + label + '.');
+  }
+  var ids = [];
+  try {
+    while (parents.hasNext()) {
+      var id = String(parents.next().getId() || '');
+      if (id && ids.indexOf(id) === -1) ids.push(id);
+    }
+  } catch (err2) {
+    throw new Error('Drive sync stopped: parent lookup failed for ' + label + '.');
+  }
+  ids.sort();
+  if (!expectedParentId || ids.indexOf(String(expectedParentId)) === -1) {
+    throw new Error('Drive sync stopped: ' + label
+      + ' moved outside its collected folder. No registry changes were written.');
+  }
+  return ids;
+}
+
+/** Metadata only: this function never downloads a Drive blob. */
+function registryV2SyncFileContract_(file, expectedParentId, label) {
+  var id, name, mime, modified, size;
+  try {
+    id = String(file.getId() || '');
+    name = String(file.getName() || '');
+    mime = registryV2Clean_(file.getMimeType()).toLowerCase();
+    modified = file.getLastUpdated();
+    if (typeof file.getSize !== 'function') throw new Error('size unavailable');
+    size = Number(file.getSize());
+  } catch (err) {
+    throw new Error('Drive sync stopped: metadata lookup failed for ' + label + '.');
+  }
+  if (!id || !name || !mime || !modified || !isFinite(modified.getTime())
+      || !isFinite(size) || size < 0) {
+    throw new Error('Drive sync stopped: invalid metadata for ' + label + '.');
+  }
+  return {
+    id: id,
+    name: name,
+    mime: mime,
+    parent_ids: registryV2SyncParentIds_(file, expectedParentId, label),
+    modified_ms: modified.getTime(),
+    size: size
+  };
+}
+
+function registryV2SortSyncContracts_(values) {
+  return values.sort(function (left, right) {
+    return left.id.localeCompare(right.id) || left.name.localeCompare(right.name);
+  });
+}
+
+/** Bind a multi-page primary selection to one stable provenance metadata view. */
+function registryV2ReadStableSelectionCard_(file, folderId) {
+  var before = registryV2SyncFileContract_(file, folderId,
+    'PROVENANCE.md primary-page selector');
+  var card = readCard_(file);
+  var after = registryV2SyncFileContract_(file, folderId,
+    'PROVENANCE.md primary-page selector');
+  if (stableJson_(before) !== stableJson_(after)) {
+    throw new Error('Drive source metadata changed while selecting the primary HTML page. '
+      + 'No registry changes were written; run sync again.');
+  }
+  return { card: card, contract: after };
+}
+
+/**
+ * Complete metadata input to one parsed page/provenance result. It contains
+ * the demo folder edge, the entire HTML inventory (not only the selected
+ * page), the provenance file, every supported image, selection identities and
+ * collection notes. Thus add/remove/replace/move/MIME/modified/card changes
+ * all make a warm hit impossible.
+ */
+function registryV2IngestContract_(item) {
+  var spreadsheetId = String(item && item.registryIngestSpreadsheetId || '');
+  var rootId = String(item && item.rootId || '');
+  var folderId = String(item && item.folderId || '');
+  if (!spreadsheetId || !rootId || !folderId || !item || !item.file) {
+    throw new Error('Drive sync stopped: an item lacks its collected folder identity.');
+  }
+  var folderParents = folderId === rootId ? ['@configured-root']
+    : registryV2SyncParentIds_(item.folder, rootId,
+      'demo folder "' + String(item.folderName || '') + '"');
+  var pages = (item.pageFiles && item.pageFiles.length
+    ? item.pageFiles : [item.file]).map(function (file) {
+    return registryV2SyncFileContract_(file, folderId, 'HTML file');
+  });
+  var provenance = item.provFile
+    ? registryV2SyncFileContract_(item.provFile, folderId, 'PROVENANCE.md') : null;
+  if (item.selectionProvenanceContract
+      && stableJson_(item.selectionProvenanceContract) !== stableJson_(provenance)) {
+    throw new Error('Drive source metadata changed after selecting the primary HTML page. '
+      + 'No registry changes were written; run sync again.');
+  }
+  var images = (item.imageFiles || []).map(function (file) {
+    return registryV2SyncFileContract_(file, folderId, 'card-image candidate');
+  });
+  return {
+    schema: REGISTRY_V2_INGEST_CACHE_SCHEMA,
+    spreadsheet_id: spreadsheetId,
+    root_id: rootId,
+    folder: {
+      id: folderId,
+      name: String(item.folderName || ''),
+      parent_ids: folderParents
+    },
+    selected_page_id: String(item.file.getId() || ''),
+    selected_picture_id: item.picFile ? String(item.picFile.getId() || '') : '',
+    pages: registryV2SortSyncContracts_(pages),
+    provenance: provenance,
+    images: registryV2SortSyncContracts_(images),
+    notes: (item.notes || []).map(function (note) { return String(note || ''); })
+  };
+}
+
+function registryV2IngestFingerprint_(contract) {
+  return 'sha256:' + sha256Hex_(stableJson_(contract));
+}
+
+function registryV2IngestCacheToken_(value) {
+  value = String(value || '');
+  return /^[-\w]{1,200}$/.test(value) ? value : 'h-' + sha256Hex_(value);
+}
+
+function registryV2IngestCacheNamespace_(spreadsheetId, rootId) {
+  return REGISTRY_V2_INGEST_CACHE_PREFIX
+    + registryV2IngestCacheToken_(spreadsheetId) + ':'
+    + registryV2IngestCacheToken_(rootId) + ':';
+}
+
+function registryV2ValidIngestCacheEnvelope_(value) {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    && Object.keys(value).sort().join(',') === 'input_fp,output_fp,schema'
+    && Number(value.schema) === REGISTRY_V2_INGEST_CACHE_SCHEMA
+    && /^sha256:[0-9a-f]{64}$/.test(String(value.input_fp || ''))
+    && /^sha256:[0-9a-f]{64}$/.test(String(value.output_fp || ''));
+}
+
+/** Prepare metadata fingerprints and best-effort property hits; no blobs. */
+function registryV2PrepareIngestCache_(items, spreadsheetId, rootId) {
+  var state = {
+    enabled: false,
+    namespace: registryV2IngestCacheNamespace_(spreadsheetId, rootId),
+    old_keys: [],
+    properties: null
+  };
+  // Some isolated unit callers provide synthetic items without collection
+  // identities. They simply take the cold path; production collectDemos_
+  // always supplies all three identities.
+  if ((items || []).some(function (item) {
+    return !item || !item.rootId || !item.folderId || !item.file;
+  })) return state;
+  if (!spreadsheetId || !rootId || (items || []).some(function (item) {
+    return String(item.rootId) !== String(rootId);
+  })) {
+    throw new Error('Drive sync stopped: the incremental cache namespace does not match the collection.');
+  }
+
+  (items || []).forEach(function (item) {
+    item.registryIngestSpreadsheetId = String(spreadsheetId);
+    var contract = registryV2IngestContract_(item);
+    item.registryIngestContract = contract;
+    item.registryIngestInputFp = registryV2IngestFingerprint_(contract);
+    item.registryIngestCacheKey = state.namespace
+      + registryV2IngestCacheToken_(item.file.getId());
+    item.registryIngestCacheEntry = null;
+  });
+  var all = {};
+  try {
+    state.properties = PropertiesService.getScriptProperties();
+    if (!state.properties || typeof state.properties.getProperties !== 'function') return state;
+    all = state.properties.getProperties() || {};
+    state.enabled = true;
+  } catch (ignored) {
+    state.properties = null;
+    return state;
+  }
+  Object.keys(all).forEach(function (key) {
+    if (key.indexOf(state.namespace) === 0) state.old_keys.push(key);
+  });
+  (items || []).forEach(function (item) {
+    var envelope = null;
+    if (Object.prototype.hasOwnProperty.call(all, item.registryIngestCacheKey)) {
+      try { envelope = JSON.parse(all[item.registryIngestCacheKey]); }
+      catch (ignored) { envelope = null; }
+    }
+    item.registryIngestCacheEntry = registryV2ValidIngestCacheEnvelope_(envelope)
+      ? envelope : null;
+  });
+  return state;
+}
+
+function registryV2IngestOutputFingerprint_(source) {
+  return 'sha256:' + sha256Hex_(stableJson_({
+    file_check: registryV2Clean_(source && source.file_check),
+    date_added: isoOrString_(source && source.date_added)
+  }));
+}
+
+function registryV2CacheableFileCheck_(value) {
+  var check = registryV2Clean_(value).toLowerCase();
+  return registryV2PageHealthy_(check)
+    && check !== 'missing' && !/\bunreadable\b/.test(check)
+    && !/\bpage empty\b/.test(check);
+}
+
+/** Existing rows may reuse only their already-verified machine outputs. */
+function registryV2ExistingItemRecord_(item, source, cfg) {
+  var cached = item && item.registryIngestCacheEntry;
+  var dateAdded = isoOrString_(source && source.date_added);
+  var hit = cached
+    && cached.input_fp === item.registryIngestInputFp
+    && cached.output_fp === registryV2IngestOutputFingerprint_(source)
+    && registryV2CacheableFileCheck_(source && source.file_check)
+    && !!dateAdded;
+  if (hit) {
+    item.registryIngestUsed = true;
+    item.registryIngestMode = 'cache';
+    return {
+      file_id: String(item.file.getId()),
+      file_check: registryV2Clean_(source.file_check),
+      date_added: dateAdded
+    };
+  }
+  return registryV2ItemRecord_(item, cfg);
+}
+
+function registryV2VerifyItemContracts_(items) {
+  (items || []).forEach(function (item) {
+    if (!item.registryIngestContract) return;
+    var current = registryV2IngestContract_(item);
+    if (stableJson_(current) !== stableJson_(item.registryIngestContract)) {
+      throw new Error('Drive source metadata changed during Drive scan. '
+        + 'No v2 cells were updated; run sync again.');
+    }
+  });
+}
+
+function registryV2IngestCacheStats_(items) {
+  var stats = { hits: 0, reads: 0 };
+  (items || []).forEach(function (item) {
+    if (!item || !item.registryIngestUsed) return;
+    if (item.registryIngestMode === 'cache') stats.hits++;
+    else if (item.registryIngestMode === 'source') stats.reads++;
+  });
+  return stats;
+}
+
+/**
+ * Commit hashes only after a no-op linearisation point or an exact post-write
+ * verification. Property failures merely make the next run cold.
+ */
+function registryV2WriteIngestCache_(cacheState, items, verifiedWorkbookState) {
+  if (!cacheState || !cacheState.enabled || !cacheState.properties
+      || !verifiedWorkbookState) return false;
+  var registry;
+  try {
+    registry = registryV2RowsFromState_(verifiedWorkbookState,
+      '_Registry', REGISTRY_V2_HEADERS._Registry, false);
+  } catch (ignored) { return false; }
+  var byFile = {};
+  registry.forEach(function (source) {
+    var id = registryV2Clean_(source.file_id);
+    if (id) byFile[id] = source;
+  });
+  var writes = {};
+  var keep = {};
+  (items || []).forEach(function (item) {
+    if (!item || !item.registryIngestUsed || !item.registryIngestCacheKey
+        || !item.registryIngestInputFp) return;
+    var source = byFile[String(item.file.getId())];
+    if (!source || !registryV2CacheableFileCheck_(source.file_check)
+        || !isoOrString_(source.date_added)) return;
+    var value = JSON.stringify({
+      schema: REGISTRY_V2_INGEST_CACHE_SCHEMA,
+      input_fp: item.registryIngestInputFp,
+      output_fp: registryV2IngestOutputFingerprint_(source)
+    });
+    if (registryV2Utf8ByteLength_(value) > REGISTRY_V2_INGEST_CACHE_MAX_VALUE_BYTES) return;
+    writes[item.registryIngestCacheKey] = value;
+    keep[item.registryIngestCacheKey] = true;
+  });
+  try {
+    if (Object.keys(writes).length) {
+      if (typeof cacheState.properties.setProperties === 'function') {
+        cacheState.properties.setProperties(writes, false);
+      } else {
+        Object.keys(writes).forEach(function (key) {
+          cacheState.properties.setProperty(key, writes[key]);
+        });
+      }
+    }
+  } catch (ignoredWrite) { return false; }
+  (cacheState.old_keys || []).forEach(function (key) {
+    if (keep[key]) return;
+    try { cacheState.properties.deleteProperty(key); }
+    catch (ignoredDelete) { /* stale output hash keeps any old entry fail-closed */ }
+  });
+  return true;
+}
+
 /** Download and parse one demo: page HTML, its ai4s-meta, its provenance card. */
 function readDemo_(item) {
   var html = '';
@@ -1129,10 +1476,13 @@ function readDemo_(item) {
     notes.push('page empty');
   }
 
-  var card = item.card;
+  var card = null;
   if (!item.provFile) {
     notes.push(item.folderName ? 'no provenance.md' : 'loose file, no provenance.md');
-  } else if (!card) {
+  } else {
+    // item.card may have been read earlier only to choose among multiple HTML
+    // files. Source ingestion always reads provenance again and is guarded by
+    // the metadata contract, so stale selection content is never imported.
     card = readCard_(item.provFile);
   }
   if (item.provFile && !hasFields_(card)) {
@@ -1499,8 +1849,12 @@ function recordPreviewAttempt_(state, result, now) {
 function maintainPreviewPublish_(ss, cfg, options) {
   options = options || {};
   var now = options.now == null ? Date.now() : Number(options.now);
-  var snapshot = registryV2Snapshot_(ss, cfg, 'preview');
-  if (!snapshot || !validRegistryRevision_(snapshot.registry_revision)) {
+  var mayReuseSyncSnapshot = options.snapshot
+    && autoPublishTarget_(cfg) === 'off' && options.forceRequest !== true;
+  var snapshot = mayReuseSyncSnapshot
+    ? options.snapshot : registryV2Snapshot_(ss, cfg, 'preview');
+  if (!snapshot || snapshot.audience !== 'preview'
+      || !validRegistryRevision_(snapshot.registry_revision)) {
     throw new Error('Preview Registry produced an invalid registry_revision; no build was requested.');
   }
   var state = observePreviewDesired_(readPreviewPublishState_(),
@@ -2463,7 +2817,7 @@ function registryV2ItemRecord_(item, cfg) {
   var dateAdded = '';
   try { dateAdded = isoOrString_(item.file.getDateCreated()); }
   catch (ignored) { dateAdded = ''; }
-  return {
+  var record = {
     file_id: String(item.file.getId()),
     title: title,
     summary: summary,
@@ -2477,6 +2831,9 @@ function registryV2ItemRecord_(item, cfg) {
       (item.notes || []).concat(read.notes || [])),
     date_added: dateAdded
   };
+  item.registryIngestUsed = true;
+  item.registryIngestMode = 'source';
+  return record;
 }
 
 function registryV2AutoPlan_(before, cfg, items) {
@@ -2524,7 +2881,9 @@ function registryV2AutoPlan_(before, cfg, items) {
   (items || []).forEach(function (item) {
     var fileId = String(item.file.getId());
     if (itemByFile[fileId]) return;
-    itemByFile[fileId] = { item: item, record: registryV2ItemRecord_(item, cfg) };
+    // Blob parsing is lazy. New rows always take the cold path; existing rows
+    // may reuse their exact prior machine output after the fingerprint checks.
+    itemByFile[fileId] = { item: item, record: null };
   });
   var added = 0;
   var updated = 0;
@@ -2561,7 +2920,8 @@ function registryV2AutoPlan_(before, cfg, items) {
         + item.folderName + '" because its identity conflicts with an existing project.' });
       return;
     }
-    var itemRecord = itemByFile[fileId].record;
+    var itemRecord = registryV2ItemRecord_(item, cfg);
+    itemByFile[fileId].record = itemRecord;
     var title = itemRecord.title;
     var summary = itemRecord.summary;
     var dataSource = itemRecord.data_source;
@@ -2647,6 +3007,9 @@ function registryV2AutoPlan_(before, cfg, items) {
     registryV2SetRowField_(registryRow, registryMap, 'data_source_label', project.data_source);
     registryV2SetRowField_(registryRow, registryMap, 'public_page_permission', project.public_permission);
     var current = itemByFile[registryV2Clean_(source.file_id)];
+    if (current && !current.record) {
+      current.record = registryV2ExistingItemRecord_(current.item, source, cfg);
+    }
     var asset = registryV2CardAssetRow_(target._Assets.values[0], demoId,
       registryV2Clean_(source.slug), project, current);
     registryV2SetRowField_(registryRow, registryMap, 'card_asset_id',
@@ -2856,27 +3219,41 @@ function registryV2BatchWrite_(spreadsheetId, before, plan, metadata) {
 
 function registryV2AutoIngest_(context, cfg, items) {
   var plan = registryV2AutoPlan_(context.before, cfg, items);
-  var checked = registryV2WorkbookState_(context.spreadsheet);
-  if (!registryV2WorkbookStatesEqual_(context.before, checked)) {
-    throw new Error('Registry v2 changed during Drive scan. No v2 cells were updated.');
-  }
-  // Metadata inspection is read-only; perform one final full-grid check after it.
+  // Validate the native table first, then verify every collected Drive
+  // contract, and make the final full workbook capture the linearisation point
+  // immediately before either a no-op completion or the first write.
   var metadata = registryV2SheetsMetadata_(context.spreadsheet_id);
   registryV2VerifyTableMetadata_(metadata, context.before);
+  registryV2VerifyItemContracts_(items);
   var aboutToWrite = registryV2WorkbookState_(context.spreadsheet);
   if (!registryV2WorkbookStatesEqual_(context.before, aboutToWrite)) {
-    throw new Error('Registry v2 changed before writing. No v2 cells were updated.');
+    throw new Error('Registry v2 changed during Drive scan. No v2 cells were updated.');
   }
-  registryV2BatchWrite_(context.spreadsheet_id, context.before, plan, metadata);
-  SpreadsheetApp.flush();
-  var afterSheet = SpreadsheetApp.openById(context.spreadsheet_id);
-  var after = registryV2WorkbookState_(afterSheet);
-  if (!registryV2WorkbookStatesEqual_(plan.target, after)) {
-    throw new Error('Registry v2 auto-ingest could not verify the completed write.');
+
+  var sheetChanged = !registryV2WorkbookStatesEqual_(context.before, plan.target);
+  var after;
+  if (!sheetChanged) {
+    // The guarded plan is already exact. Avoid an empty Sheets batch request,
+    // flush, reopen and a fourth six-tab workbook capture.
+    after = aboutToWrite;
+  } else {
+    registryV2BatchWrite_(context.spreadsheet_id, context.before, plan, metadata);
+    SpreadsheetApp.flush();
+    var afterSheet = SpreadsheetApp.openById(context.spreadsheet_id);
+    after = registryV2WorkbookState_(afterSheet);
+    if (!registryV2WorkbookStatesEqual_(plan.target, after)) {
+      throw new Error('Registry v2 auto-ingest could not verify the completed write.');
+    }
   }
+  var cacheCommitted = registryV2WriteIngestCache_(
+    context.ingest_cache, items, after);
   (plan.events || []).forEach(function (event) {
     logEvent_(event.event, event.details);
   });
+  var stats = registryV2IngestCacheStats_(items);
+  var previewSnapshot = null;
+  try { previewSnapshot = registryV2SnapshotFromCompiled_(plan.compiled); }
+  catch (ignoredSnapshot) { /* maintenance will compile live and report the blocker */ }
   return {
     enabled: true,
     added: plan.added,
@@ -2884,7 +3261,12 @@ function registryV2AutoIngest_(context, cfg, items) {
     missing: plan.missing,
     checked: plan.checked,
     skipped: plan.skipped,
-    registry_revision: plan.compiled.registry_revision
+    registry_revision: plan.compiled.registry_revision,
+    cache_hits: stats.hits,
+    source_reads: stats.reads,
+    sheet_changed: sheetChanged,
+    cache_committed: cacheCommitted,
+    preview_snapshot: previewSnapshot
   };
 }
 
@@ -2917,10 +3299,34 @@ function registryV2ConfigFromSheet_(ss, workbookState) {
  */
 function registryV2OperationalConfig_(ss, workbookState) {
   var config = registryV2ConfigFromSheet_(ss, workbookState);
+  return registryV2RefreshOperationalProperties_(config);
+}
+
+/** Remove every Script-Property-owned key before carrying config across sync. */
+function registryV2NonOperationalConfig_(config) {
+  var base = {};
+  Object.keys(config || {}).forEach(function (key) {
+    if (!Object.prototype.hasOwnProperty.call(REGISTRY_V2_OPERATION_PROPERTIES, key)) {
+      base[key] = config[key];
+    }
+  });
+  return base;
+}
+
+/** Refresh Hook/token/branch controls without recapturing any Sheet tab. */
+function registryV2RefreshOperationalProperties_(baseConfig) {
+  var config = {};
+  Object.keys(baseConfig || {}).forEach(function (key) {
+    config[key] = baseConfig[key];
+  });
   var properties = PropertiesService.getScriptProperties();
+  var current = typeof properties.getProperties === 'function'
+    ? properties.getProperties() : null;
   Object.keys(REGISTRY_V2_OPERATION_PROPERTIES).forEach(function (key) {
     var propertyName = REGISTRY_V2_OPERATION_PROPERTIES[key];
-    config[key] = String(properties.getProperty(propertyName) || '').trim();
+    var value = current
+      ? current[propertyName] : properties.getProperty(propertyName);
+    config[key] = String(value || '').trim();
   });
   if (!config.production_branch) config.production_branch = PRODUCTION_BRANCH;
   if (!config.auto_publish_target) config.auto_publish_target = 'off';
@@ -3365,9 +3771,7 @@ function registryV2CompileState_(ss, cfg, audience, workbookState) {
   };
 }
 
-/** Build-facing view. A blocked Live row keeps the API fail-closed. */
-function registryV2Snapshot_(ss, cfg, audience, workbookState) {
-  var compiled = registryV2CompileState_(ss, cfg, audience, workbookState);
+function registryV2SnapshotFromCompiled_(compiled) {
   var blockedLive = compiled.readiness.filter(function (item) {
     return item.project_status === 'Live' && item.status !== 'ready';
   })[0];
@@ -3384,6 +3788,12 @@ function registryV2Snapshot_(ss, cfg, audience, workbookState) {
     assets_by_id: compiled.assets_by_id,
     registry_revision: compiled.registry_revision
   };
+}
+
+/** Build-facing view. A blocked Live row keeps the API fail-closed. */
+function registryV2Snapshot_(ss, cfg, audience, workbookState) {
+  return registryV2SnapshotFromCompiled_(
+    registryV2CompileState_(ss, cfg, audience, workbookState));
 }
 
 function registryV2SnapshotCacheKey_(audience, revision) {

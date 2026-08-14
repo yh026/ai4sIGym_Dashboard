@@ -374,7 +374,13 @@ function installServices(script, v2Sheet, files, properties = {}) {
   script.PropertiesService = {
     getScriptProperties: () => ({
       getProperty: key => values[key] ?? null,
+      getProperties: () => ({ ...values }),
       setProperty: (key, value) => { values[key] = String(value); },
+      setProperties: (entries, deleteAllOthers) => {
+        assert.equal(deleteAllOthers, false);
+        Object.entries(entries).forEach(([key, value]) => { values[key] = String(value); });
+      },
+      deleteProperty: key => { delete values[key]; },
     }),
   };
   script.SpreadsheetApp = {
@@ -662,6 +668,12 @@ test('V2 operational config keeps public metadata in _Config and overrides contr
   assert.equal(cfg.netlify_site_id, '33333333-4444-4555-8666-777777777777');
   assert.equal(cfg.preview_callback_secret,
     'callback-secret-with-at-least-thirty-two-characters');
+  const base = script.registryV2NonOperationalConfig_(cfg);
+  assert.equal(base.site_title, 'Registry v2');
+  Object.keys(script.REGISTRY_V2_OPERATION_PROPERTIES).forEach(key => {
+    assert.equal(Object.prototype.hasOwnProperty.call(base, key), false,
+      `${key} must not be carried out of syncDriveUnlocked`);
+  });
 });
 
 test('syncDriveUnlocked reconciles V2 items directly with no V1 row map', () => {
@@ -709,6 +721,8 @@ test('syncDriveUnlocked reconciles V2 items directly with no V1 row map', () => 
 
   assert.equal(result.nNew, 1);
   assert.equal(result.registryV2.checked, 1);
+  assert.deepEqual(Object.keys(result._configBase), [],
+    'Script-Property-owned Drive controls must not escape syncDriveUnlocked');
 });
 
 test('audit logging writes the nine-column V2 record and removes CJK text', () => {
@@ -1552,7 +1566,9 @@ test('Preview always binds Hook state to V2 and a legacy schema property cannot 
   };
   script.registrySnapshot_ = () => { throw new Error('archived V1 must not be read'); };
   script.registryV2Spreadsheet_ = () => ({});
-  script.registryV2Snapshot_ = () => ({ registry_revision: revisionV2 });
+  script.registryV2Snapshot_ = () => ({
+    audience: 'preview', registry_revision: revisionV2,
+  });
   script.readPreviewPublishState_ = () => script.emptyPreviewPublishState_();
   script.writePreviewPublishState_ = state => state;
   script.checkPreviewReceipt_ = () => ({ ok: true, configured: true, ready: false, status: 0 });
@@ -1564,11 +1580,17 @@ test('Preview always binds Hook state to V2 and a legacy schema property cannot 
 });
 
 function autoItem(file, folderName, meta = {}) {
+  const parent = file.getParents().next();
   return {
     file,
+    pageFiles: [file],
+    folder: parent,
+    folderId: parent.getId(),
+    rootId: 'root-folder-12345',
     folderName,
     provFile: null,
     picFile: null,
+    imageFiles: [],
     card: null,
     stamp: new Date('2026-08-13T00:00:00.000Z'),
     notes: [],
@@ -1899,6 +1921,8 @@ test('v2 guarded auto-ingest detects a concurrent human edit before its first wr
     _Assets: { sheet_id: 4, table_id: '' },
   });
   script.registryV2BatchWrite_ = () => { writes += 1; };
+  let cacheCommits = 0;
+  script.registryV2WriteIngestCache_ = () => { cacheCommits += 1; return true; };
   assert.throws(
     () => script.registryV2AutoIngest_(
       context, candidate.cfg, candidate.items,
@@ -1906,8 +1930,29 @@ test('v2 guarded auto-ingest detects a concurrent human edit before its first wr
     /changed during Drive scan/,
   );
   assert.equal(writes, 0);
+  assert.equal(cacheCommits, 0);
   assert.equal(sheet.getSheetByName('Projects').writeCalls.length, 0);
   assert.equal(sheet.getSheetByName('_Registry').writeCalls.length, 0);
+});
+
+test('v2 metadata-gate failure performs no Sheet write or fingerprint mutation', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script);
+  const candidate = installAutoCandidate(script, sheet);
+  const context = {
+    enabled: true, spreadsheet: sheet, spreadsheet_id: 'v2-sheet-id',
+    before: script.registryV2WorkbookState_(sheet),
+  };
+  let writes = 0;
+  let cacheCommits = 0;
+  script.registryV2SheetsMetadata_ = () => { throw new Error('metadata unavailable'); };
+  script.registryV2BatchWrite_ = () => { writes += 1; };
+  script.registryV2WriteIngestCache_ = () => { cacheCommits += 1; return true; };
+
+  assert.throws(() => script.registryV2AutoIngest_(
+    context, candidate.cfg, candidate.items), /metadata unavailable/);
+  assert.equal(writes, 0);
+  assert.equal(cacheCommits, 0);
 });
 
 test('v2 guarded auto-ingest reports failure when post-write state is not exact', () => {
@@ -1926,15 +1971,18 @@ test('v2 guarded auto-ingest reports failure when post-write state is not exact'
     _Assets: { sheet_id: 4, table_id: '' },
   });
   script.registryV2BatchWrite_ = () => {};
+  let cacheCommits = 0;
+  script.registryV2WriteIngestCache_ = () => { cacheCommits += 1; return true; };
   assert.throws(
     () => script.registryV2AutoIngest_(
       context, candidate.cfg, candidate.items,
     ),
     /could not verify the completed write/,
   );
+  assert.equal(cacheCommits, 0, 'an unverified write must never advance fingerprints');
 });
 
-test('v2 guarded auto-ingest detects a concurrent formula before its first write', () => {
+test('v2 guarded auto-ingest detects a concurrent formula at the final pre-write capture', () => {
   const script = loadAppsScript();
   const sheet = fixture(script);
   const candidate = installAutoCandidate(script, sheet);
@@ -1949,7 +1997,18 @@ test('v2 guarded auto-ingest detects a concurrent formula before its first write
     sheet.getSheetByName('Projects').formulas['2:4'] = '=UPPER("Live project")';
   };
   let writes = 0;
-  script.registryV2SheetsMetadata_ = () => { throw new Error('must stop before metadata'); };
+  let metadataReads = 0;
+  script.registryV2SheetsMetadata_ = () => {
+    metadataReads += 1;
+    return {
+      Projects: { sheet_id: 1, table_id: 'ProjectsCatalogV2',
+        table_range: { startRowIndex: 0, startColumnIndex: 0,
+          endRowIndex: 3, endColumnIndex: 16 } },
+      _Registry: { sheet_id: 2, table_id: '' },
+      _Facets: { sheet_id: 3, table_id: '' },
+      _Assets: { sheet_id: 4, table_id: '' },
+    };
+  };
   script.registryV2BatchWrite_ = () => { writes += 1; };
   assert.throws(
     () => script.registryV2AutoIngest_(
@@ -1958,6 +2017,118 @@ test('v2 guarded auto-ingest detects a concurrent formula before its first write
     /changed during Drive scan/,
   );
   assert.equal(writes, 0);
+  assert.equal(metadataReads, 1, 'native table validation precedes the final linearisation read');
+});
+
+test('a guarded no-op auto-ingest skips batch, flush, reopen and post-write capture', () => {
+  const script = loadAppsScript();
+  const originalSheet = fixture(script);
+  const candidate = installAutoCandidate(script, originalSheet);
+  const first = script.registryV2AutoPlan_(
+    script.registryV2WorkbookState_(originalSheet), candidate.cfg, candidate.items,
+  );
+  const current = new FakeSpreadsheet(Object.fromEntries(
+    script.REGISTRY_V2_COMPILE_SHEETS.map(name => [name, first.target[name].values]),
+  ));
+  script.REGISTRY_V2_COMPILE_SHEETS.forEach(name => {
+    first.target[name].formulas.forEach((row, r) => row.forEach((formula, c) => {
+      if (formula) current.sheets[name].formulas[`${r + 1}:${c + 1}`] = formula;
+    }));
+  });
+  installServices(script, current, candidate.files);
+  const before = script.registryV2WorkbookState_(current);
+  let batchWrites = 0;
+  let flushes = 0;
+  let reopens = 0;
+  let cacheCommits = 0;
+  script.registryV2SheetsMetadata_ = () => ({
+    Projects: { sheet_id: 1, table_id: 'ProjectsCatalogV2',
+      table_range: { startRowIndex: 0, startColumnIndex: 0,
+        endRowIndex: before.Projects.rows, endColumnIndex: before.Projects.columns } },
+    _Registry: { sheet_id: 2, table_id: '' },
+    _Facets: { sheet_id: 3, table_id: '' },
+    _Assets: { sheet_id: 4, table_id: '' },
+  });
+  script.registryV2BatchWrite_ = () => { batchWrites += 1; };
+  script.registryV2WriteIngestCache_ = () => { cacheCommits += 1; return true; };
+  script.SpreadsheetApp.flush = () => { flushes += 1; };
+  script.SpreadsheetApp.openById = () => { reopens += 1; return current; };
+
+  const result = script.registryV2AutoIngest_({
+    enabled: true, spreadsheet: current, spreadsheet_id: 'v2-sheet-id', before,
+  }, candidate.cfg, candidate.items);
+
+  assert.equal(result.sheet_changed, false);
+  assert.equal(batchWrites, 0);
+  assert.equal(flushes, 0);
+  assert.equal(reopens, 0);
+  assert.equal(cacheCommits, 1,
+    'fingerprints commit only after the metadata gate and final equality read');
+  assert.match(result.preview_snapshot.registry_revision, /^sha256:[0-9a-f]{64}$/);
+});
+
+test('cold planner commit becomes a warm no-blob fingerprint hit on the next ingest', () => {
+  const script = loadAppsScript();
+  const original = fixture(script);
+  const files = standardDrive();
+  installServices(script, original, files);
+  const cfg = {
+    drive_folder_url: 'https://drive.google.com/drive/folders/root-folder-12345',
+  };
+  const coldItems = existingItems(files);
+  const firstPlan = script.registryV2AutoPlan_(
+    script.registryV2WorkbookState_(original), cfg, coldItems,
+  );
+  const current = new FakeSpreadsheet(Object.fromEntries(
+    script.REGISTRY_V2_COMPILE_SHEETS.map(name => [name, firstPlan.target[name].values]),
+  ));
+  script.REGISTRY_V2_COMPILE_SHEETS.forEach(name => {
+    firstPlan.target[name].formulas.forEach((row, r) => row.forEach((formula, c) => {
+      if (formula) current.sheets[name].formulas[`${r + 1}:${c + 1}`] = formula;
+    }));
+  });
+  const properties = installServices(script, current, files);
+  script.registryV2SheetsMetadata_ = () => {
+    const state = script.registryV2WorkbookState_(current);
+    return {
+      Projects: { sheet_id: 1, table_id: 'ProjectsCatalogV2',
+        table_range: { startRowIndex: 0, startColumnIndex: 0,
+          endRowIndex: state.Projects.rows, endColumnIndex: state.Projects.columns } },
+      _Registry: { sheet_id: 2, table_id: '' },
+      _Facets: { sheet_id: 3, table_id: '' },
+      _Assets: { sheet_id: 4, table_id: '' },
+    };
+  };
+  script.registryV2BatchWrite_ = () => {
+    throw new Error('the prepared current workbook must be a no-op');
+  };
+
+  let before = script.registryV2WorkbookState_(current);
+  let cache = script.registryV2PrepareIngestCache_(
+    coldItems, current.getId(), 'root-folder-12345');
+  const cold = script.registryV2AutoIngest_({
+    enabled: true, spreadsheet: current, spreadsheet_id: current.getId(),
+    before, ingest_cache: cache,
+  }, cfg, coldItems);
+  assert.equal(cold.cache_hits, 0);
+  assert.equal(cold.source_reads, 2);
+  assert.equal(cold.cache_committed, true);
+  assert.equal(cold.sheet_changed, false);
+  assert.equal(Object.keys(properties).filter(key =>
+    key.startsWith(script.REGISTRY_V2_INGEST_CACHE_PREFIX)).length, 2);
+
+  const warmItems = existingItems(files);
+  before = script.registryV2WorkbookState_(current);
+  cache = script.registryV2PrepareIngestCache_(
+    warmItems, current.getId(), 'root-folder-12345');
+  const warm = script.registryV2AutoIngest_({
+    enabled: true, spreadsheet: current, spreadsheet_id: current.getId(),
+    before, ingest_cache: cache,
+  }, cfg, warmItems);
+  assert.equal(warm.cache_hits, 2);
+  assert.equal(warm.source_reads, 0);
+  assert.equal(warm.sheet_changed, false);
+  assert.equal(warm.registry_revision, cold.registry_revision);
 });
 
 test('v2 guarded auto-ingest verifies success from a freshly opened spreadsheet', () => {
@@ -1977,6 +2148,8 @@ test('v2 guarded auto-ingest verifies success from a freshly opened spreadsheet'
   });
   let target;
   script.registryV2BatchWrite_ = (id, before, plan) => { target = plan.target; };
+  let flushes = 0;
+  script.SpreadsheetApp.flush = () => { flushes += 1; };
   const fresh = new FakeSpreadsheet(Object.fromEntries(
     script.REGISTRY_V2_COMPILE_SHEETS.map(name => [name, []]),
   ));
@@ -1996,6 +2169,7 @@ test('v2 guarded auto-ingest verifies success from a freshly opened spreadsheet'
     context, candidate.cfg, candidate.items,
   );
   assert.equal(result.added, 1);
+  assert.equal(flushes, 1, 'a changed path still flushes before fresh verification');
   assert.equal(freshOpens, 1);
 });
 
@@ -2101,6 +2275,103 @@ test('a v2 sync error disables both automatic Preview requests and retries', () 
   assert.match(result.error, /v2 auto-ingest failed/);
   assert.equal(observed.allowAutoRequest, false);
   assert.equal(observed.allowAttempt, false);
+});
+
+test('fresh auto-off properties override a stale preview scan and reuse the verified snapshot', () => {
+  const script = loadAppsScript();
+  const snapshot = {
+    audience: 'preview', registry_revision: `sha256:${'a'.repeat(64)}`,
+  };
+  script.LockService = {
+    getScriptLock: () => ({ tryLock: () => true, releaseLock: () => {} }),
+  };
+  script.CacheService = { getScriptCache: () => ({ removeAll: () => {} }) };
+  let flushes = 0;
+  script.SpreadsheetApp = { flush: () => { flushes += 1; } };
+  script.PropertiesService = { getScriptProperties: () => ({
+    getProperty: key => ({
+      AI4S_AUTO_PUBLISH_TARGET: 'off', AI4S_PREVIEW_BRANCH: 'develop',
+    })[key] ?? null,
+  }) };
+  script.syncDriveUnlocked_ = () => ({
+    registryV2: { checked: 16 },
+    _configBase: { site_title: 'Registry v2', auto_publish_target: 'preview' },
+    _previewSnapshot: snapshot,
+  });
+  script.registryV2Spreadsheet_ = () => ({ id: 'v2' });
+  script.registryV2OperationalConfig_ = () => {
+    throw new Error('must not recapture _Config or the workbook after a verified sync');
+  };
+  script.logEvent_ = () => {};
+  script.registryV2Snapshot_ = () => {
+    throw new Error('fresh auto-off must use the post-verified snapshot');
+  };
+  script.readPreviewPublishState_ = () => script.emptyPreviewPublishState_();
+  script.writePreviewPublishState_ = state => state;
+  script.checkPreviewReceipt_ = () => ({
+    ok: false, configured: true, ready: false, status: 404, error: 'not ready',
+  });
+  script.triggerBuildRequest_ = () => { throw new Error('fresh auto-off must not POST'); };
+
+  const result = script.syncDrive();
+
+  assert.equal(result.previewPublishPhase, 'dirty');
+  assert.equal(flushes, 0, 'a successful no-op sync has no legacy final flush');
+  assert.equal(Object.prototype.hasOwnProperty.call(result, '_configBase'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(result, '_previewSnapshot'), false);
+});
+
+test('fresh preview properties override stale auto-off and force a live compile', () => {
+  const script = loadAppsScript();
+  const staleSnapshot = {
+    audience: 'preview', registry_revision: `sha256:${'a'.repeat(64)}`,
+  };
+  const liveRevision = `sha256:${'b'.repeat(64)}`;
+  script.LockService = {
+    getScriptLock: () => ({ tryLock: () => true, releaseLock: () => {} }),
+  };
+  script.CacheService = { getScriptCache: () => ({ removeAll: () => {} }) };
+  script.SpreadsheetApp = { flush: () => {} };
+  script.PropertiesService = { getScriptProperties: () => ({
+    getProperty: key => ({
+      AI4S_AUTO_PUBLISH_TARGET: 'preview', AI4S_PREVIEW_BRANCH: 'develop',
+    })[key] ?? null,
+  }) };
+  script.Utilities = utilities();
+  script.syncDriveUnlocked_ = () => ({
+    registryV2: { checked: 16 },
+    _configBase: { site_title: 'Registry v2', auto_publish_target: 'off' },
+    _previewSnapshot: staleSnapshot,
+  });
+  script.registryV2Spreadsheet_ = () => ({});
+  script.registryV2OperationalConfig_ = () => {
+    throw new Error('must refresh properties without a workbook capture');
+  };
+  script.logEvent_ = () => {};
+  let liveCompiles = 0;
+  let posts = 0;
+  script.registryV2Snapshot_ = () => {
+    liveCompiles += 1;
+    return { audience: 'preview', registry_revision: liveRevision };
+  };
+  script.readPreviewPublishState_ = () => script.emptyPreviewPublishState_();
+  script.writePreviewPublishState_ = state => state;
+  script.checkPreviewReceipt_ = () => ({
+    ok: false, configured: true, ready: false, status: 404, error: 'not ready',
+  });
+  script.configuredBuildRequest_ = () => ({
+    ok: true, target: 'preview', branch: 'develop', hookUrl: 'redacted',
+  });
+  script.triggerBuildRequest_ = () => {
+    posts += 1;
+    return { ok: true, status: 202 };
+  };
+
+  const result = script.syncDrive();
+
+  assert.equal(liveCompiles, 1);
+  assert.equal(posts, 1);
+  assert.equal(result.previewPublishPhase, 'accepted');
 });
 
 test('CacheService marker invalidation failure never changes the sync result', () => {
