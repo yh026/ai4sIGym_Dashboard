@@ -244,6 +244,33 @@ test('production is locked to main and ignores preview settings', () => {
   assert.match(unsafe.error, /locked to main/);
 });
 
+test('production configuration failure alerts the owner and never calls a Hook or JSON endpoint', () => {
+  const script = loadAppsScript();
+  const alerts = [];
+  const ui = {
+    ButtonSet: { OK: 'ok' },
+    alert(...args) { alerts.push(args); },
+  };
+  script.SpreadsheetApp = { getUi: () => ui };
+  script.registryV2Spreadsheet_ = () => ({});
+  script.registryV2OperationalConfig_ = () => {
+    throw new Error('Registry v2 _Config is invalid.');
+  };
+  let hookCalls = 0;
+  let jsonCalls = 0;
+  script.triggerBuildRequest_ = () => { hookCalls += 1; };
+  script.jsonOut_ = () => { jsonCalls += 1; };
+
+  const result = script.publishProduction();
+
+  assert.equal(result, undefined);
+  assert.equal(hookCalls, 0);
+  assert.equal(jsonCalls, 0);
+  assert.equal(alerts.length, 1);
+  assert.equal(alerts[0][0], 'Production build is not configured safely');
+  assert.match(alerts[0][1], /Registry v2 configuration could not be read/);
+});
+
 test('Build Hook configuration accepts only a base Netlify Hook URL', () => {
   const script = loadAppsScript();
   assert.equal(script.buildHookUrlError_(PREVIEW_HOOK), '');
@@ -343,45 +370,61 @@ test('Registry revision is deterministic, audience-scoped, and excludes generate
 
 test('Registry endpoint never lets legacy status=all bypass its audience', () => {
   const script = loadAppsScript();
-  const syncedAt = '2026-08-11T00:00:00.000Z';
-  const demos = [
-    { status: 'Live', file_id: 'live-id', picture_file_id: '', file_check: 'ok',
-      last_modified: syncedAt },
-    { status: 'Draft', file_id: 'draft-id', picture_file_id: 'draft-picture-id',
-      file_check: 'ok', last_modified: syncedAt },
-    { status: 'Archived', file_id: 'archived-id', picture_file_id: '', file_check: 'ok',
-      last_modified: syncedAt },
-  ];
-  let demoReads = 0;
-  script.registrySpreadsheet_ = () => ({});
-  script.readConfig_ = () => ({ access_token: 'secret' });
-  script.readCategories_ = () => [];
-  script.readDemos_ = () => { demoReads += 1; return demos; };
-  script.jsonOut_ = value => value;
-  let driveReads = 0;
-  let blobReads = 0;
-  const driveStamps = {};
-  script.registryDriveFile_ = (cfg, id) => {
-    driveReads += 1;
-    return ({
-      getLastUpdated: () => new Date(driveStamps[id] || syncedAt),
-      getBlob: () => {
-        blobReads += 1;
-        return ({
-          getDataAsString: () => `<html>${id}</html>`,
-          getContentType: () => 'text/html',
-          getBytes: () => [],
-        });
-      },
-    });
+  const registry = {};
+  const revision = `sha256:${'7'.repeat(64)}`;
+  let snapshotReads = 0;
+  script.PropertiesService = fakeScriptProperties({
+    AI4S_REGISTRY_ACCESS_TOKEN: 'secret',
+  }).service;
+  script.registryV2Spreadsheet_ = () => registry;
+  script.registryV2WorkbookState_ = () => ({});
+  script.registryV2OperationalConfig_ = value => {
+    assert.equal(value, registry);
+    return {};
   };
+  script.registryV2Snapshot_ = (value, cfg, audience) => {
+    assert.equal(value, registry);
+    snapshotReads += 1;
+    const live = { demo_id: 'demo-live', status: 'Live', file_id: 'live-id' };
+    const draft = { demo_id: 'demo-draft', status: 'Draft', file_id: 'draft-id' };
+    return {
+      audience,
+      registry_revision: revision,
+      site: {}, taxonomy: {},
+      demos: audience === 'production' ? [live] : [live, draft],
+      files_by_id: audience === 'production'
+        ? { 'live-id': { id: 'live-id' } }
+        : { 'live-id': { id: 'live-id' }, 'draft-id': { id: 'draft-id' } },
+      assets_by_id: audience === 'production'
+        ? {}
+        : { 'draft-card': {
+          info: { id: 'draft-card', extension: 'png', mime: 'image/png' },
+          page_info: { id: 'draft-id' },
+        } },
+    };
+  };
+  script.jsonOut_ = value => value;
+  let blobReads = 0;
+  script.registryV2ReadBlob_ = (cfg, info, kind) => {
+    blobReads += 1;
+    return {
+      getDataAsString: () => `<html>${info.id}</html>`,
+      getBytes: () => kind === 'asset'
+        ? [-119, 80, 78, 71, 13, 10, 26, 10]
+        : [],
+    };
+  };
+  script.registryV2DriveInfo_ = (cfg, id) => ({ id });
+  script.registryV2SameDriveInfo_ = (left, right) => left.id === right.id;
+  script.registryV2SharesParent_ = () => true;
   script.Utilities = fakeUtilities();
-  script.Utilities.base64Encode = () => 'encoded-picture';
+  script.Utilities.base64Encode = () => 'encoded-card';
 
   const production = script.doGet({ parameter: {
     token: 'secret', action: 'manifest', status: 'all',
   } });
   assert.equal(production.ok, true);
+  assert.equal(production.schema_version, 2);
   assert.equal(production.audience, 'production');
   assert.deepEqual(Array.from(production.demos, demo => demo.file_id), ['live-id']);
 
@@ -405,61 +448,38 @@ test('Registry endpoint never lets legacy status=all bypass its audience', () =>
   assert.equal(previewDraftFile.registry_revision, preview.registry_revision);
   assert.match(previewDraftFile.html, /draft-id/);
 
-  driveStamps['draft-id'] = '2026-08-11T00:00:00.001Z';
-  const beforeChangedPage = blobReads;
-  const changedDraftFile = script.doGet({ parameter: {
-    token: 'secret', action: 'file', id: 'draft-id', audience: 'preview',
-    registry_revision: preview.registry_revision,
-  } });
-  assert.equal(changedDraftFile.ok, false);
-  assert.match(changedDraftFile.error, /source changed/);
-  assert.equal(blobReads, beforeChangedPage,
-    'a post-sync page change must fail before reading Drive bytes');
-  delete driveStamps['draft-id'];
-
-  const beforeRevisionMismatch = driveReads;
+  const beforeRevisionMismatch = blobReads;
   const staleDraftFile = script.doGet({ parameter: {
     token: 'secret', action: 'file', id: 'draft-id', audience: 'preview',
     registry_revision: `sha256:${'0'.repeat(64)}`,
   } });
   assert.equal(staleDraftFile.ok, false);
   assert.match(staleDraftFile.error, /revision changed/);
-  assert.equal(driveReads, beforeRevisionMismatch, 'stale revision must fail before Drive read');
+  assert.equal(blobReads, beforeRevisionMismatch, 'stale revision must fail before Drive read');
 
-  const productionDraftPicture = script.doGet({ parameter: {
-    token: 'secret', action: 'file', id: 'draft-picture-id',
+  const productionDraftCard = script.doGet({ parameter: {
+    token: 'secret', action: 'asset', id: 'draft-card',
   } });
-  assert.equal(productionDraftPicture.ok, false);
+  assert.equal(productionDraftCard.ok, false);
 
-  const previewDraftPicture = script.doGet({ parameter: {
-    token: 'secret', action: 'file', id: 'draft-picture-id', audience: 'preview',
+  const previewDraftCard = script.doGet({ parameter: {
+    token: 'secret', action: 'asset', id: 'draft-card', audience: 'preview',
   } });
-  assert.equal(previewDraftPicture.ok, true);
-  assert.equal(previewDraftPicture.audience, 'preview');
-  assert.equal(previewDraftPicture.base64, 'encoded-picture');
-
-  driveStamps['draft-picture-id'] = '2026-08-11T00:00:00.002Z';
-  const beforeChangedPicture = blobReads;
-  const changedDraftPicture = script.doGet({ parameter: {
-    token: 'secret', action: 'file', id: 'draft-picture-id', audience: 'preview',
-    registry_revision: preview.registry_revision,
-  } });
-  assert.equal(changedDraftPicture.ok, false);
-  assert.match(changedDraftPicture.error, /source changed/);
-  assert.equal(blobReads, beforeChangedPicture,
-    'a post-sync picture change must fail before reading Drive bytes');
+  assert.equal(previewDraftCard.ok, true);
+  assert.equal(previewDraftCard.kind, 'card_image');
+  assert.equal(previewDraftCard.base64, 'encoded-card');
 
   const archivedPreviewFile = script.doGet({ parameter: {
     token: 'secret', action: 'file', id: 'archived-id', audience: 'preview',
   } });
   assert.equal(archivedPreviewFile.ok, false);
 
-  const beforeBadToken = demoReads;
+  const beforeBadToken = snapshotReads;
   const badToken = script.doGet({ parameter: {
     token: 'wrong', action: 'manifest', audience: 'preview',
   } });
   assert.equal(badToken.error, 'bad token');
-  assert.equal(demoReads, beforeBadToken);
+  assert.equal(snapshotReads, beforeBadToken);
 });
 
 test('Drive timestamp comparison catches every sub-minute timestamp change', () => {
@@ -713,7 +733,8 @@ test('Preview maintenance treats auto-off as a hard stop and never reposts an ac
   const payloads = [];
   script.PropertiesService = properties.service;
   script.Utilities = fakeUtilities('aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee');
-  script.registrySnapshot_ = () => ({
+  script.registryV2Spreadsheet_ = () => ({});
+  script.registryV2Snapshot_ = () => ({
     audience: 'preview', site: {}, demos: [], registry_revision: revision,
   });
   script.checkPreviewReceipt_ = () => receipt;
@@ -862,9 +883,13 @@ test('Config migration is idempotent and preserves tokens, custom rows, and form
   assert.match(configRows.find(row => row[0] === 'auto_publish')[2], /retained but ignored/);
 });
 
-test('web-app context reopens the Registry Sheet from Script Properties', () => {
+test('web-app context reopens the V2 Registry Sheet from its stable Script Property', () => {
   const script = loadAppsScript();
-  const registry = { id: 'registry-sheet' };
+  const required = ['Projects', '_Registry', '_Taxonomy', '_Facets', '_Assets', '_Config'];
+  const registry = {
+    id: 'registry-v2-sheet',
+    getSheetByName: name => required.includes(name) ? {} : null,
+  };
   let openedId = '';
   script.SpreadsheetApp = {
     getActive: () => null,
@@ -876,13 +901,13 @@ test('web-app context reopens the Registry Sheet from Script Properties', () => 
   script.PropertiesService = {
     getScriptProperties() {
       return { getProperty: key => (
-        key === 'AI4S_REGISTRY_SPREADSHEET_ID' ? 'sheet-id-123' : ''
+        key === 'AI4S_REGISTRY_V2_SPREADSHEET_ID' ? 'v2-sheet-id-123' : ''
       ) };
     },
   };
 
   assert.equal(script.registrySpreadsheet_(), registry);
-  assert.equal(openedId, 'sheet-id-123');
+  assert.equal(openedId, 'v2-sheet-id-123');
 });
 
 test('Drive responses are restricted to the configured root and its direct demo folders', () => {

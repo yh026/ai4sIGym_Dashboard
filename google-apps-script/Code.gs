@@ -1,8 +1,9 @@
 /**
- * AI4S demo registry — sheet generator & Drive sync
- * ==================================================
- * Paste this whole file into Extensions → Apps Script (replacing the
- * placeholder), save, then run setup() once from the toolbar.
+ * AI4S demo registry v2 — Drive sync, build API and publishing controls
+ * =====================================================================
+ * This project is bound to the Registry v2 Google Sheet. V2 is the only live
+ * Registry and the only operator entry point; the former V1 workbook is an
+ * archive and is never opened by setup, sync, menus, publishing or the Web App.
  *
  * How a demo is uploaded now — one folder per demo:
  *
@@ -14,45 +15,24 @@
  *     superconductor_regression_explorer/
  *         superconductor_regression_explorer.html
  *         PROVENANCE.md
- *     old_one_off.html                     ← still fine: a loose .html in the
- *                                            root is registered exactly as
- *                                            before, just with no card to
- *                                            pre-fill the provenance columns.
+ * New loose root HTML is intentionally not auto-created in V2.
  *
  * What it does:
- *   setup()        builds the Demos / Config / Log tabs, dropdowns, column
- *                  groups, hourly sync trigger and the custom menu. It also
- *                  MIGRATES an older Demos tab in place: any column this
- *                  version adds is inserted where it belongs with
- *                  insertColumnAfter, so existing data slides across with the
- *                  grid instead of falling out of alignment. Never deletes.
- *   syncDrive()    walks the Drive folder — every sub-folder, plus any loose
- *                  .html left over from the old layout — appends new demos as
- *                  Draft rows and pre-fills them from three sources, in this
- *                  order of authority:
- *                    1. whatever is already typed in the sheet — NEVER touched
- *                    2. the ai4s-meta JSON block inside the demo's HTML
- *                    3. the YAML frontmatter of the demo's PROVENANCE.md
- *                  It also picks up the demo's dataset picture, and flags
- *                  missing files and non-self-contained demos.
- *   doGet()        (used later) JSON endpoint the Netlify build reads —
- *                  the manifest, one demo page, or one dataset picture.
+ *   setup()        validates the existing V2 workbook, records its ID, installs
+ *                  this project's single hourly trigger and adds the menu. It
+ *                  never creates or migrates V1 tabs.
+ *   syncDrive()    scans the configured Drive root once and reconciles it
+ *                  directly with Projects / _Registry / _Facets. New eligible
+ *                  folders enter as Draft + Preview only. Human project fields
+ *                  are never overwritten.
+ *   doGet()        serves only the revision-bound Registry v2 manifest, page
+ *                  and card-image contracts used by Netlify.
  *   publishPreview()    rebuilds a configured non-production branch deploy.
  *   publishProduction() rebuilds main only, after an explicit confirmation.
  *
- * The dashboard card shows the demo's `question` (the one it answers) and its
- * `picture` (the dataset's own image), so both are columns here: question is
- * pre-filled from PROVENANCE.md story.question, picture from an image dropped
- * into the demo folder — or paste your own http(s) URL over it, and sync will
- * leave it alone like any other cell you have typed in.
- *
- * Column order is never rearranged and no column is ever renamed, so an older
- * registry keeps working after the paste: re-run setup() once and the three
- * columns this version adds (question, picture, picture_file_id) appear in
- * place, with every existing row intact.
- *
- * Safe to re-run setup() at any time — it repairs formatting and never
- * deletes your rows.
+ * Non-secret site metadata lives in V2 `_Config`. Drive, token, Hook and branch
+ * controls live only in Script Properties. Operational events append to
+ * `_Audit`; no credential is copied into any workbook cell or public output.
  */
 
 // ---------------------------------------------------------------- constants
@@ -61,10 +41,81 @@ var SHEET_DEMOS = 'Demos';
 var SHEET_CONFIG = 'Config';
 var SHEET_LOG = 'Log';
 var REGISTRY_SPREADSHEET_ID_PROPERTY = 'AI4S_REGISTRY_SPREADSHEET_ID';
+var REGISTRY_V2_SPREADSHEET_ID_PROPERTY = 'AI4S_REGISTRY_V2_SPREADSHEET_ID';
+var PREVIEW_REGISTRY_SCHEMA_PROPERTY = 'AI4S_PREVIEW_REGISTRY_SCHEMA';
 var PREVIEW_PUBLISH_STATE_PROPERTY = 'AI4S_PREVIEW_PUBLISH_STATE_V2';
 var PREVIEW_CALLBACK_SECRET_PROPERTY = 'AI4S_PREVIEW_CALLBACK_SECRET';
 var NETLIFY_SITE_ID_PROPERTY = 'AI4S_NETLIFY_SITE_ID';
+// Registry v2 is the only live control plane.  Human-readable, non-secret site
+// metadata stays in `_Config`; operational values and every credential belong
+// to the bound Apps Script project's properties and never to a Sheet cell.
+var REGISTRY_V2_OPERATION_PROPERTIES = {
+  drive_folder_url: 'AI4S_DRIVE_FOLDER_URL',
+  access_token: 'AI4S_REGISTRY_ACCESS_TOKEN',
+  netlify_build_hook: 'AI4S_NETLIFY_PRODUCTION_BUILD_HOOK',
+  netlify_preview_build_hook: 'AI4S_NETLIFY_PREVIEW_BUILD_HOOK',
+  production_branch: 'AI4S_PRODUCTION_BRANCH',
+  preview_branch: 'AI4S_PREVIEW_BRANCH',
+  preview_url: 'AI4S_PREVIEW_URL',
+  preview_url_branch: 'AI4S_PREVIEW_URL_BRANCH',
+  auto_publish_target: 'AI4S_AUTO_PUBLISH_TARGET',
+  netlify_site_id: NETLIFY_SITE_ID_PROPERTY,
+  preview_callback_secret: PREVIEW_CALLBACK_SECRET_PROPERTY
+};
+var REGISTRY_V2_REQUIRED_OPERATION_KEYS = [
+  'drive_folder_url', 'access_token', 'netlify_build_hook',
+  'netlify_preview_build_hook', 'production_branch', 'preview_branch',
+  'preview_url', 'preview_url_branch', 'netlify_site_id',
+  'preview_callback_secret'
+];
 var REGISTRY_REVISION_SCHEMA = 1;
+var REGISTRY_V2_REVISION_SCHEMA = 2;
+var REGISTRY_V2_MAX_CARD_ASSET_BYTES = 5 * 1024 * 1024;
+// A Netlify build pins every page/image request to the revision returned by
+// its opening manifest. Keep that compiled view long enough for one build,
+// while the closing pinned manifest always recompiles the live Registry.
+var REGISTRY_V2_SNAPSHOT_CACHE_SCHEMA = 1;
+var REGISTRY_V2_SNAPSHOT_CACHE_TTL_SECONDS = 30 * 60;
+var REGISTRY_V2_SNAPSHOT_CACHE_PREFIX = 'registry-v2-snapshot-v1:';
+var REGISTRY_V2_SNAPSHOT_MARKER_PREFIX = 'registry-v2-current-v1:';
+var REGISTRY_V2_SNAPSHOT_CACHE_MAX_BYTES = 95 * 1024;
+var REGISTRY_V2_IMAGE_MIME_BY_EXTENSION = {
+  avif: 'image/avif', gif: 'image/gif', jpg: 'image/jpeg', jpeg: 'image/jpeg',
+  png: 'image/png', webp: 'image/webp'
+};
+var REGISTRY_V2_PROJECT_FIELDS = [
+  ['status', 'Status'], ['readiness', 'Readiness'], ['preview_url', 'Preview URL'],
+  ['title', 'Project Title'], ['card_summary', 'Card Summary'],
+  ['department', 'Department'], ['subtopic', 'Subtopic'], ['task', 'Task Type'],
+  ['methods', 'Methods'], ['card_image', 'Card Image'],
+  ['image_alt', 'Image Alt Text'], ['audience', 'Audience'],
+  ['featured', 'Featured'], ['data_source', 'Data Source'],
+  ['public_permission', 'Public Permission'], ['demo_id', 'demo_id']
+];
+var REGISTRY_V2_HEADERS = {
+  _Registry: [
+    'schema_version', 'row_number', 'demo_id', 'entry_type', 'slug', 'status',
+    'readiness', 'featured', 'sort_order', 'title', 'card_summary',
+    'department_id', 'subtopic_id', 'task_ids', 'method_ids', 'audience',
+    'data_source_label', 'public_page_permission', 'card_asset_id', 'file_id',
+    'file_check', 'date_added'
+  ],
+  _Taxonomy: [
+    'term_type', 'term_id', 'parent_id', 'label', 'short_label', 'description',
+    'display_order', 'active', 'theme_key', 'icon_key', 'aliases'
+  ],
+  _Facets: ['demo_id', 'facet_type', 'term_id', 'display_order'],
+  _Assets: [
+    'asset_id', 'demo_id', 'role', 'source_type', 'drive_file_id',
+    'external_url', 'mime_type', 'alt_text', 'credit', 'license', 'checksum',
+    'public_path', 'sync_status', 'source_modified_at', 'source_file_name'
+  ],
+  _Audit: [
+    'event_id', 'occurred_at', 'actor_type', 'action', 'demo_id',
+    'row_version_before', 'row_version_after', 'result', 'detail'
+  ],
+  _Config: ['key', 'value', 'visibility', 'description']
+};
 var PREVIEW_PUBLISH_STATE_VERSION = 2;
 var PREVIEW_CALLBACK_SCHEMA = 1;
 var PREVIEW_CALLBACK_MAX_BYTES = 16 * 1024;
@@ -291,25 +342,67 @@ var LICENCE_ALIASES = [
 
 // ------------------------------------------------------------------- setup
 
-/** Run this once after pasting the script. Safe to re-run any time. */
+/**
+ * Commission the script project bound to the Registry v2 workbook.
+ *
+ * This function deliberately does not create, migrate or repair legacy V1
+ * tabs.  It validates the existing V2 workbook, records its stable ID for
+ * trigger/Web App contexts, and installs this project's single hourly sync.
+ */
 function setup() {
   var ss = SpreadsheetApp.getActive();
-  if (!ss) throw new Error('Run setup() from the Apps Script project bound to the Registry Sheet.');
+  if (!ss) {
+    throw new Error('Run setup() from the Apps Script project bound to the Registry v2 Sheet.');
+  }
+  // Validate before changing a property or trigger. A mistaken run from V1
+  // therefore fails without mutating either workbook or automation.
+  var state = registryV2WorkbookState_(ss);
+  registryV2ConfigFromSheet_(ss, state);
+  registryV2Table_(ss, '_Audit', REGISTRY_V2_HEADERS._Audit, false);
+  var metadata = registryV2SheetsMetadata_(ss.getId());
+  registryV2VerifyTableMetadata_(metadata, state);
 
-  // A deployed web app has no active spreadsheet. Persist the bound Sheet ID
-  // once so doGet() can reopen this exact Registry by ID in web-app context.
-  PropertiesService.getScriptProperties()
-    .setProperty(REGISTRY_SPREADSHEET_ID_PROPERTY, ss.getId());
-
-  setupConfigSheet_(ss);
-  setupDemosSheet_(ss);
-  setupLogSheet_(ss);
+  var config = registryV2OperationalConfig_(ss, state);
+  var scriptProperties = PropertiesService.getScriptProperties();
+  var missing = REGISTRY_V2_REQUIRED_OPERATION_KEYS.filter(function (key) {
+    return !registryV2Clean_(scriptProperties.getProperty(
+      REGISTRY_V2_OPERATION_PROPERTIES[key]));
+  });
+  if (missing.length) {
+    throw new Error('Registry v2 setup is missing required Script Properties: '
+      + missing.map(function (key) { return REGISTRY_V2_OPERATION_PROPERTIES[key]; }).join(', '));
+  }
+  if (!folderIdFromUrl_(config.drive_folder_url)) {
+    throw new Error('AI4S_DRIVE_FOLDER_URL is not a valid Drive folder URL or ID.');
+  }
+  var driveRootId = folderIdFromUrl_(config.drive_folder_url);
+  try {
+    var driveRoot = DriveApp.getFolderById(driveRootId);
+    if (!driveRoot || String(driveRoot.getId()) !== String(driveRootId)) {
+      throw new Error('Drive root identity mismatch.');
+    }
+  } catch (driveError) {
+    throw new Error('AI4S_DRIVE_FOLDER_URL is not an accessible Drive folder.');
+  }
+  var previewRequest = configuredBuildRequest_(config, 'preview');
+  var productionRequest = configuredBuildRequest_(config, 'production');
+  var previewConfigError = previewPublishConfigurationError_(config);
+  if (!previewRequest.ok) throw new Error(previewRequest.error);
+  if (!productionRequest.ok) throw new Error(productionRequest.error);
+  if (previewConfigError) throw new Error(previewConfigError);
+  if (String(config.preview_callback_secret || '').length < 32) {
+    throw new Error('AI4S_PREVIEW_CALLBACK_SECRET must contain at least 32 characters.');
+  }
+  if (!/^[0-9a-f-]{20,64}$/i.test(String(config.netlify_site_id || ''))) {
+    throw new Error('AI4S_NETLIFY_SITE_ID is not a valid Netlify Site ID.');
+  }
+  scriptProperties.setProperty(REGISTRY_V2_SPREADSHEET_ID_PROPERTY, ss.getId());
   installTrigger_();
   onOpen();
 
-  logEvent_('setup', 'Sheet structure created / repaired.');
-  ss.toast('Next: paste your Drive folder URL into Config, then run "AI4S dashboard → Sync Drive folder now".',
-    'Setup complete', 10);
+  logEvent_('setup', 'Registry v2 control plane commissioned.');
+  ss.toast('Registry v2 is commissioned and its Script Properties are validated. Run Sync Drive folder now.',
+    'Registry v2 setup complete', 10);
 }
 
 function setupDemosSheet_(ss) {
@@ -568,6 +661,7 @@ function installTrigger_() {
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('AI4S dashboard')
     .addItem('Sync Drive folder now', 'syncDriveFromMenu')
+    .addItem('Refresh publishing status', 'refreshRegistryV2Status')
     .addItem('Build preview branch', 'publishPreview')
     .addItem('Preview publish status', 'showPreviewPublishStatus')
     .addItem('Open preview site', 'showPreviewSite')
@@ -575,10 +669,8 @@ function onOpen() {
     .addItem('Rebuild production site (main)', 'publishProduction')
     .addSeparator()
     .addItem('Show Registry API URL for Netlify', 'showBuildUrl')
-    .addItem('What PROVENANCE.md fills in', 'showCardMapping')
-    .addItem('Copy ai4s-meta template', 'showMetaTemplate')
     .addSeparator()
-    .addItem('Re-run setup / repair sheet', 'setup')
+    .addItem('Recommission V2 controls', 'setup')
     .addItem('Help — the routine', 'showHelp')
     .addToUi();
 }
@@ -590,27 +682,24 @@ function showHelp() {
     + 'named after the folder (<code>my_demo/my_demo.html</code>), its '
     + '<code>PROVENANCE.md</code>, and — if you have one — the <b>dataset picture</b> for the '
     + 'dashboard card, named <code>card</code>, <code>cover</code>, <code>thumbnail</code>, '
-    + '<code>picture</code> or after the folder (png / jpg / webp / gif / svg).</li>'
-    + '<li>AI4S dashboard → Sync Drive folder now (or wait for the hourly sync). A Draft row '
-    + 'appears with the provenance columns, the <code>question</code> and the '
-    + '<code>picture</code> already filled from the card and the folder.</li>'
-    + '<li>Check what it filled in and add category + task_type (those two are not in the card). '
-    + 'Keep the row as <b>Draft</b> while it is under review.</li>'
+    + '<code>picture</code> or after the folder (avif / gif / jpg / jpeg / png / webp).</li>'
+    + '<li>AI4S dashboard → Sync Drive folder now (or wait for the hourly sync). A safe '
+    + '<b>Draft / Preview only</b> project is added to this V2 Registry.</li>'
+    + '<li>Complete Card Summary, Department, Subtopic, Task Type and Methods in '
+    + '<b>Projects</b>. Keep the project as <b>Draft</b> while it is under review.</li>'
     + '<li>Use <b>Build preview branch</b> and review the Draft on the private develop Preview. '
     + 'Only after the content is approved, set its status to <b>Live</b>.</li>'
     + '<li>For a content-only Drive/Sheet release, use <b>Rebuild production site (main)</b> '
     + 'once and confirm Yes. For a code release, approve and merge the pull request into '
     + '<code>main</code>; with Netlify continuous deployment enabled, that merge is itself the '
     + 'Production release, so do not also press the rebuild button.</li></ol>'
-    + '<b>Notes.</b> Anything you have already typed is never overwritten — sync only ever '
-    + 'fills empty cells, so pasting an image URL into <code>picture</code> keeps it. '
-    + 'A loose <code>.html</code> dropped straight into the Drive folder still '
-    + 'works, it just has no card to read, and its <code>file_check</code> says so. '
+    + '<b>Notes.</b> Human fields in <b>Projects</b> are never overwritten. New projects must '
+    + 'be direct English-named subfolders; loose root HTML is not auto-created. '
     + 'If a folder holds several pages, the one named after the folder wins; otherwise the card’s '
     + '<code>pages:</code> entry marked <code>role: primary</code> decides. Several images with '
     + 'no such name and none is chosen — <code>file_check</code> says which ones it saw. '
-    + 'Auto columns (purple headers) are maintained by sync. '
-    + 'Hover any column header for an explanation of that field.</div>';
+    + 'Readiness, Preview URL and the hidden machine tabs are maintained by the V2 compiler. '
+    + 'Credentials and publishing controls live only in Apps Script Properties.</div>';
   SpreadsheetApp.getUi().showModalDialog(
     HtmlService.createHtmlOutput(html).setWidth(560).setHeight(535), 'AI4S dashboard — help');
 }
@@ -681,12 +770,22 @@ function syncDrive() {
     return { error: busy };
   }
   try {
-    var result = syncDriveUnlocked_();
+    var result;
     try {
-      var publishSs = registrySpreadsheet_();
-      var publishCfg = readConfig_(publishSs);
+      result = syncDriveUnlocked_();
+    } catch (syncError) {
+      var syncMessage = 'Registry v2 sync failed: ' + safeErrorMessage_(syncError);
+      logEvent_('sync-error', syncMessage);
+      result = { error: syncMessage };
+    }
+    try {
+      var publishSs = registryV2Spreadsheet_();
+      var publishCfg = registryV2OperationalConfig_(publishSs);
       var previewRun = maintainPreviewPublish_(publishSs, publishCfg,
-        { allowAttempt: true, allowAutoRequest: !(result && result.error) });
+        {
+          allowAttempt: !(result && result.error),
+          allowAutoRequest: !(result && result.error)
+        });
       if (previewRun.attempted) {
         if (previewRun.attemptResult.ok) {
           logEvent_('publish', 'Hourly Preview request '
@@ -709,17 +808,19 @@ function syncDrive() {
     }
     return result;
   } finally {
+    registryV2InvalidateSnapshotMarkers_();
     try { SpreadsheetApp.flush(); }
     finally { lock.releaseLock(); }
   }
 }
 
 function syncDriveUnlocked_() {
-  var ss = registrySpreadsheet_();
-  var cfg = readConfig_(ss);
+  var ss = registryV2Spreadsheet_();
+  var before = registryV2WorkbookState_(ss);
+  var cfg = registryV2OperationalConfig_(ss, before);
   var folderId = folderIdFromUrl_(cfg.drive_folder_url || '');
   if (!folderId) {
-    var msg = 'No Drive folder set. Paste the folder URL into Config (drive_folder_url), then sync again.';
+    var msg = 'No Drive folder is configured. Set the AI4S_DRIVE_FOLDER_URL Script Property, then sync again.';
     logEvent_('sync', msg);
     return { error: msg };
   }
@@ -727,124 +828,27 @@ function syncDriveUnlocked_() {
   var folder;
   try { folder = DriveApp.getFolderById(folderId); }
   catch (e) {
-    var msg2 = 'Could not open that folder. Check the URL in Config and that this account can access it.';
+    var msg2 = 'Could not open the configured Drive folder. Check AI4S_DRIVE_FOLDER_URL and this account\'s access.';
     logEvent_('sync', msg2);
     return { error: msg2 };
   }
-
-  var sh = ss.getSheetByName(SHEET_DEMOS);
-  // In case this script was pasted over an older one and sync ran before
-  // setup: bring the columns up to date first, or every row below would be
-  // written one schema against another. Both calls are no-ops once migrated.
-  migrateColumns_(sh);
-  ensureColumns_(sh);
-
-  // Don't trust getLastRow() here: the pre-applied checkbox/dropdown formatting
-  // can make it report the end of the formatted band (row 1000) instead of the
-  // end of the data. Scan for the last row with real content instead.
-  var gridLast = sh.getLastRow();
-  var dataRange = gridLast > 1 ? sh.getRange(2, 1, gridLast - 1, N_COLS) : null;
-  var all = dataRange ? dataRange.getValues() : [];
-  var allFormulas = dataRange ? dataRange.getFormulas() : [];
-  var dataEnd = 1; // header row; data starts at 2
-  for (var s = all.length - 1; s >= 0; s--) {
-    if (rowHasContent_(all[s])) { dataEnd = s + 2; break; }
-  }
-  var rows = all.slice(0, Math.max(dataEnd - 1, 0));
-  // Keep the values exactly as first observed. A Sheet editor is not governed
-  // by ScriptLock, so these snapshots are checked again immediately before
-  // any existing-row write.
-  var originalRows = rows.map(function (r) { return r.slice(); });
-  var originalFormulas = allFormulas.slice(0, Math.max(dataEnd - 1, 0))
-    .map(function (r) { return r.slice(); });
-  var byId = {};
-  rows.forEach(function (r, i) { if (r[COLS.FILE_ID - 1]) byId[r[COLS.FILE_ID - 1]] = i; });
-  var slugsInUse = {};
-  rows.forEach(function (r) { if (r[COLS.SLUG - 1]) slugsInUse[String(r[COLS.SLUG - 1])] = true; });
-
-  var seen = {};
-  var newRows = [];
-  var nNew = 0, nUpdated = 0, nWarn = 0;
-
+  // V2 is the sole Registry. Drive is collected once, then reconciled directly
+  // against `_Registry.file_id`; no V1 Demos, Config or Log tab is opened.
   var items = collectDemos_(folder);
-  for (var k = 0; k < items.length; k++) {
-    var it = items[k];
-    var id = it.file.getId();
-    if (seen[id]) continue;   // the same page reachable twice — register it once
-    seen[id] = true;
-
-    if (byId.hasOwnProperty(id)) {
-      // Known page — refresh if the page or its card changed in Drive.
-      var i = byId[id];
-      var stored = rows[i][COLS.LAST_MODIFIED - 1];
-      var changed = driveStampChanged_(stored, it.stamp);
-      if (changed) {
-        var read = readDemo_(it);
-        rows[i][COLS.LAST_MODIFIED - 1] = it.stamp;
-        rows[i][COLS.FILE_NAME - 1] = it.file.getName();
-        rows[i][COLS.FILE_CHECK - 1] = fileCheck_(checkAssets_(read.html), it.notes.concat(read.notes));
-        if (!rows[i][COLS.TITLE - 1]) rows[i][COLS.TITLE - 1] = extractTitle_(read.html, it.file.getName());
-        fillRow_(rows[i], read.meta, read.card);
-        fillPicture_(rows[i], it.picFile);
-        nUpdated++;
-      } else if (rows[i][COLS.FILE_CHECK - 1] === 'missing') {
-        rows[i][COLS.FILE_CHECK - 1] = 'ok'; // it came back
-      }
-    } else {
-      // New demo — build a Draft row.
-      var fresh = readDemo_(it);
-      var title = String(fresh.meta.title || extractTitle_(fresh.html, it.file.getName()));
-      // The folder name is the demo's name by convention (design §10.2), so it
-      // makes the steadier URL; a loose file has only its title to go on.
-      var slug = uniqueSlug_(slugify_(it.folderName || title), slugsInUse);
-      slugsInUse[slug] = true;
-
-      var row = new Array(N_COLS).fill('');
-      row[COLS.TITLE - 1] = title;
-      row[COLS.SLUG - 1] = slug;
-      row[COLS.STATUS - 1] = 'Draft';
-      row[COLS.FEATURED - 1] = false;
-      fillRow_(row, fresh.meta, fresh.card);
-      fillPicture_(row, it.picFile);
-      row[COLS.FILE_NAME - 1] = it.file.getName();
-      row[COLS.FILE_ID - 1] = id;
-      row[COLS.DATE_ADDED - 1] = it.file.getDateCreated();
-      row[COLS.LAST_MODIFIED - 1] = it.stamp;
-      row[COLS.FILE_CHECK - 1] = fileCheck_(checkAssets_(fresh.html), it.notes.concat(fresh.notes));
-      newRows.push(row);
-      nNew++;
-    }
-  }
-
-  // Files that vanished from the folder.
-  rows.forEach(function (r) {
-    var id = r[COLS.FILE_ID - 1];
-    if (id && !seen[id] && r[COLS.FILE_CHECK - 1] !== 'missing') {
-      r[COLS.FILE_CHECK - 1] = 'missing';
-      nWarn++;
-    }
-  });
-
-  // Existing-row provenance is recomputed only after the optimistic
-  // concurrency check has overlaid any human edits made during this scan.
-  newRows.forEach(function (r) { r[COLS.PROVENANCE - 1] = provenanceFlag_(r); });
-
-  var writeResult = writeExistingRowsSafely_(sh, rows, originalRows, originalFormulas);
-  appendNewRows_(sh, newRows);
-  // Commit Registry changes before a Build Hook can make Netlify read them.
-  SpreadsheetApp.flush();
-
-  var summary = nNew + ' new, ' + nUpdated + ' updated, ' + nWarn + ' now missing.';
-  if (writeResult.conflicts) {
-    summary += ' ' + writeResult.conflicts + ' concurrent edit conflict(s) preserved.';
-  }
+  var context = {
+    enabled: true,
+    spreadsheet: ss,
+    spreadsheet_id: ss.getId(),
+    before: before
+  };
+  var result = registryV2AutoIngest_(context, cfg, items);
+  var summary = 'Registry v2: ' + result.added + ' added, '
+    + result.checked + ' checked, ' + result.skipped + ' skipped, '
+    + result.missing + ' missing.';
   logEvent_('sync', summary);
   ss.toast(summary, 'Drive sync', 6);
-
-  return {
-    nNew: nNew, nUpdated: nUpdated, nWarn: nWarn,
-    nConflicts: writeResult.conflicts
-  };
+  return { registryV2: result, nNew: result.added, nUpdated: result.updated,
+    nWarn: result.missing, nConflicts: 0 };
 }
 
 /**
@@ -979,7 +983,7 @@ function fillPicture_(row, picFile) {
 
 /**
  * Everything in the Drive folder that counts as a demo, newest layout first.
- * Each item is { file, folderName, provFile, picFile, card, stamp, notes }
+ * Each item is { file, folderName, provFile, picFile, imageFiles, card, stamp, notes }
  * where `file` is the demo's primary page, `picFile` its dataset picture (or
  * null) and `stamp` the newest change across the page, its card and its
  * picture. Nothing is downloaded here except a card that has to be read to
@@ -1018,8 +1022,8 @@ function collectDemos_(folder) {
       continue;
     }
     if (!isHtmlFile_(f)) continue;
-    out.push({ file: f, folderName: '', provFile: null, picFile: null, card: null,
-      stamp: f.getLastUpdated(), notes: [] });
+    out.push({ file: f, folderName: '', provFile: null, picFile: null,
+      imageFiles: [], card: null, stamp: f.getLastUpdated(), notes: [] });
   }
   return out;
 }
@@ -1073,8 +1077,8 @@ function collectDemoFolder_(sub) {
   if (pick.note) notes.push(pick.note);
   if (picked.note) notes.push(picked.note);
 
-  return { file: file, folderName: name, provFile: prov, picFile: picFile, card: card,
-    stamp: stamp, notes: notes };
+  return { file: file, folderName: name, provFile: prov, picFile: picFile,
+    imageFiles: images.slice(), card: card, stamp: stamp, notes: notes };
 }
 
 /** True only for a current, direct parent edge; lookup failures stop the sync. */
@@ -1495,7 +1499,7 @@ function recordPreviewAttempt_(state, result, now) {
 function maintainPreviewPublish_(ss, cfg, options) {
   options = options || {};
   var now = options.now == null ? Date.now() : Number(options.now);
-  var snapshot = registrySnapshot_(ss, cfg, 'preview');
+  var snapshot = registryV2Snapshot_(ss, cfg, 'preview');
   if (!snapshot || !validRegistryRevision_(snapshot.registry_revision)) {
     throw new Error('Preview Registry produced an invalid registry_revision; no build was requested.');
   }
@@ -1565,8 +1569,8 @@ function publishPreview() {
     return;
   }
   try {
-    var ss = SpreadsheetApp.getActive();
-    var cfg = readConfig_(ss);
+    var ss = registryV2Spreadsheet_();
+    var cfg = registryV2OperationalConfig_(ss);
     var run = maintainPreviewPublish_(ss, cfg, { forceRequest: true, allowAttempt: true });
     var result = run.attemptResult;
     if (!run.attempted || !result || !result.ok) {
@@ -1592,10 +1596,17 @@ function publishPreview() {
 
 /** Rebuild main only, with a visible confirmation before the Hook is called. */
 function publishProduction() {
-  var ss = SpreadsheetApp.getActive();
-  var cfg = readConfig_(ss);
-  var request = configuredBuildRequest_(cfg, 'production');
   var ui = SpreadsheetApp.getUi();
+  var ss = registryV2Spreadsheet_();
+  var cfg;
+  try { cfg = registryV2OperationalConfig_(ss); }
+  catch (configError) {
+    ui.alert('Production build is not configured safely',
+      'Registry v2 configuration could not be read: ' + safeErrorMessage_(configError),
+      ui.ButtonSet.OK);
+    return;
+  }
+  var request = configuredBuildRequest_(cfg, 'production');
   if (!request.ok) {
     ui.alert('Production build is not configured safely', request.error, ui.ButtonSet.OK);
     return;
@@ -1629,7 +1640,7 @@ function publishSite() {
 
 /** Show the real Branch Deploy URL copied from Netlify. */
 function showPreviewSite() {
-  var cfg = readConfig_(SpreadsheetApp.getActive());
+  var cfg = registryV2OperationalConfig_(registryV2Spreadsheet_());
   var branch = String(cfg.preview_branch || '').trim();
   var url = String(cfg.preview_url || '').trim();
   var urlError = previewUrlError_(branch, url, cfg.preview_url_branch,
@@ -1662,8 +1673,8 @@ function showPreviewPublishStatus() {
     return;
   }
   try {
-    var ss = SpreadsheetApp.getActive();
-    var cfg = readConfig_(ss);
+    var ss = registryV2Spreadsheet_();
+    var cfg = registryV2OperationalConfig_(ss);
     var run = maintainPreviewPublish_(ss, cfg,
       { allowAttempt: false, allowAutoRequest: false });
     var state = run.state;
@@ -1903,7 +1914,7 @@ function htmlEscape_(value) {
 
 function showBuildUrl() {
   var url = ScriptApp.getService().getUrl();
-  var cfg = readConfig_(SpreadsheetApp.getActive());
+  var cfg = registryV2OperationalConfig_(registryV2Spreadsheet_());
   if (!url) {
     SpreadsheetApp.getUi().alert('Deploy this script as a web app first (Deploy → New deployment → Web app, execute as Me, and allow requests without Google sign-in — usually access: Anyone). Then run this again.');
     return;
@@ -1936,18 +1947,42 @@ function showBuildUrl() {
  * demo sub-folder).
  */
 function registrySpreadsheet_() {
-  // Menus, editor runs and triggers normally have an active container.
+  return registryV2Spreadsheet_();
+}
+
+function isRegistryV2Spreadsheet_(ss) {
+  if (!ss || typeof ss.getSheetByName !== 'function') return false;
+  return REGISTRY_V2_COMPILE_SHEETS.every(function (name) {
+    return Boolean(ss.getSheetByName(name));
+  });
+}
+
+/** Resolve the sole live Registry: the V2 workbook bound to this script. */
+function registryV2Spreadsheet_() {
   try {
     var active = SpreadsheetApp.getActive();
-    if (active) return active;
-  } catch (ignored) { /* web apps do not expose bound-script active methods */ }
-
+    if (isRegistryV2Spreadsheet_(active)) return active;
+  } catch (ignored) { /* Web Apps and timed triggers reopen by stable ID. */ }
   var id = PropertiesService.getScriptProperties()
-    .getProperty(REGISTRY_SPREADSHEET_ID_PROPERTY);
-  if (!id) {
-    throw new Error('Registry Sheet ID is not configured. Run setup() once from the bound Sheet.');
+    .getProperty(REGISTRY_V2_SPREADSHEET_ID_PROPERTY);
+  if (!id) throw new Error('Registry v2 Sheet ID is not configured.');
+  var spreadsheet = SpreadsheetApp.openById(String(id));
+  if (!isRegistryV2Spreadsheet_(spreadsheet)) {
+    throw new Error('Configured Registry v2 Sheet does not match the V2 contract.');
   }
-  return SpreadsheetApp.openById(id);
+  return spreadsheet;
+}
+
+function registrySchema_(raw) {
+  var value = String(raw || '').trim() || '2';
+  if (value !== '2') {
+    return { ok: false, error: 'schema 1 is archived; schema must be 2' };
+  }
+  return { ok: true, value: 2 };
+}
+
+function previewRegistrySchema_() {
+  return 2;
 }
 
 function registryAudience_(raw) {
@@ -2051,6 +2086,1759 @@ function registrySnapshot_(ss, cfg, audience) {
   };
 }
 
+function registryV2Clean_(value) {
+  return String(value == null ? '' : value).trim();
+}
+
+function registryV2Number_(value, fallback) {
+  var number = Number(value);
+  return isFinite(number) ? number : fallback;
+}
+
+function registryV2List_(value) {
+  if (Array.isArray(value)) return value.map(registryV2Clean_).filter(Boolean);
+  return registryV2Clean_(value).split(/[,;|\n]+/).map(registryV2Clean_).filter(Boolean);
+}
+
+function registryV2ContainsCjk_(value) {
+  return typeof value === 'string'
+    && /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u
+      .test(value);
+}
+
+function registryV2AssertEnglishRows_(sheetName, rows) {
+  rows.forEach(function (row) {
+    row.forEach(function (value) {
+      if (registryV2ContainsCjk_(value)) {
+        throw new Error('Registry v2 sheet ' + sheetName + ' must use English-only text.');
+      }
+    });
+  });
+}
+
+function registryV2Table_(ss, sheetName, expectedHeaders, projectHeaders) {
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) throw new Error('Registry v2 is missing sheet ' + sheetName + '.');
+  var lastColumn = sheet.getLastColumn();
+  if (lastColumn < 1) throw new Error('Registry v2 sheet ' + sheetName + ' has no header.');
+  var lastRow = Math.max(sheet.getLastRow(), 1);
+  return registryV2RowsFromGrid_(sheetName,
+    sheet.getRange(1, 1, lastRow, lastColumn).getValues(),
+    expectedHeaders, projectHeaders);
+}
+
+function registryV2RowsFromGrid_(sheetName, grid, expectedHeaders, projectHeaders) {
+  if (!grid || !grid.length || !grid[0].length) {
+    throw new Error('Registry v2 sheet ' + sheetName + ' has no header.');
+  }
+  registryV2AssertEnglishRows_(sheetName, grid);
+  var headers = grid[0].map(registryV2Clean_);
+  var accepted = {};
+  var canonical = [];
+  if (projectHeaders) {
+    REGISTRY_V2_PROJECT_FIELDS.forEach(function (field) {
+      accepted[field[0].toLowerCase()] = field[0];
+      accepted[field[1].toLowerCase()] = field[0];
+      canonical.push(field[0]);
+    });
+  } else {
+    expectedHeaders.forEach(function (header) {
+      accepted[String(header).toLowerCase()] = header;
+      canonical.push(header);
+    });
+  }
+  var keys = [];
+  var seen = {};
+  headers.forEach(function (header) {
+    var key = accepted[String(header).toLowerCase()];
+    if (!key || seen[key]) {
+      throw new Error('Registry v2 sheet ' + sheetName + ' has an invalid header.');
+    }
+    seen[key] = true;
+    keys.push(key);
+  });
+  canonical.forEach(function (key) {
+    if (!seen[key]) throw new Error('Registry v2 sheet ' + sheetName + ' is missing ' + key + '.');
+  });
+  return grid.slice(1)
+    .map(function (row, rowIndex) {
+      if (!row.some(function (value) { return value !== '' && value != null; })) return null;
+      var object = { _row_number: rowIndex + 2 };
+      keys.forEach(function (key, columnIndex) { object[key] = row[columnIndex]; });
+      return object;
+    })
+    .filter(function (row) { return row !== null; });
+}
+
+var REGISTRY_V2_COMPILE_SHEETS = [
+  'Projects', '_Registry', '_Taxonomy', '_Facets', '_Assets', '_Config'
+];
+
+/** Capture all compiler inputs, including formulas, without changing the workbook. */
+function registryV2WorkbookState_(ss) {
+  var state = {};
+  REGISTRY_V2_COMPILE_SHEETS.forEach(function (sheetName) {
+    var sheet = ss.getSheetByName(sheetName);
+    if (!sheet) throw new Error('Registry v2 is missing sheet ' + sheetName + '.');
+    var rows = Math.max(sheet.getLastRow(), 1);
+    var columns = sheet.getLastColumn();
+    if (columns < 1) throw new Error('Registry v2 sheet ' + sheetName + ' has no header.');
+    var range = sheet.getRange(1, 1, rows, columns);
+    var values = range.getValues();
+    var formulas = typeof range.getFormulas === 'function'
+      ? range.getFormulas()
+      : Array.from({ length: rows }, function () {
+        return Array.from({ length: columns }, function () { return ''; });
+      });
+    state[sheetName] = {
+      rows: rows,
+      columns: columns,
+      values: values,
+      formulas: formulas
+    };
+  });
+  return state;
+}
+
+function registryV2RowsFromState_(state, sheetName, expectedHeaders, projectHeaders) {
+  if (!state || !state[sheetName]) {
+    throw new Error('Registry v2 compiler state is missing sheet ' + sheetName + '.');
+  }
+  return registryV2RowsFromGrid_(sheetName, state[sheetName].values,
+    expectedHeaders, projectHeaders);
+}
+
+function registryV2WorkbookStatesEqual_(left, right) {
+  for (var s = 0; s < REGISTRY_V2_COMPILE_SHEETS.length; s++) {
+    var name = REGISTRY_V2_COMPILE_SHEETS[s];
+    var a = left && left[name];
+    var b = right && right[name];
+    if (!a || !b || a.rows !== b.rows || a.columns !== b.columns) return false;
+    for (var r = 0; r < a.rows; r++) {
+      for (var c = 0; c < a.columns; c++) {
+        if (!sameCellValue_(a.values[r][c], b.values[r][c])
+            || a.formulas[r][c] !== b.formulas[r][c]) return false;
+      }
+    }
+  }
+  return true;
+}
+
+function registryV2AutoIngestContext_() {
+  var id = PropertiesService.getScriptProperties()
+    .getProperty(REGISTRY_V2_SPREADSHEET_ID_PROPERTY);
+  if (!id) return { enabled: false };
+  var spreadsheet = SpreadsheetApp.openById(String(id));
+  return {
+    enabled: true,
+    spreadsheet: spreadsheet,
+    spreadsheet_id: String(id),
+    before: registryV2WorkbookState_(spreadsheet)
+  };
+}
+
+function registryV2CloneState_(state) {
+  var out = {};
+  REGISTRY_V2_COMPILE_SHEETS.forEach(function (name) {
+    out[name] = {
+      rows: state[name].rows,
+      columns: state[name].columns,
+      values: state[name].values.map(function (row) { return row.slice(); }),
+      formulas: state[name].formulas.map(function (row) { return row.slice(); })
+    };
+  });
+  return out;
+}
+
+function registryV2HeaderMap_(header, projectHeaders) {
+  var out = {};
+  header.forEach(function (value, index) {
+    var key = registryV2Clean_(value).toLowerCase();
+    if (projectHeaders) {
+      REGISTRY_V2_PROJECT_FIELDS.forEach(function (field) {
+        if (key === field[0].toLowerCase() || key === field[1].toLowerCase()) {
+          out[field[0]] = index;
+        }
+      });
+    } else {
+      out[key] = index;
+    }
+  });
+  return out;
+}
+
+function registryV2SetRowField_(row, headerMap, key, value) {
+  if (!Object.prototype.hasOwnProperty.call(headerMap, key)) {
+    throw new Error('Registry v2 is missing column ' + key + '.');
+  }
+  row[headerMap[key]] = value;
+}
+
+function registryV2EnglishFolderName_(value) {
+  return /^[A-Za-z0-9][A-Za-z0-9 _-]*$/.test(String(value || '').trim());
+}
+
+function registryV2Audience_(value) {
+  value = registryV2Clean_(value);
+  return ['General', 'Intro', 'Intermediate', 'Advanced'].indexOf(value) !== -1
+    ? value : 'General';
+}
+
+function registryV2AutoRead_(item) {
+  return item.registryRead || readDemo_(item);
+}
+
+function registryV2AppendStateRow_(table, values, formulas) {
+  table.values.push(values.slice());
+  table.formulas.push((formulas || values.map(function () { return ''; })).slice());
+  table.rows++;
+  return table.rows;
+}
+
+function registryV2AutoProjectRow_(header, demoId, title, summary, dataSource,
+    audience, department, subtopic, task, methods) {
+  var map = registryV2HeaderMap_(header, true);
+  var row = header.map(function () { return ''; });
+  registryV2SetRowField_(row, map, 'status', 'Draft');
+  registryV2SetRowField_(row, map, 'readiness', '');
+  registryV2SetRowField_(row, map, 'preview_url', '');
+  registryV2SetRowField_(row, map, 'title', title);
+  registryV2SetRowField_(row, map, 'card_summary', summary);
+  registryV2SetRowField_(row, map, 'department', department);
+  registryV2SetRowField_(row, map, 'subtopic', subtopic);
+  registryV2SetRowField_(row, map, 'task', task);
+  registryV2SetRowField_(row, map, 'methods', methods);
+  registryV2SetRowField_(row, map, 'card_image', '');
+  registryV2SetRowField_(row, map, 'image_alt', '');
+  registryV2SetRowField_(row, map, 'audience', audience);
+  registryV2SetRowField_(row, map, 'featured', false);
+  registryV2SetRowField_(row, map, 'data_source', dataSource);
+  registryV2SetRowField_(row, map, 'public_permission', 'Preview only');
+  registryV2SetRowField_(row, map, 'demo_id', demoId);
+  return row;
+}
+
+/**
+ * Resolve one human-selected Card Image against the already boundary-checked
+ * Drive collection. Card Image is a direct-child file name, never a URL or a
+ * nested path. A non-empty selection must identify exactly one supported image
+ * beside the project's HTML; otherwise the guarded sync fails before writing.
+ */
+function registryV2CardAssetRow_(header, demoId, slug, project, current) {
+  var selected = registryV2Clean_(project && project.card_image);
+  if (!selected) return null;
+  if (selected === '.' || selected === '..' || /[\\/]/.test(selected)
+      || /^[a-z][a-z0-9+.-]*:/i.test(selected)) {
+    throw new Error('Registry v2 Card Image for ' + demoId
+      + ' must be one direct-child Drive file name, not a path or URL.');
+  }
+  var extensionMatch = /\.([A-Za-z0-9]+)$/.exec(selected);
+  var extension = extensionMatch ? extensionMatch[1].toLowerCase() : '';
+  var expectedMime = REGISTRY_V2_IMAGE_MIME_BY_EXTENSION[extension];
+  if (!expectedMime) {
+    throw new Error('Registry v2 Card Image for ' + demoId
+      + ' must use avif, gif, jpg, jpeg, png or webp.');
+  }
+  // A missing page remains a row-local source-file problem. Remove its stale
+  // machine asset link now; the human Card Image choice stays in Projects and
+  // will be rebound automatically when the same page returns.
+  if (!current) return null;
+
+  var matches = (current.item.imageFiles || []).filter(function (file) {
+    return String(file.getName()) === selected;
+  });
+  if (matches.length !== 1) {
+    throw new Error('Registry v2 Card Image "' + selected + '" for ' + demoId
+      + ' must match exactly one direct-child Drive image beside its HTML.');
+  }
+  var file = matches[0];
+  var fileId;
+  var mime;
+  var modified;
+  try {
+    fileId = String(file.getId());
+    mime = registryV2Clean_(file.getMimeType()).toLowerCase();
+    modified = file.getLastUpdated();
+    if (!fileId || mime !== expectedMime || !modified
+        || !isFinite(modified.getTime())) throw new Error('invalid image metadata');
+    if (typeof file.getSize === 'function'
+        && Number(file.getSize()) > REGISTRY_V2_MAX_CARD_ASSET_BYTES) {
+      throw new Error('image exceeds 5 MiB');
+    }
+  } catch (imageError) {
+    throw new Error('Registry v2 Card Image "' + selected + '" for ' + demoId
+      + ' has invalid Drive image metadata: ' + safeErrorMessage_(imageError));
+  }
+
+  var map = registryV2HeaderMap_(header, false);
+  var row = header.map(function () { return ''; });
+  var assetId = 'asset-' + slug + '-card';
+  registryV2SetRowField_(row, map, 'asset_id', assetId);
+  registryV2SetRowField_(row, map, 'demo_id', demoId);
+  registryV2SetRowField_(row, map, 'role', 'card_image');
+  registryV2SetRowField_(row, map, 'source_type', 'drive');
+  registryV2SetRowField_(row, map, 'drive_file_id', fileId);
+  registryV2SetRowField_(row, map, 'external_url', '');
+  registryV2SetRowField_(row, map, 'mime_type', mime);
+  registryV2SetRowField_(row, map, 'alt_text', registryV2Clean_(project.image_alt));
+  registryV2SetRowField_(row, map, 'credit', '');
+  registryV2SetRowField_(row, map, 'license', '');
+  registryV2SetRowField_(row, map, 'checksum', '');
+  registryV2SetRowField_(row, map, 'public_path',
+    'assets/cards/' + slug + '.' + extension);
+  registryV2SetRowField_(row, map, 'sync_status', 'ok');
+  registryV2SetRowField_(row, map, 'source_modified_at', isoOrString_(modified));
+  registryV2SetRowField_(row, map, 'source_file_name', selected);
+  return { asset_id: assetId, row: row };
+}
+
+function registryV2FacetRowsFor_(demoId, type, ids, header) {
+  var map = registryV2HeaderMap_(header, false);
+  return ids.map(function (id, index) {
+    var row = header.map(function () { return ''; });
+    registryV2SetRowField_(row, map, 'demo_id', demoId);
+    registryV2SetRowField_(row, map, 'facet_type', type);
+    registryV2SetRowField_(row, map, 'term_id', id);
+    registryV2SetRowField_(row, map, 'display_order', index + 1);
+    return row;
+  });
+}
+
+function registryV2ProjectProjection_(project, taxonomyIndex) {
+  var department = registryV2ResolveHumanTerm_(
+    project.department, 'departments', taxonomyIndex);
+  var subtopic = registryV2ResolveHumanTerm_(project.subtopic, 'subtopics', taxonomyIndex);
+  if (department && subtopic
+      && taxonomyIndex.subtopics[subtopic].department_id !== department) {
+    throw new Error('Registry v2 Projects has a Department / Subtopic mismatch.');
+  }
+  return {
+    department_id: department,
+    subtopic_id: subtopic,
+    task_ids: registryV2ResolveHumanList_(project.task, 'tasks', taxonomyIndex),
+    method_ids: registryV2ResolveHumanList_(project.methods, 'methods', taxonomyIndex)
+  };
+}
+
+function registryV2SeedTerm_(value, group, taxonomyIndex) {
+  var key = registryV2LookupKey_(value);
+  if (!key) return '';
+  var id = taxonomyIndex.lookup[group][key];
+  return id ? taxonomyIndex[group][id].label : '';
+}
+
+function registryV2SeedList_(value, group, taxonomyIndex) {
+  var labels = [];
+  var seen = {};
+  var items = registryV2List_(value);
+  for (var i = 0; i < items.length; i++) {
+    var item = items[i];
+    var key = registryV2LookupKey_(item);
+    var id = key && taxonomyIndex.lookup[group][key];
+    if (!id || seen[id]) return '';
+    seen[id] = true;
+    labels.push(taxonomyIndex[group][id].label);
+  }
+  return labels.join(', ');
+}
+
+function registryV2ItemRecord_(item, cfg) {
+  // collectDemos_ has already verified every root/folder/file parent edge and
+  // excluded shortcuts. Keep this compiler step focused on translating that
+  // trusted collection result into V2 fields instead of repeating Drive I/O.
+  var read = registryV2AutoRead_(item);
+  item.registryRead = read;
+  var seed = new Array(N_COLS).fill('');
+  fillRow_(seed, read.meta || {}, read.card || {});
+  var meta = read.meta || {};
+  var title = registryV2Clean_(meta.title)
+    || extractTitle_(read.html, item.file.getName());
+  var summary = registryV2Clean_(meta.card_summary || meta.description)
+    || registryV2Clean_(seed[COLS.DESCRIPTION - 1]);
+  var dataSource = registryV2Clean_(meta.data_source)
+    || registryV2Clean_(seed[COLS.DATA_SOURCE - 1]);
+  if (registryV2ContainsCjk_(title)) title = registryV2Clean_(item.folderName);
+  if (registryV2ContainsCjk_(summary)) summary = '';
+  if (registryV2ContainsCjk_(dataSource)) dataSource = '';
+  var dateAdded = '';
+  try { dateAdded = isoOrString_(item.file.getDateCreated()); }
+  catch (ignored) { dateAdded = ''; }
+  return {
+    file_id: String(item.file.getId()),
+    title: title,
+    summary: summary,
+    data_source: dataSource,
+    audience: registryV2Audience_(meta.audience || seed[COLS.AUDIENCE - 1]),
+    department: meta.department,
+    subtopic: meta.subtopic,
+    task: meta.task_type || seed[COLS.TASK_TYPE - 1],
+    methods: meta.methods || meta.method || seed[COLS.METHOD - 1],
+    file_check: fileCheck_(checkAssets_(read.html),
+      (item.notes || []).concat(read.notes || [])),
+    date_added: dateAdded
+  };
+}
+
+function registryV2AutoPlan_(before, cfg, items) {
+  var target = registryV2CloneState_(before);
+  var projects = registryV2RowsFromState_(before, 'Projects', [], true);
+  var registry = registryV2RowsFromState_(
+    before, '_Registry', REGISTRY_V2_HEADERS._Registry, false);
+  // Validate the current machine grid shape and English-only boundary before
+  // replacing its auto-managed rows.
+  registryV2RowsFromState_(
+    before, '_Assets', REGISTRY_V2_HEADERS._Assets, false);
+  var taxonomyRows = registryV2RowsFromState_(
+    before, '_Taxonomy', REGISTRY_V2_HEADERS._Taxonomy, false);
+  var taxonomy = registryV2Taxonomy_(taxonomyRows);
+  var taxonomyIndex = registryV2TaxonomyIndex_(taxonomy, taxonomyRows);
+  var registryMap = registryV2HeaderMap_(target._Registry.values[0], false);
+  var projectsById = {};
+  projects.forEach(function (project) {
+    var id = registryV2Clean_(project.demo_id);
+    if (!id || projectsById[id]) throw new Error('Registry v2 Projects has duplicate identity.');
+    projectsById[id] = project;
+  });
+  var registryById = {};
+  var registryByFile = {};
+  var usedSlugs = {};
+  registry.forEach(function (source) {
+    var id = registryV2Clean_(source.demo_id);
+    var fileId = registryV2Clean_(source.file_id);
+    var slug = registryV2Clean_(source.slug);
+    if (!id || registryById[id] || !fileId || registryByFile[fileId]
+        || !slug || usedSlugs[slug]) {
+      throw new Error('Registry v2 has duplicate or missing page identity.');
+    }
+    registryById[id] = source;
+    registryByFile[fileId] = source;
+    usedSlugs[slug] = true;
+  });
+  if (Object.keys(projectsById).length !== Object.keys(registryById).length
+      || Object.keys(projectsById).some(function (id) { return !registryById[id]; })) {
+    throw new Error('Registry v2 Projects and _Registry identities do not match.');
+  }
+
+  var seen = {};
+  var itemByFile = {};
+  (items || []).forEach(function (item) {
+    var fileId = String(item.file.getId());
+    if (itemByFile[fileId]) return;
+    itemByFile[fileId] = { item: item, record: registryV2ItemRecord_(item, cfg) };
+  });
+  var added = 0;
+  var updated = 0;
+  var missing = 0;
+  var skipped = 0;
+  var events = [];
+  items.forEach(function (item) {
+    var fileId = String(item.file.getId());
+    if (seen[fileId]) return;
+    seen[fileId] = true;
+    if (registryByFile[fileId]) return;
+    // V2's creation boundary is deliberately narrower than legacy v1.
+    if (!item.folderName) return;
+    if (!registryV2EnglishFolderName_(item.folderName)) {
+      skipped++;
+      events.push({ event: 'sync-v2-skip', details:
+        'Skipped non-English Registry v2 folder "' + item.folderName + '".' });
+      return;
+    }
+    if ((item.notes || []).some(function (note) {
+      return /^primary page unclear\b/i.test(String(note || ''));
+    })) {
+      skipped++;
+      events.push({ event: 'sync-v2-conflict', details: 'Skipped Registry v2 folder "'
+        + item.folderName + '" because its primary HTML page is unclear.' });
+      return;
+    }
+    var slug = slugify_(item.folderName);
+    var demoId = 'demo-' + slug;
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)
+        || projectsById[demoId] || registryById[demoId] || usedSlugs[slug]) {
+      skipped++;
+      events.push({ event: 'sync-v2-conflict', details: 'Skipped Registry v2 folder "'
+        + item.folderName + '" because its identity conflicts with an existing project.' });
+      return;
+    }
+    var itemRecord = itemByFile[fileId].record;
+    var title = itemRecord.title;
+    var summary = itemRecord.summary;
+    var dataSource = itemRecord.data_source;
+    var audience = itemRecord.audience;
+    // Initial metadata is only a convenience seed. Keep an exact taxonomy
+    // value and quietly leave an unrecognised natural-language value empty so
+    // the new Draft is blocked for owner review. Once present in Projects,
+    // any later non-empty unknown value remains a strict compiler error.
+    var department = registryV2SeedTerm_(itemRecord.department, 'departments', taxonomyIndex);
+    var subtopic = registryV2SeedTerm_(itemRecord.subtopic, 'subtopics', taxonomyIndex);
+    var task = registryV2SeedList_(
+      itemRecord.task, 'tasks', taxonomyIndex);
+    var methods = registryV2SeedList_(
+      itemRecord.methods, 'methods', taxonomyIndex);
+    if (department && subtopic) {
+      var seededDepartment = registryV2ResolveHumanTerm_(
+        department, 'departments', taxonomyIndex);
+      var seededSubtopic = registryV2ResolveHumanTerm_(subtopic, 'subtopics', taxonomyIndex);
+      if (taxonomyIndex.subtopics[seededSubtopic].department_id !== seededDepartment) {
+        subtopic = '';
+      }
+    }
+    var projected = registryV2ProjectProjection_({
+      department: department, subtopic: subtopic, task: task, methods: methods
+    }, taxonomyIndex);
+    var projectRow = registryV2AutoProjectRow_(target.Projects.values[0], demoId,
+      title, summary, dataSource, audience, department, subtopic, task, methods);
+    var projectRowNumber = registryV2AppendStateRow_(target.Projects, projectRow);
+    var registryRow = target._Registry.values[0].map(function () { return ''; });
+    registryV2SetRowField_(registryRow, registryMap, 'schema_version', 2);
+    registryV2SetRowField_(registryRow, registryMap, 'row_number', projectRowNumber);
+    registryV2SetRowField_(registryRow, registryMap, 'demo_id', demoId);
+    registryV2SetRowField_(registryRow, registryMap, 'entry_type', 'project');
+    registryV2SetRowField_(registryRow, registryMap, 'slug', slug);
+    registryV2SetRowField_(registryRow, registryMap, 'status', 'Draft');
+    registryV2SetRowField_(registryRow, registryMap, 'readiness', 'blocked');
+    registryV2SetRowField_(registryRow, registryMap, 'featured', false);
+    registryV2SetRowField_(registryRow, registryMap, 'sort_order', projectRowNumber - 1);
+    registryV2SetRowField_(registryRow, registryMap, 'title', title);
+    registryV2SetRowField_(registryRow, registryMap, 'card_summary', summary);
+    registryV2SetRowField_(registryRow, registryMap, 'department_id', projected.department_id);
+    registryV2SetRowField_(registryRow, registryMap, 'subtopic_id', projected.subtopic_id);
+    registryV2SetRowField_(registryRow, registryMap, 'task_ids', projected.task_ids.join(', '));
+    registryV2SetRowField_(registryRow, registryMap, 'method_ids', projected.method_ids.join(', '));
+    registryV2SetRowField_(registryRow, registryMap, 'audience', audience);
+    registryV2SetRowField_(registryRow, registryMap, 'data_source_label', dataSource);
+    registryV2SetRowField_(registryRow, registryMap, 'public_page_permission', 'Preview only');
+    registryV2SetRowField_(registryRow, registryMap, 'card_asset_id', '');
+    registryV2SetRowField_(registryRow, registryMap, 'file_id', fileId);
+    registryV2SetRowField_(registryRow, registryMap, 'file_check', itemRecord.file_check);
+    registryV2SetRowField_(registryRow, registryMap, 'date_added', itemRecord.date_added);
+    registryV2AppendStateRow_(target._Registry, registryRow);
+    projectsById[demoId] = registryV2RowsFromGrid_(
+      'Projects', [target.Projects.values[0], projectRow], [], true)[0];
+    projectsById[demoId]._row_number = projectRowNumber;
+    registryById[demoId] = registryV2RowsFromGrid_(
+      '_Registry', [target._Registry.values[0], registryRow],
+      REGISTRY_V2_HEADERS._Registry, false)[0];
+    registryById[demoId]._row_number = target._Registry.rows;
+    registryByFile[fileId] = registryById[demoId];
+    usedSlugs[slug] = true;
+    added++;
+  });
+
+  // Re-project every human-owned Projects row. No Projects human field is ever
+  // changed here; only its hidden machine representation is reconciled.
+  var desiredFacets = [];
+  var desiredAssets = [];
+  Object.keys(projectsById).sort().forEach(function (demoId) {
+    var project = projectsById[demoId];
+    var source = registryById[demoId];
+    var projection = registryV2ProjectProjection_(project, taxonomyIndex);
+    var registryRow = target._Registry.values[source._row_number - 1];
+    registryV2SetRowField_(registryRow, registryMap, 'status', project.status);
+    registryV2SetRowField_(registryRow, registryMap, 'featured', project.featured);
+    registryV2SetRowField_(registryRow, registryMap, 'title', project.title);
+    registryV2SetRowField_(registryRow, registryMap, 'card_summary', project.card_summary);
+    registryV2SetRowField_(registryRow, registryMap, 'department_id', projection.department_id);
+    registryV2SetRowField_(registryRow, registryMap, 'subtopic_id', projection.subtopic_id);
+    registryV2SetRowField_(registryRow, registryMap, 'task_ids', projection.task_ids.join(', '));
+    registryV2SetRowField_(registryRow, registryMap, 'method_ids', projection.method_ids.join(', '));
+    registryV2SetRowField_(registryRow, registryMap, 'audience', project.audience);
+    registryV2SetRowField_(registryRow, registryMap, 'data_source_label', project.data_source);
+    registryV2SetRowField_(registryRow, registryMap, 'public_page_permission', project.public_permission);
+    var current = itemByFile[registryV2Clean_(source.file_id)];
+    var asset = registryV2CardAssetRow_(target._Assets.values[0], demoId,
+      registryV2Clean_(source.slug), project, current);
+    registryV2SetRowField_(registryRow, registryMap, 'card_asset_id',
+      asset ? asset.asset_id : '');
+    if (asset) desiredAssets.push(asset.row);
+    var priorCheck = registryV2Clean_(source.file_check);
+    var nextCheck = current ? current.record.file_check : 'missing';
+    if (priorCheck !== nextCheck) updated++;
+    if (!current) missing++;
+    registryV2SetRowField_(registryRow, registryMap, 'file_check', nextCheck);
+    if (!registryV2Clean_(source.date_added) && current && current.record.date_added) {
+      registryV2SetRowField_(registryRow, registryMap, 'date_added', current.record.date_added);
+      updated++;
+    }
+    desiredFacets = desiredFacets.concat(
+      registryV2FacetRowsFor_(demoId, 'task', projection.task_ids, target._Facets.values[0]),
+      registryV2FacetRowsFor_(demoId, 'method', projection.method_ids, target._Facets.values[0]));
+  });
+  target._Facets.values = [target._Facets.values[0]].concat(desiredFacets);
+  target._Facets.formulas = target._Facets.values.map(function (row) {
+    return row.map(function () { return ''; });
+  });
+  target._Facets.rows = target._Facets.values.length;
+  var assetIdColumn = registryV2HeaderMap_(target._Assets.values[0], false).asset_id;
+  desiredAssets.sort(function (left, right) {
+    return String(left[assetIdColumn]).localeCompare(String(right[assetIdColumn]));
+  });
+  target._Assets.values = [target._Assets.values[0]].concat(desiredAssets);
+  target._Assets.formulas = target._Assets.values.map(function (row) {
+    return row.map(function () { return ''; });
+  });
+  target._Assets.rows = target._Assets.values.length;
+
+  var compiled = registryV2CompileState_(null, cfg, 'preview', target);
+  var previewBase = registryV2PreviewBaseUrl_(compiled.config);
+  var statusPlan = registryV2WritePlan_(compiled, target, previewBase);
+  statusPlan.project_writes.forEach(function (write) {
+    target.Projects.values[write.row - 1][statusPlan.project_readiness_column - 1]
+      = write.readiness;
+    target.Projects.values[write.row - 1][statusPlan.project_preview_column - 1]
+      = write.preview_formula ? 'Open Preview' : '';
+    target.Projects.formulas[write.row - 1][statusPlan.project_preview_column - 1]
+      = write.preview_formula;
+  });
+  statusPlan.registry_writes.forEach(function (write) {
+    target._Registry.values[write.row - 1][statusPlan.registry_readiness_column - 1]
+      = write.readiness;
+  });
+  return {
+    target: target,
+    compiled: compiled,
+    added: added,
+    updated: updated,
+    missing: missing,
+    skipped: skipped,
+    events: events,
+    checked: Object.keys(projectsById).length - added,
+    before_rows: {
+      Projects: before.Projects.rows,
+      _Registry: before._Registry.rows,
+      _Facets: before._Facets.rows
+    }
+  };
+}
+
+function registryV2RestCell_(value, formula) {
+  if (formula) return { userEnteredValue: { formulaValue: formula } };
+  if (value === '' || value == null) return { userEnteredValue: {} };
+  if (typeof value === 'boolean') return { userEnteredValue: { boolValue: value } };
+  if (typeof value === 'number' && isFinite(value)) {
+    return { userEnteredValue: { numberValue: value } };
+  }
+  return { userEnteredValue: { stringValue: isoOrString_(value) || String(value) } };
+}
+
+function registryV2RestRow_(values, formulas) {
+  return { values: values.map(function (value, index) {
+    return registryV2RestCell_(value, formulas && formulas[index]);
+  }) };
+}
+
+function registryV2SheetsMetadata_(spreadsheetId) {
+  var body;
+  try {
+    body = Sheets.Spreadsheets.get(spreadsheetId, {
+      fields: 'sheets(properties(sheetId,title),tables(tableId,name,range))'
+    });
+  } catch (err) {
+    throw new Error('Registry v2 could not inspect its native tables: '
+      + safeErrorMessage_(err));
+  }
+  var sheets = {};
+  (body.sheets || []).forEach(function (sheet) {
+    var title = sheet.properties && sheet.properties.title;
+    if (!title) return;
+    var tables = sheet.tables || [];
+    sheets[title] = {
+      sheet_id: sheet.properties.sheetId,
+      table_id: tables.length === 1 ? tables[0].tableId : '',
+      table_name: tables.length === 1 ? tables[0].name : '',
+      table_range: tables.length === 1 ? tables[0].range : null,
+      table_count: tables.length
+    };
+  });
+  if (!sheets.Projects || sheets.Projects.table_count !== 1
+      || sheets.Projects.table_name !== 'ProjectsCatalogV2'
+      || !sheets.Projects.table_id) {
+    throw new Error('Registry v2 Projects must remain a native Google Sheets table.');
+  }
+  ['_Registry', '_Facets', '_Assets', '_Audit'].forEach(function (name) {
+    if (!sheets[name] || sheets[name].table_count !== 0) {
+      throw new Error('Registry v2 machine sheet ' + name + ' must remain a plain grid.');
+    }
+  });
+  return sheets;
+}
+
+function registryV2VerifyTableMetadata_(metadata, before) {
+  var range = metadata.Projects.table_range || {};
+  if (Number(range.startRowIndex || 0) !== 0
+      || Number(range.startColumnIndex || 0) !== 0
+      || Number(range.endColumnIndex) !== before.Projects.columns
+      || Number(range.endRowIndex) !== before.Projects.rows) {
+    throw new Error('Registry v2 Projects table range does not match its current workbook.');
+  }
+}
+
+function registryV2UpdateRequest_(sheetId, rowIndex, columnIndex, cell) {
+  return { updateCells: {
+    range: {
+      sheetId: sheetId,
+      startRowIndex: rowIndex,
+      endRowIndex: rowIndex + 1,
+      startColumnIndex: columnIndex,
+      endColumnIndex: columnIndex + 1
+    },
+    rows: [{ values: [cell] }],
+    fields: 'userEnteredValue'
+  } };
+}
+
+function registryV2BatchWrite_(spreadsheetId, before, plan, metadata) {
+  metadata = metadata || registryV2SheetsMetadata_(spreadsheetId);
+  var requests = [];
+  ['Projects', '_Registry'].forEach(function (name) {
+    var oldRows = before[name].rows;
+    var target = plan.target[name];
+    for (var r = 1; r < Math.min(oldRows, target.rows); r++) {
+      for (var c = 0; c < target.columns; c++) {
+        var valueChanged = !sameCellValue_(before[name].values[r][c], target.values[r][c]);
+        var formulaChanged = before[name].formulas[r][c] !== target.formulas[r][c];
+        if (!valueChanged && !formulaChanged) continue;
+        requests.push(registryV2UpdateRequest_(metadata[name].sheet_id, r, c,
+          registryV2RestCell_(target.values[r][c], target.formulas[r][c])));
+      }
+    }
+    if (target.rows > oldRows) {
+      var append = target.values.slice(oldRows).map(function (row, index) {
+        return registryV2RestRow_(row, target.formulas[oldRows + index]);
+      });
+      requests.push({ appendCells: {
+        tableId: metadata[name] && metadata[name].table_id || undefined,
+        sheetId: metadata[name] && metadata[name].table_id
+          ? undefined : metadata[name].sheet_id,
+        rows: append,
+        fields: 'userEnteredValue'
+      } });
+    }
+  });
+
+  ['_Facets', '_Assets'].forEach(function (name) {
+    var desired = plan.target[name];
+    var original = before[name];
+    var maxRows = Math.max(original.rows, desired.rows);
+    for (var r = 1; r < maxRows; r++) {
+      for (var c = 0; c < desired.columns; c++) {
+        var desiredValue = r < desired.rows ? desired.values[r][c] : '';
+        var oldValue = r < original.rows ? original.values[r][c] : '';
+        var desiredFormula = r < desired.rows ? desired.formulas[r][c] : '';
+        var oldFormula = r < original.rows ? original.formulas[r][c] : '';
+        if (sameCellValue_(oldValue, desiredValue) && oldFormula === desiredFormula) continue;
+        if (r < original.rows) {
+          requests.push(registryV2UpdateRequest_(metadata[name].sheet_id, r, c,
+            registryV2RestCell_(desiredValue, desiredFormula)));
+        }
+      }
+    }
+    if (desired.rows > original.rows) {
+      requests.push({ appendCells: {
+        tableId: metadata[name].table_id || undefined,
+        sheetId: metadata[name].table_id ? undefined : metadata[name].sheet_id,
+        rows: desired.values.slice(original.rows).map(function (row) {
+          return registryV2RestRow_(row, null);
+        }),
+        fields: 'userEnteredValue'
+      } });
+    }
+  });
+  if (!requests.length) return;
+  try {
+    Sheets.Spreadsheets.batchUpdate({ requests: requests }, spreadsheetId);
+  } catch (err) {
+    throw new Error('Registry v2 guarded batch write failed: '
+      + safeErrorMessage_(err));
+  }
+}
+
+function registryV2AutoIngest_(context, cfg, items) {
+  var plan = registryV2AutoPlan_(context.before, cfg, items);
+  var checked = registryV2WorkbookState_(context.spreadsheet);
+  if (!registryV2WorkbookStatesEqual_(context.before, checked)) {
+    throw new Error('Registry v2 changed during Drive scan. No v2 cells were updated.');
+  }
+  // Metadata inspection is read-only; perform one final full-grid check after it.
+  var metadata = registryV2SheetsMetadata_(context.spreadsheet_id);
+  registryV2VerifyTableMetadata_(metadata, context.before);
+  var aboutToWrite = registryV2WorkbookState_(context.spreadsheet);
+  if (!registryV2WorkbookStatesEqual_(context.before, aboutToWrite)) {
+    throw new Error('Registry v2 changed before writing. No v2 cells were updated.');
+  }
+  registryV2BatchWrite_(context.spreadsheet_id, context.before, plan, metadata);
+  SpreadsheetApp.flush();
+  var afterSheet = SpreadsheetApp.openById(context.spreadsheet_id);
+  var after = registryV2WorkbookState_(afterSheet);
+  if (!registryV2WorkbookStatesEqual_(plan.target, after)) {
+    throw new Error('Registry v2 auto-ingest could not verify the completed write.');
+  }
+  (plan.events || []).forEach(function (event) {
+    logEvent_(event.event, event.details);
+  });
+  return {
+    enabled: true,
+    added: plan.added,
+    updated: plan.updated,
+    missing: plan.missing,
+    checked: plan.checked,
+    skipped: plan.skipped,
+    registry_revision: plan.compiled.registry_revision
+  };
+}
+
+function registryV2Config_(rows) {
+  var config = {};
+  rows.forEach(function (row) {
+    var key = registryV2Clean_(row.key);
+    if (!key || Object.prototype.hasOwnProperty.call(config, key)) {
+      throw new Error('Registry v2 _Config has an invalid key.');
+    }
+    config[key] = row.value;
+  });
+  if (String(config.schema_version || '') !== '2') {
+    throw new Error('Registry v2 _Config schema_version must be 2.');
+  }
+  return config;
+}
+
+/** Read the non-secret Registry v2 configuration from its hidden `_Config` tab. */
+function registryV2ConfigFromSheet_(ss, workbookState) {
+  var state = workbookState || registryV2WorkbookState_(ss);
+  return registryV2Config_(registryV2RowsFromState_(
+    state, '_Config', REGISTRY_V2_HEADERS._Config, false));
+}
+
+/**
+ * Merge V2's non-secret workbook metadata with operational Script Properties.
+ * There is intentionally no V1 Config fallback: an archived V1 workbook must
+ * be removable without affecting sync, menus, the Web App or publishing.
+ */
+function registryV2OperationalConfig_(ss, workbookState) {
+  var config = registryV2ConfigFromSheet_(ss, workbookState);
+  var properties = PropertiesService.getScriptProperties();
+  Object.keys(REGISTRY_V2_OPERATION_PROPERTIES).forEach(function (key) {
+    var propertyName = REGISTRY_V2_OPERATION_PROPERTIES[key];
+    config[key] = String(properties.getProperty(propertyName) || '').trim();
+  });
+  if (!config.production_branch) config.production_branch = PRODUCTION_BRANCH;
+  if (!config.auto_publish_target) config.auto_publish_target = 'off';
+  return config;
+}
+
+function registryV2Taxonomy_(rows) {
+  var result = { departments: [], subtopics: [], tasks: [], methods: [] };
+  var groups = {
+    department: 'departments', departments: 'departments',
+    subtopic: 'subtopics', subtopics: 'subtopics',
+    task: 'tasks', tasks: 'tasks', method: 'methods', methods: 'methods'
+  };
+  var ids = {};
+  rows.forEach(function (row) {
+    var type = registryV2Clean_(row.term_type).toLowerCase();
+    var group = groups[type];
+    var id = registryV2Clean_(row.term_id);
+    if (!group || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id) || ids[id]) {
+      throw new Error('Registry v2 _Taxonomy has an invalid term.');
+    }
+    if (row.active !== true && row.active !== false) {
+      throw new Error('Registry v2 taxonomy active values must be booleans.');
+    }
+    ids[id] = true;
+    var term = { id: id, label: registryV2Clean_(row.label), active: row.active };
+    if (group === 'departments') {
+      term.short_label = registryV2Clean_(row.short_label);
+      term.description = registryV2Clean_(row.description);
+      term.display_order = registryV2Number_(row.display_order, 0);
+      term.theme_key = registryV2Clean_(row.theme_key);
+      term.icon_key = registryV2Clean_(row.icon_key);
+    } else if (group === 'subtopics') {
+      term.department_id = registryV2Clean_(row.parent_id);
+      term.display_order = registryV2Number_(row.display_order, 0);
+    }
+    result[group].push(term);
+  });
+  return result;
+}
+
+function registryV2PageHealthy_(value) {
+  var check = registryV2Clean_(value).toLowerCase();
+  return /^ok(?:\b|\s|[-—:])/.test(check) || /^check assets:/.test(check);
+}
+
+function registryV2Visible_(demo, audience) {
+  if (!demo || demo.readiness !== 'ready' || !registryV2PageHealthy_(demo.file_check)) {
+    return false;
+  }
+  if (demo.status === 'Live') return demo.public_page_permission === 'Public';
+  return audience === 'preview' && demo.status === 'Draft'
+    && (demo.public_page_permission === 'Public'
+      || demo.public_page_permission === 'Preview only');
+}
+
+function registryV2LookupKey_(value) {
+  return registryV2Clean_(value).toLowerCase().replace(/\s+/g, ' ');
+}
+
+function registryV2TaxonomyIndex_(taxonomy, taxonomyRows) {
+  var index = {
+    departments: {}, subtopics: {}, tasks: {}, methods: {},
+    lookup: { departments: {}, subtopics: {}, tasks: {}, methods: {} }
+  };
+  Object.keys(index).forEach(function (group) {
+    if (group === 'lookup') return;
+    taxonomy[group].forEach(function (term) { index[group][term.id] = term; });
+  });
+  var groups = {
+    department: 'departments', departments: 'departments',
+    subtopic: 'subtopics', subtopics: 'subtopics',
+    task: 'tasks', tasks: 'tasks', method: 'methods', methods: 'methods'
+  };
+  taxonomyRows.forEach(function (row) {
+    var group = groups[registryV2Clean_(row.term_type).toLowerCase()];
+    var id = registryV2Clean_(row.term_id);
+    if (!group || !index[group][id]) return;
+    var candidates = [id, row.label, row.short_label]
+      .concat(registryV2List_(row.aliases));
+    candidates.forEach(function (candidate) {
+      var key = registryV2LookupKey_(candidate);
+      if (!key) return;
+      var current = index.lookup[group][key];
+      if (current && current !== id) index.lookup[group][key] = null;
+      else if (current === undefined) index.lookup[group][key] = id;
+    });
+  });
+  return index;
+}
+
+function registryV2ResolveHumanTerm_(value, group, taxonomyIndex) {
+  var key = registryV2LookupKey_(value);
+  if (!key) return '';
+  var id = key ? taxonomyIndex.lookup[group][key] : '';
+  if (!id) throw new Error('Registry v2 Projects has an unknown or ambiguous taxonomy value.');
+  return id;
+}
+
+function registryV2ResolveHumanList_(value, group, taxonomyIndex) {
+  var ids = registryV2List_(value).map(function (item) {
+    return registryV2ResolveHumanTerm_(item, group, taxonomyIndex);
+  });
+  if (ids.length !== Object.keys(ids.reduce(function (out, id) {
+    out[id] = true;
+    return out;
+  }, {})).length) {
+    throw new Error('Registry v2 Projects has a duplicate taxonomy selection.');
+  }
+  return ids;
+}
+
+function registryV2SameIdSet_(left, right) {
+  if (left.length !== right.length) return false;
+  var leftSorted = left.slice().sort();
+  var rightSorted = right.slice().sort();
+  for (var i = 0; i < leftSorted.length; i++) {
+    if (leftSorted[i] !== rightSorted[i]) return false;
+  }
+  return true;
+}
+
+function registryV2HumanTaxonomy_(project, source, demoFacets, taxonomyIndex) {
+  var resolved = {
+    department_id: registryV2ResolveHumanTerm_(
+      project.department, 'departments', taxonomyIndex),
+    subtopic_id: registryV2ResolveHumanTerm_(
+      project.subtopic, 'subtopics', taxonomyIndex),
+    task_ids: registryV2ResolveHumanList_(project.task, 'tasks', taxonomyIndex),
+    method_ids: registryV2ResolveHumanList_(project.methods, 'methods', taxonomyIndex)
+  };
+  var indexedTasks = demoFacets.task.map(function (item) { return item.id; });
+  var indexedMethods = demoFacets.method.map(function (item) { return item.id; });
+  var subtopic = resolved.subtopic_id
+    ? taxonomyIndex.subtopics[resolved.subtopic_id] : null;
+  if (resolved.department_id && subtopic
+      && subtopic.department_id !== resolved.department_id) {
+    throw new Error('Registry v2 Projects has a Department / Subtopic mismatch.');
+  }
+  if (resolved.department_id !== registryV2Clean_(source.department_id)
+      || resolved.subtopic_id !== registryV2Clean_(source.subtopic_id)
+      || !registryV2SameIdSet_(resolved.task_ids, indexedTasks)
+      || !registryV2SameIdSet_(resolved.method_ids, indexedMethods)) {
+    throw new Error('Registry v2 human taxonomy does not match its hidden index.');
+  }
+  return resolved;
+}
+
+function registryV2ReadinessError_(demo, project, taxonomyIndex) {
+  if (demo.entry_type !== 'project') return 'entry_type';
+  if (demo.status !== 'Live' && demo.status !== 'Draft' && demo.status !== 'Archived') {
+    return 'status';
+  }
+  if (demo.status === 'Archived') return 'archived';
+  if (!demo.title || !demo.card_summary) return 'card copy';
+  if (project.featured !== true && project.featured !== false) return 'featured';
+  if (['General', 'Intro', 'Intermediate', 'Advanced'].indexOf(demo.audience) === -1) {
+    return 'audience';
+  }
+  var department = taxonomyIndex.departments[demo.department_id];
+  var subtopic = taxonomyIndex.subtopics[demo.subtopic_id];
+  if (!department || department.active !== true || !subtopic || subtopic.active !== true
+      || subtopic.department_id !== demo.department_id) return 'taxonomy';
+  if (!demo.task_ids.length || demo.task_ids.some(function (id) {
+    return !taxonomyIndex.tasks[id] || taxonomyIndex.tasks[id].active !== true;
+  })) return 'task';
+  if (!demo.method_ids.length || demo.method_ids.some(function (id) {
+    return !taxonomyIndex.methods[id] || taxonomyIndex.methods[id].active !== true;
+  })) return 'method';
+  if (!demo.file_id || !registryV2PageHealthy_(demo.file_check)) return 'source file';
+  if (demo.status === 'Live' && demo.public_page_permission !== 'Public') {
+    return 'public permission';
+  }
+  if (demo.status === 'Draft'
+      && ['Public', 'Preview only'].indexOf(demo.public_page_permission) === -1) {
+    return 'preview permission';
+  }
+  return '';
+}
+
+function registryV2AllowedParentIds_(file, rootId) {
+  var parents = file.getParents();
+  var allowed = [];
+  while (parents.hasNext()) {
+    var parent = parents.next();
+    var id = String(parent.getId());
+    if (id === String(rootId) || folderHasParentId_(parent, rootId)) allowed.push(id);
+  }
+  allowed.sort();
+  return allowed;
+}
+
+function registryV2DriveInfo_(cfg, fileId, kind) {
+  var rootId = folderIdFromUrl_(cfg && cfg.drive_folder_url);
+  if (!rootId || !/^[-\w]{10,}$/.test(String(fileId || ''))) return null;
+  var file = DriveApp.getFileById(String(fileId));
+  var mime = registryV2Clean_(file.getMimeType()).toLowerCase();
+  if (mime === DRIVE_SHORTCUT_MIME) return null;
+  var name = String(file.getName() || '');
+  var extensionMatch = /\.([A-Za-z0-9]+)$/.exec(name);
+  var extension = extensionMatch ? extensionMatch[1].toLowerCase() : '';
+  if (kind === 'page') {
+    if (!/\.html?$/.test(name.toLowerCase()) && mime.indexOf('html') === -1) return null;
+  } else if (kind === 'asset') {
+    if (!REGISTRY_V2_IMAGE_MIME_BY_EXTENSION[extension]
+        || mime !== REGISTRY_V2_IMAGE_MIME_BY_EXTENSION[extension]) return null;
+  } else {
+    return null;
+  }
+  var parents = registryV2AllowedParentIds_(file, rootId);
+  if (!parents.length) return null;
+  var stamp = registryFileStampMs_(file);
+  if (!isFinite(stamp)) return null;
+  return {
+    file: file, id: String(fileId), name: name, mime: mime, extension: extension,
+    parent_ids: parents, modified_ms: stamp
+  };
+}
+
+function registryV2SharesParent_(left, right) {
+  return left.parent_ids.some(function (id) { return right.parent_ids.indexOf(id) !== -1; });
+}
+
+function registryV2SameDriveInfo_(left, right) {
+  return left && right && left.id === right.id && left.name === right.name
+    && left.mime === right.mime && left.modified_ms === right.modified_ms
+    && stableJson_(left.parent_ids) === stableJson_(right.parent_ids);
+}
+
+function registryV2CompileState_(ss, cfg, audience, workbookState) {
+  var state = workbookState || registryV2WorkbookState_(ss);
+  var projects = registryV2RowsFromState_(state, 'Projects', [], true);
+  var registry = registryV2RowsFromState_(
+    state, '_Registry', REGISTRY_V2_HEADERS._Registry, false);
+  var taxonomyRows = registryV2RowsFromState_(
+    state, '_Taxonomy', REGISTRY_V2_HEADERS._Taxonomy, false);
+  var facets = registryV2RowsFromState_(
+    state, '_Facets', REGISTRY_V2_HEADERS._Facets, false);
+  var assets = registryV2RowsFromState_(
+    state, '_Assets', REGISTRY_V2_HEADERS._Assets, false);
+  var v2Config = registryV2Config_(
+    registryV2RowsFromState_(state, '_Config', REGISTRY_V2_HEADERS._Config, false));
+  var taxonomy = registryV2Taxonomy_(taxonomyRows);
+  var taxonomyIndex = registryV2TaxonomyIndex_(taxonomy, taxonomyRows);
+  var projectsById = {};
+  projects.forEach(function (project) {
+    var id = registryV2Clean_(project.demo_id);
+    if (!id || projectsById[id]) throw new Error('Registry v2 Projects has duplicate identity.');
+    projectsById[id] = project;
+  });
+  var registryIds = {};
+  registry.forEach(function (source) {
+    var id = registryV2Clean_(source.demo_id);
+    if (!id || registryIds[id]) throw new Error('Registry v2 _Registry has duplicate identity.');
+    registryIds[id] = true;
+  });
+  var projectIds = Object.keys(projectsById);
+  var sourceIds = Object.keys(registryIds);
+  if (projectIds.length !== sourceIds.length
+      || projectIds.some(function (id) { return !registryIds[id]; })) {
+    throw new Error('Registry v2 Projects and _Registry identities do not match.');
+  }
+  var facetsByDemo = {};
+  facets.forEach(function (facet) {
+    var id = registryV2Clean_(facet.demo_id);
+    var type = registryV2Clean_(facet.facet_type).toLowerCase();
+    if (type !== 'task' && type !== 'method') return;
+    if (!facetsByDemo[id]) facetsByDemo[id] = { task: [], method: [] };
+    facetsByDemo[id][type].push({
+      id: registryV2Clean_(facet.term_id),
+      order: registryV2Number_(facet.display_order, 0)
+    });
+  });
+  Object.keys(facetsByDemo).forEach(function (id) {
+    ['task', 'method'].forEach(function (type) {
+      facetsByDemo[id][type].sort(function (a, b) { return a.order - b.order; });
+    });
+  });
+  var assetsByDemo = {};
+  var assetsById = {};
+  assets.forEach(function (asset) {
+    var id = registryV2Clean_(asset.asset_id);
+    var demoId = registryV2Clean_(asset.demo_id);
+    if (!id || assetsById[id]) throw new Error('Registry v2 _Assets has duplicate identity.');
+    assetsById[id] = asset;
+    if (registryV2Clean_(asset.role) === 'card_image') {
+      if (!assetsByDemo[demoId]) assetsByDemo[demoId] = [];
+      assetsByDemo[demoId].push(asset);
+    }
+  });
+  Object.keys(assetsByDemo).forEach(function (id) {
+    if (assetsByDemo[id].length > 1) {
+      throw new Error('Registry v2 permits only one card image per project.');
+    }
+  });
+
+  var publicDemos = [];
+  var readiness = [];
+  var fileSources = {};
+  var assetSources = {};
+  var seenFiles = {};
+  var seenSlugs = {};
+  registry.forEach(function (source) {
+    var demoId = registryV2Clean_(source.demo_id);
+    var project = projectsById[demoId];
+    if (!project) throw new Error('Registry v2 _Registry has no matching Project.');
+    var fileId = registryV2Clean_(source.file_id);
+    var slug = registryV2Clean_(source.slug);
+    if (!fileId || seenFiles[fileId] || !slug || seenSlugs[slug]) {
+      throw new Error('Registry v2 has duplicate or missing page identity.');
+    }
+    seenFiles[fileId] = true;
+    seenSlugs[slug] = true;
+    var demoFacets = facetsByDemo[demoId] || { task: [], method: [] };
+    var humanTaxonomy = registryV2HumanTaxonomy_(
+      project, source, demoFacets, taxonomyIndex);
+    var demo = {
+      demo_id: demoId,
+      entry_type: registryV2Clean_(source.entry_type) || 'project',
+      slug: slug,
+      status: registryV2Clean_(project.status),
+      readiness: '',
+      featured: project.featured === true,
+      sort_order: registryV2Number_(source.sort_order, Number(source.row_number) || 0),
+      title: registryV2Clean_(project.title),
+      card_summary: registryV2Clean_(project.card_summary),
+      department_id: humanTaxonomy.department_id,
+      subtopic_id: humanTaxonomy.subtopic_id,
+      task_ids: humanTaxonomy.task_ids,
+      method_ids: humanTaxonomy.method_ids,
+      audience: registryV2Clean_(project.audience),
+      data_source_label: registryV2Clean_(project.data_source),
+      public_page_permission: registryV2Clean_(project.public_permission),
+      card_asset: null,
+      file_id: fileId,
+      file_check: registryV2Clean_(source.file_check),
+      date_added: isoOrString_(source.date_added)
+    };
+    var readinessError = registryV2ReadinessError_(demo, project, taxonomyIndex);
+    var readinessStatus = demo.status === 'Archived'
+      ? 'not_applicable' : readinessError ? 'blocked' : 'ready';
+    readiness.push({
+      demo_id: demoId,
+      project_row: project._row_number,
+      registry_row: source._row_number,
+      project_status: demo.status,
+      slug: slug,
+      status: readinessStatus,
+      issue: readinessError
+    });
+    demo.readiness = readinessStatus === 'ready' ? 'ready' : 'blocked';
+    if (!registryV2Visible_(demo, audience)) return;
+    delete demo.readiness;
+    var pageInfo = registryV2DriveInfo_(cfg, fileId, 'page');
+    if (!pageInfo) {
+      if (demo.status === 'Live') {
+        throw new Error('Registry v2 page is outside the Drive boundary.');
+      }
+      return;
+    }
+    fileSources[fileId] = pageInfo;
+
+    var selectedImage = registryV2Clean_(project.card_image);
+    if (selectedImage) {
+      if (selectedImage.indexOf('/') !== -1 || selectedImage.indexOf('\\') !== -1
+          || selectedImage === '.' || selectedImage === '..') {
+        throw new Error('Registry v2 Card Image must be a direct-child file name.');
+      }
+      var cardRows = assetsByDemo[demoId] || [];
+      var asset = cardRows.length === 1 ? cardRows[0] : null;
+      if (!asset || registryV2Clean_(source.card_asset_id) !== registryV2Clean_(asset.asset_id)) {
+        throw new Error('Registry v2 selected Card Image has no indexed asset.');
+      }
+      if (registryV2Clean_(asset.source_type).toLowerCase() !== 'drive'
+          || registryV2Clean_(asset.external_url)) {
+        throw new Error('Registry v2 external card images are not enabled.');
+      }
+      if (registryV2Clean_(asset.sync_status) !== 'ok') {
+        throw new Error('Registry v2 Card Image sync_status must be ok.');
+      }
+      var assetInfo = registryV2DriveInfo_(cfg,
+        registryV2Clean_(asset.drive_file_id), 'asset');
+      if (!assetInfo || assetInfo.name !== selectedImage
+          || registryV2Clean_(asset.source_file_name) !== selectedImage
+          || !registryV2SharesParent_(pageInfo, assetInfo)) {
+        throw new Error('Registry v2 Card Image is not beside its project page.');
+      }
+      var publicPath = registryV2Clean_(asset.public_path);
+      var publicExtension = (/\.([A-Za-z0-9]+)$/.exec(publicPath) || [])[1] || '';
+      if (!/^assets\/cards\/[a-z0-9][a-z0-9/_-]*\.(?:avif|gif|jpe?g|png|webp)$/.test(publicPath)
+          || publicExtension.toLowerCase() !== assetInfo.extension
+          || registryV2Clean_(asset.mime_type).toLowerCase() !== assetInfo.mime) {
+        throw new Error('Registry v2 Card Image metadata does not match Drive.');
+      }
+      var assetId = registryV2Clean_(asset.asset_id);
+      demo.card_asset = {
+        asset_id: assetId,
+        public_path: publicPath,
+        alt_text: registryV2Clean_(project.image_alt)
+      };
+      if (!demo.card_asset.alt_text) throw new Error('Registry v2 Card Image needs alt text.');
+      assetSources[assetId] = {
+        row: asset, info: assetInfo, page_info: pageInfo,
+        public_path: publicPath
+      };
+    }
+    publicDemos.push(demo);
+  });
+  publicDemos.sort(function (a, b) {
+    return Number(a.sort_order) - Number(b.sort_order) || a.demo_id.localeCompare(b.demo_id);
+  });
+  var site = {
+    title: registryV2Clean_(v2Config.site_title) || 'AI for Science demos',
+    tagline: registryV2Clean_(v2Config.site_tagline)
+  };
+  var sourceState = {
+    pages: Object.keys(fileSources).sort().map(function (id) {
+      var info = fileSources[id];
+      return { id: id, modified_ms: info.modified_ms, parent_ids: info.parent_ids };
+    }),
+    assets: Object.keys(assetSources).sort().map(function (id) {
+      var info = assetSources[id].info;
+      return { id: id, drive_file_id: info.id, modified_ms: info.modified_ms,
+        parent_ids: info.parent_ids };
+    })
+  };
+  var material = {
+    schema: REGISTRY_V2_REVISION_SCHEMA,
+    audience: audience,
+    site: site,
+    taxonomy: taxonomy,
+    demos: publicDemos,
+    sources: sourceState
+  };
+  return {
+    audience: audience, site: site, taxonomy: taxonomy, demos: publicDemos,
+    files_by_id: fileSources, assets_by_id: assetSources,
+    readiness: readiness,
+    config: v2Config,
+    workbook_state: state,
+    registry_revision: 'sha256:' + sha256Hex_(stableJson_(material))
+  };
+}
+
+/** Build-facing view. A blocked Live row keeps the API fail-closed. */
+function registryV2Snapshot_(ss, cfg, audience, workbookState) {
+  var compiled = registryV2CompileState_(ss, cfg, audience, workbookState);
+  var blockedLive = compiled.readiness.filter(function (item) {
+    return item.project_status === 'Live' && item.status !== 'ready';
+  })[0];
+  if (blockedLive) {
+    throw new Error('Registry v2 Live project is not ready: '
+      + (blockedLive.issue || 'needs review') + '.');
+  }
+  return {
+    audience: compiled.audience,
+    site: compiled.site,
+    taxonomy: compiled.taxonomy,
+    demos: compiled.demos,
+    files_by_id: compiled.files_by_id,
+    assets_by_id: compiled.assets_by_id,
+    registry_revision: compiled.registry_revision
+  };
+}
+
+function registryV2SnapshotCacheKey_(audience, revision) {
+  return REGISTRY_V2_SNAPSHOT_CACHE_PREFIX + String(audience) + ':'
+    + String(revision).replace(/^sha256:/, '');
+}
+
+function registryV2SnapshotMarkerKey_(audience) {
+  return REGISTRY_V2_SNAPSHOT_MARKER_PREFIX + String(audience);
+}
+
+function registryV2InvalidateSnapshotMarkers_() {
+  try {
+    registryV2SnapshotCache_().removeAll([
+      registryV2SnapshotMarkerKey_('production'),
+      registryV2SnapshotMarkerKey_('preview')
+    ]);
+  } catch (ignored) { /* CacheService is an optimisation, not sync authority. */ }
+}
+
+function registryV2CachedDriveInfo_(info) {
+  return {
+    id: String(info.id),
+    name: String(info.name),
+    mime: String(info.mime),
+    extension: String(info.extension),
+    parent_ids: info.parent_ids.slice(),
+    modified_ms: Number(info.modified_ms)
+  };
+}
+
+/** Strip live Drive File handles before serialising a compiled build view. */
+function registryV2CacheableSnapshot_(snapshot) {
+  var files = {};
+  Object.keys(snapshot.files_by_id).forEach(function (id) {
+    files[id] = registryV2CachedDriveInfo_(snapshot.files_by_id[id]);
+  });
+  var assets = {};
+  Object.keys(snapshot.assets_by_id).forEach(function (id) {
+    var source = snapshot.assets_by_id[id];
+    assets[id] = {
+      info: registryV2CachedDriveInfo_(source.info),
+      page_info: registryV2CachedDriveInfo_(source.page_info),
+      public_path: String(source.public_path || '')
+    };
+  });
+  return {
+    audience: snapshot.audience,
+    files_by_id: files,
+    assets_by_id: assets,
+    registry_revision: snapshot.registry_revision
+  };
+}
+
+function registryV2SnapshotCache_() {
+  return CacheService.getScriptCache();
+}
+
+function registryV2Utf8ByteLength_(value) {
+  value = String(value);
+  var bytes = 0;
+  for (var i = 0; i < value.length; i++) {
+    var code = value.charCodeAt(i);
+    if (code < 0x80) bytes += 1;
+    else if (code < 0x800) bytes += 2;
+    else if (code >= 0xD800 && code <= 0xDBFF
+        && i + 1 < value.length
+        && value.charCodeAt(i + 1) >= 0xDC00
+        && value.charCodeAt(i + 1) <= 0xDFFF) {
+      bytes += 4;
+      i += 1;
+    } else bytes += 3;
+  }
+  return bytes;
+}
+
+function registryV2ValidCachedDriveInfo_(info) {
+  if (!info || typeof info !== 'object' || Array.isArray(info)) return false;
+  var keys = Object.keys(info).sort().join(',');
+  if (keys !== 'extension,id,mime,modified_ms,name,parent_ids') return false;
+  return typeof info.id === 'string' && /^[-\w]{10,}$/.test(info.id)
+    && typeof info.name === 'string' && info.name.length > 0
+    && typeof info.mime === 'string' && info.mime.length > 0
+    && typeof info.extension === 'string' && info.extension.length > 0
+    && typeof info.modified_ms === 'number' && isFinite(info.modified_ms)
+    && Array.isArray(info.parent_ids) && info.parent_ids.length > 0
+    && info.parent_ids.every(function (id) {
+      return typeof id === 'string' && /^[-\w]{10,}$/.test(id);
+    });
+}
+
+function registryV2ValidCachedSources_(snapshot) {
+  if (!snapshot.files_by_id || typeof snapshot.files_by_id !== 'object'
+      || Array.isArray(snapshot.files_by_id)
+      || !snapshot.assets_by_id || typeof snapshot.assets_by_id !== 'object'
+      || Array.isArray(snapshot.assets_by_id)) return false;
+  var pagesOk = Object.keys(snapshot.files_by_id).every(function (id) {
+    var info = snapshot.files_by_id[id];
+    return id === info.id && registryV2ValidCachedDriveInfo_(info);
+  });
+  var assetsOk = Object.keys(snapshot.assets_by_id).every(function (id) {
+    var source = snapshot.assets_by_id[id];
+    return source && typeof source === 'object' && !Array.isArray(source)
+      && Object.keys(source).sort().join(',') === 'info,page_info,public_path'
+      && typeof source.public_path === 'string'
+      && registryV2ValidCachedDriveInfo_(source.info)
+      && registryV2ValidCachedDriveInfo_(source.page_info);
+  });
+  return pagesOk && assetsOk;
+}
+
+function registryV2ReadCachedSnapshot_(audience, revision) {
+  if (!validRegistryRevision_(revision)) return null;
+  var cache = registryV2SnapshotCache_();
+  if (cache.get(registryV2SnapshotMarkerKey_(audience)) !== revision) return null;
+  var key = registryV2SnapshotCacheKey_(audience, revision);
+  var raw = cache.get(key);
+  if (!raw) return null;
+  var envelope;
+  try { envelope = JSON.parse(raw); }
+  catch (ignored) { envelope = null; }
+  var snapshot = envelope && envelope.snapshot;
+  if (!envelope || envelope.cache_schema !== REGISTRY_V2_SNAPSHOT_CACHE_SCHEMA
+      || !snapshot || snapshot.audience !== audience
+      || snapshot.registry_revision !== revision
+      || !registryV2ValidCachedSources_(snapshot)) {
+    cache.remove(key);
+    return null;
+  }
+  return snapshot;
+}
+
+/** Best-effort storage for the blob-only portion of a compiled build view. */
+function registryV2WriteCachedSnapshot_(snapshot) {
+  var key = registryV2SnapshotCacheKey_(snapshot.audience, snapshot.registry_revision);
+  var envelope = JSON.stringify({
+    cache_schema: REGISTRY_V2_SNAPSHOT_CACHE_SCHEMA,
+    snapshot: registryV2CacheableSnapshot_(snapshot)
+  });
+  if (registryV2Utf8ByteLength_(envelope) > REGISTRY_V2_SNAPSHOT_CACHE_MAX_BYTES) {
+    throw new Error('Registry v2 snapshot is too large for the build cache.');
+  }
+  var cache = registryV2SnapshotCache_();
+  cache.put(key, envelope, REGISTRY_V2_SNAPSHOT_CACHE_TTL_SECONDS);
+  cache.put(registryV2SnapshotMarkerKey_(snapshot.audience),
+    snapshot.registry_revision, REGISTRY_V2_SNAPSHOT_CACHE_TTL_SECONDS);
+  var stored = registryV2ReadCachedSnapshot_(
+    snapshot.audience, snapshot.registry_revision);
+  if (!stored) throw new Error('Registry v2 snapshot cache could not retain the build view.');
+}
+
+function registryV2ReadinessText_(item) {
+  if (item.status === 'not_applicable') return '— Archived';
+  if (item.status === 'ready') {
+    return item.project_status === 'Draft'
+      ? '✅ Preview ready' : '✅ Publication ready';
+  }
+  var labels = {
+    'entry_type': 'Record Type',
+    'status': 'Status',
+    'archived': 'Archived',
+    'card copy': 'Card Summary',
+    'featured': 'Featured',
+    'audience': 'Audience',
+    'taxonomy': 'Department / Subtopic',
+    'task': 'Task Type',
+    'method': 'Methods',
+    'source file': 'Source File Check',
+    'public permission': 'Public Permission',
+    'preview permission': 'Public Permission'
+  };
+  return '⛔ Action needed: ' + (labels[item.issue] || 'Needs review');
+}
+
+function registryV2PreviewPageUrl_(baseUrl, slug) {
+  var base = registryV2Clean_(baseUrl);
+  var cleanSlug = registryV2Clean_(slug);
+  if (!isSafeHttpsUrl_(base) || !cleanSlug) return '';
+  if (base.slice(-1) !== '/') base += '/';
+  return base + 'demos/' + encodeURIComponent(cleanSlug) + '/';
+}
+
+function registryV2PreviewBaseUrl_(config) {
+  var base = registryV2Clean_(config && config.preview_base_url);
+  if (!isSafeHttpsUrl_(base) || !/^https:\/\/[^/?#]+(?:\/[^?#]*)?$/.test(base)) {
+    throw new Error('Registry v2 _Config preview_base_url must be a valid HTTPS base URL.');
+  }
+  return base;
+}
+
+function registryV2ProjectColumn_(header, fieldKey) {
+  for (var i = 0; i < REGISTRY_V2_PROJECT_FIELDS.length; i++) {
+    if (REGISTRY_V2_PROJECT_FIELDS[i][0] !== fieldKey) continue;
+    var label = REGISTRY_V2_PROJECT_FIELDS[i][1];
+    for (var c = 0; c < header.length; c++) {
+      var value = registryV2Clean_(header[c]).toLowerCase();
+      if (value === fieldKey.toLowerCase() || value === label.toLowerCase()) return c + 1;
+    }
+  }
+  throw new Error('Registry v2 Projects is missing ' + fieldKey + '.');
+}
+
+function registryV2MachineColumn_(header, fieldKey) {
+  for (var c = 0; c < header.length; c++) {
+    if (registryV2Clean_(header[c]).toLowerCase() === fieldKey.toLowerCase()) return c + 1;
+  }
+  throw new Error('Registry v2 _Registry is missing ' + fieldKey + '.');
+}
+
+function registryV2WritePlan_(compiled, state, previewBaseUrl) {
+  var projectsGrid = state.Projects.values;
+  var registryGrid = state._Registry.values;
+  var projectReadinessColumn = registryV2ProjectColumn_(projectsGrid[0], 'readiness');
+  var projectPreviewColumn = registryV2ProjectColumn_(projectsGrid[0], 'preview_url');
+  var registryReadinessColumn = registryV2MachineColumn_(registryGrid[0], 'readiness');
+  var projectWrites = [];
+  var registryWrites = [];
+
+  compiled.readiness.forEach(function (item) {
+    if (!projectsGrid[item.project_row - 1] || !registryGrid[item.registry_row - 1]) {
+      throw new Error('Registry v2 identity points outside its current physical row.');
+    }
+    var previewUrl = item.status === 'ready'
+      ? registryV2PreviewPageUrl_(previewBaseUrl, item.slug) : '';
+    projectWrites.push({
+      row: item.project_row,
+      readiness: registryV2ReadinessText_(item),
+      preview_formula: previewUrl
+        ? '=HYPERLINK("' + previewUrl + '","Open Preview")' : ''
+    });
+    registryWrites.push({ row: item.registry_row, readiness: item.status });
+  });
+  projectWrites.sort(function (a, b) { return a.row - b.row; });
+  registryWrites.sort(function (a, b) { return a.row - b.row; });
+  return {
+    project_readiness_column: projectReadinessColumn,
+    project_preview_column: projectPreviewColumn,
+    registry_readiness_column: registryReadinessColumn,
+    project_writes: projectWrites,
+    registry_writes: registryWrites
+  };
+}
+
+function registryV2ContiguousRuns_(writes) {
+  var runs = [];
+  writes.forEach(function (write) {
+    var current = runs[runs.length - 1];
+    if (!current || write.row !== current[current.length - 1].row + 1) {
+      current = [];
+      runs.push(current);
+    }
+    current.push(write);
+  });
+  return runs;
+}
+
+function registryV2StateMatchesWrite_(state, before, plan) {
+  for (var s = 0; s < REGISTRY_V2_COMPILE_SHEETS.length; s++) {
+    var sheetName = REGISTRY_V2_COMPILE_SHEETS[s];
+    var current = state[sheetName];
+    var original = before[sheetName];
+    if (!current || !original || current.rows !== original.rows
+        || current.columns !== original.columns) return false;
+    for (var r = 0; r < current.rows; r++) {
+      for (var c = 0; c < current.columns; c++) {
+        var managed = (sheetName === 'Projects'
+            && (c + 1 === plan.project_readiness_column
+              || c + 1 === plan.project_preview_column))
+          || (sheetName === '_Registry' && c + 1 === plan.registry_readiness_column);
+        if (managed) continue;
+        if (!sameCellValue_(current.values[r][c], original.values[r][c])
+            || current.formulas[r][c] !== original.formulas[r][c]) return false;
+      }
+    }
+  }
+  for (var i = 0; i < plan.project_writes.length; i++) {
+    var projectWrite = plan.project_writes[i];
+    if (!sameCellValue_(state.Projects.values[projectWrite.row - 1]
+      [plan.project_readiness_column - 1], projectWrite.readiness)) return false;
+    if (state.Projects.formulas[projectWrite.row - 1][plan.project_preview_column - 1]
+        !== projectWrite.preview_formula) return false;
+    var expectedPreviewDisplay = projectWrite.preview_formula ? 'Open Preview' : '';
+    if (!sameCellValue_(state.Projects.values[projectWrite.row - 1]
+      [plan.project_preview_column - 1],
+      expectedPreviewDisplay)) return false;
+  }
+  for (var j = 0; j < plan.registry_writes.length; j++) {
+    var registryWrite = plan.registry_writes[j];
+    if (!sameCellValue_(state._Registry.values[registryWrite.row - 1]
+      [plan.registry_readiness_column - 1], registryWrite.readiness)) return false;
+  }
+  return true;
+}
+
+/** Explicit owner action; it never publishes, installs triggers, or runs setup(). */
+function refreshRegistryV2Status() {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) {
+    throw new Error('Registry v2 status refresh is already running.');
+  }
+  try {
+    var v2Sheet = registryV2Spreadsheet_();
+    var before = registryV2WorkbookState_(v2Sheet);
+    var cfg = registryV2OperationalConfig_(v2Sheet, before);
+    var compiled = registryV2CompileState_(v2Sheet, cfg, 'preview', before);
+    var previewBaseUrl = registryV2PreviewBaseUrl_(compiled.config);
+    var plan = registryV2WritePlan_(compiled, before, previewBaseUrl);
+
+    // Editors are not governed by ScriptLock. Re-read every compiler input,
+    // including formulas, and verify the revision before the first write.
+    var checked = registryV2WorkbookState_(v2Sheet);
+    if (!registryV2WorkbookStatesEqual_(before, checked)) {
+      throw new Error('Registry v2 status refresh stopped: the Sheet changed during compilation. No cells were updated.');
+    }
+    var checkedCompile = registryV2CompileState_(v2Sheet, cfg, 'preview', checked);
+    if (checkedCompile.registry_revision !== compiled.registry_revision) {
+      throw new Error('Registry v2 status refresh stopped: the Registry revision changed. No cells were updated.');
+    }
+    var aboutToWrite = registryV2WorkbookState_(v2Sheet);
+    if (!registryV2WorkbookStatesEqual_(before, aboutToWrite)) {
+      throw new Error('Registry v2 status refresh stopped: the Sheet changed before writing. No cells were updated.');
+    }
+
+    var projects = v2Sheet.getSheetByName('Projects');
+    var registry = v2Sheet.getSheetByName('_Registry');
+    registryV2ContiguousRuns_(plan.project_writes).forEach(function (run) {
+      projects.getRange(run[0].row, plan.project_readiness_column, run.length, 1)
+        .setValues(run.map(function (write) { return [write.readiness]; }));
+      projects.getRange(run[0].row, plan.project_preview_column, run.length, 1)
+        .setFormulas(run.map(function (write) { return [write.preview_formula]; }));
+    });
+    registryV2ContiguousRuns_(plan.registry_writes).forEach(function (run) {
+      registry.getRange(run[0].row, plan.registry_readiness_column, run.length, 1)
+        .setValues(run.map(function (write) { return [write.readiness]; }));
+    });
+    SpreadsheetApp.flush();
+
+    var after = registryV2WorkbookState_(v2Sheet);
+    var afterCompile = registryV2CompileState_(v2Sheet, cfg, 'preview', after);
+    if (afterCompile.registry_revision !== compiled.registry_revision
+        || !registryV2StateMatchesWrite_(after, before, plan)) {
+      throw new Error('Registry v2 status refresh could not verify the completed write.');
+    }
+    var ready = compiled.readiness.filter(function (item) {
+      return item.status === 'ready';
+    }).length;
+    var summary = ready + ' ready, ' + (compiled.readiness.length - ready)
+      + ' blocked or archived.';
+    if (typeof v2Sheet.toast === 'function') v2Sheet.toast(summary, 'Registry v2', 6);
+    return { ok: true, ready: ready, total: compiled.readiness.length,
+      registry_revision: compiled.registry_revision };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function registryV2ReadBlob_(cfg, expectedInfo, kind) {
+  var before = registryV2DriveInfo_(cfg, expectedInfo.id, kind);
+  if (!registryV2SameDriveInfo_(before, expectedInfo)) {
+    throw new Error('Registry v2 source changed before reading.');
+  }
+  if (kind === 'asset' && typeof before.file.getSize === 'function'
+      && Number(before.file.getSize()) > REGISTRY_V2_MAX_CARD_ASSET_BYTES) {
+    throw new Error('Registry v2 card image is too large.');
+  }
+  var blob = before.file.getBlob();
+  var after = registryV2DriveInfo_(cfg, expectedInfo.id, kind);
+  if (!registryV2SameDriveInfo_(after, expectedInfo)) {
+    throw new Error('Registry v2 source changed while reading.');
+  }
+  return blob;
+}
+
+function registryV2UnsignedBytes_(bytes) {
+  return bytes.map(function (value) { return value < 0 ? value + 256 : value; });
+}
+
+function registryV2ImageBytesMatch_(bytes, extension) {
+  var b = registryV2UnsignedBytes_(bytes);
+  if (extension === 'png') {
+    return b.length >= 8 && b[0] === 137 && b[1] === 80 && b[2] === 78
+      && b[3] === 71 && b[4] === 13 && b[5] === 10 && b[6] === 26 && b[7] === 10;
+  }
+  if (extension === 'jpg' || extension === 'jpeg') {
+    return b.length >= 3 && b[0] === 255 && b[1] === 216 && b[2] === 255;
+  }
+  if (extension === 'gif') {
+    var gif = String.fromCharCode.apply(null, b.slice(0, 6));
+    return gif === 'GIF87a' || gif === 'GIF89a';
+  }
+  if (extension === 'webp') {
+    return b.length >= 12 && String.fromCharCode.apply(null, b.slice(0, 4)) === 'RIFF'
+      && String.fromCharCode.apply(null, b.slice(8, 12)) === 'WEBP';
+  }
+  if (extension === 'avif') {
+    if (b.length < 16 || String.fromCharCode.apply(null, b.slice(4, 8)) !== 'ftyp') {
+      return false;
+    }
+    var limit = Math.min(b.length - 3, 64);
+    for (var offset = 8; offset < limit; offset += 4) {
+      var brand = String.fromCharCode.apply(null, b.slice(offset, offset + 4));
+      if (brand === 'avif' || brand === 'avis') return true;
+    }
+    return false;
+  }
+  return false;
+}
+
+function registryV2Response_(snapshot, cfg, action, id) {
+  if (action === 'file') {
+    var expectedPage = snapshot.files_by_id[id];
+    if (!expectedPage) return { ok: false, error: 'unknown file id' };
+    var pageBlob = registryV2ReadBlob_(cfg, expectedPage, 'page');
+    var html = pageBlob.getDataAsString();
+    if (!registryV2Clean_(html)) return { ok: false, error: 'could not read file' };
+    return { ok: true, audience: snapshot.audience,
+      registry_revision: snapshot.registry_revision, id: id, html: html };
+  }
+  if (action === 'asset') {
+    var source = snapshot.assets_by_id[id];
+    if (!source) return { ok: false, error: 'unknown asset id' };
+    var currentPage = registryV2DriveInfo_(cfg, source.page_info.id, 'page');
+    if (!registryV2SameDriveInfo_(currentPage, source.page_info)
+        || !registryV2SharesParent_(currentPage, source.info)) {
+      throw new Error('Registry v2 project page changed before reading its asset.');
+    }
+    var blob = registryV2ReadBlob_(cfg, source.info, 'asset');
+    var bytes = blob.getBytes();
+    if (!bytes.length || bytes.length > REGISTRY_V2_MAX_CARD_ASSET_BYTES
+        || !registryV2ImageBytesMatch_(bytes, source.info.extension)) {
+      return { ok: false, error: 'could not read asset' };
+    }
+    return {
+      ok: true,
+      kind: 'card_image',
+      id: id,
+      mime: source.info.mime,
+      size: bytes.length,
+      extension: source.info.extension,
+      base64: Utilities.base64Encode(bytes),
+      registry_revision: snapshot.registry_revision
+    };
+  }
+  return {
+    ok: true,
+    schema_version: 2,
+    audience: snapshot.audience,
+    registry_revision: snapshot.registry_revision,
+    generated: new Date().toISOString(),
+    site: snapshot.site,
+    taxonomy: snapshot.taxonomy,
+    demos: snapshot.demos
+  };
+}
+
 function bytesToHex_(bytes) {
   return bytes.map(function (b) {
     var unsigned = b < 0 ? b + 256 : b;
@@ -2146,27 +3934,74 @@ function doPost(e) {
 
 function doGet(e) {
   var p = (e && e.parameter) || {};
-  var ss;
-  try {
-    ss = registrySpreadsheet_();
-  } catch (err) {
-    return jsonOut_({ ok: false,
-      error: 'registry spreadsheet unavailable — run setup() and deploy a new web-app version' });
-  }
-  var cfg = readConfig_(ss);
-
-  if (!p.token || p.token !== cfg.access_token) {
+  var scriptProperties = PropertiesService.getScriptProperties();
+  var accessToken = String(scriptProperties
+    .getProperty(REGISTRY_V2_OPERATION_PROPERTIES.access_token) || '');
+  if (!p.token || !accessToken || p.token !== accessToken) {
     return jsonOut_({ ok: false, error: 'bad token' });
   }
-
   var audienceResult = registryAudience_(p.audience);
   if (!audienceResult.ok) return jsonOut_({ ok: false, error: audienceResult.error });
   var audience = audienceResult.value;
-  if (p.action && p.action !== 'manifest' && p.action !== 'file') {
+  // V2 is the only served schema. An explicit schema=1 is rejected instead of
+  // silently reopening the archived V1 data plane.
+  var schemaResult = registrySchema_(p.schema);
+  if (!schemaResult.ok) return jsonOut_({ ok: false, error: schemaResult.error });
+  if (p.action && p.action !== 'manifest' && p.action !== 'file'
+      && p.action !== 'asset') {
     return jsonOut_({ ok: false, error: 'unknown action' });
   }
-  var snapshot = registrySnapshot_(ss, cfg, audience);
+  var action = p.action || 'manifest';
   var expectedRevision = String(p.registry_revision || '').trim();
+  if (expectedRevision && !validRegistryRevision_(expectedRevision)) {
+    return jsonOut_({ ok: false, error: 'invalid registry revision' });
+  }
+  if ((action === 'file' || action === 'asset') && !p.id) {
+    return jsonOut_({ ok: false,
+      error: action === 'asset' ? 'unknown asset id' : 'unknown file id' });
+  }
+
+  var snapshot;
+  var cfg;
+  var compiledFresh = false;
+  // The normal build path never reopens or recompiles the workbook for a page
+  // or image. If Apps Script evicts this best-effort cache early, the fallback
+  // below recompiles once and serves only when the resulting revision still
+  // equals the caller's pin, so two Registry versions cannot be mixed.
+  if ((action === 'file' || action === 'asset') && expectedRevision) {
+    try { snapshot = registryV2ReadCachedSnapshot_(audience, expectedRevision); }
+    catch (cacheReadError) { snapshot = null; }
+    if (snapshot) {
+      cfg = { drive_folder_url: String(scriptProperties
+        .getProperty(REGISTRY_V2_OPERATION_PROPERTIES.drive_folder_url) || '').trim() };
+    }
+  }
+  if (!snapshot) {
+    var ss;
+    try {
+      ss = registryV2Spreadsheet_();
+    } catch (err) {
+      return jsonOut_({ ok: false,
+        error: 'registry v2 unavailable — commission the V2-bound script and deploy a new Web App version' });
+    }
+    try {
+      // Config and compilation share this one immutable read of all six tabs.
+      var workbookState = registryV2WorkbookState_(ss);
+      cfg = registryV2OperationalConfig_(ss, workbookState);
+      snapshot = registryV2Snapshot_(ss, cfg, audience, workbookState);
+      compiledFresh = true;
+    } catch (snapshotError) {
+      return jsonOut_({ ok: false, error: 'registry v2 unavailable' });
+    }
+  }
+  // Every freshly compiled response establishes or refreshes the
+  // exact pinned view. This includes a Hook-supplied opening revision and the
+  // closing manifest; the latter still compiled live state before arriving
+  // here and therefore never used the cached view as its consistency check.
+  if (compiledFresh) {
+    try { registryV2WriteCachedSnapshot_(snapshot); }
+    catch (cacheWriteError) { /* CacheService is an optimisation, not authority. */ }
+  }
   if (expectedRevision && expectedRevision !== snapshot.registry_revision) {
     return jsonOut_({
       ok: false,
@@ -2174,66 +4009,13 @@ function doGet(e) {
       registry_revision: snapshot.registry_revision
     });
   }
-  var visible = snapshot.demos;
-
-  if (p.action === 'file') {
-    if (!p.id) return jsonOut_({ ok: false, error: 'unknown file id' });
-    var kind = registryFileKind_(visible, p.id);
-    if (!kind) return jsonOut_({ ok: false, error: 'unknown file id' });
-    var matchedDemo = registryDemoForFile_(visible, p.id, kind);
-    try {
-      var file = registryDriveFile_(cfg, p.id, kind);
-      if (!file) return jsonOut_({ ok: false, error: 'unknown file id' });
-      var stampBefore = registryFileStampMs_(file);
-      if (registryFileChangedAfterSync_(matchedDemo, stampBefore)) {
-        return jsonOut_({
-          ok: false,
-          error: 'registry source changed; run Drive sync and retry',
-          registry_revision: snapshot.registry_revision
-        });
-      }
-      var blob = file.getBlob();
-      var stampAfter = registryFileStampMs_(file);
-      if (stampAfter !== stampBefore
-          || registryFileChangedAfterSync_(matchedDemo, stampAfter)) {
-        return jsonOut_({
-          ok: false,
-          error: 'registry source changed while reading; run Drive sync and retry',
-          registry_revision: snapshot.registry_revision
-        });
-      }
-      if (kind === 'page') {
-        var pageHtml = blob.getDataAsString();
-        if (!String(pageHtml || '').trim()) {
-          return jsonOut_({ ok: false, error: 'could not read file' });
-        }
-        return jsonOut_({
-          ok: true,
-          audience: audience,
-          registry_revision: snapshot.registry_revision,
-          id: p.id,
-          html: pageHtml
-        });
-      }
-      return jsonOut_({
-        ok: true, audience: audience, registry_revision: snapshot.registry_revision, id: p.id,
-        mime: String(blob.getContentType() || 'application/octet-stream'),
-        base64: Utilities.base64Encode(blob.getBytes())
-      });
-    } catch (err) {
-      return jsonOut_({ ok: false, error: 'could not read file' });
-    }
+  try {
+    return jsonOut_(registryV2Response_(snapshot, cfg,
+      action, String(p.id || '')));
+  } catch (readError) {
+    return jsonOut_({ ok: false,
+      error: action === 'asset' ? 'could not read asset' : 'could not read file' });
   }
-
-  // default: manifest
-  return jsonOut_({
-    ok: true,
-    audience: audience,
-    registry_revision: snapshot.registry_revision,
-    generated: new Date().toISOString(),
-    site: snapshot.site,
-    demos: visible
-  });
 }
 
 /**
@@ -3275,9 +5057,24 @@ function jsonOut_(obj) {
 
 function logEvent_(event, details) {
   try {
-    var sh = registrySpreadsheet_().getSheetByName(SHEET_LOG);
-    if (sh) sh.appendRow([new Date(), event, details]);
+    var sh = registryV2Spreadsheet_().getSheetByName('_Audit');
+    if (!sh) return;
+    var action = registryV2AuditText_(event, 120);
+    var detail = registryV2AuditText_(details, 1000);
+    var result = /error|fail/i.test(action) ? 'error'
+      : /skip|cancel|stale/i.test(action) ? 'skipped' : 'ok';
+    sh.appendRow([
+      Utilities.getUuid(), new Date(), 'apps_script', action, '', '', '', result, detail
+    ]);
   } catch (e) { /* logging must never break the main action */ }
+}
+
+function registryV2AuditText_(value, maxLength) {
+  var text = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+  text = text.replace(
+    /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]+/gu,
+    '[non-English text omitted]');
+  return text.slice(0, Number(maxLength) || 1000);
 }
 
 function paint_(sh, row, colFrom, colTo, color) {

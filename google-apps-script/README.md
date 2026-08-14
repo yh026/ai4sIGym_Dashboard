@@ -1,215 +1,143 @@
-# Google Sheet Apps Script：Preview / Production 使用说明
+# Registry v2 Apps Script：单一控制面部署说明
 
-[`Code.gs`](./Code.gs) 是可以整段粘贴到 **ai4sIGym Demo Registry** 的完整 Apps Script。
-它保留原有的 Drive 同步与 Registry API，并把 Netlify 发布拆成两个互不混用的入口：
+[`Code.gs`](./Code.gs) 只用于绑定在正式 Registry v2 Google Sheet 上的 Apps
+Script 项目。V2 是唯一 Registry、唯一菜单入口和唯一同步目标；归档后的 V1 不再提供
+`Demos`、`Config`、`Log`、发布配置或 Web App 数据。
 
-- **Build preview branch**：只构建经过校验的非生产分支；`main` 和 `master` 会被拒绝。
-- **Rebuild production site (main)**：显示确认框，并显式要求 Netlify 构建 `main`。
+本文件描述 cutover 后的结构。不要把这版代码部署到 V1 后继续把 V1 当后台，也不要在
+V2 上运行旧版 `setup()`。
 
-Google Sheet 按钮只触发构建，不会创建、合并或删除 Git 分支。
+## 1. 控制面边界
 
-## 1. 在 Netlify 准备两个 Build Hook
+V2 workbook 保存：
 
-进入：
+- `Projects`：维护者日常编辑的 15 个英文可见字段，以及隐藏 `demo_id`。
+- `_Registry`、`_Taxonomy`、`_Facets`、`_Assets`：构建使用的机器数据。
+- `_Config`：非敏感站点信息，例如 `schema_version`、`site_title`、
+  `site_tagline`、`preview_base_url`。
+- `_Audit`：Apps Script 追加的同步和发布事件。
+- `_Schema`：字段字典。
 
-`Project configuration → Build & deploy → Continuous deployment → Build hooks`
+以下内容只保存在新 Apps Script 项目的 Script Properties，不得放进 Sheet、Git、截图或
+日志：
 
-先把需要预览的分支 push 到 GitHub，并在 Netlify 的 **Branch deploys** 中选择
-`All`，或把该分支加入允许列表。让它至少成功部署一次后再创建：
+| Property | 用途 |
+| --- | --- |
+| `AI4S_DRIVE_FOLDER_URL` | Demo Drive root URL 或 ID |
+| `AI4S_REGISTRY_ACCESS_TOKEN` | Registry Web App token |
+| `AI4S_NETLIFY_PRODUCTION_BUILD_HOOK` | main Production Hook 基础 URL |
+| `AI4S_NETLIFY_PREVIEW_BUILD_HOOK` | develop Preview Hook 基础 URL |
+| `AI4S_PRODUCTION_BRANCH` | 必须为 `main` |
+| `AI4S_PREVIEW_BRANCH` | 通常为 `develop` |
+| `AI4S_PREVIEW_URL` | 真实 Private Branch Deploy URL |
+| `AI4S_PREVIEW_URL_BRANCH` | 必须与 Preview branch 一致 |
+| `AI4S_AUTO_PUBLISH_TARGET` | `off` 或 `preview`；永远不能自动 Production |
+| `AI4S_NETLIFY_SITE_ID` | Preview callback 校验的 Netlify Site ID |
+| `AI4S_PREVIEW_CALLBACK_SECRET` | 至少 32 字符的 HMAC secret |
 
-1. `registry production publish`
-   - Default branch：`main`
-2. `registry preview publish`
-   - Default branch：`develop`
+`AI4S_REGISTRY_V2_SPREADSHEET_ID` 由新版 `setup()` 在校验成功后写入。不存在 V1 Config
+fallback；V1 被移动、保护或归档后，V2 必须仍能独立运行。
 
-复制两个 Hook 的**基础 URL**。格式应为：
+## 2. 为什么需要新的 bound script 和 Web App URL
+
+Google Apps Script 不能把一个已经绑定 V1 Sheet 的 container-bound project 改绑到 V2。
+要让 `AI4S dashboard` 菜单出现在 V2，必须在 V2 中通过
+`Extensions → Apps Script` 建立新的 bound project，再完整写入：
+
+- `Code.gs`
+- `appsscript.json`
+
+新 script project 有自己的 Properties、trigger、授权和 deployment。它不会继承 V1 的
+任何这些资源，因此 cutover 会产生一个新的 Web App URL。Netlify 的 `REGISTRY_URL` 只能在
+Private Preview 验收新 endpoint 后切换。
+
+## 3. 安全 commissioning 顺序
+
+1. 把旧 V1 和当前 V2 导出备份，记录旧 deployment、trigger、Properties key set 和
+   Production 基线。
+2. 把自动发布临时设为 `off`。
+3. 在旧 V1 Apps Script 项目中删除或停用 hourly `syncDrive` trigger。确认旧 trigger 已经
+   停止后再继续；不要让 V1 与 V2 trigger 同时运行。
+4. 移动同一个 V2 Sheet 到目标 Drive 文件夹；不要制作副本。确认 Spreadsheet ID 不变，
+   并核对目标文件夹的权限继承没有扩大编辑者范围。
+5. 从 V2 创建新的 bound Apps Script project，写入完整 code 和 manifest。
+6. 在新项目中逐项创建上表 Properties。复制值时不要把值写进操作文档或日志。
+7. 运行一次新版 `setup()`。它只会：
+   - 校验 V2 六张 compiler input tabs、`_Audit` 和原生 `ProjectsCatalogV2` table；
+   - 校验必要 Properties、Hook、分支、Preview URL 和 Drive root；
+   - 保存 V2 Spreadsheet ID；
+   - 安装当前 owner 的唯一 hourly `syncDrive` trigger；
+   - 创建 V2 菜单。
+8. 保持旧 V1 trigger 停用，确认当前只有新 V2 项目的一个 hourly `syncDrive` trigger，
+   再手动运行一次 V2 `Sync Drive folder now`。核对 `Projects`、`_Registry`、`_Facets`、
+   `_Assets`、Readiness 和 `_Audit`。
+9. 将新项目部署为 Web App：execute as owner，并使用允许 Netlify 无 Google 登录访问的
+   access 设置。新 URL 必须先用无痕浏览器验证：无 token 返回 `bad token`；正确 token 的
+   manifest 返回 `schema_version: 2`。
+10. 在 Netlify Private develop Preview 中临时使用新 `REGISTRY_URL` 做 manifest、HTML、
+   asset、路由、权限和 callback canary。
+11. 通过后按批准窗口切换正式 Netlify `REGISTRY_URL`；再次确认全局唯一 active trigger
+    仍然是 V2 的 `syncDrive`。
+12. Production 也固定请求 schema 2，因此最终切换需要一次明确批准的 Production build。
+    验收通过后才把 V1 移入 Archive 并设为只读。
+
+不要在新项目运行旧版 setup，不要让新旧 trigger 同时工作，也不要在 Preview canary 前先
+归档 V1。
+
+## 4. 日常 V2 工作流
+
+上传一个项目：
 
 ```text
-https://api.netlify.com/build_hooks/...
+configured Drive root/
+  english_project_folder/
+    english_project_folder.html
+    PROVENANCE.md             # recommended
+    card.jpg                  # optional
 ```
 
-不要在 URL 后手工添加 `trigger_branch`，脚本会安全地添加并编码该参数。Build Hook URL
-相当于发布凭证，不应进入 Git、截图或 Log。
+然后在 V2 选择：
 
-Production branch 必须保持 `main`。`preview_branch` 必须在 Netlify 的 Branch deploys
-允许列表中；否则 Hook 可能被接受，但之后的 Deploy 会失败。
+`AI4S dashboard → Sync Drive folder now`
 
-## 2. 替换 Apps Script
+同步只扫描一次 Drive，并直接按 `_Registry.file_id` 与 V2 对账：
 
-1. 打开 Google Sheet。
-2. 进入 `Extensions → Apps Script`。
-3. 备份当前代码或建立一个 Apps Script 版本。
-4. 用 [`Code.gs`](./Code.gs) 的全部内容替换编辑器中的旧代码。
-5. 保存。
-6. 由 **Web App 的部署所有者** 从 Apps Script 工具栏运行一次 `setup()`，按提示授权。
-7. 回到 Sheet 并刷新页面，让新菜单出现。
+- 新的英文直接子文件夹以 `Draft + Preview only + Featured=false` 进入 V2。
+- 根目录 loose HTML、shortcut、非英文文件夹和主 HTML 不明确的文件夹不自动入库。
+- 相同 Drive file ID 重跑幂等。
+- 文件移出边界后保留记录并标为 missing；同一 file ID 恢复后恢复原身份。
+- `Projects` 人工字段不被同步覆盖。
+- `_Registry`、`_Facets`、`_Assets`、Readiness 和 Preview URL 使用现有并发检查与单批写入。
+- 同步事件写入 `_Audit`，不再写 V1 Log。
 
-不要让多位编辑者分别运行 `setup()`；每位用户都可能安装一份自己的小时触发器。
+新 Draft 补齐 Card Summary、Department、Subtopic、Task Type 和 Methods 后，才会成为
+Preview ready。Card Image 和 Data Source 仍为可选字段；选择图片时，图片必须是项目 HTML
+同一文件夹的直接子文件，在 Card Image 填写精确文件名（不是 Drive ID、路径或 URL），并
+填写英文 Image Alt Text。同步会自动维护 `_Assets`；同名图片替换后采用新的 Drive ID，
+清空 Card Image 会移除对应机器索引。
 
-`setup()` 还会把当前 Registry Spreadsheet ID 保存到该 Apps Script 项目的
-Script Properties。这个步骤不能省略：部署成 Web App 后不存在“当前活动 Sheet”，
-`doGet()` 必须通过保存的 ID 重新打开正确的 Registry。
+## 5. Preview 与 Production
 
-Private Preview 的完成回调还需要在 **Apps Script → Project Settings → Script
-Properties** 手工加入两项；不要把它们放进 Sheet 或代码：
+- `Build preview branch`：只请求允许的非 Production 分支，使用 V2 Preview audience
+  （健康 Live + Draft）。
+- `Rebuild production site (main)`：必须人工确认，只请求 `main`，使用 V2 Production
+  audience（健康 Live + Public）。
+- `AI4S_AUTO_PUBLISH_TARGET=preview`：小时同步只可自动请求 Private Preview。
+- Production 永远没有 Apps Script 自动路径。
 
-| property | value |
-| --- | --- |
-| `AI4S_NETLIFY_SITE_ID` | Netlify Project ID（Site ID） |
-| `AI4S_PREVIEW_CALLBACK_SECRET` | 至少 32 个字符的随机密钥 |
+Web App 只接受 schema 2。省略 `schema` 等同于 schema 2；显式 `schema=1` 返回错误。构建端
+对 Production、stable develop、PR Preview 和其他 Netlify context 也全部请求 schema 2，
+不会回退到 V1。
 
-同一个 `AI4S_PREVIEW_CALLBACK_SECRET` 只在 Netlify 的环境变量中再保存一份，Scope
-必须是 **Builds**，Deploy context 只给 **Branch deploys**。不要在 Log、截图、聊天
-或 Git 中复制它。新版使用独立的 V2 publish state；旧 V1 状态不会被信任或迁移，
-commissioning 会从安全的未请求状态重新开始。
+## 6. 回滚
 
-`setup()` 会：
+在首次 Production schema-2 验收完成前，保留旧 V1 文件、旧 deployment URL 和导出备份，
+但保持旧 trigger 与自动发布关闭。如果新 endpoint canary 失败：
 
-- 保留 Demos 数据；
-- 保留现有 `access_token`；
-- 保留用户自定义的 Config 行；
-- 新增 `auto_publish_target=off`，并保留旧 `auto_publish` 行但明确标记为 ignored；
-- 添加 Preview / Production 配置。
+1. 不触发 Production。
+2. 将 Netlify Preview 的 `REGISTRY_URL` 恢复为旧 endpoint。
+3. 停用新 V2 trigger，恢复旧 trigger 时确保全局仍只有一个 active `syncDrive`。
+4. 根据 `_Audit`、Apps Script execution log 和 Netlify build log 修复后重新 canary。
 
-建议在正式 Sheet 前先用副本执行两次 `setup()`，确认迁移幂等。
-
-## 3. 填写 Config
-
-在 `Config` 标签页填写：
-
-| setting | value |
-| --- | --- |
-| `netlify_build_hook` | Production Hook 基础 URL |
-| `netlify_preview_build_hook` | Preview Hook 基础 URL |
-| `production_branch` | `main` |
-| `preview_branch` | `develop` |
-| `preview_url` | 从 Netlify Deploy 页面复制的真实 Branch Deploy URL |
-| `preview_url_branch` | 与上面 URL 对应的完整分支名；通常与 `preview_branch` 相同 |
-| `auto_publish_target` | 首次使用保持 `off` |
-
-不要根据包含 `/` 的分支名手工猜 `preview_url`；以 Netlify 显示的地址为准。脚本只有在
-`preview_url_branch` 与当前 `preview_branch` 完全相同时才显示预览链接，以免误看旧分支。
-
-`netlify_build_hook`、`netlify_preview_build_hook` 和 `access_token` 都是凭证。
-**只有完全可信的人才可以成为这个 Sheet / Apps Script 的编辑者**，不要在截图、聊天或
-公开文档中分享 Config。Web App 还会验证文件确实位于配置的 Registry Drive 文件夹或其
-直接 demo 子文件夹中，不能只靠手工修改 `file_id` 读取其他 Drive 文件。
-
-Preview 分支默认允许以下形式：
-
-```text
-develop
-fix/*
-feature/*
-preview/*
-chore/*
-docs/*
-test/*
-refactor/*
-hotfix/*
-release/*
-staging
-dashboard-preview
-```
-
-需要其他命名规则时，应先有意识地修改 `PREVIEW_BRANCH_PREFIXES` 或
-`PREVIEW_BRANCH_NAMES`；不要取消 `main` 防护。
-
-这里的允许名单只控制 Sheet 是否可以触发某个非生产 Hook。内容可见性更严格：只有
-Netlify 的稳定 `branch-deploy + develop` 使用 Preview audience（Live + Draft）；PR 的
-Deploy Preview 和其他分支仍按 Production-safe 的 Live-only 规则构建。
-
-## 4. 日常工作流
-
-### 查看代码与 Draft 内容
-
-1. 新 HTML 同步到 Sheet 后会自动成为 `Draft`，不要先改成 Live。
-2. 把代码修改 push 到 `develop`；Netlify 通常会自动更新 Branch Deploy。
-3. 如果 Registry Sheet / Drive 数据随后发生变化，使用：
-   `AI4S dashboard → Build preview branch`。
-4. 使用 `Open preview site` 打开稳定预览地址。
-5. 在预览中检查首页、项目分类、卡片、Hover、移动端和项目链接。
-6. 内容通过审核后，才把对应 Sheet 行改为 `Live`。
-
-项目应设置为 `Private → Previews only`。这样 Production 仍公开，而稳定 Branch Deploy
-和 PR Deploy Preview 都要求 Netlify 团队登录。所有非 Production 构建仍发送
-`X-Robots-Tag: noindex, nofollow`，但真正的访问边界来自 Netlify 身份验证。
-
-### 上线生产
-
-代码发布：在 GitHub 审查 `develop → main`。只有代码已经可以公开上线时才合并；当前
-Netlify Continuous Deployment 会在 merge 后立即创建一次 Production deploy。不要再为
-同一版本点击 `Rebuild production site (main)`，否则会多创建一次 Production deploy。
-
-纯 Drive/Sheet 内容发布：无需 Git merge。先在私有 develop Preview 审核 Draft，把批准的
-行改为 `Live`，再使用 `AI4S dashboard → Rebuild production site (main)`，并在确认框选择
-Yes。该按钮只重建已经位于 `main` 的代码。
-
-Production 按钮不会执行 Git merge；如果尚未合并，它只会重新构建现有的 `main`。
-
-## 5. 自动发布
-
-`auto_publish_target` 可选：
-
-- `off`：推荐默认值；同步 Drive 不自动部署。
-- `preview`：同步发现变化时只重建配置的 Preview 分支。
-
-Production 不属于 Apps Script 自动目标。内容发布只能通过带 Yes/No 确认的
-`Rebuild production site (main)` 手动触发；代码 merge 在 Netlify Continuous
-Deployment 开启时会独立触发 Production。旧配置 `auto_publish=yes` 或旧的
-`auto_publish_target=production` 都会在升级后安全回退为 `off`。
-
-Preview 自动化不再只看 `new + updated` 计数，而是比较稳定的 Registry revision，
-所以新增、修改、移出文件夹、文件恢复和可发布的 Sheet 元数据变化都会进入同一流程。
-Build Hook 返回 2xx 只表示 **accepted**；本地 Netlify Build Plugin 只有在
-`branch-deploy + develop` 部署成功后，才把 `dist/deploy-receipt.json` 通过 HMAC
-认证回调给 Apps Script，完全匹配当前 request ID、requested_at、Registry revision、
-Site ID、分支和 context 后才记为 **ready**。它不会匿名读取 Private Preview URL。
-
-Hook 非 2xx 或网络失败仍按有限退避重试；一旦 Hook 已 accepted，即使完成回调丢失，
-小时同步也**不会**重复创建 Branch Deploy。15 分钟后状态显示
-`verification-timeout`，必须先查看 Netlify，再由人明确使用 `Build preview branch`
-重试。`Preview publish status` 只读状态，不会触发构建。
-
-同一个插件也会报告新的、未验证的 `develop` Git Branch Deploy，用来撤销已过期的 ready
-状态。Production、PR Deploy Preview 和其他分支在插件入口即跳过，不发送回调。
-
-## 6. Registry Web App
-
-Preview 和 Production 读取同一个 `REGISTRY_URL`，但每次构建都会覆盖查询范围：
-
-- 缺省或 `audience=production`：只返回健康的 `Live` 项目；
-- `audience=preview`：只返回健康的 `Live + Draft` 项目；
-- `Archived`、未知 status、`missing`、`unreadable`、`page empty`：两边都不返回。
-
-Manifest 和 file endpoint 使用同一个 audience，因此 Production 无法通过文件接口读取
-Draft 页面。构建端还会按相同矩阵二次过滤，即使旧的 `REGISTRY_URL` 曾附带
-`status=all`，也会先删除该参数。替换代码不会改变 Sheet ID、token 或现有 Web App URL。
-
-保存代码后，菜单函数会使用新代码。为了让部署的 Registry Web App 也固定到同一版本，建议进入：
-
-`Deploy → Manage deployments → Edit → Version: New version → Deploy`
-
-编辑现有 deployment，不要创建无关的新 endpoint；正常情况下 URL 不变，因此 Netlify 的
-`REGISTRY_URL` 无需更换。
-
-本版本要求顺序为：**先由部署所有者运行 `setup()` 保存 Sheet ID，再更新 Web App
-deployment**。Web App 的访问设置必须允许 Netlify 在**没有登录 Google 账号**时调用；
-界面中通常选择 `Anyone`，不要选择只允许 Google 账号的选项。更新后请在无痕窗口打开
-Registry URL 验证；如果组织策略禁止匿名 Web App，Netlify 将无法读取此 endpoint。
-`doPost?action=preview_callback` 虽然匿名可达，但会先用仅存于 Script Properties 与
-Netlify Builds 环境中的共享密钥验证原始 payload 的 HMAC，再解析内部回执。
-
-## 7. 出错时检查
-
-- `Preview build was not started`：检查 Preview Hook、分支名以及 Branch Deploy 设置。
-- HTTP 404/401/500：查看 Netlify Deploy log；脚本不会再把这些错误显示成成功。
-- Preview 能构建但 Registry 失败：确认 Netlify 的 `REGISTRY_URL` 已标记为 secret，Scope
-  只包含 `Builds`，并至少提供给 `Production` 与可信的 `develop` Branch Deploy。公共仓库
-  的 fork PR 必须 Require approval 或在没有 sensitive variables 的情况下部署，不能让未审批
-  的 PR 构建读取 Registry token。
-- 状态停在 `verification-timeout`：核对两端的 `AI4S_PREVIEW_CALLBACK_SECRET` 与
-  `AI4S_NETLIFY_SITE_ID`；修正后只手动构建一次 Preview，不等待小时同步重复部署。
-- Sheet 的 `Log` 不记录 Hook URL 或 token；失败时可能记录经过脱敏、截断的错误文字。
-- `Open preview site` 拒绝打开：同时更新 `preview_url` 和 `preview_url_branch`，确保二者
-  对应当前 `preview_branch`。
+Production 已切到 V2 并验收后，V1 只作为只读历史档案，不再作为运行时回滚数据源。回滚应
+使用保留的 Production deploy 和版本化代码，而不是让新代码静默请求 schema 1。

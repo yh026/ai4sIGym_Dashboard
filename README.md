@@ -21,12 +21,16 @@ Drive folder ──▶ Apps Script (sync + JSON feed) ──▶ this build ─�
 
 ## One-time setup (~20 min)
 
-### A. Deploy the Apps Script as a web app
-In the registry sheet, open **Extensions → Apps Script**, paste the complete
-[`Code.gs`](google-apps-script/Code.gs), save, and run `setup()` once from the
-editor as the account that will own the Web App. Do not have several editors run
-`setup()` because each can install a separate hourly trigger. This stores the
-bound Registry Sheet ID for web-app requests. Then use
+### A. Deploy the Registry v2 Apps Script as a web app
+In the **Registry v2** sheet, open **Extensions → Apps Script** and create the
+new container-bound project. Install both [`Code.gs`](google-apps-script/Code.gs)
+and [`appsscript.json`](google-apps-script/appsscript.json), then configure the
+operational Script Properties listed in the
+[Apps Script guide](google-apps-script/README.md). Before running `setup()`, set
+automatic publishing to `off` and disable the old V1 hourly trigger. Run
+`setup()` once as the
+account that will own the Web App. It validates the existing V2 workbook and
+installs the single hourly trigger; it never creates or migrates V1 tabs. Then use
 **Deploy → New
 deployment** → gear icon → **Web app**:
 - Description: anything
@@ -42,7 +46,7 @@ Click Deploy, authorize if asked. Then back in the sheet:
 (it ends in `?token=…`). That string is your `REGISTRY_URL`.
 
 ### B. Verify the feed (30 seconds, worth it)
-Paste the build URL into a browser tab and add `&action=manifest` at the end.
+Paste the build URL into a browser tab and add `&action=manifest&schema=2` at the end.
 You should see JSON with your site config and every **Live** demo. If `demos`
 is `[]`, nothing is set to Live yet — that's the status column, not a bug.
 
@@ -76,14 +80,15 @@ variables. Never use an unrestricted sensitive-variable policy for fork PRs.
 
 ### E. Create the build hook and wire it to the sheet
 **Site configuration → Build & deploy → Build hooks → Add build hook** (name it
-"registry production publish", branch main). Copy the Hook base URL and paste
-it into the sheet's **Config** tab, `netlify_build_hook` cell. To rebuild a
-Branch Deploy from the Sheet, create a second Hook whose default is a
-non-production branch and paste it into `netlify_preview_build_hook`; see the
-[Apps Script guide](google-apps-script/README.md).
+"registry production publish", branch main). Store its base URL in the new
+bound project's `AI4S_NETLIFY_PRODUCTION_BUILD_HOOK` Script Property. Create a
+second Hook for `develop` and store it in
+`AI4S_NETLIFY_PREVIEW_BUILD_HOOK`; see the
+[Apps Script guide](google-apps-script/README.md). Hooks and tokens never belong
+in V2 `_Config` or another Sheet cell.
 
-Treat both Hook URLs and `access_token` as credentials. Only fully trusted
-people should be editors of the Registry Sheet / bound Apps Script project.
+Treat both Hook URLs and the Registry token as credentials. Only fully trusted
+people should administer the bound Apps Script project.
 
 ### F. First content publish
 After reviewing Drafts on the private develop Preview, set the approved demos to
@@ -92,8 +97,10 @@ After reviewing Drafts on the private develop Preview, set the approved demos to
 content-only Drive/Sheet releases when the approved code is already on `main`.
 
 ## The routine forever after
-1. Drop a new `.html` in the Drive folder.
-2. Sync (menu, or the hourly auto-run) → the new row is created as **Draft**.
+1. Add one English-named direct subfolder to the Drive root, with its primary
+   `.html` inside.
+2. Sync from V2 (menu, or the hourly auto-run) → the project is created as
+   **Draft + Preview only**.
 3. Build the stable `develop` Branch Deploy and review the Draft there.
 4. When the content is approved, change its status to **Live**.
 5. Only after explicit approval, choose **Rebuild production site (main)**.
@@ -109,7 +116,7 @@ project team login while Production remains public. Preview builds also send
 `X-Robots-Tag: noindex, nofollow`; noindex is only an indexing hint, not the
 authentication boundary.
 
-`auto_publish_target` defaults to `off`. Set it explicitly to `preview` only
+`AI4S_AUTO_PUBLISH_TARGET` defaults to `off`. Set the Script Property explicitly to `preview` only
 when hourly Drive syncs should rebuild the stable develop Preview. Production
 is never an Apps Script automatic target; content-only Production releases use
 the confirmed manual action, while approved code merges follow Netlify's Git
@@ -128,8 +135,10 @@ without a callback, any retry must be explicitly requested by a person.
 
 ## Science-map taxonomy
 
-Use `department_id` (or `department`) on each registry record when possible.
-The map follows the seven academic departments listed by
+Registry v2 `_Taxonomy` owns stable department, subtopic, task and method IDs.
+Editors choose the corresponding English labels in `Projects`; `_Registry` and
+`_Facets` must project the same IDs or the build fails closed. The map follows
+the seven academic departments listed by
 [NUS Faculty of Science](https://www.science.nus.edu.sg/our-departments/):
 
 - `Physics` (`space-astronomy`)
@@ -140,48 +149,22 @@ The map follows the seven academic departments listed by
 - `Pharmacy and Pharmaceutical Sciences` (`pharmacy-biomedical`)
 - `Statistics and Data Science` (`ai-mathematics-data`)
 
-Mark the dashboard's own Drive row as `record_type=site` (or
-`is_project=false`) so it can never be counted as a project. Mark a legitimate
-project explicitly as `record_type=project` if its entry file is also named
-`index.html`. The build retains an exact compatibility filter for the current
-legacy dashboard row, but explicit registry metadata is the durable solution.
+V2 never guesses taxonomy from a title, category or legacy alias at build time.
+A new Draft with blank or unknown taxonomy stays blocked until a maintainer
+chooses valid labels. Active taxonomy and current project counts drive the map,
+filter chips and department pages.
 
-Canonical department metadata has highest priority. Older `domain`,
-`science_domain`, and `research_domain` labels remain supported, followed by
-compatibility assignments for the current collection and then metadata
-inference. Scientific subject matter takes priority over the analytical method:
-for example, battery projects are Chemistry even when they use forecasting, and
-single-cell projects are Biological Sciences even when they use clustering.
-Unrecognised records remain visible under Statistics and Data Science with a
-build warning.
-
-The former `earth-climate` catch-all has been retired because its projects now
-belong to Physics, Biological Sciences, or Statistics and Data Science. Its old
-collection URL returns visitors to the map. `physics-simulation` remains a
-redirect to Physics.
-
-The build publishes both `department_id` and the backwards-compatible
-`domain_id`, generates collection pages at `/domains/<domain_id>/`, and injects
-a return link into every demo. `category`, `task_type`, `method`, and `framework`
-remain useful metadata and do not determine the department when an explicit
-department is present.
-
-Each department has a stable subtopic taxonomy. Prefer
-`department_subtopic_id` or `department_subtopic`; older `subtopic`,
-`science_subtopic`, `research_subtopic`, `subdomain`, and `topic` labels remain
-supported. The build then applies compatibility assignments, accepts a legacy
-generated `subtopic_id`, or infers a subtopic within the resolved department.
-Ambiguous records use `General & Interdisciplinary`.
-
-Resolved records publish `department_subtopic_id`, `subtopic_id`, and
-`subtopic_label`. Manifest taxonomy version 4 includes every department's
-subtopics and live `project_count`, so hover panels always reflect the current
-registry rather than hard-coded project totals.
-
-Project cards use real 16:9 data previews from `site/assets/previews/<slug>.*`.
-A record may instead provide an HTTPS `preview_image`, `picture`, or `thumbnail`.
-When no image is available, the card shows a quiet pending state rather than a
-generic science emblem.
+Registry v2 gives each project zero or one optional card image. Editors put the
+image beside that project's HTML in Drive and enter only its direct-child file
+name (for example `card.jpg`) in **Card Image**, plus human-written alt text.
+V2 sync atomically maintains the matching `_Assets` row and hidden Registry
+link; replacing the same filename adopts its new Drive ID, while clearing
+**Card Image** removes that machine index.
+The authenticated Registry service downloads the image during the build and
+writes it to `dist/assets/cards/`; external image URLs are not enabled in the
+first round. When **Card Image** is blank, the build reuses the matching
+`site/assets/previews/<slug>.*` image. If neither source exists, the card shows a
+quiet pending state rather than a generic science emblem.
 
 ## Local preview
 Use Node.js 24 or newer. `node build.js --mock` builds from `fixtures/` into `dist/` with no network —

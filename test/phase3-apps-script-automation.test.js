@@ -154,7 +154,8 @@ test('Preview maintenance is idempotent from accepted through ready', () => {
   let ready = false;
   const posts = [];
 
-  script.registrySnapshot_ = () => ({ registry_revision: wanted, demos: [] });
+  script.registryV2Spreadsheet_ = () => ({});
+  script.registryV2Snapshot_ = () => ({ registry_revision: wanted, demos: [] });
   script.readPreviewPublishState_ = () => stored;
   script.writePreviewPublishState_ = state => { stored = plain(state); return state; };
   script.checkPreviewReceipt_ = (cfg, expected) => ({
@@ -204,7 +205,8 @@ test('failed Preview requests retry only when due and preserve their request ID'
   let stored = script.emptyPreviewPublishState_();
   const posts = [];
 
-  script.registrySnapshot_ = () => ({ registry_revision: wanted, demos: [] });
+  script.registryV2Spreadsheet_ = () => ({});
+  script.registryV2Snapshot_ = () => ({ registry_revision: wanted, demos: [] });
   script.readPreviewPublishState_ = () => stored;
   script.writePreviewPublishState_ = state => { stored = plain(state); return state; };
   script.checkPreviewReceipt_ = () => ({
@@ -243,7 +245,8 @@ test('automation off creates no request, while an explicit manual request remain
   script.Utilities = fakeUtilities();
   let stored = script.emptyPreviewPublishState_();
   let posts = 0;
-  script.registrySnapshot_ = () => ({ registry_revision: revision('4'), demos: [] });
+  script.registryV2Spreadsheet_ = () => ({});
+  script.registryV2Snapshot_ = () => ({ registry_revision: revision('4'), demos: [] });
   script.readPreviewPublishState_ = () => stored;
   script.writePreviewPublishState_ = state => { stored = plain(state); return state; };
   script.checkPreviewReceipt_ = () => ({

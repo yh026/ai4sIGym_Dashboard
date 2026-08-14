@@ -1,0 +1,115 @@
+{
+  "fixture": "current-registry-21-row-migration-shape",
+  "expected": {
+    "rows": 21,
+    "live": 15,
+    "draft": 4,
+    "archived": 2,
+    "site_records": 1,
+    "live_projects": 14,
+    "ready_drafts": 1,
+    "blocked_drafts": 3
+  },
+  "taxonomy": {
+    "departments": [
+      { "id": "physics", "label": "Physics", "short_label": "Physics", "description": "Physical sciences", "display_order": 1, "active": true, "theme_key": "space-astronomy", "icon_key": "physics" },
+      { "id": "chemistry", "label": "Chemistry", "short_label": "Chemistry", "description": "Chemical sciences", "display_order": 2, "active": true, "theme_key": "chemistry-materials", "icon_key": "chemistry" },
+      { "id": "biological-sciences", "label": "Biological Sciences", "short_label": "Biology", "description": "Biological sciences", "display_order": 3, "active": true, "theme_key": "biology-genomics", "icon_key": "biology" },
+      { "id": "pharmacy-pharmaceutical-sciences", "label": "Pharmacy and Pharmaceutical Sciences", "short_label": "Pharmacy", "description": "Pharmaceutical sciences", "display_order": 4, "active": true, "theme_key": "pharmacy-biomedical", "icon_key": "pharmacy" },
+      { "id": "food-science-technology", "label": "Food Science and Technology", "short_label": "Food Science", "description": "Food science and technology", "display_order": 5, "active": true, "theme_key": "food-science-technology", "icon_key": "food" },
+      { "id": "mathematics", "label": "Mathematics", "short_label": "Mathematics", "description": "Mathematical sciences", "display_order": 6, "active": true, "theme_key": "mathematics", "icon_key": "mathematics" },
+      { "id": "statistics-data-science", "label": "Statistics and Data Science", "short_label": "Statistics", "description": "Statistics and data science", "display_order": 7, "active": true, "theme_key": "ai-mathematics-data", "icon_key": "statistics" }
+    ],
+    "subtopics": [
+      { "id": "electrochemistry-energy", "department_id": "chemistry", "label": "Electrochemistry and Energy", "display_order": 1, "active": true },
+      { "id": "atmospheric-remote-sensing", "department_id": "physics", "label": "Atmospheric Remote Sensing", "display_order": 1, "active": true },
+      { "id": "astrophysics", "department_id": "physics", "label": "Astrophysics", "display_order": 2, "active": true },
+      { "id": "condensed-matter", "department_id": "physics", "label": "Condensed Matter", "display_order": 3, "active": true },
+      { "id": "ecology-evolution", "department_id": "biological-sciences", "label": "Ecology and Evolution", "display_order": 1, "active": true },
+      { "id": "genomics-rna", "department_id": "biological-sciences", "label": "Genomics and RNA", "display_order": 2, "active": true },
+      { "id": "systems-biology", "department_id": "biological-sciences", "label": "Systems Biology", "display_order": 3, "active": true },
+      { "id": "spatiotemporal-data", "department_id": "statistics-data-science", "label": "Spatiotemporal Data", "display_order": 1, "active": true },
+      { "id": "data-compression", "department_id": "statistics-data-science", "label": "Data Compression", "display_order": 2, "active": true },
+      { "id": "multivariate-visualisation", "department_id": "statistics-data-science", "label": "Multivariate Visualisation", "display_order": 3, "active": true },
+      { "id": "machine-learning", "department_id": "statistics-data-science", "label": "Machine Learning", "display_order": 4, "active": true },
+      { "id": "general-physics", "department_id": "physics", "label": "General Physics", "display_order": 99, "active": true }
+    ],
+    "tasks": [
+      { "id": "classification", "label": "Classification", "active": true },
+      { "id": "clustering", "label": "Clustering", "active": true },
+      { "id": "dimensionality-reduction", "label": "Dimensionality Reduction", "active": true },
+      { "id": "regression", "label": "Regression", "active": true },
+      { "id": "forecasting", "label": "Forecasting", "active": true }
+    ],
+    "methods": [
+      { "id": "autoencoder", "label": "Autoencoder", "active": true },
+      { "id": "ceemdan", "label": "CEEMDAN", "active": true },
+      { "id": "cnn", "label": "CNN", "active": true },
+      { "id": "k-means", "label": "K-Means", "active": true, "aliases": ["K-means"] },
+      { "id": "pca", "label": "PCA", "active": true },
+      { "id": "random-forest", "label": "Random Forest", "active": true },
+      { "id": "umap", "label": "UMAP", "active": true },
+      { "id": "xgboost", "label": "XGBoost", "active": true }
+    ]
+  },
+  "projects": [
+    { "row_number": 2, "status": "Live", "readiness": "", "preview_url": "", "title": "AI for Science demos", "card_summary": "", "department": "", "subtopic": "", "task": "", "methods": "", "card_image": "", "image_alt": "", "audience": "", "featured": false, "data_source": "", "public_permission": "Public" },
+    { "row_number": 3, "status": "Live", "readiness": "", "preview_url": "", "title": "Battery state of health", "card_summary": "Explore battery state-of-health signals.", "department": "Chemistry", "subtopic": "Electrochemistry and Energy", "task": "Regression", "methods": "Random Forest", "card_image": "", "image_alt": "", "audience": "Intermediate", "featured": true, "data_source": "Battery cycling data", "public_permission": "Public" },
+    { "row_number": 4, "status": "Live", "readiness": "", "preview_url": "", "title": "CEEMDAN battery forecasting", "card_summary": "Inspect a decomposed battery forecasting workflow.", "department": "Chemistry", "subtopic": "Electrochemistry and Energy", "task": "Forecasting", "methods": "CEEMDAN", "card_image": "", "image_alt": "", "audience": "Advanced", "featured": false, "data_source": "Battery cycling data", "public_permission": "Public" },
+    { "row_number": 5, "status": "Live", "readiness": "", "preview_url": "", "title": "TBB cluster explorer", "card_summary": "Group satellite brightness-temperature patterns.", "department": "Physics", "subtopic": "Atmospheric Remote Sensing", "task": "Clustering", "methods": "K-Means", "card_image": "", "image_alt": "", "audience": "Intermediate", "featured": false, "data_source": "Himawari-9", "public_permission": "Public" },
+    { "row_number": 6, "status": "Live", "readiness": "", "preview_url": "", "title": "Pleiades membership explorer", "card_summary": "Explore stellar membership in the Pleiades.", "department": "Physics", "subtopic": "Astrophysics", "task": "Classification", "methods": "Random Forest", "card_image": "", "image_alt": "", "audience": "Intermediate", "featured": false, "data_source": "Gaia", "public_permission": "Public" },
+    { "row_number": 7, "status": "Live", "readiness": "", "preview_url": "", "title": "Superconductor regression explorer", "card_summary": "Compare predictions of superconducting properties.", "department": "Physics", "subtopic": "Condensed Matter", "task": "Regression", "methods": "XGBoost", "card_image": "", "image_alt": "", "audience": "Intermediate", "featured": false, "data_source": "Superconductor dataset", "public_permission": "Public" },
+    { "row_number": 8, "status": "Live", "readiness": "", "preview_url": "", "title": "Forest microclimate", "card_summary": "Test whether canopy cover buffers daily temperature.", "department": "Biological Sciences", "subtopic": "Ecology and Evolution", "task": "Regression", "methods": "Random Forest", "card_image": "", "image_alt": "", "audience": "Intro", "featured": true, "data_source": "Forest sensors", "public_permission": "Public" },
+    { "row_number": 9, "status": "Live", "readiness": "", "preview_url": "", "title": "Galaxy rotation augmentation", "card_summary": "See whether rotation augmentation helps classification.", "department": "Physics", "subtopic": "Astrophysics", "task": "Classification", "methods": "CNN", "card_image": "", "image_alt": "", "audience": "Intermediate", "featured": false, "data_source": "Galaxy images", "public_permission": "Public" },
+    { "row_number": 10, "status": "Live", "readiness": "", "preview_url": "", "title": "Singapore road speed clusters", "card_summary": "Explore road-speed clusters in a two-dimensional embedding.", "department": "Statistics and Data Science", "subtopic": "Spatiotemporal Data", "task": "Clustering", "methods": "UMAP, K-Means", "card_image": "card.jpg", "image_alt": "Road segments coloured by cluster", "audience": "Intermediate", "featured": true, "data_source": "LTA DataMall", "public_permission": "Public" },
+    { "row_number": 11, "status": "Live", "readiness": "", "preview_url": "", "title": "Twenty thousand genes to fourteen cell types", "card_summary": "Reduce gene expression into interpretable cell types.", "department": "Biological Sciences", "subtopic": "Genomics and RNA", "task": "Classification", "methods": "PCA, UMAP", "card_image": "", "image_alt": "", "audience": "Advanced", "featured": true, "data_source": "Single-cell RNA data", "public_permission": "Public" },
+    { "row_number": 12, "status": "Live", "readiness": "", "preview_url": "", "title": "Twelve thousand numbers to a codebook", "card_summary": "Compress high-dimensional observations into a codebook.", "department": "Statistics and Data Science", "subtopic": "Data Compression", "task": "Dimensionality Reduction", "methods": "Autoencoder", "card_image": "", "image_alt": "", "audience": "Advanced", "featured": false, "data_source": "Research dataset", "public_permission": "Public" },
+    { "row_number": 13, "status": "Live", "readiness": "", "preview_url": "", "title": "Air quality PCA and UMAP", "card_summary": "Compare sensor patterns across day segments.", "department": "Statistics and Data Science", "subtopic": "Multivariate Visualisation", "task": "Dimensionality Reduction", "methods": "PCA, UMAP", "card_image": "", "image_alt": "", "audience": "Intro", "featured": false, "data_source": "Air-quality sensors", "public_permission": "Public" },
+    { "row_number": 14, "status": "Live", "readiness": "", "preview_url": "", "title": "JAE regularisation lab", "card_summary": "See how each regularisation loss changes an embedding.", "department": "Statistics and Data Science", "subtopic": "Machine Learning", "task": "Dimensionality Reduction", "methods": "Autoencoder", "card_image": "", "image_alt": "", "audience": "Advanced", "featured": false, "data_source": "Research embeddings", "public_permission": "Public" },
+    { "row_number": 15, "status": "Live", "readiness": "", "preview_url": "", "title": "JAE joint embedding", "card_summary": "Follow how one cell becomes an embedding vector.", "department": "Biological Sciences", "subtopic": "Genomics and RNA", "task": "Dimensionality Reduction", "methods": "Autoencoder", "card_image": "", "image_alt": "", "audience": "Advanced", "featured": false, "data_source": "Single-cell RNA data", "public_permission": "Public" },
+    { "row_number": 16, "status": "Live", "readiness": "", "preview_url": "", "title": "Alzheimer gene co-expression explorer", "card_summary": "Explore gene co-expression structure in Alzheimer data.", "department": "Biological Sciences", "subtopic": "Systems Biology", "task": "Clustering", "methods": "PCA, K-Means", "card_image": "", "image_alt": "", "audience": "Advanced", "featured": false, "data_source": "Gene expression data", "public_permission": "Public" },
+    { "row_number": 17, "status": "Draft", "readiness": "", "preview_url": "", "title": "Draft preview A", "card_summary": "A private migration fixture.", "department": "Physics", "subtopic": "General Physics", "task": "Regression", "methods": "Random Forest", "card_image": "", "image_alt": "", "audience": "Intro", "featured": false, "data_source": "", "public_permission": "Preview only" },
+    { "row_number": 18, "status": "Draft", "readiness": "", "preview_url": "", "title": "Draft preview B", "card_summary": "A second private migration fixture.", "department": "Mathematics", "subtopic": "", "task": "", "methods": "", "card_image": "", "image_alt": "", "audience": "", "featured": false, "data_source": "", "public_permission": "Preview only" },
+    { "row_number": 19, "status": "Draft", "readiness": "", "preview_url": "", "title": "Draft preview C", "card_summary": "", "department": "", "subtopic": "", "task": "", "methods": "", "card_image": "", "image_alt": "", "audience": "", "featured": false, "data_source": "", "public_permission": "Private" },
+    { "row_number": 20, "status": "Draft", "readiness": "", "preview_url": "", "title": "Draft preview D", "card_summary": "", "department": "", "subtopic": "", "task": "", "methods": "", "card_image": "", "image_alt": "", "audience": "", "featured": false, "data_source": "", "public_permission": "Private" },
+    { "row_number": 21, "status": "Archived", "readiness": "", "preview_url": "", "title": "Archived migration fixture A", "card_summary": "", "department": "", "subtopic": "", "task": "", "methods": "", "card_image": "", "image_alt": "", "audience": "", "featured": false, "data_source": "", "public_permission": "Private" },
+    { "row_number": 22, "status": "Archived", "readiness": "", "preview_url": "", "title": "Archived migration fixture B", "card_summary": "", "department": "", "subtopic": "", "task": "", "methods": "", "card_image": "", "image_alt": "", "audience": "", "featured": false, "data_source": "", "public_permission": "Private" }
+  ],
+  "sourceProjections": [
+    { "row_number": 2, "demo_id": "site-dashboard", "entry_type": "site", "slug": "ai-for-science-demos", "sort_order": 0, "file_id": "drive-site", "file_check": "ok", "date_added": "2026-07-31T00:00:00.000Z" },
+    { "row_number": 3, "demo_id": "demo-soh-battery", "entry_type": "project", "slug": "soh-battery", "sort_order": 1, "file_id": "drive-soh", "file_check": "ok", "date_added": "2026-07-01T00:00:00.000Z" },
+    { "row_number": 4, "demo_id": "demo-ceemdan-battery-forecasting", "entry_type": "project", "slug": "ceemdan-battery-forecasting", "sort_order": 2, "file_id": "drive-ceemdan", "file_check": "ok", "date_added": "2026-07-02T00:00:00.000Z" },
+    { "row_number": 5, "demo_id": "demo-tbb-cluster-explorer", "entry_type": "project", "slug": "tbb-cluster-explorer", "sort_order": 3, "file_id": "drive-tbb", "file_check": "ok", "date_added": "2026-07-03T00:00:00.000Z" },
+    { "row_number": 6, "demo_id": "demo-pleiades-membership-explorer", "entry_type": "project", "slug": "pleiades-membership-explorer", "sort_order": 4, "file_id": "drive-pleiades", "file_check": "ok", "date_added": "2026-07-04T00:00:00.000Z" },
+    { "row_number": 7, "demo_id": "demo-superconductor-regression-explorer", "entry_type": "project", "slug": "superconductor-regression-explorer", "sort_order": 5, "file_id": "drive-superconductor", "file_check": "ok", "date_added": "2026-07-05T00:00:00.000Z" },
+    { "row_number": 8, "demo_id": "demo-forest-microclimate", "entry_type": "project", "slug": "forest-microclimate-does-canopy-buffer-the-day", "sort_order": 6, "file_id": "drive-forest", "file_check": "ok", "date_added": "2026-07-06T00:00:00.000Z" },
+    { "row_number": 9, "demo_id": "demo-galaxy-rotation", "entry_type": "project", "slug": "galaxy2-does-rotation-augmentation-help", "sort_order": 7, "file_id": "drive-galaxy", "file_check": "ok", "date_added": "2026-07-07T00:00:00.000Z" },
+    { "row_number": 10, "demo_id": "demo-singapore-road-speed", "entry_type": "project", "slug": "singapore-road-speed-clusters-umap", "sort_order": 8, "file_id": "drive-road", "file_check": "ok", "date_added": "2026-07-08T00:00:00.000Z" },
+    { "row_number": 11, "demo_id": "demo-genes-to-cell-types", "entry_type": "project", "slug": "from-twenty-thousand-genes-to-fourteen-cell-types", "sort_order": 9, "file_id": "drive-genes", "file_check": "ok", "date_added": "2026-07-09T00:00:00.000Z" },
+    { "row_number": 12, "demo_id": "demo-numbers-to-codebook", "entry_type": "project", "slug": "from-twelve-thousand-numbers-to-a-codebook", "sort_order": 10, "file_id": "drive-codebook", "file_check": "ok", "date_added": "2026-07-10T00:00:00.000Z" },
+    { "row_number": 13, "demo_id": "demo-air-quality-embedding", "entry_type": "project", "slug": "air-quality-day-segment-pca-and-amp-umap-by-sensor", "sort_order": 11, "file_id": "drive-air", "file_check": "ok", "date_added": "2026-07-11T00:00:00.000Z" },
+    { "row_number": 14, "demo_id": "demo-jae-regularisation", "entry_type": "project", "slug": "jae-regularisation-lab-what-each-loss-actually-does", "sort_order": 12, "file_id": "drive-jae-reg", "file_check": "ok", "date_added": "2026-07-12T00:00:00.000Z" },
+    { "row_number": 15, "demo_id": "demo-jae-joint-embedding", "entry_type": "project", "slug": "jae-joint-embedding-how-one-cell-becomes-61-numbers", "sort_order": 13, "file_id": "drive-jae-joint", "file_check": "ok", "date_added": "2026-07-13T00:00:00.000Z" },
+    { "row_number": 16, "demo_id": "demo-alzheimer-coexpression", "entry_type": "project", "slug": "alzheimer-s-gene-co-expression-explorer", "sort_order": 14, "file_id": "drive-alzheimer", "file_check": "ok", "date_added": "2026-07-14T00:00:00.000Z" },
+    { "row_number": 17, "demo_id": "demo-draft-a", "entry_type": "project", "slug": "draft-preview-a", "sort_order": 15, "file_id": "drive-draft-a", "file_check": "ok — no provenance.md", "date_added": "2026-08-10T00:00:00.000Z" },
+    { "row_number": 18, "demo_id": "demo-draft-b", "entry_type": "project", "slug": "draft-preview-b", "sort_order": 16, "file_id": "drive-draft-b", "file_check": "ok — no provenance.md", "date_added": "2026-08-10T00:00:00.000Z" },
+    { "row_number": 19, "demo_id": "demo-draft-c", "entry_type": "project", "slug": "draft-preview-c", "sort_order": 17, "file_id": "drive-draft-c", "file_check": "ok", "date_added": "2026-08-10T00:00:00.000Z" },
+    { "row_number": 20, "demo_id": "demo-draft-d", "entry_type": "project", "slug": "draft-preview-d", "sort_order": 18, "file_id": "drive-draft-d", "file_check": "ok", "date_added": "2026-08-10T00:00:00.000Z" },
+    { "row_number": 21, "demo_id": "demo-archived-a", "entry_type": "project", "slug": "archived-migration-a", "sort_order": 19, "file_id": "", "file_check": "missing", "date_added": "2026-08-10T00:00:00.000Z" },
+    { "row_number": 22, "demo_id": "demo-archived-b", "entry_type": "project", "slug": "archived-migration-b", "sort_order": 20, "file_id": "", "file_check": "missing", "date_added": "2026-08-10T00:00:00.000Z" }
+  ],
+  "facets": [
+    { "demo_id": "demo-singapore-road-speed", "facet_type": "task", "term_id": "clustering", "display_order": 1 },
+    { "demo_id": "demo-singapore-road-speed", "facet_type": "method", "term_id": "umap", "display_order": 1 },
+    { "demo_id": "demo-singapore-road-speed", "facet_type": "method", "term_id": "k-means", "display_order": 2 },
+    { "demo_id": "demo-genes-to-cell-types", "facet_type": "method", "term_id": "pca", "display_order": 1 },
+    { "demo_id": "demo-genes-to-cell-types", "facet_type": "method", "term_id": "umap", "display_order": 2 },
+    { "demo_id": "demo-air-quality-embedding", "facet_type": "method", "term_id": "pca", "display_order": 1 },
+    { "demo_id": "demo-air-quality-embedding", "facet_type": "method", "term_id": "umap", "display_order": 2 },
+    { "demo_id": "demo-alzheimer-coexpression", "facet_type": "method", "term_id": "pca", "display_order": 1 },
+    { "demo_id": "demo-alzheimer-coexpression", "facet_type": "method", "term_id": "k-means", "display_order": 2 }
+  ],
+  "assets": [
+    { "asset_id": "asset-road-speed-card", "demo_id": "demo-singapore-road-speed", "role": "card_image", "source_type": "drive", "drive_file_id": "drive-road-card", "source_file_name": "card.jpg", "external_url": "", "mime_type": "image/jpeg", "alt_text": "", "credit": "", "license": "", "checksum": "", "public_path": "assets/cards/road-speed.jpg", "sync_status": "ok", "source_modified_at": "2026-08-10T00:00:00.000Z" }
+  ]
+}

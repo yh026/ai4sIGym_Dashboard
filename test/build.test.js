@@ -8,9 +8,12 @@ const {
   cardPreview,
   esc,
   isSiteRecord,
+  normalizeV2Demo,
+  normalizeV2Taxonomy,
   repairDemoNavigation,
   resolveDomain,
   resolveSubtopic,
+  safePublicCardAssetUrl,
   safePreviewUrl,
   validateTaxonomy,
 } = require('../build.js');
@@ -48,6 +51,61 @@ test('preview URLs and encoded registry text are normalised safely', () => {
   assert.equal(safePreviewUrl('assets/../secret.png', '../../'), '');
   assert.equal(esc('PCA &amp; UMAP'), 'PCA &amp; UMAP');
   assert.equal(esc('<script>'), '&lt;script&gt;');
+  assert.equal(safePublicCardAssetUrl('assets/cards/chart.webp', '../../'), '../../assets/cards/chart.webp');
+  assert.equal(safePublicCardAssetUrl('/assets/cards/chart.webp', '../../'), '');
+  assert.equal(safePublicCardAssetUrl('https://example.org/chart.webp', '../../'), '');
+  assert.equal(safePublicCardAssetUrl('assets/cards/../secret.webp', '../../'), '');
+  assert.equal(safePublicCardAssetUrl('assets/cards/chart.svg', '../../'), '');
+});
+
+test('Registry v2 resolves only explicit active taxonomy references', () => {
+  const taxonomy = normalizeV2Taxonomy({
+    departments: [{
+      id: 'chemistry', label: 'Chemistry from Sheet', short_label: 'Chemistry',
+      description: 'Sheet-owned copy', display_order: 1, active: true,
+      theme_key: 'chemistry-materials', icon_key: 'flask',
+      internal_secret: 'must-not-survive',
+    }],
+    subtopics: [{
+      id: 'materials', department_id: 'chemistry', label: 'Materials from Sheet',
+      display_order: 1, active: true,
+    }],
+    tasks: [{ id: 'classification', label: 'Classification', active: true }],
+    methods: [
+      { id: 'pca', label: 'Principal Components', active: true },
+      { id: 'retired-method', label: 'Retired method', active: false },
+    ],
+  });
+  const demo = normalizeV2Demo({
+    demo_id: 'galaxy-demo', entry_type: 'project', slug: 'galaxy-demo', title: 'A galaxy project',
+    status: 'Live', sort_order: 1,
+    card_summary: 'Its explicit IDs still place it in Chemistry.',
+    department_id: 'chemistry', subtopic_id: 'materials',
+    task_ids: ['classification'], method_ids: ['pca'], featured: false,
+    audience: 'Intro', data_source_label: 'Synthetic', public_page_permission: 'Public',
+    card_asset: { asset_id: 'galaxy-card', public_path: 'assets/cards/galaxy.jpg', alt_text: 'Galaxy points.' },
+    file_id: 'galaxy-file', file_check: 'ok', date_added: '2026-08-11T00:00:00.000Z',
+    category: 'must-not-survive', question: 'must-not-survive',
+  }, taxonomy, { demoIds: new Set(), slugs: new Set() }, 0);
+
+  assert.equal(demo._domain, 'chemistry-materials');
+  assert.equal(demo.department_label, 'Chemistry from Sheet');
+  assert.deepEqual(demo._methodTerms.map(term => term.label), ['Principal Components']);
+  assert.deepEqual(Object.keys(taxonomy.departments.get('chemistry')).sort(), [
+    'active', 'description', 'display_order', 'icon_key', 'id', 'label',
+    'short_label', 'theme_key',
+  ]);
+  assert.deepEqual(Object.keys(demo).sort(), [
+    'audience', 'card_asset', 'card_summary', 'data_source_label', 'date_added',
+    'demo_id', 'department_id', 'entry_type', 'featured', 'file_check', 'file_id',
+    'method_ids', 'public_page_permission', 'slug', 'sort_order', 'status',
+    'subtopic_id', 'task_ids', 'title',
+  ]);
+  assert.equal('category' in demo, false);
+  assert.equal('question' in demo, false);
+  assert.throws(() => normalizeV2Demo({
+    ...demo, demo_id: 'second-demo', slug: 'second-demo', method_ids: ['retired-method'],
+  }, taxonomy, { demoIds: new Set(), slugs: new Set() }, 1), /unknown or inactive method/);
 });
 
 test('preview lookup survives a duplicate-row slug suffix by using the HTML file identity', () => {
@@ -55,6 +113,18 @@ test('preview lookup survives a duplicate-row slug suffix by using the HTML file
     slug: 'tbb-cluster-explorer-2',
     file_name: 'tbb_cluster_explorer.html',
     title: 'TBB cluster explorer — grouping a day of Himawari-9 brightness temperatures',
+  }, '../../'), '../../assets/previews/tbb-cluster-explorer.jpg');
+  assert.equal(cardPreview({
+    _registrySchemaVersion: 2,
+    slug: 'tbb-cluster-explorer',
+    card_asset: {
+      asset_id: 'sheet-card', public_path: 'assets/cards/sheet-card.webp', alt_text: 'Sheet card.',
+    },
+  }, '../../'), '../../assets/cards/sheet-card.webp');
+  assert.equal(cardPreview({
+    _registrySchemaVersion: 2,
+    slug: 'tbb-cluster-explorer',
+    card_asset: null,
   }, '../../'), '../../assets/previews/tbb-cluster-explorer.jpg');
 });
 

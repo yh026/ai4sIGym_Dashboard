@@ -10,6 +10,7 @@ const {
   createDeployReceipt,
   deployHeaders,
   scopedRegistryUrl,
+  registryReadBatchSize,
   isPublishableDemo,
 } = require('../build.js');
 
@@ -38,6 +39,10 @@ test('only the stable develop Branch Deploy gets Preview content', () => {
   ]) {
     assert.equal(resolveBuildContentPolicy(env).audience, 'production');
   }
+});
+
+test('Registry v2 reads Drive-backed content serially', () => {
+  assert.equal(registryReadBatchSize(2), 1);
 });
 
 test('a Netlify production deploy is locked to main', () => {
@@ -175,7 +180,7 @@ test('public deploy receipt is allowlisted and Preview/receipt headers discourag
 
 test('registry requests override stale status and audience parameters', () => {
   const base = 'https://example.invalid/exec?token=secret&status=all&status=Draft'
-    + '&audience=preview&registry_revision=stale-revision';
+    + '&audience=preview&registry_revision=stale-revision&schema=1';
   const production = { audience: 'production' };
   const preview = { audience: 'preview' };
 
@@ -186,6 +191,7 @@ test('registry requests override stale status and audience parameters', () => {
   assert.equal(productionManifest.searchParams.has('status'), false);
   assert.equal(productionManifest.searchParams.has('id'), false);
   assert.equal(productionManifest.searchParams.has('registry_revision'), false);
+  assert.equal(productionManifest.searchParams.get('schema'), '2');
 
   const previewFile = new URL(scopedRegistryUrl(
     base, 'file', preview, 'draft-id', STATUS_REVISION,
@@ -195,6 +201,17 @@ test('registry requests override stale status and audience parameters', () => {
   assert.equal(previewFile.searchParams.get('id'), 'draft-id');
   assert.equal(previewFile.searchParams.get('registry_revision'), STATUS_REVISION);
   assert.equal(previewFile.searchParams.has('status'), false);
+  assert.equal(previewFile.searchParams.get('schema'), '2');
+
+  const previewAsset = new URL(scopedRegistryUrl(
+    base, 'asset', preview, 'card-asset-id', STATUS_REVISION,
+  ));
+  assert.equal(previewAsset.searchParams.get('action'), 'asset');
+  assert.equal(previewAsset.searchParams.get('audience'), 'preview');
+  assert.equal(previewAsset.searchParams.get('id'), 'card-asset-id');
+  assert.equal(previewAsset.searchParams.get('registry_revision'), STATUS_REVISION);
+  assert.equal(previewAsset.searchParams.has('status'), false);
+  assert.equal(previewAsset.searchParams.get('schema'), '2');
 });
 
 test('Production publishes only healthy Live rows; Preview additionally permits Draft', () => {
@@ -218,4 +235,24 @@ test('Production publishes only healthy Live rows; Preview additionally permits 
     rows.filter(row => isPublishableDemo(row, { audience: 'preview' })).map(row => row.name),
     ['live', 'draft', 'asset-warning'],
   );
+  assert.equal(isPublishableDemo(
+    { status: 'Live', file_check: 'ok', public_page_permission: 'Public' },
+    { audience: 'production' }, 2,
+  ), true);
+  assert.equal(isPublishableDemo(
+    { status: 'Live', file_check: 'ok', public_page_permission: 'Preview only' },
+    { audience: 'production' }, 2,
+  ), false);
+  assert.equal(isPublishableDemo(
+    { status: 'Draft', file_check: 'ok', public_page_permission: 'Private' },
+    { audience: 'preview' }, 2,
+  ), false);
+  assert.equal(isPublishableDemo(
+    { status: 'Draft', file_check: 'ok — no provenance.md', public_page_permission: 'Preview only' },
+    { audience: 'preview' }, 2,
+  ), true);
+  assert.equal(isPublishableDemo(
+    { status: 'Live', file_check: 'check assets: missing-image.png', public_page_permission: 'Public' },
+    { audience: 'preview' }, 2,
+  ), true);
 });
