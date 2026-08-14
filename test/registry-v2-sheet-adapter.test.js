@@ -174,6 +174,48 @@ test('Options uses one strict seven-column controlled vocabulary contract', () =
   assert.equal(result.compiled.taxonomy.data_types[0].description, 'Rows by columns.');
 });
 
+test('Options ignores only an unused false-checkbox placeholder row', async t => {
+  const rows = [
+    OPTIONS_SHEET_HEADERS.slice(),
+    ['data_type', '1d', '1D', '', 1, true, 'One ordered axis.'],
+    ['', '', '', '', '', false, ''],
+  ];
+  assert.deepEqual(optionsRowsToOptions(rows), {
+    data_types: [{
+      id: '1d', label: '1D', aliases: '', display_order: 1,
+      active: true, description: 'One ordered axis.',
+    }],
+    instrument_types: [],
+  });
+
+  await t.test('a partially populated unchecked row remains invalid', () => {
+    const errors = [];
+    optionsRowsToOptions([
+      OPTIONS_SHEET_HEADERS.slice(),
+      ['data_type', '', '', '', '', false, ''],
+    ], errors);
+    assert.ok(errors.some(error => error.code === 'option_display_order_invalid'));
+  });
+
+  await t.test('an otherwise empty checked row remains invalid', () => {
+    const errors = [];
+    optionsRowsToOptions([
+      OPTIONS_SHEET_HEADERS.slice(),
+      ['', '', '', '', '', true, ''],
+    ], errors);
+    assert.ok(errors.some(error => error.code === 'option_category_invalid'));
+  });
+
+  await t.test('whitespace is data and remains invalid like Apps Script', () => {
+    const errors = [];
+    optionsRowsToOptions([
+      OPTIONS_SHEET_HEADERS.slice(),
+      [' ', '', '', '', '', false, ''],
+    ], errors);
+    assert.ok(errors.some(error => error.code === 'option_category_invalid'));
+  });
+});
+
 test('any CJK text in a visible or hidden v2 Sheet cell fails closed', () => {
   for (const mutate of [
     snapshot => {

@@ -2590,7 +2590,16 @@ function registryV2RowsFromGrid_(sheetName, grid, expectedHeaders, projectHeader
   });
   return grid.slice(1)
     .map(function (row, rowIndex) {
-      if (!row.some(function (value) { return value !== '' && value != null; })) return null;
+      var hasValue = row.some(function (value, columnIndex) {
+        if (value === '' || value == null) return false;
+        // A native Sheets table can materialize an unused checkbox row as
+        // Active=false even though every editor-owned option cell is empty.
+        // Ignore only that exact placeholder; a partially filled option row
+        // must still reach the strict option validator and fail closed.
+        return !(sheetName === 'Options'
+          && keys[columnIndex] === 'Active' && value === false);
+      });
+      if (!hasValue) return null;
       var object = { _row_number: rowIndex + 2 };
       keys.forEach(function (key, columnIndex) { object[key] = row[columnIndex]; });
       return object;

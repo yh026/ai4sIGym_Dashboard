@@ -929,6 +929,75 @@ test('Options rejects ambiguous delimiter labels and nonnumeric display order', 
   });
 });
 
+test('Options ignores only false-checkbox placeholder rows without shrinking table state', async t => {
+  const script = loadAppsScript();
+  const sheet = fixture(script);
+  const optionHeader = Array.from(script.REGISTRY_V2_HEADERS.Options);
+  const valid = row(optionHeader, {
+    Category: 'data_type', 'Option ID': '1d', 'Option Label': '1D',
+    'Display Order': 1, Active: true, Description: 'One ordered axis.',
+  });
+  const placeholder = row(optionHeader, { Active: false });
+  sheet.sheets.Options = new FakeSheet([
+    optionHeader, valid, placeholder, placeholder,
+  ]);
+
+  const state = script.registryV2WorkbookState_(sheet);
+  const optionRows = script.registryV2RowsFromState_(
+    state, 'Options', script.REGISTRY_V2_HEADERS.Options, false,
+  );
+  assert.equal(state.Options.rows, 4,
+    'physical native-table rows stay captured for range/concurrency guards');
+  assert.equal(optionRows.length, 1);
+  assert.equal(optionRows[0]._row_number, 2);
+  assert.deepEqual(
+    Array.from(script.registryV2Options_(optionRows).data_types, option => option.id),
+    ['1d'],
+  );
+
+  const metadata = {
+    Projects: { table_range: {
+      startRowIndex: 0, startColumnIndex: 0,
+      endRowIndex: state.Projects.rows, endColumnIndex: state.Projects.columns,
+    } },
+    Options: { table_range: {
+      startRowIndex: 0, startColumnIndex: 0,
+      endRowIndex: state.Options.rows, endColumnIndex: state.Options.columns,
+    } },
+  };
+  assert.doesNotThrow(() => script.registryV2VerifyTableMetadata_(metadata, state));
+  metadata.Options.table_range.endRowIndex -= 1;
+  assert.throws(
+    () => script.registryV2VerifyTableMetadata_(metadata, state),
+    /Options table range does not match/,
+    'placeholder filtering must not weaken the native table range guard',
+  );
+
+  await t.test('a partially filled false-checkbox row still fails closed', () => {
+    const partial = row(optionHeader, { Category: 'data_type', Active: false });
+    const parsed = script.registryV2RowsFromGrid_(
+      'Options', [optionHeader, partial], optionHeader, false,
+    );
+    assert.equal(parsed.length, 1);
+    assert.throws(
+      () => script.registryV2Options_(parsed),
+      /invalid or duplicate option/,
+    );
+  });
+
+  await t.test('an otherwise empty checked row still fails closed', () => {
+    const checked = row(optionHeader, { Active: true });
+    const parsed = script.registryV2RowsFromGrid_(
+      'Options', [optionHeader, checked], optionHeader, false,
+    );
+    assert.equal(parsed.length, 1);
+    assert.throws(
+      () => script.registryV2Options_(parsed),
+      /invalid or duplicate option/,
+    );
+  });
+});
+
 test('once Options exists, deleting any option column fails closed', async t => {
   const script = loadAppsScript();
   const header = Array.from(script.REGISTRY_V2_HEADERS.Options);
