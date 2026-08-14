@@ -101,9 +101,12 @@ content-only Drive/Sheet releases when the approved code is already on `main`.
    `.html` inside.
 2. Sync from V2 (menu, or the hourly auto-run) → the project is created as
    **Draft + Preview only**.
-3. Build the stable `develop` Branch Deploy and review the Draft there.
-4. When the content is approved, change its status to **Live**.
-5. Only after explicit approval, choose **Rebuild production site (main)**.
+3. In `Projects`, complete the descriptive fields and choose any `Data Type`
+   and `Instrument Type` labels defined by the visible `Options` table.
+4. Build the stable `develop` Branch Deploy and review the Draft there.
+5. When the content is approved, change its status to **Live** and its
+   permission to **Public**.
+6. Only after explicit approval, choose **Rebuild production site (main)**.
 
 A warm sync still enumerates the complete Drive source inventory and rechecks
 metadata, MIME and direct-parent boundaries. It may use a hash-only
@@ -123,11 +126,16 @@ flush preserves reasons already observed if a later scan check fails closed.
 The shipped Version 12 warm run completed in 27 seconds with 16/16 fingerprint
 reuse and zero source parses. Against the previous 71-second no-change median
 (104/71/56 seconds), that is 44 seconds or 61.97% faster and a 2.63× speedup,
-meeting both the ≤35-second and ≥50% targets. V2 currently contains 16 Live,
-Publication-ready projects, including Raman as `Live + Public`, but Published
-Production intentionally remains at the prior 15 routes with Raman absent:
-automation was `off`, the rollout caused zero Netlify deploys, and Production
-was unchanged.
+meeting both the ≤35-second and ≥50% targets. The current classification code
+baseline is `develop@a6611bcd4db31c39805a436a96d4eb9b259de204` and passes
+345/345 tests. The formal Web App serves the same baseline as Version 15 at its
+existing deployment ID and URL; deployment topology remains exactly two. All
+related Git pushes used `[skip netlify]`, and both in-place rollouts executed no
+functions or Hook, so none of these actions published a new Preview or Production
+artifact. Published Production is the earlier
+`6a7ee842b481720008e4cf70` artifact: schema 2 / taxonomy 4 with 16 demos,
+including Raman. It was built before the editable-facet rollout and therefore
+does not yet contain taxonomy 5 or the new filters.
 
 Code changes follow the separate Git review path: review them on `develop`, then
 merge to `main` only when the code is approved **and ready to go live**. With
@@ -183,6 +191,41 @@ V2 never guesses taxonomy from a title, category or legacy alias at build time.
 A new Draft with blank or unknown taxonomy stays blocked until a maintainer
 chooses valid labels. Active taxonomy and current project counts drive the map,
 filter chips and department pages.
+
+### Editable Data Type and Instrument Type facets
+
+The visible `Options` table is the controlled vocabulary for two flexible
+project facets. `Category` is exactly `data_type` or `instrument_type`; each row
+also has `Option ID`, `Option Label`, `Aliases`, `Display Order`, `Active` and
+`Description`.
+
+- Keep `Option ID` stable after first use. It is a lowercase kebab-case machine
+  identity such as `satellite-imager`; changing a label must not change its ID.
+- `Option Label` is the human-facing dropdown and website label. It must not
+  contain commas, semicolons, pipes or line breaks because those characters
+  delimit lists.
+- `Aliases` is an optional list of older names or convenient input spellings.
+  When renaming a label, add its previous label to `Aliases` so existing
+  `Projects` values still resolve to the same stable ID.
+- `Display Order` is a number controlling option/filter order. `Active` must be
+  a real checked or unchecked checkbox. Before unchecking an option, remove or
+  replace every assignment that uses it; an assigned inactive option blocks
+  that project rather than silently changing its meaning.
+
+In `Projects`, enter one or more labels in `Data Type` and `Instrument Type`,
+separated by commas, for example `1D, 2D` and `Sensor`. The dropdowns are
+suggestions generated from active `Options`; the compiler remains the authority
+and also accepts an unambiguous ID or alias. Repeated selections of the same
+stable ID are de-duplicated; unknown, ambiguous or inactive selections fail
+closed.
+
+After an option or assignment changes, run **AI4S dashboard → Sync Drive folder
+now**, then **Build preview branch** and review the stable private `develop`
+Preview. The page generates filter chips only for active options currently used
+by visible projects. A selected chip matches membership in that facet (a
+project tagged `1D, 2D` matches either `1D` or `2D`); filters from different
+groups are combined with AND. Only after approval should a maintainer choose
+**Rebuild production site (main)**. Sync never publishes Production by itself.
 
 Registry v2 gives each project zero or one optional card image. Editors put the
 image beside that project's HTML in Drive and enter only its direct-child file

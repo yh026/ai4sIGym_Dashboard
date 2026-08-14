@@ -11,7 +11,11 @@ V2 上运行旧版 `setup()`。
 
 V2 workbook 保存：
 
-- `Projects`：维护者日常编辑的 15 个英文可见字段，以及隐藏 `demo_id`。
+- `Projects`：维护者日常编辑的 17 个英文可见字段，包括可多值的
+  `Data Type` 与 `Instrument Type`，以及隐藏 `demo_id`。
+- `Options`：可见的 Data Type / Instrument Type 可编辑词表；必须保持
+  `OptionsCatalogV2` 原生 table。
+- `_OptionLists`：隐藏的动态下拉提示来源；不是人工分类的权威数据，不要直接编辑。
 - `_Registry`、`_Taxonomy`、`_Facets`、`_Assets`：构建使用的机器数据。
 - `_Config`：非敏感站点信息，例如 `schema_version`、`site_title`、
   `site_tagline`、`preview_base_url`。
@@ -63,14 +67,15 @@ Private Preview 验收新 endpoint 后切换。
 5. 从 V2 创建新的 bound Apps Script project，写入完整 code 和 manifest。
 6. 在新项目中逐项创建上表 Properties。复制值时不要把值写进操作文档或日志。
 7. 运行一次新版 `setup()`。它只会：
-   - 校验 V2 六张 compiler input tabs、`_Audit` 和原生 `ProjectsCatalogV2` table；
+   - 校验 V2 六张必需 compiler input tabs、当前 `Options`、`_Audit`，以及
+     原生 `ProjectsCatalogV2` / `OptionsCatalogV2` tables；
    - 校验必要 Properties、Hook、分支、Preview URL 和 Drive root；
    - 保存 V2 Spreadsheet ID；
    - 安装当前 owner 的唯一 hourly `syncDrive` trigger；
    - 创建 V2 菜单。
 8. 保持旧 V1 trigger 停用，确认当前只有新 V2 项目的一个 hourly `syncDrive` trigger，
-   再手动运行一次 V2 `Sync Drive folder now`。核对 `Projects`、`_Registry`、`_Facets`、
-   `_Assets`、Readiness 和 `_Audit`。
+   再手动运行一次 V2 `Sync Drive folder now`。核对 `Projects`、`Options`、
+   `_Registry`、`_Facets`、`_Assets`、Readiness 和 `_Audit`。
 9. 将新项目部署为 Web App：execute as owner，并使用允许 Netlify 无 Google 登录访问的
    access 设置。新 URL 必须先用无痕浏览器验证：无 token 返回 `bad token`；正确 token 的
    manifest 返回 `schema_version: 2`。
@@ -133,26 +138,76 @@ detail 的 1,000 字符上限打包。正常的 3 条 notice 只 append 一行�
   重新打开 V2，并对六张输入表做精确 post-write verification。Fingerprint 只会在 no-op
   linearisation point 或这个精确验证成功后提交。
 
-当前已发布的 fast-path 基线为
-`develop@9a9fec8126de2673b729d4c1dc1788220fc2b2a1`，`Code.gs` SHA-256 为
-`5c2c56c2b04dfdea5386c20932be90e08a1220e0e41e6d3e81d793c3fb3b246a`。正式 Apps Script
-Web App 保持原 deployment ID 和 `/exec` URL，代码为 Version 12，deployment topology
-仍精确为 2，完整测试为 280/280。该上线步骤触发了 0 次 Netlify deploy，Published
+当前 Git 分类功能基线为
+`develop@a6611bcd4db31c39805a436a96d4eb9b259de204`，`Code.gs` SHA-256 为
+`0dafd921e0ac4de430ec3b1902ddefecb1a3d1918159d0256c739def34e84a57`，完整测试为
+345/345。正式 Apps Script Web App 已在原 deployment ID 和 `/exec` URL 上原地更新到
+Version 15，精确对应 `a6611bc`；deployment topology 仍精确为 2。V14 与 V15
+rollout 均为 functions executed=0、Netlify requests/Hooks=0；`[skip netlify]` 推送也没有创建 deploy，Published
 Production 保持不变。
 
 Version 12 现场 warm sync 从 17:41:10 到 17:41:37，`_Audit` 可见耗时 27 秒：16/16
 fingerprint reuse、0 个来源重新解析，且 Sheet 已是 current。旧版三次 no-change 样本为
 104/71/56 秒，中位数 71 秒；当前减少 44 秒（61.97%），速度为旧基线的 2.63 倍，同时满足
-`≤35 秒` 和 `≥50%` 两个目标。最终 V2 Sheet 是 Projects 16（全部 `Live + Publication
-ready`）、`_Registry=16`、`_Facets=50`、`_Assets=16`，其中 Raman 在 Sheet 中已是
-`Live + Public`；这不表示 Production 已更新：Published Production 仍是此前 15 条 demo
-route，Raman 因自动发布为 `off` 且没有 deploy 而尚未出现。
+`≤35 秒` 和 `≥50%` 两个目标。该 Version 12 现场阶段的 V2 Sheet 是 Projects 16（全部
+`Live + Publication ready`）、`_Registry=16`、`_Facets=50`、`_Assets=16`；它保留为
+历史性能证据。随后内容发布已由当前 Published deploy
+`6a7ee842b481720008e4cf70` 接替：它是 schema 2 / taxonomy 4 的 16-demo 快照，
+已包含 Raman，但构建于新 facets / taxonomy 5 上线之前。
 
 新 Draft 补齐 Card Summary、Department、Subtopic、Task Type 和 Methods 后，才会成为
 Preview ready。Card Image 和 Data Source 仍为可选字段；选择图片时，图片必须是项目 HTML
 同一文件夹的直接子文件，在 Card Image 填写精确文件名（不是 Drive ID、路径或 URL），并
 填写英文 Image Alt Text。同步会自动维护 `_Assets`；同名图片替换后采用新的 Drive ID，
 清空 Card Image 会移除对应机器索引。
+
+### 4.1 维护 Data Type / Instrument Type 选项
+
+`Options` 是两组标签的唯一人工词表，表头必须精确保持：
+
+```text
+Category | Option ID | Option Label | Aliases | Display Order | Active | Description
+```
+
+新增或修改选项时：
+
+1. 新增一行；`Category` 只能是 `data_type` 或 `instrument_type`。
+2. `Option ID` 使用小写 kebab-case，例如 `satellite-imager`。一旦有项目使用就不再
+   修改 ID；网站、`_Registry` 和 `_Facets` 以它作为稳定身份。
+3. `Option Label` 是 Projects 下拉与网页 filter chip 显示的名称。名称不能包含
+   `,` / `;` / `|` 或换行。
+4. `Aliases` 可写旧名或别名，多个值可用逗号、分号、竖线或换行分隔。
+   如果改 `Option Label`，先把旧 label 放进 `Aliases`，并保持 ID 不变。
+5. `Display Order` 必须是数字；`Active` 必须是真实 checkbox boolean；
+   `Description` 可选。不要删除 table 或表头。
+
+`Projects.Data Type` 和 `Projects.Instrument Type` 都可以留空，也可以填多个值。
+多值用逗号分隔，例如：
+
+```text
+Data Type: 1D, 2D
+Instrument Type: Sensor
+```
+
+Google Sheets 下拉只是来自隐藏 `_OptionLists` 的动态提示；最终以 V2 编译校验
+为准。项目值可以使用当前 label、稳定 ID 或唯一 alias。重复选到同一稳定 ID
+会自动去重；未知、有歧义或 inactive 值会 fail closed。若要停用一个选项，先在所有 Projects 中清除或
+替换该标签，确认 Preview 正常后再取消 `Active`；否则被分配 inactive 选项的项目会
+被阻断，不会被静默改类。
+
+修改 `Options` 或 Projects 分类后的固定顺序是：
+
+1. `AI4S dashboard → Sync Drive folder now`；等待 `_Audit` 出现成功记录，并核对
+   `_Registry.data_type_ids` / `instrument_type_ids` 与 `_Facets`。
+2. `AI4S dashboard → Build preview branch`；在 Private `develop` Preview 检查标签、
+   搜索和 filter chips。
+3. 只有内容审批通过后，才使用 `Rebuild production site (main)`。同步本身
+   从不自动发布 Production。
+
+网页每个筛选组同时只选一个 chip，对项目的多值集合做 membership 匹配；
+例如 `1D, 2D` 会分别匹配 `1D` 或 `2D`。Data Type、Instrument Type、Department、
+Method/Task 等不同组合并时取 AND。只为当前页面上有可见项目使用的 active option
+生成 chip；label 同时进入搜索文本。
 
 ## 5. Preview 与 Production
 
