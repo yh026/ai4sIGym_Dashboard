@@ -3649,16 +3649,14 @@ function registryV2ResolveHumanTerm_(value, group, taxonomyIndex) {
 }
 
 function registryV2ResolveHumanList_(value, group, taxonomyIndex) {
-  var ids = registryV2List_(value).map(function (item) {
+  var seen = {};
+  return registryV2List_(value).map(function (item) {
     return registryV2ResolveHumanTerm_(item, group, taxonomyIndex);
+  }).filter(function (id) {
+    if (seen[id]) return false;
+    seen[id] = true;
+    return true;
   });
-  if (ids.length !== Object.keys(ids.reduce(function (out, id) {
-    out[id] = true;
-    return out;
-  }, {})).length) {
-    throw new Error('Registry v2 Projects has a duplicate taxonomy selection.');
-  }
-  return ids;
 }
 
 function registryV2SameIdSet_(left, right) {

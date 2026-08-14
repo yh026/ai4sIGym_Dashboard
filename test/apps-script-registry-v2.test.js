@@ -832,7 +832,8 @@ test('v2 Options resolves editable labels and aliases into public data and instr
     }),
   ]);
   const projects = sheet.getSheetByName('Projects');
-  projects.rows[1][projects.rows[0].indexOf('Data Type')] = 'Planar | 1D';
+  projects.rows[1][projects.rows[0].indexOf('Data Type')]
+    = 'Planar | 1D | 2D | 1d';
   projects.rows[1][projects.rows[0].indexOf('Instrument Type')] = 'Raman spectroscopy';
   const registry = sheet.getSheetByName('_Registry');
   registry.rows[1][registry.rows[0].indexOf('data_type_ids')] = '2d, 1d';
