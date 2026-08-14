@@ -93,7 +93,8 @@ var REGISTRY_V2_PROJECT_FIELDS = [
   ['status', 'Status'], ['readiness', 'Readiness'], ['preview_url', 'Preview URL'],
   ['title', 'Project Title'], ['card_summary', 'Card Summary'],
   ['department', 'Department'], ['subtopic', 'Subtopic'], ['task', 'Task Type'],
-  ['methods', 'Methods'], ['card_image', 'Card Image'],
+  ['methods', 'Methods'], ['data_types', 'Data Type'],
+  ['instrument_types', 'Instrument Type'], ['card_image', 'Card Image'],
   ['image_alt', 'Image Alt Text'], ['audience', 'Audience'],
   ['featured', 'Featured'], ['data_source', 'Data Source'],
   ['public_permission', 'Public Permission'], ['demo_id', 'demo_id']
@@ -102,13 +103,18 @@ var REGISTRY_V2_HEADERS = {
   _Registry: [
     'schema_version', 'row_number', 'demo_id', 'entry_type', 'slug', 'status',
     'readiness', 'featured', 'sort_order', 'title', 'card_summary',
-    'department_id', 'subtopic_id', 'task_ids', 'method_ids', 'audience',
+    'department_id', 'subtopic_id', 'task_ids', 'method_ids', 'data_type_ids',
+    'instrument_type_ids', 'audience',
     'data_source_label', 'public_page_permission', 'card_asset_id', 'file_id',
     'file_check', 'date_added'
   ],
   _Taxonomy: [
     'term_type', 'term_id', 'parent_id', 'label', 'short_label', 'description',
     'display_order', 'active', 'theme_key', 'icon_key', 'aliases'
+  ],
+  Options: [
+    'Category', 'Option ID', 'Option Label', 'Aliases', 'Display Order',
+    'Active', 'Description'
   ],
   _Facets: ['demo_id', 'facet_type', 'term_id', 'display_order'],
   _Assets: [
@@ -2358,7 +2364,7 @@ function registrySpreadsheet_() {
 
 function isRegistryV2Spreadsheet_(ss) {
   if (!ss || typeof ss.getSheetByName !== 'function') return false;
-  return REGISTRY_V2_COMPILE_SHEETS.every(function (name) {
+  return REGISTRY_V2_REQUIRED_COMPILE_SHEETS.every(function (name) {
     return Boolean(ss.getSheetByName(name));
   });
 }
@@ -2533,6 +2539,20 @@ function registryV2Table_(ss, sheetName, expectedHeaders, projectHeaders) {
     expectedHeaders, projectHeaders);
 }
 
+var REGISTRY_V2_OPTIONAL_PROJECT_FIELDS = {
+  data_types: true,
+  instrument_types: true
+};
+var REGISTRY_V2_OPTIONAL_MACHINE_HEADERS = {
+  _Registry: { data_type_ids: true, instrument_type_ids: true }
+};
+
+function registryV2HeaderIsOptional_(sheetName, key, projectHeaders) {
+  if (projectHeaders) return REGISTRY_V2_OPTIONAL_PROJECT_FIELDS[key] === true;
+  return Boolean(REGISTRY_V2_OPTIONAL_MACHINE_HEADERS[sheetName]
+    && REGISTRY_V2_OPTIONAL_MACHINE_HEADERS[sheetName][key] === true);
+}
+
 function registryV2RowsFromGrid_(sheetName, grid, expectedHeaders, projectHeaders) {
   if (!grid || !grid.length || !grid[0].length) {
     throw new Error('Registry v2 sheet ' + sheetName + ' has no header.');
@@ -2564,7 +2584,9 @@ function registryV2RowsFromGrid_(sheetName, grid, expectedHeaders, projectHeader
     keys.push(key);
   });
   canonical.forEach(function (key) {
-    if (!seen[key]) throw new Error('Registry v2 sheet ' + sheetName + ' is missing ' + key + '.');
+    if (!seen[key] && !registryV2HeaderIsOptional_(sheetName, key, projectHeaders)) {
+      throw new Error('Registry v2 sheet ' + sheetName + ' is missing ' + key + '.');
+    }
   });
   return grid.slice(1)
     .map(function (row, rowIndex) {
@@ -2576,15 +2598,31 @@ function registryV2RowsFromGrid_(sheetName, grid, expectedHeaders, projectHeader
     .filter(function (row) { return row !== null; });
 }
 
-var REGISTRY_V2_COMPILE_SHEETS = [
+var REGISTRY_V2_REQUIRED_COMPILE_SHEETS = [
   'Projects', '_Registry', '_Taxonomy', '_Facets', '_Assets', '_Config'
 ];
+var REGISTRY_V2_COMPILE_SHEETS = REGISTRY_V2_REQUIRED_COMPILE_SHEETS.concat(['Options']);
+
+function registryV2EmptyOptionsState_() {
+  var header = REGISTRY_V2_HEADERS.Options.slice();
+  return {
+    rows: 1,
+    columns: header.length,
+    values: [header],
+    formulas: [header.map(function () { return ''; })],
+    missing: true
+  };
+}
 
 /** Capture all compiler inputs, including formulas, without changing the workbook. */
 function registryV2WorkbookState_(ss) {
   var state = {};
   REGISTRY_V2_COMPILE_SHEETS.forEach(function (sheetName) {
     var sheet = ss.getSheetByName(sheetName);
+    if (!sheet && sheetName === 'Options') {
+      state.Options = registryV2EmptyOptionsState_();
+      return;
+    }
     if (!sheet) throw new Error('Registry v2 is missing sheet ' + sheetName + '.');
     var rows = Math.max(sheet.getLastRow(), 1);
     var columns = sheet.getLastColumn();
@@ -2600,7 +2638,8 @@ function registryV2WorkbookState_(ss) {
       rows: rows,
       columns: columns,
       values: values,
-      formulas: formulas
+      formulas: formulas,
+      missing: false
     };
   });
   return state;
@@ -2614,12 +2653,34 @@ function registryV2RowsFromState_(state, sheetName, expectedHeaders, projectHead
     expectedHeaders, projectHeaders);
 }
 
+/**
+ * Missing option columns are accepted only for the pre-migration V2 layout.
+ * Once the visible Options control plane exists, deleting a human or machine
+ * option column must fail closed instead of silently clearing its facets.
+ */
+function registryV2RequireOptionColumns_(state) {
+  if (!state || !state.Options || state.Options.missing) return;
+  var projects = registryV2HeaderMap_(state.Projects.values[0], true);
+  var registry = registryV2HeaderMap_(state._Registry.values[0], false);
+  ['data_types', 'instrument_types'].forEach(function (key) {
+    if (!Object.prototype.hasOwnProperty.call(projects, key)) {
+      throw new Error('Registry v2 Projects is missing ' + key + '.');
+    }
+  });
+  ['data_type_ids', 'instrument_type_ids'].forEach(function (key) {
+    if (!Object.prototype.hasOwnProperty.call(registry, key)) {
+      throw new Error('Registry v2 _Registry is missing ' + key + '.');
+    }
+  });
+}
+
 function registryV2WorkbookStatesEqual_(left, right) {
   for (var s = 0; s < REGISTRY_V2_COMPILE_SHEETS.length; s++) {
     var name = REGISTRY_V2_COMPILE_SHEETS[s];
     var a = left && left[name];
     var b = right && right[name];
-    if (!a || !b || a.rows !== b.rows || a.columns !== b.columns) return false;
+    if (!a || !b || Boolean(a.missing) !== Boolean(b.missing)
+        || a.rows !== b.rows || a.columns !== b.columns) return false;
     for (var r = 0; r < a.rows; r++) {
       for (var c = 0; c < a.columns; c++) {
         if (!sameCellValue_(a.values[r][c], b.values[r][c])
@@ -2650,7 +2711,8 @@ function registryV2CloneState_(state) {
       rows: state[name].rows,
       columns: state[name].columns,
       values: state[name].values.map(function (row) { return row.slice(); }),
-      formulas: state[name].formulas.map(function (row) { return row.slice(); })
+      formulas: state[name].formulas.map(function (row) { return row.slice(); }),
+      missing: Boolean(state[name].missing)
     };
   });
   return out;
@@ -2678,6 +2740,10 @@ function registryV2SetRowField_(row, headerMap, key, value) {
     throw new Error('Registry v2 is missing column ' + key + '.');
   }
   row[headerMap[key]] = value;
+}
+
+function registryV2SetOptionalRowField_(row, headerMap, key, value) {
+  if (Object.prototype.hasOwnProperty.call(headerMap, key)) row[headerMap[key]] = value;
 }
 
 function registryV2EnglishFolderName_(value) {
@@ -2714,6 +2780,8 @@ function registryV2AutoProjectRow_(header, demoId, title, summary, dataSource,
   registryV2SetRowField_(row, map, 'subtopic', subtopic);
   registryV2SetRowField_(row, map, 'task', task);
   registryV2SetRowField_(row, map, 'methods', methods);
+  registryV2SetOptionalRowField_(row, map, 'data_types', '');
+  registryV2SetOptionalRowField_(row, map, 'instrument_types', '');
   registryV2SetRowField_(row, map, 'card_image', '');
   registryV2SetRowField_(row, map, 'image_alt', '');
   registryV2SetRowField_(row, map, 'audience', audience);
@@ -2822,7 +2890,11 @@ function registryV2ProjectProjection_(project, taxonomyIndex) {
     department_id: department,
     subtopic_id: subtopic,
     task_ids: registryV2ResolveHumanList_(project.task, 'tasks', taxonomyIndex),
-    method_ids: registryV2ResolveHumanList_(project.methods, 'methods', taxonomyIndex)
+    method_ids: registryV2ResolveHumanList_(project.methods, 'methods', taxonomyIndex),
+    data_type_ids: registryV2ResolveHumanList_(
+      project.data_types, 'data_types', taxonomyIndex),
+    instrument_type_ids: registryV2ResolveHumanList_(
+      project.instrument_types, 'instrument_types', taxonomyIndex)
   };
 }
 
@@ -2889,6 +2961,7 @@ function registryV2ItemRecord_(item, cfg) {
 }
 
 function registryV2AutoPlan_(before, cfg, items) {
+  registryV2RequireOptionColumns_(before);
   var target = registryV2CloneState_(before);
   var projects = registryV2RowsFromState_(before, 'Projects', [], true);
   var registry = registryV2RowsFromState_(
@@ -2899,8 +2972,10 @@ function registryV2AutoPlan_(before, cfg, items) {
     before, '_Assets', REGISTRY_V2_HEADERS._Assets, false);
   var taxonomyRows = registryV2RowsFromState_(
     before, '_Taxonomy', REGISTRY_V2_HEADERS._Taxonomy, false);
-  var taxonomy = registryV2Taxonomy_(taxonomyRows);
-  var taxonomyIndex = registryV2TaxonomyIndex_(taxonomy, taxonomyRows);
+  var optionRows = registryV2RowsFromState_(
+    before, 'Options', REGISTRY_V2_HEADERS.Options, false);
+  var taxonomy = registryV2Taxonomy_(taxonomyRows, optionRows);
+  var taxonomyIndex = registryV2TaxonomyIndex_(taxonomy, taxonomyRows, optionRows);
   var registryMap = registryV2HeaderMap_(target._Registry.values[0], false);
   var projectsById = {};
   projects.forEach(function (project) {
@@ -3018,6 +3093,10 @@ function registryV2AutoPlan_(before, cfg, items) {
     registryV2SetRowField_(registryRow, registryMap, 'subtopic_id', projected.subtopic_id);
     registryV2SetRowField_(registryRow, registryMap, 'task_ids', projected.task_ids.join(', '));
     registryV2SetRowField_(registryRow, registryMap, 'method_ids', projected.method_ids.join(', '));
+    registryV2SetOptionalRowField_(registryRow, registryMap,
+      'data_type_ids', projected.data_type_ids.join(', '));
+    registryV2SetOptionalRowField_(registryRow, registryMap,
+      'instrument_type_ids', projected.instrument_type_ids.join(', '));
     registryV2SetRowField_(registryRow, registryMap, 'audience', audience);
     registryV2SetRowField_(registryRow, registryMap, 'data_source_label', dataSource);
     registryV2SetRowField_(registryRow, registryMap, 'public_page_permission', 'Preview only');
@@ -3055,6 +3134,10 @@ function registryV2AutoPlan_(before, cfg, items) {
     registryV2SetRowField_(registryRow, registryMap, 'subtopic_id', projection.subtopic_id);
     registryV2SetRowField_(registryRow, registryMap, 'task_ids', projection.task_ids.join(', '));
     registryV2SetRowField_(registryRow, registryMap, 'method_ids', projection.method_ids.join(', '));
+    registryV2SetOptionalRowField_(registryRow, registryMap,
+      'data_type_ids', projection.data_type_ids.join(', '));
+    registryV2SetOptionalRowField_(registryRow, registryMap,
+      'instrument_type_ids', projection.instrument_type_ids.join(', '));
     registryV2SetRowField_(registryRow, registryMap, 'audience', project.audience);
     registryV2SetRowField_(registryRow, registryMap, 'data_source_label', project.data_source);
     registryV2SetRowField_(registryRow, registryMap, 'public_page_permission', project.public_permission);
@@ -3078,7 +3161,11 @@ function registryV2AutoPlan_(before, cfg, items) {
     }
     desiredFacets = desiredFacets.concat(
       registryV2FacetRowsFor_(demoId, 'task', projection.task_ids, target._Facets.values[0]),
-      registryV2FacetRowsFor_(demoId, 'method', projection.method_ids, target._Facets.values[0]));
+      registryV2FacetRowsFor_(demoId, 'method', projection.method_ids, target._Facets.values[0]),
+      registryV2FacetRowsFor_(demoId, 'data_type',
+        projection.data_type_ids, target._Facets.values[0]),
+      registryV2FacetRowsFor_(demoId, 'instrument_type',
+        projection.instrument_type_ids, target._Facets.values[0]));
   });
   target._Facets.values = [target._Facets.values[0]].concat(desiredFacets);
   target._Facets.formulas = target._Facets.values.map(function (row) {
@@ -3171,6 +3258,11 @@ function registryV2SheetsMetadata_(spreadsheetId) {
       || !sheets.Projects.table_id) {
     throw new Error('Registry v2 Projects must remain a native Google Sheets table.');
   }
+  if (sheets.Options && (sheets.Options.table_count !== 1
+      || sheets.Options.table_name !== 'OptionsCatalogV2'
+      || !sheets.Options.table_id)) {
+    throw new Error('Registry v2 Options must remain the OptionsCatalogV2 native table.');
+  }
   ['_Registry', '_Facets', '_Assets', '_Audit'].forEach(function (name) {
     if (!sheets[name] || sheets[name].table_count !== 0) {
       throw new Error('Registry v2 machine sheet ' + name + ' must remain a plain grid.');
@@ -3186,6 +3278,16 @@ function registryV2VerifyTableMetadata_(metadata, before) {
       || Number(range.endColumnIndex) !== before.Projects.columns
       || Number(range.endRowIndex) !== before.Projects.rows) {
     throw new Error('Registry v2 Projects table range does not match its current workbook.');
+  }
+  if (before.Options && !before.Options.missing) {
+    if (!metadata.Options) throw new Error('Registry v2 Options metadata is missing.');
+    var optionRange = metadata.Options.table_range || {};
+    if (Number(optionRange.startRowIndex || 0) !== 0
+        || Number(optionRange.startColumnIndex || 0) !== 0
+        || Number(optionRange.endColumnIndex) !== before.Options.columns
+        || Number(optionRange.endRowIndex) !== before.Options.rows) {
+      throw new Error('Registry v2 Options table range does not match its current workbook.');
+    }
   }
 }
 
@@ -3385,8 +3487,49 @@ function registryV2RefreshOperationalProperties_(baseConfig) {
   return config;
 }
 
-function registryV2Taxonomy_(rows) {
-  var result = { departments: [], subtopics: [], tasks: [], methods: [] };
+function registryV2Options_(rows) {
+  var result = { data_types: [], instrument_types: [] };
+  var byGroup = { data_type: 'data_types', instrument_type: 'instrument_types' };
+  var seen = { data_types: {}, instrument_types: {} };
+  (rows || []).forEach(function (row) {
+    var category = registryV2Clean_(row.Category).toLowerCase();
+    var group = byGroup[category];
+    var id = registryV2Clean_(row['Option ID']);
+    var label = registryV2Clean_(row['Option Label']);
+    var displayOrder = row['Display Order'];
+    if (!group || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)
+        || seen[group][id] || !label || /[;,|\r\n]/.test(label)) {
+      throw new Error('Registry v2 Options has an invalid or duplicate option.');
+    }
+    if (row.Active !== true && row.Active !== false) {
+      throw new Error('Registry v2 Options Active values must be booleans.');
+    }
+    if (typeof displayOrder !== 'number' || !isFinite(displayOrder)) {
+      throw new Error('Registry v2 Options Display Order values must be numbers.');
+    }
+    seen[group][id] = true;
+    result[group].push({
+      id: id,
+      label: label,
+      description: registryV2Clean_(row.Description),
+      display_order: displayOrder,
+      active: row.Active
+    });
+  });
+  ['data_types', 'instrument_types'].forEach(function (group) {
+    result[group].sort(function (left, right) {
+      return left.display_order - right.display_order || left.id.localeCompare(right.id);
+    });
+  });
+  return result;
+}
+
+function registryV2Taxonomy_(rows, optionRows) {
+  var options = registryV2Options_(optionRows || []);
+  var result = {
+    departments: [], subtopics: [], tasks: [], methods: [],
+    data_types: options.data_types, instrument_types: options.instrument_types
+  };
   var groups = {
     department: 'departments', departments: 'departments',
     subtopic: 'subtopics', subtopics: 'subtopics',
@@ -3439,10 +3582,14 @@ function registryV2LookupKey_(value) {
   return registryV2Clean_(value).toLowerCase().replace(/\s+/g, ' ');
 }
 
-function registryV2TaxonomyIndex_(taxonomy, taxonomyRows) {
+function registryV2TaxonomyIndex_(taxonomy, taxonomyRows, optionRows) {
   var index = {
     departments: {}, subtopics: {}, tasks: {}, methods: {},
-    lookup: { departments: {}, subtopics: {}, tasks: {}, methods: {} }
+    data_types: {}, instrument_types: {},
+    lookup: {
+      departments: {}, subtopics: {}, tasks: {}, methods: {},
+      data_types: {}, instrument_types: {}
+    }
   };
   Object.keys(index).forEach(function (group) {
     if (group === 'lookup') return;
@@ -3459,6 +3606,20 @@ function registryV2TaxonomyIndex_(taxonomy, taxonomyRows) {
     if (!group || !index[group][id]) return;
     var candidates = [id, row.label, row.short_label]
       .concat(registryV2List_(row.aliases));
+    candidates.forEach(function (candidate) {
+      var key = registryV2LookupKey_(candidate);
+      if (!key) return;
+      var current = index.lookup[group][key];
+      if (current && current !== id) index.lookup[group][key] = null;
+      else if (current === undefined) index.lookup[group][key] = id;
+    });
+  });
+  var optionGroups = { data_type: 'data_types', instrument_type: 'instrument_types' };
+  (optionRows || []).forEach(function (row) {
+    var group = optionGroups[registryV2Clean_(row.Category).toLowerCase()];
+    var id = registryV2Clean_(row['Option ID']);
+    if (!group || !index[group][id]) return;
+    var candidates = [id, row['Option Label']].concat(registryV2List_(row.Aliases));
     candidates.forEach(function (candidate) {
       var key = registryV2LookupKey_(candidate);
       if (!key) return;
@@ -3508,10 +3669,16 @@ function registryV2HumanTaxonomy_(project, source, demoFacets, taxonomyIndex) {
     subtopic_id: registryV2ResolveHumanTerm_(
       project.subtopic, 'subtopics', taxonomyIndex),
     task_ids: registryV2ResolveHumanList_(project.task, 'tasks', taxonomyIndex),
-    method_ids: registryV2ResolveHumanList_(project.methods, 'methods', taxonomyIndex)
+    method_ids: registryV2ResolveHumanList_(project.methods, 'methods', taxonomyIndex),
+    data_type_ids: registryV2ResolveHumanList_(
+      project.data_types, 'data_types', taxonomyIndex),
+    instrument_type_ids: registryV2ResolveHumanList_(
+      project.instrument_types, 'instrument_types', taxonomyIndex)
   };
   var indexedTasks = demoFacets.task.map(function (item) { return item.id; });
   var indexedMethods = demoFacets.method.map(function (item) { return item.id; });
+  var indexedDataTypes = demoFacets.data_type.map(function (item) { return item.id; });
+  var indexedInstrumentTypes = demoFacets.instrument_type.map(function (item) { return item.id; });
   var subtopic = resolved.subtopic_id
     ? taxonomyIndex.subtopics[resolved.subtopic_id] : null;
   if (resolved.department_id && subtopic
@@ -3521,7 +3688,9 @@ function registryV2HumanTaxonomy_(project, source, demoFacets, taxonomyIndex) {
   if (resolved.department_id !== registryV2Clean_(source.department_id)
       || resolved.subtopic_id !== registryV2Clean_(source.subtopic_id)
       || !registryV2SameIdSet_(resolved.task_ids, indexedTasks)
-      || !registryV2SameIdSet_(resolved.method_ids, indexedMethods)) {
+      || !registryV2SameIdSet_(resolved.method_ids, indexedMethods)
+      || !registryV2SameIdSet_(resolved.data_type_ids, indexedDataTypes)
+      || !registryV2SameIdSet_(resolved.instrument_type_ids, indexedInstrumentTypes)) {
     throw new Error('Registry v2 human taxonomy does not match its hidden index.');
   }
   return resolved;
@@ -3548,6 +3717,13 @@ function registryV2ReadinessError_(demo, project, taxonomyIndex) {
   if (!demo.method_ids.length || demo.method_ids.some(function (id) {
     return !taxonomyIndex.methods[id] || taxonomyIndex.methods[id].active !== true;
   })) return 'method';
+  if (demo.data_type_ids.some(function (id) {
+    return !taxonomyIndex.data_types[id] || taxonomyIndex.data_types[id].active !== true;
+  })) return 'data type';
+  if (demo.instrument_type_ids.some(function (id) {
+    return !taxonomyIndex.instrument_types[id]
+      || taxonomyIndex.instrument_types[id].active !== true;
+  })) return 'instrument type';
   if (!demo.file_id || !registryV2PageHealthy_(demo.file_check)) return 'source file';
   if (demo.status === 'Live' && demo.public_page_permission !== 'Public') {
     return 'public permission';
@@ -3610,19 +3786,22 @@ function registryV2SameDriveInfo_(left, right) {
 
 function registryV2CompileState_(ss, cfg, audience, workbookState) {
   var state = workbookState || registryV2WorkbookState_(ss);
+  registryV2RequireOptionColumns_(state);
   var projects = registryV2RowsFromState_(state, 'Projects', [], true);
   var registry = registryV2RowsFromState_(
     state, '_Registry', REGISTRY_V2_HEADERS._Registry, false);
   var taxonomyRows = registryV2RowsFromState_(
     state, '_Taxonomy', REGISTRY_V2_HEADERS._Taxonomy, false);
+  var optionRows = registryV2RowsFromState_(
+    state, 'Options', REGISTRY_V2_HEADERS.Options, false);
   var facets = registryV2RowsFromState_(
     state, '_Facets', REGISTRY_V2_HEADERS._Facets, false);
   var assets = registryV2RowsFromState_(
     state, '_Assets', REGISTRY_V2_HEADERS._Assets, false);
   var v2Config = registryV2Config_(
     registryV2RowsFromState_(state, '_Config', REGISTRY_V2_HEADERS._Config, false));
-  var taxonomy = registryV2Taxonomy_(taxonomyRows);
-  var taxonomyIndex = registryV2TaxonomyIndex_(taxonomy, taxonomyRows);
+  var taxonomy = registryV2Taxonomy_(taxonomyRows, optionRows);
+  var taxonomyIndex = registryV2TaxonomyIndex_(taxonomy, taxonomyRows, optionRows);
   var projectsById = {};
   projects.forEach(function (project) {
     var id = registryV2Clean_(project.demo_id);
@@ -3645,15 +3824,17 @@ function registryV2CompileState_(ss, cfg, audience, workbookState) {
   facets.forEach(function (facet) {
     var id = registryV2Clean_(facet.demo_id);
     var type = registryV2Clean_(facet.facet_type).toLowerCase();
-    if (type !== 'task' && type !== 'method') return;
-    if (!facetsByDemo[id]) facetsByDemo[id] = { task: [], method: [] };
+    if (['task', 'method', 'data_type', 'instrument_type'].indexOf(type) === -1) return;
+    if (!facetsByDemo[id]) facetsByDemo[id] = {
+      task: [], method: [], data_type: [], instrument_type: []
+    };
     facetsByDemo[id][type].push({
       id: registryV2Clean_(facet.term_id),
       order: registryV2Number_(facet.display_order, 0)
     });
   });
   Object.keys(facetsByDemo).forEach(function (id) {
-    ['task', 'method'].forEach(function (type) {
+    ['task', 'method', 'data_type', 'instrument_type'].forEach(function (type) {
       facetsByDemo[id][type].sort(function (a, b) { return a.order - b.order; });
     });
   });
@@ -3692,7 +3873,9 @@ function registryV2CompileState_(ss, cfg, audience, workbookState) {
     }
     seenFiles[fileId] = true;
     seenSlugs[slug] = true;
-    var demoFacets = facetsByDemo[demoId] || { task: [], method: [] };
+    var demoFacets = facetsByDemo[demoId] || {
+      task: [], method: [], data_type: [], instrument_type: []
+    };
     var humanTaxonomy = registryV2HumanTaxonomy_(
       project, source, demoFacets, taxonomyIndex);
     var demo = {
@@ -3709,6 +3892,8 @@ function registryV2CompileState_(ss, cfg, audience, workbookState) {
       subtopic_id: humanTaxonomy.subtopic_id,
       task_ids: humanTaxonomy.task_ids,
       method_ids: humanTaxonomy.method_ids,
+      data_type_ids: humanTaxonomy.data_type_ids,
+      instrument_type_ids: humanTaxonomy.instrument_type_ids,
       audience: registryV2Clean_(project.audience),
       data_source_label: registryV2Clean_(project.data_source),
       public_page_permission: registryV2Clean_(project.public_permission),
@@ -4013,6 +4198,8 @@ function registryV2ReadinessText_(item) {
     'taxonomy': 'Department / Subtopic',
     'task': 'Task Type',
     'method': 'Methods',
+    'data type': 'Data Type',
+    'instrument type': 'Instrument Type',
     'source file': 'Source File Check',
     'public permission': 'Public Permission',
     'preview permission': 'Public Permission'

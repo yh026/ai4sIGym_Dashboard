@@ -762,10 +762,11 @@ test('v2 manifest reads all six tables, keeps default images null, and applies a
   assert.equal(production.demos[0].card_asset, null);
   assert.equal(production.demos[0].file_check.startsWith('check assets:'), true);
   assert.deepEqual(Object.keys(production.demos[0]).sort(), [
-    'audience', 'card_asset', 'card_summary', 'data_source_label', 'date_added',
-    'demo_id', 'department_id', 'entry_type', 'featured', 'file_check', 'file_id',
-    'method_ids', 'public_page_permission', 'slug', 'sort_order', 'status',
-    'subtopic_id', 'task_ids', 'title',
+    'audience', 'card_asset', 'card_summary', 'data_source_label', 'data_type_ids',
+    'date_added', 'demo_id', 'department_id', 'entry_type', 'featured',
+    'file_check', 'file_id', 'instrument_type_ids', 'method_ids',
+    'public_page_permission', 'slug', 'sort_order', 'status', 'subtopic_id',
+    'task_ids', 'title',
   ]);
 
   const preview = script.doGet({ parameter: {
@@ -780,6 +781,180 @@ test('v2 manifest reads all six tables, keeps default images null, and applies a
   assert.deepEqual({ ok: archived.ok, error: archived.error }, {
     ok: false, error: 'schema 1 is archived; schema must be 2',
   });
+});
+
+test('the pre-migration V2 layout remains readable without Options or its four columns', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script);
+  const removeColumns = (sheetName, labels) => {
+    const target = sheet.getSheetByName(sheetName);
+    const indexes = labels.map(label => target.rows[0].indexOf(label))
+      .sort((left, right) => right - left);
+    indexes.forEach(index => {
+      assert.notEqual(index, -1);
+      target.rows.forEach(values => values.splice(index, 1));
+    });
+  };
+  removeColumns('Projects', ['Data Type', 'Instrument Type']);
+  removeColumns('_Registry', ['data_type_ids', 'instrument_type_ids']);
+  installServices(script, sheet, standardDrive());
+
+  const manifest = script.doGet({ parameter: {
+    token: 'secret', action: 'manifest', audience: 'production',
+  } });
+  assert.equal(manifest.ok, true);
+  assert.deepEqual(Array.from(manifest.demos[0].data_type_ids), []);
+  assert.deepEqual(Array.from(manifest.demos[0].instrument_type_ids), []);
+  assert.deepEqual(Array.from(manifest.taxonomy.data_types), []);
+  assert.deepEqual(Array.from(manifest.taxonomy.instrument_types), []);
+});
+
+test('v2 Options resolves editable labels and aliases into public data and instrument facets', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script);
+  const optionHeader = Array.from(script.REGISTRY_V2_HEADERS.Options);
+  sheet.sheets.Options = new FakeSheet([
+    optionHeader,
+    row(optionHeader, {
+      Category: 'data_type', 'Option ID': '1d', 'Option Label': '1D',
+      Aliases: 'Line series', 'Display Order': 1, Active: true,
+      Description: 'One ordered measurement axis.',
+    }),
+    row(optionHeader, {
+      Category: 'data_type', 'Option ID': '2d', 'Option Label': '2D',
+      Aliases: 'Planar', 'Display Order': 2, Active: true,
+      Description: 'Two-dimensional records or spatial fields.',
+    }),
+    row(optionHeader, {
+      Category: 'instrument_type', 'Option ID': 'raman', 'Option Label': 'Raman',
+      Aliases: 'Raman spectroscopy', 'Display Order': 1, Active: true,
+      Description: 'Raman spectroscopy instruments.',
+    }),
+  ]);
+  const projects = sheet.getSheetByName('Projects');
+  projects.rows[1][projects.rows[0].indexOf('Data Type')] = 'Planar | 1D';
+  projects.rows[1][projects.rows[0].indexOf('Instrument Type')] = 'Raman spectroscopy';
+  const registry = sheet.getSheetByName('_Registry');
+  registry.rows[1][registry.rows[0].indexOf('data_type_ids')] = '2d, 1d';
+  registry.rows[1][registry.rows[0].indexOf('instrument_type_ids')] = 'raman';
+  const facets = sheet.getSheetByName('_Facets');
+  const facetHeader = facets.rows[0];
+  facets.rows.push(
+    row(facetHeader, {
+      demo_id: 'demo-live', facet_type: 'data_type', term_id: '2d', display_order: 1,
+    }),
+    row(facetHeader, {
+      demo_id: 'demo-live', facet_type: 'data_type', term_id: '1d', display_order: 2,
+    }),
+    row(facetHeader, {
+      demo_id: 'demo-live', facet_type: 'instrument_type', term_id: 'raman',
+      display_order: 1,
+    }),
+  );
+  installServices(script, sheet, standardDrive());
+
+  const manifest = script.doGet({ parameter: {
+    token: 'secret', action: 'manifest', audience: 'production',
+  } });
+
+  assert.equal(manifest.ok, true);
+  assert.deepEqual(Array.from(manifest.demos[0].data_type_ids), ['2d', '1d']);
+  assert.deepEqual(Array.from(manifest.demos[0].instrument_type_ids), ['raman']);
+  assert.deepEqual(JSON.parse(JSON.stringify(manifest.taxonomy.data_types)), [
+    {
+      id: '1d', label: '1D', description: 'One ordered measurement axis.',
+      display_order: 1, active: true,
+    },
+    {
+      id: '2d', label: '2D',
+      description: 'Two-dimensional records or spatial fields.',
+      display_order: 2, active: true,
+    },
+  ]);
+  assert.equal(Object.hasOwn(manifest.taxonomy.instrument_types[0], 'aliases'), false,
+    'aliases are editor-only resolution helpers and never enter the public manifest');
+});
+
+test('an inactive selected Option blocks a Live project before output', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script);
+  const optionHeader = Array.from(script.REGISTRY_V2_HEADERS.Options);
+  sheet.sheets.Options = new FakeSheet([
+    optionHeader,
+    row(optionHeader, {
+      Category: 'data_type', 'Option ID': 'retired-shape',
+      'Option Label': 'Retired shape', 'Display Order': 1, Active: false,
+      Description: 'No longer offered.',
+    }),
+  ]);
+  const projects = sheet.getSheetByName('Projects');
+  projects.rows[1][projects.rows[0].indexOf('Data Type')] = 'Retired shape';
+  const registry = sheet.getSheetByName('_Registry');
+  registry.rows[1][registry.rows[0].indexOf('data_type_ids')] = 'retired-shape';
+  const facets = sheet.getSheetByName('_Facets');
+  const facetHeader = facets.rows[0];
+  facets.rows.push(row(facetHeader, {
+    demo_id: 'demo-live', facet_type: 'data_type', term_id: 'retired-shape',
+    display_order: 1,
+  }));
+  installServices(script, sheet, standardDrive());
+
+  assert.throws(
+    () => script.registryV2Snapshot_(sheet, script.readConfig_(sheet), 'production'),
+    /Live project is not ready: data type/,
+  );
+  const response = script.doGet({ parameter: {
+    token: 'secret', action: 'manifest', audience: 'production',
+  } });
+  assert.deepEqual({ ok: response.ok, error: response.error }, {
+    ok: false, error: 'registry v2 unavailable',
+  });
+});
+
+test('Options rejects ambiguous delimiter labels and nonnumeric display order', async t => {
+  const script = loadAppsScript();
+  await t.test('delimiter label', () => {
+    const rows = [{
+      Category: 'data_type', 'Option ID': 'bad-label', 'Option Label': '1D, 2D',
+      'Display Order': 1, Active: true,
+    }];
+    assert.throws(() => script.registryV2Options_(rows), /invalid or duplicate option/);
+  });
+  await t.test('display order type', () => {
+    const rows = [{
+      Category: 'instrument_type', 'Option ID': 'raman', 'Option Label': 'Raman',
+      'Display Order': '1', Active: true,
+    }];
+    assert.throws(() => script.registryV2Options_(rows), /Display Order values must be numbers/);
+  });
+});
+
+test('once Options exists, deleting any option column fails closed', async t => {
+  const script = loadAppsScript();
+  const header = Array.from(script.REGISTRY_V2_HEADERS.Options);
+  const cases = [
+    ['Projects', 'Data Type', /Projects is missing data_types/],
+    ['Projects', 'Instrument Type', /Projects is missing instrument_types/],
+    ['_Registry', 'data_type_ids', /_Registry is missing data_type_ids/],
+    ['_Registry', 'instrument_type_ids', /_Registry is missing instrument_type_ids/],
+  ];
+  for (const [sheetName, label, expected] of cases) {
+    await t.test(`${sheetName}.${label}`, () => {
+      const sheet = fixture(script);
+      sheet.sheets.Options = new FakeSheet([header]);
+      const target = sheet.getSheetByName(sheetName);
+      const index = target.rows[0].indexOf(label);
+      assert.notEqual(index, -1);
+      target.rows.forEach(values => values.splice(index, 1));
+      installServices(script, sheet, standardDrive());
+      assert.throws(
+        () => script.registryV2Snapshot_(sheet, {
+          drive_folder_url: 'https://drive.google.com/drive/folders/root-folder-12345',
+        }, 'production'),
+        expected,
+      );
+    });
+  }
 });
 
 test('v2 human taxonomy must match _Registry and _Facets before serving', async t => {
@@ -1915,7 +2090,9 @@ test('v2 guarded auto-ingest detects a concurrent human edit before its first wr
   let writes = 0;
   script.registryV2SheetsMetadata_ = () => ({
     Projects: { sheet_id: 1, table_id: 'ProjectsCatalogV2',
-      table_range: { startRowIndex: 0, startColumnIndex: 0, endRowIndex: 3, endColumnIndex: 16 } },
+      table_range: { startRowIndex: 0, startColumnIndex: 0,
+        endRowIndex: context.before.Projects.rows,
+        endColumnIndex: context.before.Projects.columns } },
     _Registry: { sheet_id: 2, table_id: '' },
     _Facets: { sheet_id: 3, table_id: '' },
     _Assets: { sheet_id: 4, table_id: '' },
@@ -1965,7 +2142,9 @@ test('v2 guarded auto-ingest reports failure when post-write state is not exact'
   };
   script.registryV2SheetsMetadata_ = () => ({
     Projects: { sheet_id: 1, table_id: 'ProjectsCatalogV2',
-      table_range: { startRowIndex: 0, startColumnIndex: 0, endRowIndex: 3, endColumnIndex: 16 } },
+      table_range: { startRowIndex: 0, startColumnIndex: 0,
+        endRowIndex: context.before.Projects.rows,
+        endColumnIndex: context.before.Projects.columns } },
     _Registry: { sheet_id: 2, table_id: '' },
     _Facets: { sheet_id: 3, table_id: '' },
     _Assets: { sheet_id: 4, table_id: '' },
@@ -2003,7 +2182,8 @@ test('v2 guarded auto-ingest detects a concurrent formula at the final pre-write
     return {
       Projects: { sheet_id: 1, table_id: 'ProjectsCatalogV2',
         table_range: { startRowIndex: 0, startColumnIndex: 0,
-          endRowIndex: 3, endColumnIndex: 16 } },
+          endRowIndex: context.before.Projects.rows,
+          endColumnIndex: context.before.Projects.columns } },
       _Registry: { sheet_id: 2, table_id: '' },
       _Facets: { sheet_id: 3, table_id: '' },
       _Assets: { sheet_id: 4, table_id: '' },
@@ -2027,10 +2207,12 @@ test('a guarded no-op auto-ingest skips batch, flush, reopen and post-write capt
   const first = script.registryV2AutoPlan_(
     script.registryV2WorkbookState_(originalSheet), candidate.cfg, candidate.items,
   );
+  const stateNames = script.REGISTRY_V2_COMPILE_SHEETS
+    .filter(name => !first.target[name].missing);
   const current = new FakeSpreadsheet(Object.fromEntries(
-    script.REGISTRY_V2_COMPILE_SHEETS.map(name => [name, first.target[name].values]),
+    stateNames.map(name => [name, first.target[name].values]),
   ));
-  script.REGISTRY_V2_COMPILE_SHEETS.forEach(name => {
+  stateNames.forEach(name => {
     first.target[name].formulas.forEach((row, r) => row.forEach((formula, c) => {
       if (formula) current.sheets[name].formulas[`${r + 1}:${c + 1}`] = formula;
     }));
@@ -2079,10 +2261,12 @@ test('cold planner commit becomes a warm no-blob fingerprint hit on the next ing
   const firstPlan = script.registryV2AutoPlan_(
     script.registryV2WorkbookState_(original), cfg, coldItems,
   );
+  const stateNames = script.REGISTRY_V2_COMPILE_SHEETS
+    .filter(name => !firstPlan.target[name].missing);
   const current = new FakeSpreadsheet(Object.fromEntries(
-    script.REGISTRY_V2_COMPILE_SHEETS.map(name => [name, firstPlan.target[name].values]),
+    stateNames.map(name => [name, firstPlan.target[name].values]),
   ));
-  script.REGISTRY_V2_COMPILE_SHEETS.forEach(name => {
+  stateNames.forEach(name => {
     firstPlan.target[name].formulas.forEach((row, r) => row.forEach((formula, c) => {
       if (formula) current.sheets[name].formulas[`${r + 1}:${c + 1}`] = formula;
     }));
@@ -2141,7 +2325,9 @@ test('v2 guarded auto-ingest verifies success from a freshly opened spreadsheet'
   };
   script.registryV2SheetsMetadata_ = () => ({
     Projects: { sheet_id: 1, table_id: 'ProjectsCatalogV2',
-      table_range: { startRowIndex: 0, startColumnIndex: 0, endRowIndex: 3, endColumnIndex: 16 } },
+      table_range: { startRowIndex: 0, startColumnIndex: 0,
+        endRowIndex: context.before.Projects.rows,
+        endColumnIndex: context.before.Projects.columns } },
     _Registry: { sheet_id: 2, table_id: '' },
     _Facets: { sheet_id: 3, table_id: '' },
     _Assets: { sheet_id: 4, table_id: '' },
@@ -2151,13 +2337,14 @@ test('v2 guarded auto-ingest verifies success from a freshly opened spreadsheet'
   let flushes = 0;
   script.SpreadsheetApp.flush = () => { flushes += 1; };
   const fresh = new FakeSpreadsheet(Object.fromEntries(
-    script.REGISTRY_V2_COMPILE_SHEETS.map(name => [name, []]),
+    script.REGISTRY_V2_REQUIRED_COMPILE_SHEETS.map(name => [name, []]),
   ));
   let freshOpens = 0;
   script.SpreadsheetApp.openById = id => {
     assert.equal(id, 'v2-sheet-id');
     freshOpens += 1;
     Object.entries(target).forEach(([name, table]) => {
+      if (table.missing) return;
       fresh.sheets[name] = new FakeSheet(table.values);
       table.formulas.forEach((row, r) => row.forEach((formula, c) => {
         if (formula) fresh.sheets[name].formulas[`${r + 1}:${c + 1}`] = formula;
@@ -2181,12 +2368,16 @@ test('v2 native table metadata uses the Sheets advanced service', () => {
     return { sheets: [
       { properties: { sheetId: 1, title: 'Projects' }, tables: [{
         tableId: 'projects-table-id', name: 'ProjectsCatalogV2',
-        range: { startRowIndex: 0, endRowIndex: 16, startColumnIndex: 0, endColumnIndex: 16 },
+        range: { startRowIndex: 0, endRowIndex: 16, startColumnIndex: 0, endColumnIndex: 18 },
       }] },
       { properties: { sheetId: 2, title: '_Registry' } },
       { properties: { sheetId: 3, title: '_Facets' }, tables: [] },
       { properties: { sheetId: 4, title: '_Assets' }, tables: [] },
       { properties: { sheetId: 5, title: '_Audit' }, tables: [] },
+      { properties: { sheetId: 6, title: 'Options' }, tables: [{
+        tableId: 'options-table-id', name: 'OptionsCatalogV2',
+        range: { startRowIndex: 0, endRowIndex: 9, startColumnIndex: 0, endColumnIndex: 7 },
+      }] },
     ] };
   } } };
   const metadata = script.registryV2SheetsMetadata_('v2-sheet-id');
@@ -2198,6 +2389,8 @@ test('v2 native table metadata uses the Sheets advanced service', () => {
   assert.equal(metadata._Facets.table_count, 0);
   assert.equal(metadata._Assets.table_count, 0);
   assert.equal(metadata._Audit.table_count, 0);
+  assert.equal(metadata.Options.table_id, 'options-table-id');
+  assert.equal(metadata.Options.table_name, 'OptionsCatalogV2');
 });
 
 test('v2 batch append addresses Projects by native tableId and machines by sheetId', () => {

@@ -90,6 +90,16 @@ function v2Manifest(demos) {
         { id: 'pca', label: 'Principal Components', active: true, internal_note: 'not public' },
         { id: 'umap', label: 'UMAP', active: true, internal_note: 'not public' },
       ],
+      data_types: [
+        { id: 'time-series', label: 'Time series', description: 'Ordered observations.', display_order: 1, active: true, internal_note: 'not public' },
+        { id: 'tabular', label: 'Tabular', description: 'Rows and columns.', display_order: 2, active: true, internal_note: 'not public' },
+        { id: 'retired-data', label: 'Retired data', description: '', display_order: 3, active: false, internal_note: 'not public' },
+      ],
+      instrument_types: [
+        { id: 'explorer', label: 'Explorer', description: 'Interactive exploration.', display_order: 1, active: true, internal_note: 'not public' },
+        { id: 'simulator', label: 'Simulator', description: 'Adjustable scenarios.', display_order: 2, active: true, internal_note: 'not public' },
+        { id: 'unused-viewer', label: 'Unused viewer', description: '', display_order: 3, active: true, internal_note: 'not public' },
+      ],
     },
     demos,
   };
@@ -109,6 +119,8 @@ function v2Demo(overrides = {}) {
     subtopic_id: 'materials',
     task_ids: ['classification'],
     method_ids: ['pca', 'umap'],
+    data_type_ids: ['time-series'],
+    instrument_type_ids: ['explorer', 'simulator'],
     audience: 'Intro',
     data_source_label: 'Synthetic fixture',
     public_page_permission: 'Public',
@@ -180,7 +192,7 @@ test('mock build completes and publishes a safe seven-department manifest', () =
   assert.equal(result.status, 0, result.stdout + result.stderr);
 
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'dist', 'manifest.json'), 'utf8'));
-  assert.equal(manifest.taxonomy_version, 4);
+  assert.equal(manifest.taxonomy_version, 5);
   assert.equal(manifest.domains.length, 7);
   assert.equal(manifest.demos.length, 3);
   assert.equal(manifest.demos.some(demo => demo.slug === 'ai-for-science-demos'), false);
@@ -194,7 +206,7 @@ test('mock build completes and publishes a safe seven-department manifest', () =
   assert.equal('request_id' in receipt, false);
 });
 
-test('Registry v2 uses explicit taxonomy, Method filters, safe card assets, and a public allowlist', t => {
+test('Registry v2 renders referenced taxonomy facets, safe card assets, and a public allowlist', t => {
   const result = withV2Fixture(t, v2Manifest([v2Demo()]), manifestPath => (
     statusBuild('production', 'main', { MOCK_MANIFEST: manifestPath })
   ));
@@ -208,23 +220,51 @@ test('Registry v2 uses explicit taxonomy, Method filters, safe card assets, and 
   assert.match(page, /data-group="method" data-value="pca">Principal Components<\/button>/);
   assert.match(page, /data-group="method" data-value="umap">UMAP<\/button>/);
   assert.match(page, /data-method="pca\|umap"/);
+  assert.match(page, /data-group="data-type" data-value="time-series">Time series<\/button>/);
+  assert.match(page, /data-group="instrument-type" data-value="explorer">Explorer<\/button>/);
+  assert.match(page, /data-group="instrument-type" data-value="simulator">Simulator<\/button>/);
+  assert.match(page, /data-data-type="time-series"/);
+  assert.match(page, /data-instrument-type="explorer\|simulator"/);
+  assert.match(page, /data-search="[^"]*time series[^"]*explorer simulator[^"]*"/);
+  assert.doesNotMatch(page, />Tabular<\/button>|>Retired data<\/button>|>Unused viewer<\/button>/);
   assert.match(page, /getAttribute\('data-' \+ group\) \|\| ''\)\.split\('\|'\)/);
   assert.match(page, /src="assets\/cards\/explicit-chemistry\.jpg"/);
   assert.match(page, /alt="A labelled chemistry card preview\."/);
   assert.match(page, /The Sheet-owned card summary\./);
   assert.doesNotMatch(page, /This field must not be rendered|DO_NOT_PUBLISH_/);
   assert.equal(fs.existsSync(path.join(root, 'dist', 'domains', 'chemistry-materials', 'index.html')), true);
+  const domainPage = fs.readFileSync(
+    path.join(root, 'dist', 'domains', 'chemistry-materials', 'index.html'), 'utf8',
+  );
+  assert.match(domainPage, /data-group="data-type" data-value="time-series"/);
+  assert.match(domainPage, /data-group="instrument-type" data-value="explorer"/);
+  const demoPage = fs.readFileSync(
+    path.join(root, 'dist', 'demos', 'explicit-chemistry-demo', 'index.html'), 'utf8',
+  );
+  assert.match(demoPage, /<span>Data Type<\/span><span>Time series<\/span>/);
+  assert.match(demoPage, /<span>Instrument Type<\/span><span>Explorer, Simulator<\/span>/);
 
   const manifest = builtManifest();
   assert.equal(manifest.schema_version, 2);
   assert.deepEqual(Object.keys(manifest.demos[0]).sort(), [
-    'audience', 'card_asset', 'card_summary', 'data_source_label', 'date_added',
-    'demo_id', 'department_id', 'entry_type', 'featured', 'method_ids',
+    'audience', 'card_asset', 'card_summary', 'data_source_label', 'data_type_ids', 'date_added',
+    'demo_id', 'department_id', 'entry_type', 'featured', 'instrument_type_ids', 'method_ids',
     'public_page_permission', 'slug', 'sort_order', 'status', 'subtopic_id',
     'task_ids', 'title',
   ]);
   assert.equal(manifest.demos[0].department_id, 'chemistry');
   assert.deepEqual(manifest.demos[0].method_ids, ['pca', 'umap']);
+  assert.deepEqual(manifest.demos[0].data_type_ids, ['time-series']);
+  assert.deepEqual(manifest.demos[0].instrument_type_ids, ['explorer', 'simulator']);
+  assert.deepEqual(manifest.taxonomy.data_types.map(term => term.id), [
+    'time-series', 'tabular', 'retired-data',
+  ]);
+  assert.deepEqual(manifest.taxonomy.instrument_types.map(term => term.id), [
+    'explorer', 'simulator', 'unused-viewer',
+  ]);
+  assert.deepEqual(Object.keys(manifest.taxonomy.data_types[0]).sort(), [
+    'active', 'description', 'display_order', 'id', 'label',
+  ]);
   assert.deepEqual(Object.keys(manifest.demos[0].card_asset).sort(), [
     'alt_text', 'asset_id', 'public_path',
   ]);
@@ -234,6 +274,27 @@ test('Registry v2 uses explicit taxonomy, Method filters, safe card assets, and 
     fs.readFileSync(path.join(root, 'dist', 'assets', 'cards', 'explicit-chemistry.jpg')),
     fs.readFileSync(mockCardAsset),
   );
+});
+
+test('Registry v2 treats missing new facet groups and references as empty arrays', t => {
+  const demo = v2Demo();
+  delete demo.data_type_ids;
+  delete demo.instrument_type_ids;
+  const manifestFixture = v2Manifest([demo]);
+  delete manifestFixture.taxonomy.data_types;
+  delete manifestFixture.taxonomy.instrument_types;
+  const result = withV2Fixture(t, manifestFixture, manifestPath => (
+    statusBuild('production', 'main', { MOCK_MANIFEST: manifestPath })
+  ));
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+
+  const page = fs.readFileSync(path.join(root, 'dist', 'index.html'), 'utf8');
+  assert.doesNotMatch(page, /data-group="(?:data-type|instrument-type)"/);
+  const manifest = builtManifest();
+  assert.deepEqual(manifest.demos[0].data_type_ids, []);
+  assert.deepEqual(manifest.demos[0].instrument_type_ids, []);
+  assert.deepEqual(manifest.taxonomy.data_types, []);
+  assert.deepEqual(manifest.taxonomy.instrument_types, []);
 });
 
 test('the current 21-row migration contract builds 14 public v2 project routes', t => {
@@ -362,6 +423,14 @@ test('Registry v2 rejects malformed or empty build-facing data', async t => {
     ]), manifestPath => statusBuild('production', 'main', { MOCK_MANIFEST: manifestPath }));
     assert.notEqual(result.status, 0);
     assert.match(result.stdout + result.stderr, /task_ids and method_ids must be non-empty/);
+  });
+
+  await t.test('new facet references must be arrays when present', child => {
+    const result = withV2Fixture(child, v2Manifest([
+      v2Demo({ data_type_ids: 'time-series' }),
+    ]), manifestPath => statusBuild('production', 'main', { MOCK_MANIFEST: manifestPath }));
+    assert.notEqual(result.status, 0);
+    assert.match(result.stdout + result.stderr, /data_type_ids must be an array/);
   });
 
   await t.test('audience uses the closed first-round vocabulary', child => {

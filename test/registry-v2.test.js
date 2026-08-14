@@ -34,21 +34,22 @@ function errorCodes(compiled) {
   return compiled.errors.map(error => error.code);
 }
 
-test('the human Projects sheet stays at exactly fifteen simple columns', () => {
+test('the human Projects sheet exposes seventeen simple columns', () => {
   assert.deepEqual(HUMAN_PROJECT_HEADERS, [
     'status', 'readiness', 'preview_url', 'title', 'card_summary',
-    'department', 'subtopic', 'task', 'methods', 'card_image', 'image_alt',
-    'audience', 'featured', 'data_source', 'public_permission',
+    'department', 'subtopic', 'task', 'methods', 'data_types', 'instrument_types',
+    'card_image', 'image_alt', 'audience', 'featured', 'data_source',
+    'public_permission',
   ]);
-  assert.equal(HUMAN_PROJECT_COLUMNS.length, 15);
-  assert.equal(new Set(HUMAN_PROJECT_HEADERS).size, 15);
+  assert.equal(HUMAN_PROJECT_COLUMNS.length, 17);
+  assert.equal(new Set(HUMAN_PROJECT_HEADERS).size, 17);
   assert.equal(HUMAN_PROJECT_HEADERS.includes('demo_id'), false);
   assert.equal(HUMAN_PROJECT_HEADERS.includes('question'), false);
   assert.deepEqual(HUMAN_PROJECT_COLUMNS.map(column => column.label), [
     'Status', 'Readiness', 'Preview URL', 'Project Title', 'Card Summary',
-    'Department', 'Subtopic', 'Task Type', 'Methods', 'Card Image',
-    'Image Alt Text', 'Audience', 'Featured', 'Data Source',
-    'Public Permission',
+    'Department', 'Subtopic', 'Task Type', 'Methods', 'Data Type',
+    'Instrument Type', 'Card Image', 'Image Alt Text', 'Audience', 'Featured',
+    'Data Source', 'Public Permission',
   ]);
   assert.equal(
     HUMAN_PROJECT_COLUMNS.some(column => /\p{Script=Han}/u.test(column.label)),
@@ -64,6 +65,8 @@ test('the human Projects sheet stays at exactly fifteen simple columns', () => {
   assert.equal(byKey.data_source.editable, false);
   assert.equal(byKey.public_permission.owner, FIELD_OWNERS.EDITOR);
   assert.equal(byKey.public_permission.editable, true);
+  assert.equal(byKey.data_types.owner, FIELD_OWNERS.EDITOR);
+  assert.equal(byKey.instrument_types.editable, true);
 });
 
 test('the direct compiler rejects CJK text anywhere in Registry input', () => {
@@ -159,7 +162,7 @@ test('Registry v2 emits the exact allowlisted contract and never exposes questio
 
   assert.deepEqual(Object.keys(registry), REGISTRY_V2_TOP_LEVEL_FIELDS);
   assert.deepEqual(Object.keys(registry.taxonomy), [
-    'departments', 'subtopics', 'tasks', 'methods',
+    'departments', 'subtopics', 'tasks', 'methods', 'data_types', 'instrument_types',
   ]);
   registry.demos.forEach(demo => {
     assert.deepEqual(Object.keys(demo), REGISTRY_V2_DEMO_FIELDS);
@@ -179,6 +182,205 @@ test('Registry v2 emits the exact allowlisted contract and never exposes questio
     ['demo-draft-a'],
   );
   assert.equal(registry.demos.some(demo => demo.status === 'Archived'), false);
+});
+
+test('missing Options and missing optional project values remain backward compatible', () => {
+  const compiled = compileRegistryV2(copyFixture());
+  assert.equal(compiled.ok, true);
+  assert.deepEqual(compiled.taxonomy.data_types, []);
+  assert.deepEqual(compiled.taxonomy.instrument_types, []);
+  compiled.demos.forEach(demo => {
+    assert.deepEqual(demo.data_type_ids, []);
+    assert.deepEqual(demo.instrument_type_ids, []);
+  });
+});
+
+test('controlled option labels and aliases compile to stable ids, taxonomy and machine facets', () => {
+  const data = copyFixture();
+  data.options = {
+    data_types: [
+      {
+        id: '2d', label: '2D', aliases: 'Two dimensional; Image matrix',
+        display_order: 20, active: true, description: 'Rows by columns.',
+      },
+      {
+        id: '1d', label: '1D', aliases: ['One dimensional', 'Line scan'],
+        display_order: 10, active: true, description: 'One sampled axis.',
+      },
+    ],
+    instrument_types: [
+      {
+        id: 'raman', label: 'Raman', aliases: 'Raman spectroscopy',
+        display_order: 5, active: true, description: 'Vibrational spectra.',
+      },
+    ],
+  };
+  const project = findProject(data, 3);
+  project.data_types = 'Image matrix | 1D | Line scan';
+  project.instrument_types = 'raman spectroscopy, Raman';
+  data.facets.push(
+    {
+      demo_id: 'demo-soh-battery', facet_type: 'data_type',
+      term_id: '2d', display_order: 1,
+    },
+    {
+      demo_id: 'demo-soh-battery', facet_type: 'data_type',
+      term_id: '1d', display_order: 2,
+    },
+    {
+      demo_id: 'demo-soh-battery', facet_type: 'instrument_type',
+      term_id: 'raman', display_order: 1,
+    },
+  );
+
+  const compiled = compileRegistryV2(data);
+  assert.equal(compiled.ok, true);
+  const demo = compiled.demos.find(item => item.demo_id === 'demo-soh-battery');
+  assert.deepEqual(demo.data_type_ids, ['2d', '1d']);
+  assert.deepEqual(demo.instrument_type_ids, ['raman']);
+  assert.deepEqual(compiled.taxonomy.data_types, [
+    {
+      id: '1d', label: '1D', description: 'One sampled axis.',
+      display_order: 10, active: true,
+    },
+    {
+      id: '2d', label: '2D', description: 'Rows by columns.',
+      display_order: 20, active: true,
+    },
+  ]);
+  assert.equal(Object.hasOwn(compiled.taxonomy.data_types[0], 'aliases'), false);
+  assert.deepEqual(
+    compiled.hidden._Facets
+      .filter(item => item.demo_id === demo.demo_id && item.facet_type === 'data_type')
+      .map(item => item.term_id),
+    ['2d', '1d'],
+  );
+  const machineRow = compiled.hidden._Registry.find(item => item.demo_id === demo.demo_id);
+  assert.equal(machineRow.data_type_ids, '2d,1d');
+  assert.equal(machineRow.instrument_type_ids, 'raman');
+  const site = compiled.demos.find(item => item.entry_type === 'site');
+  assert.deepEqual(site.data_type_ids, []);
+  assert.deepEqual(site.instrument_type_ids, []);
+});
+
+test('unknown, ambiguous and inactive controlled option values block rows strictly', async t => {
+  function optionFixture() {
+    const data = copyFixture();
+    data.options = {
+      data_types: [
+        { id: '1d', label: '1D', aliases: 'Line', display_order: 1, active: true },
+        { id: 'line-array', label: 'Line Array', aliases: 'Line', display_order: 2, active: true },
+      ],
+      instrument_types: [
+        { id: 'raman', label: 'Raman', aliases: '', display_order: 1, active: false },
+      ],
+    };
+    return data;
+  }
+
+  for (const [field, value, code] of [
+    ['data_types', 'Unknown shape', 'data_type_unknown'],
+    ['data_types', 'Line', 'data_type_ambiguous'],
+    ['instrument_types', 'Raman', 'instrument_type_inactive'],
+  ]) {
+    await t.test(`${code} is a row-local Draft readiness issue`, () => {
+      const data = optionFixture();
+      findProject(data, 17)[field] = value;
+      const compiled = compileRegistryV2(data);
+      const draft = compiled.readiness.find(item => item.demo_id === 'demo-draft-a');
+      assert.equal(compiled.ok, true);
+      assert.equal(draft.status, 'blocked');
+      assert.ok(draft.issues.some(item => item.code === code));
+    });
+  }
+
+  await t.test('a nonempty value without an Options vocabulary blocks Live globally', () => {
+    const data = copyFixture();
+    findProject(data, 3).data_types = '2D';
+    const compiled = compileRegistryV2(data);
+    assert.equal(compiled.ok, false);
+    assert.ok(errorCodes(compiled).includes('data_type_unknown'));
+    assert.throws(() => toRegistryV2(compiled), RegistryV2ValidationError);
+  });
+});
+
+test('Option Label rejects list delimiters while Aliases keeps multi-value delimiters', async t => {
+  for (const delimiter of [',', ';', '|', '\r', '\n']) {
+    await t.test(`label delimiter ${JSON.stringify(delimiter)} fails the direct compiler`, () => {
+      const data = copyFixture();
+      data.options = {
+        data_types: [{
+          id: 'time-series', label: `Time${delimiter}series`,
+          aliases: 'Temporal data; Ordered samples|Sequence',
+          display_order: 1, active: true,
+        }],
+        instrument_types: [],
+      };
+      const compiled = compileRegistryV2(data);
+      assert.equal(compiled.ok, false);
+      assert.ok(errorCodes(compiled).includes('option_label_delimiter_invalid'));
+      assert.throws(() => toRegistryV2(compiled), RegistryV2ValidationError);
+    });
+  }
+
+  await t.test('all list delimiters still split Aliases into distinct matches', () => {
+    const data = copyFixture();
+    data.options = {
+      data_types: [{
+        id: 'time-series', label: 'Time series',
+        aliases: 'Temporal data; Ordered samples|Sequence, Timeline\nChronology',
+        display_order: 1, active: true,
+      }],
+      instrument_types: [],
+    };
+    findProject(data, 3).data_types = 'Ordered samples | Timeline | Chronology';
+    const compiled = compileRegistryV2(data);
+    assert.equal(compiled.ok, true);
+    assert.deepEqual(
+      compiled.demos.find(item => item.demo_id === 'demo-soh-battery').data_type_ids,
+      ['time-series'],
+    );
+  });
+});
+
+test('Options Display Order requires a finite number without changing legacy taxonomy fallback', async t => {
+  for (const value of ['', '1', NaN, Infinity, -Infinity, null]) {
+    await t.test(`option display_order=${String(value)} fails the direct compiler`, () => {
+      const data = copyFixture();
+      data.options = {
+        data_types: [{
+          id: 'time-series', label: 'Time series', aliases: '',
+          display_order: value, active: true,
+        }],
+        instrument_types: [],
+      };
+      const compiled = compileRegistryV2(data);
+      assert.equal(compiled.ok, false);
+      assert.ok(errorCodes(compiled).includes('option_display_order_invalid'));
+    });
+  }
+
+  await t.test('finite zero and negative values remain valid numbers', () => {
+    const data = copyFixture();
+    data.options = {
+      data_types: [
+        { id: 'zero', label: 'Zero', display_order: 0, active: true },
+        { id: 'negative', label: 'Negative', display_order: -1.5, active: true },
+      ],
+      instrument_types: [],
+    };
+    const compiled = compileRegistryV2(data);
+    assert.equal(compiled.ok, true);
+    assert.deepEqual(compiled.taxonomy.data_types.map(item => item.id), ['negative', 'zero']);
+  });
+
+  await t.test('blank legacy taxonomy display_order still uses its deterministic fallback', () => {
+    const data = copyFixture();
+    data.taxonomy.departments[0].display_order = '';
+    const compiled = compileRegistryV2(data);
+    assert.equal(compiled.ok, true);
+    assert.equal(compiled.taxonomy.departments[0].display_order, 1);
+  });
 });
 
 test('one human Method cell becomes stable multi-method ids and synced _Facets rows', () => {

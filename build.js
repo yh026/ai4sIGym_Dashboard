@@ -401,6 +401,9 @@ function v2TermIndex(terms, kind) {
     } else if (kind === 'subtopics') {
       term.department_id = requireV2Id(source.department_id, labelPrefix + '.department_id');
       term.display_order = requireV2FiniteNumber(source.display_order, labelPrefix + '.display_order');
+    } else if (kind === 'data_types' || kind === 'instrument_types') {
+      term.description = requireV2String(source.description, labelPrefix + '.description');
+      term.display_order = requireV2FiniteNumber(source.display_order, labelPrefix + '.display_order');
     }
     Object.defineProperty(term, '_position', { value: position, enumerable: false });
     index.set(id, term);
@@ -421,6 +424,13 @@ function normalizeV2Taxonomy(taxonomy) {
   const subtopics = v2TermIndex(taxonomy.subtopics, 'subtopics');
   const tasks = v2TermIndex(taxonomy.tasks, 'tasks');
   const methods = v2TermIndex(taxonomy.methods, 'methods');
+  const dataTypes = v2TermIndex(
+    hasOwn(taxonomy, 'data_types') ? taxonomy.data_types : [], 'data_types',
+  );
+  const instrumentTypes = v2TermIndex(
+    hasOwn(taxonomy, 'instrument_types') ? taxonomy.instrument_types : [],
+    'instrument_types',
+  );
   const staticDomains = new Map(DOMAIN_DEFINITIONS.map(domain => [domain.id, domain]));
   const usedRegions = new Set();
 
@@ -466,7 +476,15 @@ function normalizeV2Taxonomy(taxonomy) {
     });
   if (!domains.length) v2ContractError('taxonomy has no active departments');
 
-  return { departments, subtopics, tasks, methods, domains };
+  return {
+    departments,
+    subtopics,
+    tasks,
+    methods,
+    data_types: dataTypes,
+    instrument_types: instrumentTypes,
+    domains,
+  };
 }
 
 function v2Refs(value, field, index) {
@@ -476,6 +494,10 @@ function v2Refs(value, field, index) {
   ));
   if (new Set(ids).size !== ids.length) v2ContractError('demo ' + index + ' has duplicate ' + field);
   return ids;
+}
+
+function optionalV2Refs(source, field, index) {
+  return v2Refs(hasOwn(source, field) ? source[field] : [], field, index);
 }
 
 function safePublicCardAssetUrl(value, hrefBase) {
@@ -505,6 +527,8 @@ function normalizeV2Demo(source, taxonomy, seen, index) {
   const subtopicId = requireV2String(source.subtopic_id, 'demo ' + demoId + ' subtopic_id');
   const taskIds = v2Refs(source.task_ids, 'task_ids', demoId);
   const methodIds = v2Refs(source.method_ids, 'method_ids', demoId);
+  const dataTypeIds = optionalV2Refs(source, 'data_type_ids', demoId);
+  const instrumentTypeIds = optionalV2Refs(source, 'instrument_type_ids', demoId);
   if (isProject && (!taskIds.length || !methodIds.length)) {
     v2ContractError('demo ' + demoId + ' task_ids and method_ids must be non-empty');
   }
@@ -529,6 +553,8 @@ function normalizeV2Demo(source, taxonomy, seen, index) {
     subtopic_id: subtopicId,
     task_ids: taskIds,
     method_ids: methodIds,
+    data_type_ids: dataTypeIds,
+    instrument_type_ids: instrumentTypeIds,
     audience: isProject
       ? requireV2Enum(
         source.audience,
@@ -574,7 +600,8 @@ function normalizeV2Demo(source, taxonomy, seen, index) {
   }
 
   if (!isProject) {
-    if (status !== 'Live' || departmentId || subtopicId || taskIds.length || methodIds.length) {
+    if (status !== 'Live' || departmentId || subtopicId || taskIds.length || methodIds.length
+        || dataTypeIds.length || instrumentTypeIds.length) {
       v2ContractError('site record ' + demoId + ' has project-only fields or status');
     }
     Object.defineProperty(normalised, '_registrySchemaVersion', {
@@ -602,6 +629,10 @@ function normalizeV2Demo(source, taxonomy, seen, index) {
   });
   const taskTerms = resolveTerms(taskIds, taxonomy.tasks, 'task');
   const methodTerms = resolveTerms(methodIds, taxonomy.methods, 'method');
+  const dataTypeTerms = resolveTerms(dataTypeIds, taxonomy.data_types, 'data type');
+  const instrumentTypeTerms = resolveTerms(
+    instrumentTypeIds, taxonomy.instrument_types, 'instrument type',
+  );
 
   const domain = taxonomy.domains.find(candidate => candidate.taxonomy_id === normalised.department_id);
   const domainSubtopic = domain && domain.subtopics.find(candidate => candidate.id === normalised.subtopic_id);
@@ -611,6 +642,8 @@ function normalizeV2Demo(source, taxonomy, seen, index) {
     _domainDefinition: { value: domain, enumerable: false },
     _taskTerms: { value: taskTerms, enumerable: false },
     _methodTerms: { value: methodTerms, enumerable: false },
+    _dataTypeTerms: { value: dataTypeTerms, enumerable: false },
+    _instrumentTypeTerms: { value: instrumentTypeTerms, enumerable: false },
     _domain: { value: domain.id, enumerable: false },
     _subtopic: { value: domainSubtopic.id, enumerable: false },
     department_label: { value: domain.name, enumerable: false },
@@ -1432,6 +1465,10 @@ function provenanceRows(demo) {
     add('Data', esc(demo.data_source_label));
     add('Task', esc((demo._taskTerms || []).map(term => term.label).join(', ')));
     add('Method', esc((demo._methodTerms || []).map(term => term.label).join(', ')));
+    add('Data Type', esc((demo._dataTypeTerms || []).map(term => term.label).join(', ')));
+    add('Instrument Type', esc(
+      (demo._instrumentTypeTerms || []).map(term => term.label).join(', '),
+    ));
     return rows;
   }
   add('Data', demo.data_link
@@ -1583,8 +1620,12 @@ function cardHtml(demo, domain, isNew, hrefBase, index) {
   const isV2 = demo._registrySchemaVersion === REGISTRY_SCHEMA_V2;
   const taskTerms = isV2 ? (demo._taskTerms || []) : [];
   const methodTerms = isV2 ? (demo._methodTerms || []) : [];
+  const dataTypeTerms = isV2 ? (demo._dataTypeTerms || []) : [];
+  const instrumentTypeTerms = isV2 ? (demo._instrumentTypeTerms || []) : [];
   const taskLabels = taskTerms.map(term => term.label);
   const methodLabels = methodTerms.map(term => term.label);
+  const dataTypeLabels = dataTypeTerms.map(term => term.label);
+  const instrumentTypeLabels = instrumentTypeTerms.map(term => term.label);
   const meta = (isV2
     ? taskLabels.concat(methodLabels)
     : [demo.task_type, demo.framework].filter(Boolean)).map(esc).join(' &middot; ');
@@ -1596,6 +1637,8 @@ function cardHtml(demo, domain, isNew, hrefBase, index) {
     demo.category,
     isV2 ? taskLabels.join(' ') : demo.task_type,
     isV2 ? methodLabels.join(' ') : demo.method,
+    isV2 ? dataTypeLabels.join(' ') : '',
+    isV2 ? instrumentTypeLabels.join(' ') : '',
     demo.framework,
     toList(demo.tags).join(' '),
   ].filter(Boolean).join(' ').toLowerCase();
@@ -1615,10 +1658,14 @@ function cardHtml(demo, domain, isNew, hrefBase, index) {
 
   const taskValues = isV2 ? demo.task_ids.join('|') : demo.task_type;
   const methodValues = isV2 ? demo.method_ids.join('|') : '';
-  const methodAttribute = isV2 ? ` data-method="${esc(methodValues)}"` : '';
+  const dataTypeValues = isV2 ? demo.data_type_ids.join('|') : '';
+  const instrumentTypeValues = isV2 ? demo.instrument_type_ids.join('|') : '';
+  const facetAttributes = isV2
+    ? ` data-method="${esc(methodValues)}" data-data-type="${esc(dataTypeValues)}" data-instrument-type="${esc(instrumentTypeValues)}"`
+    : '';
   const domainFilterId = isV2 ? demo.department_id : domain.id;
   const summary = isV2 ? demo.card_summary : demo.description;
-  return `<a class="project-card" href="${hrefBase}demos/${esc(demo.slug)}/index.html" style="--card-accent:${domain.color}" data-search="${esc(search)}" data-domain="${esc(domainFilterId)}" data-subtopic="${esc(subtopic.id)}" data-task="${esc(taskValues)}"${methodAttribute}>
+  return `<a class="project-card" href="${hrefBase}demos/${esc(demo.slug)}/index.html" style="--card-accent:${domain.color}" data-search="${esc(search)}" data-domain="${esc(domainFilterId)}" data-subtopic="${esc(subtopic.id)}" data-task="${esc(taskValues)}"${facetAttributes}>
   <div class="card-visual${preview ? ' has-preview' : ''}">
     ${visual}
   </div>
@@ -1645,6 +1692,13 @@ function filterGroupHtml(label, group, items) {
           <span class="chiplabel">${esc(label)}</span>
           ${items.map(item => chipHtml(group, item.value, item.label)).join('\n          ')}
         </div>`;
+}
+
+function v2FacetFilterHtml(label, group, terms, demos, field) {
+  const referenced = new Set(demos.flatMap(demo => demo[field] || []));
+  return filterGroupHtml(label, group, [...terms.values()]
+    .filter(term => term.active && referenced.has(term.id))
+    .map(term => ({ value: term.id, label: term.label })));
 }
 
 function domainSwitcherHtml(currentDomain, grouped, domains = DOMAIN_DEFINITIONS) {
@@ -1809,12 +1863,22 @@ async function main() {
     value: domain.taxonomy_id || domain.id,
     label: domain.short,
   })));
-  const referencedMethodIds = new Set(demos.flatMap(demo => demo.method_ids || []));
   const methodFilters = schemaVersion === REGISTRY_SCHEMA_V2
-    ? filterGroupHtml('Method', 'method', [...v2Taxonomy.methods.values()]
-      .filter(term => term.active && referencedMethodIds.has(term.id))
-      .map(term => ({ value: term.id, label: term.label })))
+    ? v2FacetFilterHtml('Method', 'method', v2Taxonomy.methods, demos, 'method_ids')
     : '';
+  const dataTypeFilters = schemaVersion === REGISTRY_SCHEMA_V2
+    ? v2FacetFilterHtml(
+      'Data Type', 'data-type', v2Taxonomy.data_types, demos, 'data_type_ids',
+    )
+    : '';
+  const instrumentTypeFilters = schemaVersion === REGISTRY_SCHEMA_V2
+    ? v2FacetFilterHtml(
+      'Instrument Type', 'instrument-type', v2Taxonomy.instrument_types,
+      demos, 'instrument_type_ids',
+    )
+    : '';
+  const rootFilters = [domainFilters, methodFilters, dataTypeFilters, instrumentTypeFilters]
+    .filter(Boolean).join('\n');
 
   const page = fillTemplate(template, {
     PAGE_TITLE: 'AIS Instrument Gym',
@@ -1822,7 +1886,7 @@ async function main() {
     MAP_HOTSPOTS: domains.map(mapHotspotHtml).join('\n'),
     MAP_MARKERS: domains.map(domain => mapMarkerHtml(domain, grouped[domain.id])).join('\n'),
     MOBILE_DOMAIN_LINKS: domains.map(domain => mobileDomainLinkHtml(domain, grouped[domain.id])).join('\n'),
-    DOMAIN_FILTERS: domainFilters + (methodFilters ? '\n' + methodFilters : ''),
+    DOMAIN_FILTERS: rootFilters,
     CARDS: rootCards,
     BUILT: built,
     STYLES: styles,
@@ -1834,13 +1898,24 @@ async function main() {
   domains.forEach((domain, domainIndex) => {
     const domainDemos = grouped[domain.id];
     const taskFilters = schemaVersion === REGISTRY_SCHEMA_V2
-      ? filterGroupHtml('Task', 'task', [...v2Taxonomy.tasks.values()]
-        .filter(term => term.active && domainDemos.some(demo => demo.task_ids.includes(term.id)))
-        .map(term => ({ value: term.id, label: term.label })))
+      ? v2FacetFilterHtml('Task', 'task', v2Taxonomy.tasks, domainDemos, 'task_ids')
       : (() => {
         const tasks = [...new Set(domainDemos.map(demo => demo.task_type).filter(Boolean))].sort();
         return filterGroupHtml('Task', 'task', tasks.map(task => ({ value: task, label: task })));
       })();
+    const domainDataTypeFilters = schemaVersion === REGISTRY_SCHEMA_V2
+      ? v2FacetFilterHtml(
+        'Data Type', 'data-type', v2Taxonomy.data_types, domainDemos, 'data_type_ids',
+      )
+      : '';
+    const domainInstrumentTypeFilters = schemaVersion === REGISTRY_SCHEMA_V2
+      ? v2FacetFilterHtml(
+        'Instrument Type', 'instrument-type', v2Taxonomy.instrument_types,
+        domainDemos, 'instrument_type_ids',
+      )
+      : '';
+    const domainPageFilters = [taskFilters, domainDataTypeFilters, domainInstrumentTypeFilters]
+      .filter(Boolean).join('\n');
     const cards = domainDemos.map((demo, index) =>
       cardHtml(demo, domain, isNew(demo), '../../', index)).join('\n');
     const count = domainDemos.length;
@@ -1855,7 +1930,7 @@ async function main() {
       DOMAIN_COLOR: domain.color,
       DOMAIN_SOFT: domain.soft,
       DOMAIN_ICON: domainIcon(domain.id),
-      TASK_FILTERS: taskFilters,
+      TASK_FILTERS: domainPageFilters,
       FILTER_HIDDEN: count ? '' : 'hidden',
       CARDS: cards,
       EMPTY_HIDDEN: count ? 'hidden' : '',
@@ -1907,6 +1982,8 @@ async function main() {
       subtopic_id: demo.subtopic_id,
       task_ids: [...demo.task_ids],
       method_ids: [...demo.method_ids],
+      data_type_ids: [...demo.data_type_ids],
+      instrument_type_ids: [...demo.instrument_type_ids],
       audience: demo.audience,
       data_source_label: demo.data_source_label,
       public_page_permission: demo.public_page_permission,
@@ -1940,7 +2017,7 @@ async function main() {
   }));
   const publicManifest = {
     generated: new Date().toISOString(),
-    taxonomy_version: 4,
+    taxonomy_version: 5,
     site: schemaVersion === REGISTRY_SCHEMA_V2
       ? { title: String(site.title || ''), tagline: String(site.tagline || '') }
       : site,
@@ -1952,6 +2029,13 @@ async function main() {
     const publicTerms = terms => [...terms.values()].map(term => ({
       id: term.id,
       label: term.label,
+      active: term.active,
+    }));
+    const publicOptionTerms = terms => [...terms.values()].map(term => ({
+      id: term.id,
+      label: term.label,
+      description: term.description,
+      display_order: term.display_order,
       active: term.active,
     }));
     publicManifest.taxonomy = {
@@ -1974,6 +2058,8 @@ async function main() {
       })),
       tasks: publicTerms(v2Taxonomy.tasks),
       methods: publicTerms(v2Taxonomy.methods),
+      data_types: publicOptionTerms(v2Taxonomy.data_types),
+      instrument_types: publicOptionTerms(v2Taxonomy.instrument_types),
     };
   }
   fs.writeFileSync(path.join(DIST, 'manifest.json'), JSON.stringify(publicManifest, null, 2));
