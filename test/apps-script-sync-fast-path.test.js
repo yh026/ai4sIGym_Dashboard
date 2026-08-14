@@ -461,3 +461,83 @@ test('a supplied sync snapshot requires an explicit Preview audience', () => {
   }, { snapshot: { registry_revision: `sha256:${'1'.repeat(64)}` }, now: 1 }),
   /invalid registry_revision/);
 });
+
+test('Drive scan notices retain every reason in one Audit append', () => {
+  const script = loadAppsScript();
+  const events = [];
+  script.logEvent_ = (action, detail) => events.push({ action, detail });
+
+  script.registryV2LogDriveScanNotices_([
+    'folder "Archive" has no .html page',
+    'folder "projection-gallery-curator" has no .html page',
+    'folder "ml-lifecycle-explorer" has no .html page',
+  ]);
+
+  assert.equal(events.length, 1);
+  assert.equal(events[0].action, 'sync-skip');
+  assert.match(events[0].detail, /Drive scan skipped 3 item\(s\)/);
+  assert.match(events[0].detail, /Archive/);
+  assert.match(events[0].detail, /projection-gallery-curator/);
+  assert.match(events[0].detail, /ml-lifecycle-explorer/);
+});
+
+test('large Drive scan notice sets stay below the Audit cap without dropping a reason', () => {
+  const script = loadAppsScript();
+  const events = [];
+  script.logEvent_ = (action, detail) => events.push({ action, detail });
+  const notices = Array.from({ length: 8 }, (_, index) =>
+    `notice-${index + 1}-${String(index + 1).repeat(240)}`);
+
+  script.registryV2LogDriveScanNotices_(notices);
+
+  assert.ok(events.length > 1);
+  events.forEach(event => assert.ok(event.detail.length < 1000));
+  const combined = events.map(event => event.detail).join(' ');
+  notices.forEach(notice => assert.ok(combined.includes(notice)));
+});
+
+test('Drive notice batching budgets the final non-English audit expansion', () => {
+  const script = loadAppsScript();
+  const events = [];
+  script.logEvent_ = (action, detail) => events.push({
+    action: script.registryV2AuditText_(action, 120),
+    detail: script.registryV2AuditText_(detail, 1000),
+  });
+  const notices = [
+    `folder "${'中a'.repeat(20)}" has no .html page`,
+    `folder "${'漢b'.repeat(20)}" has no .html page`,
+  ];
+  const expected = notices.map(notice => script.registryV2AuditText_(notice, 100000));
+
+  script.registryV2LogDriveScanNotices_(notices);
+
+  assert.equal(events.length, 2,
+    'expanded notices must be separated before the production 1,000-character cap');
+  events.forEach(event => assert.ok(event.detail.length < 1000));
+  const combined = events.map(event => event.detail).join(' ');
+  expected.forEach(notice => assert.ok(combined.includes(notice)));
+});
+
+test('Drive scan notices are flushed even when a later folder fails closed', () => {
+  const script = loadAppsScript();
+  const events = [];
+  script.logEvent_ = (action, detail) => events.push({ action, detail });
+  const root = { getId: () => 'root-folder-12345' };
+  const empty = mutableEntry({
+    id: 'empty-folder-12345', name: 'Archive',
+    mime: 'application/vnd.google-apps.folder', parents: [root],
+  });
+  empty.getFiles = () => iterator([]);
+  const broken = mutableEntry({
+    id: 'broken-folder-12345', name: 'Broken folder',
+    mime: 'application/vnd.google-apps.folder', parents: [root],
+  });
+  broken.getFiles = () => { throw new Error('folder listing failed'); };
+  root.getFolders = () => iterator([empty, broken]);
+  root.getFiles = () => iterator([]);
+
+  assert.throws(() => script.collectDemos_(root), /folder listing failed/);
+  assert.equal(events.length, 1);
+  assert.equal(events[0].action, 'sync-skip');
+  assert.match(events[0].detail, /Archive/);
+});

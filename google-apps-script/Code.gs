@@ -1026,45 +1026,52 @@ function fillPicture_(row, picFile) {
  */
 function collectDemos_(folder) {
   var out = [];
+  var notices = [];
   var rootId = driveEntryIdOrThrow_(folder, 'configured Drive root');
+  try {
+    // One sub-folder per demo — page + PROVENANCE.md.
+    var subs = folder.getFolders();
+    while (subs.hasNext()) {
+      var sub = subs.next();
+      if (!hasDirectParentOrThrow_(sub, rootId, 'folder')) {
+        notices.push('folder "' + driveEntryName_(sub)
+          + '" is no longer directly inside the configured Drive root');
+        continue;
+      }
+      var item = collectDemoFolder_(sub, rootId, notices);
+      if (item) out.push(item);
+    }
 
-  // One sub-folder per demo — page + PROVENANCE.md.
-  var subs = folder.getFolders();
-  while (subs.hasNext()) {
-    var sub = subs.next();
-    if (!hasDirectParentOrThrow_(sub, rootId, 'folder')) {
-      logEvent_('sync-skip', 'Skipped folder "' + driveEntryName_(sub)
-        + '" because it is no longer directly inside the configured Drive root.');
-      continue;
+    // The old layout: a loose .html sitting in the root. Still registered,
+    // just with no card behind it.
+    var files = folder.getFiles();
+    while (files.hasNext()) {
+      var f = files.next();
+      if (!hasDirectParentOrThrow_(f, rootId, 'file')) {
+        notices.push('file "' + driveEntryName_(f)
+          + '" is no longer directly inside the configured Drive root');
+        continue;
+      }
+      if (isShortcutFile_(f)) {
+        notices.push('Drive shortcut "' + driveEntryName_(f) + '"');
+        continue;
+      }
+      if (!isHtmlFile_(f)) continue;
+      out.push({ file: f, pageFiles: [f], folder: folder, folderId: rootId,
+        rootId: rootId, folderName: '', provFile: null, picFile: null,
+        imageFiles: [], card: null, stamp: f.getLastUpdated(), notes: [] });
     }
-    var item = collectDemoFolder_(sub, rootId);
-    if (item) out.push(item);
+    return out;
+  } finally {
+    // An eventual fail-closed scan error must not erase skip evidence that was
+    // already observed earlier in the same traversal.
+    registryV2LogDriveScanNotices_(notices);
   }
-
-  // The old layout: a loose .html sitting in the root. Still registered, just
-  // with no card behind it.
-  var files = folder.getFiles();
-  while (files.hasNext()) {
-    var f = files.next();
-    if (!hasDirectParentOrThrow_(f, rootId, 'file')) {
-      logEvent_('sync-skip', 'Skipped file "' + driveEntryName_(f)
-        + '" because it is no longer directly inside the configured Drive root.');
-      continue;
-    }
-    if (isShortcutFile_(f)) {
-      logEvent_('sync-skip', 'Skipped Drive shortcut "' + driveEntryName_(f) + '".');
-      continue;
-    }
-    if (!isHtmlFile_(f)) continue;
-    out.push({ file: f, pageFiles: [f], folder: folder, folderId: rootId,
-      rootId: rootId, folderName: '', provFile: null, picFile: null,
-      imageFiles: [], card: null, stamp: f.getLastUpdated(), notes: [] });
-  }
-  return out;
 }
 
 /** One demo sub-folder → an item for collectDemos_, or null if it holds no page. */
-function collectDemoFolder_(sub, rootId) {
+function collectDemoFolder_(sub, rootId, notices) {
+  notices = notices || [];
   var name = sub.getName();
   var subId = driveEntryIdOrThrow_(sub, 'demo folder "' + name + '"');
   var pages = [], images = [], prov = null;
@@ -1073,13 +1080,13 @@ function collectDemoFolder_(sub, rootId) {
   while (files.hasNext()) {
     var f = files.next();
     if (!hasDirectParentOrThrow_(f, subId, 'file')) {
-      logEvent_('sync-skip', 'Skipped file "' + driveEntryName_(f)
-        + '" because it is no longer directly inside demo folder "' + name + '".');
+      notices.push('file "' + driveEntryName_(f)
+        + '" is no longer directly inside demo folder "' + name + '"');
       continue;
     }
     if (isShortcutFile_(f)) {
-      logEvent_('sync-skip', 'Skipped Drive shortcut "' + driveEntryName_(f)
-        + '" in demo folder "' + name + '".');
+      notices.push('Drive shortcut "' + driveEntryName_(f)
+        + '" in demo folder "' + name + '"');
       continue;
     }
     if (isHtmlFile_(f)) pages.push(f);
@@ -1087,7 +1094,7 @@ function collectDemoFolder_(sub, rootId) {
     else if (String(f.getName()).toLowerCase() === PROVENANCE_FILE) prov = f;
   }
   if (!pages.length) {
-    logEvent_('sync', 'Skipped folder "' + name + '" — no .html page inside.');
+    notices.push('folder "' + name + '" has no .html page');
     return null;
   }
 
@@ -1120,6 +1127,51 @@ function collectDemoFolder_(sub, rootId) {
     imageFiles: images.slice(), card: card,
     selectionProvenanceContract: selectionProvenanceContract,
     stamp: stamp, notes: notes };
+}
+
+/** Preserve every Drive-scan reason, batching the usual handful into one append. */
+function registryV2LogDriveScanNotices_(notices) {
+  notices = (notices || []).map(function (notice) {
+    // Budget the exact post-sanitisation text that logEvent_ will append.
+    // Alternating non-English/ASCII runs can otherwise expand substantially.
+    return registryV2AuditTextUnbounded_(notice);
+  }).filter(function (notice) { return !!notice; });
+  if (!notices.length) return;
+  // logEvent_ caps detail at 1,000 characters. Keep payloads well below that
+  // limit so a long but valid Drive name cannot silently erase later reasons.
+  var maxPayloadChars = 700;
+  var fragments = [];
+  notices.forEach(function (notice, noticeIndex) {
+    if (notice.length <= maxPayloadChars) {
+      fragments.push(notice);
+      return;
+    }
+    var fragmentChars = 600;
+    var parts = Math.ceil(notice.length / fragmentChars);
+    for (var part = 0; part < parts; part++) {
+      fragments.push('notice ' + (noticeIndex + 1) + ' part ' + (part + 1)
+        + '/' + parts + ': '
+        + notice.slice(part * fragmentChars, (part + 1) * fragmentChars));
+    }
+  });
+  var payloads = [];
+  var payload = '';
+  fragments.forEach(function (fragment) {
+    var candidate = payload ? payload + ' | ' + fragment : fragment;
+    if (payload && candidate.length > maxPayloadChars) {
+      payloads.push(payload);
+      payload = fragment;
+    } else {
+      payload = candidate;
+    }
+  });
+  if (payload) payloads.push(payload);
+  for (var batch = 0; batch < payloads.length; batch++) {
+    var detail = 'Drive scan skipped ' + notices.length + ' item(s)';
+    if (payloads.length > 1) detail += ' [batch ' + (batch + 1)
+      + '/' + payloads.length + ']';
+    logEvent_('sync-skip', detail + ': ' + payloads[batch] + '.');
+  }
 }
 
 /** True only for a current, direct parent edge; lookup failures stop the sync. */
@@ -5480,11 +5532,15 @@ function logEvent_(event, details) {
 }
 
 function registryV2AuditText_(value, maxLength) {
+  return registryV2AuditTextUnbounded_(value).slice(0, Number(maxLength) || 1000);
+}
+
+function registryV2AuditTextUnbounded_(value) {
   var text = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
   text = text.replace(
     /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]+/gu,
     '[non-English text omitted]');
-  return text.slice(0, Number(maxLength) || 1000);
+  return text;
 }
 
 function paint_(sh, row, colFrom, colTo, color) {
