@@ -71,6 +71,14 @@ var REGISTRY_V2_REQUIRED_OPERATION_KEYS = [
 var REGISTRY_REVISION_SCHEMA = 1;
 var REGISTRY_V2_REVISION_SCHEMA = 2;
 var REGISTRY_V2_MAX_CARD_ASSET_BYTES = 5 * 1024 * 1024;
+// A Netlify build pins every page/image request to the revision returned by
+// its opening manifest. Keep that compiled view long enough for one build,
+// while the closing pinned manifest always recompiles the live Registry.
+var REGISTRY_V2_SNAPSHOT_CACHE_SCHEMA = 1;
+var REGISTRY_V2_SNAPSHOT_CACHE_TTL_SECONDS = 30 * 60;
+var REGISTRY_V2_SNAPSHOT_CACHE_PREFIX = 'registry-v2-snapshot-v1:';
+var REGISTRY_V2_SNAPSHOT_MARKER_PREFIX = 'registry-v2-current-v1:';
+var REGISTRY_V2_SNAPSHOT_CACHE_MAX_BYTES = 95 * 1024;
 var REGISTRY_V2_IMAGE_MIME_BY_EXTENSION = {
   avif: 'image/avif', gif: 'image/gif', jpg: 'image/jpeg', jpeg: 'image/jpeg',
   png: 'image/png', webp: 'image/webp'
@@ -800,6 +808,7 @@ function syncDrive() {
     }
     return result;
   } finally {
+    registryV2InvalidateSnapshotMarkers_();
     try { SpreadsheetApp.flush(); }
     finally { lock.releaseLock(); }
   }
@@ -3357,8 +3366,8 @@ function registryV2CompileState_(ss, cfg, audience, workbookState) {
 }
 
 /** Build-facing view. A blocked Live row keeps the API fail-closed. */
-function registryV2Snapshot_(ss, cfg, audience) {
-  var compiled = registryV2CompileState_(ss, cfg, audience);
+function registryV2Snapshot_(ss, cfg, audience, workbookState) {
+  var compiled = registryV2CompileState_(ss, cfg, audience, workbookState);
   var blockedLive = compiled.readiness.filter(function (item) {
     return item.project_status === 'Live' && item.status !== 'ready';
   })[0];
@@ -3375,6 +3384,155 @@ function registryV2Snapshot_(ss, cfg, audience) {
     assets_by_id: compiled.assets_by_id,
     registry_revision: compiled.registry_revision
   };
+}
+
+function registryV2SnapshotCacheKey_(audience, revision) {
+  return REGISTRY_V2_SNAPSHOT_CACHE_PREFIX + String(audience) + ':'
+    + String(revision).replace(/^sha256:/, '');
+}
+
+function registryV2SnapshotMarkerKey_(audience) {
+  return REGISTRY_V2_SNAPSHOT_MARKER_PREFIX + String(audience);
+}
+
+function registryV2InvalidateSnapshotMarkers_() {
+  try {
+    registryV2SnapshotCache_().removeAll([
+      registryV2SnapshotMarkerKey_('production'),
+      registryV2SnapshotMarkerKey_('preview')
+    ]);
+  } catch (ignored) { /* CacheService is an optimisation, not sync authority. */ }
+}
+
+function registryV2CachedDriveInfo_(info) {
+  return {
+    id: String(info.id),
+    name: String(info.name),
+    mime: String(info.mime),
+    extension: String(info.extension),
+    parent_ids: info.parent_ids.slice(),
+    modified_ms: Number(info.modified_ms)
+  };
+}
+
+/** Strip live Drive File handles before serialising a compiled build view. */
+function registryV2CacheableSnapshot_(snapshot) {
+  var files = {};
+  Object.keys(snapshot.files_by_id).forEach(function (id) {
+    files[id] = registryV2CachedDriveInfo_(snapshot.files_by_id[id]);
+  });
+  var assets = {};
+  Object.keys(snapshot.assets_by_id).forEach(function (id) {
+    var source = snapshot.assets_by_id[id];
+    assets[id] = {
+      info: registryV2CachedDriveInfo_(source.info),
+      page_info: registryV2CachedDriveInfo_(source.page_info),
+      public_path: String(source.public_path || '')
+    };
+  });
+  return {
+    audience: snapshot.audience,
+    files_by_id: files,
+    assets_by_id: assets,
+    registry_revision: snapshot.registry_revision
+  };
+}
+
+function registryV2SnapshotCache_() {
+  return CacheService.getScriptCache();
+}
+
+function registryV2Utf8ByteLength_(value) {
+  value = String(value);
+  var bytes = 0;
+  for (var i = 0; i < value.length; i++) {
+    var code = value.charCodeAt(i);
+    if (code < 0x80) bytes += 1;
+    else if (code < 0x800) bytes += 2;
+    else if (code >= 0xD800 && code <= 0xDBFF
+        && i + 1 < value.length
+        && value.charCodeAt(i + 1) >= 0xDC00
+        && value.charCodeAt(i + 1) <= 0xDFFF) {
+      bytes += 4;
+      i += 1;
+    } else bytes += 3;
+  }
+  return bytes;
+}
+
+function registryV2ValidCachedDriveInfo_(info) {
+  if (!info || typeof info !== 'object' || Array.isArray(info)) return false;
+  var keys = Object.keys(info).sort().join(',');
+  if (keys !== 'extension,id,mime,modified_ms,name,parent_ids') return false;
+  return typeof info.id === 'string' && /^[-\w]{10,}$/.test(info.id)
+    && typeof info.name === 'string' && info.name.length > 0
+    && typeof info.mime === 'string' && info.mime.length > 0
+    && typeof info.extension === 'string' && info.extension.length > 0
+    && typeof info.modified_ms === 'number' && isFinite(info.modified_ms)
+    && Array.isArray(info.parent_ids) && info.parent_ids.length > 0
+    && info.parent_ids.every(function (id) {
+      return typeof id === 'string' && /^[-\w]{10,}$/.test(id);
+    });
+}
+
+function registryV2ValidCachedSources_(snapshot) {
+  if (!snapshot.files_by_id || typeof snapshot.files_by_id !== 'object'
+      || Array.isArray(snapshot.files_by_id)
+      || !snapshot.assets_by_id || typeof snapshot.assets_by_id !== 'object'
+      || Array.isArray(snapshot.assets_by_id)) return false;
+  var pagesOk = Object.keys(snapshot.files_by_id).every(function (id) {
+    var info = snapshot.files_by_id[id];
+    return id === info.id && registryV2ValidCachedDriveInfo_(info);
+  });
+  var assetsOk = Object.keys(snapshot.assets_by_id).every(function (id) {
+    var source = snapshot.assets_by_id[id];
+    return source && typeof source === 'object' && !Array.isArray(source)
+      && Object.keys(source).sort().join(',') === 'info,page_info,public_path'
+      && typeof source.public_path === 'string'
+      && registryV2ValidCachedDriveInfo_(source.info)
+      && registryV2ValidCachedDriveInfo_(source.page_info);
+  });
+  return pagesOk && assetsOk;
+}
+
+function registryV2ReadCachedSnapshot_(audience, revision) {
+  if (!validRegistryRevision_(revision)) return null;
+  var cache = registryV2SnapshotCache_();
+  if (cache.get(registryV2SnapshotMarkerKey_(audience)) !== revision) return null;
+  var key = registryV2SnapshotCacheKey_(audience, revision);
+  var raw = cache.get(key);
+  if (!raw) return null;
+  var envelope;
+  try { envelope = JSON.parse(raw); }
+  catch (ignored) { envelope = null; }
+  var snapshot = envelope && envelope.snapshot;
+  if (!envelope || envelope.cache_schema !== REGISTRY_V2_SNAPSHOT_CACHE_SCHEMA
+      || !snapshot || snapshot.audience !== audience
+      || snapshot.registry_revision !== revision
+      || !registryV2ValidCachedSources_(snapshot)) {
+    cache.remove(key);
+    return null;
+  }
+  return snapshot;
+}
+
+/** Best-effort storage for the blob-only portion of a compiled build view. */
+function registryV2WriteCachedSnapshot_(snapshot) {
+  var key = registryV2SnapshotCacheKey_(snapshot.audience, snapshot.registry_revision);
+  var envelope = JSON.stringify({
+    cache_schema: REGISTRY_V2_SNAPSHOT_CACHE_SCHEMA,
+    snapshot: registryV2CacheableSnapshot_(snapshot)
+  });
+  if (registryV2Utf8ByteLength_(envelope) > REGISTRY_V2_SNAPSHOT_CACHE_MAX_BYTES) {
+    throw new Error('Registry v2 snapshot is too large for the build cache.');
+  }
+  var cache = registryV2SnapshotCache_();
+  cache.put(key, envelope, REGISTRY_V2_SNAPSHOT_CACHE_TTL_SECONDS);
+  cache.put(registryV2SnapshotMarkerKey_(snapshot.audience),
+    snapshot.registry_revision, REGISTRY_V2_SNAPSHOT_CACHE_TTL_SECONDS);
+  var stored = registryV2ReadCachedSnapshot_(
+    snapshot.audience, snapshot.registry_revision);
+  if (!stored) throw new Error('Registry v2 snapshot cache could not retain the build view.');
 }
 
 function registryV2ReadinessText_(item) {
@@ -3647,6 +3805,11 @@ function registryV2Response_(snapshot, cfg, action, id) {
   if (action === 'asset') {
     var source = snapshot.assets_by_id[id];
     if (!source) return { ok: false, error: 'unknown asset id' };
+    var currentPage = registryV2DriveInfo_(cfg, source.page_info.id, 'page');
+    if (!registryV2SameDriveInfo_(currentPage, source.page_info)
+        || !registryV2SharesParent_(currentPage, source.info)) {
+      throw new Error('Registry v2 project page changed before reading its asset.');
+    }
     var blob = registryV2ReadBlob_(cfg, source.info, 'asset');
     var bytes = blob.getBytes();
     if (!bytes.length || bytes.length > REGISTRY_V2_MAX_CARD_ASSET_BYTES
@@ -3771,25 +3934,12 @@ function doPost(e) {
 
 function doGet(e) {
   var p = (e && e.parameter) || {};
-  var accessToken = String(PropertiesService.getScriptProperties()
+  var scriptProperties = PropertiesService.getScriptProperties();
+  var accessToken = String(scriptProperties
     .getProperty(REGISTRY_V2_OPERATION_PROPERTIES.access_token) || '');
   if (!p.token || !accessToken || p.token !== accessToken) {
     return jsonOut_({ ok: false, error: 'bad token' });
   }
-  var ss;
-  try {
-    ss = registryV2Spreadsheet_();
-  } catch (err) {
-    return jsonOut_({ ok: false,
-      error: 'registry v2 unavailable — commission the V2-bound script and deploy a new Web App version' });
-  }
-  var cfg;
-  try {
-    cfg = registryV2OperationalConfig_(ss);
-  } catch (configError) {
-    return jsonOut_({ ok: false, error: 'registry v2 unavailable' });
-  }
-
   var audienceResult = registryAudience_(p.audience);
   if (!audienceResult.ok) return jsonOut_({ ok: false, error: audienceResult.error });
   var audience = audienceResult.value;
@@ -3801,13 +3951,57 @@ function doGet(e) {
       && p.action !== 'asset') {
     return jsonOut_({ ok: false, error: 'unknown action' });
   }
-  var snapshot;
-  try {
-    snapshot = registryV2Snapshot_(ss, cfg, audience);
-  } catch (snapshotError) {
-    return jsonOut_({ ok: false, error: 'registry v2 unavailable' });
-  }
+  var action = p.action || 'manifest';
   var expectedRevision = String(p.registry_revision || '').trim();
+  if (expectedRevision && !validRegistryRevision_(expectedRevision)) {
+    return jsonOut_({ ok: false, error: 'invalid registry revision' });
+  }
+  if ((action === 'file' || action === 'asset') && !p.id) {
+    return jsonOut_({ ok: false,
+      error: action === 'asset' ? 'unknown asset id' : 'unknown file id' });
+  }
+
+  var snapshot;
+  var cfg;
+  var compiledFresh = false;
+  // The normal build path never reopens or recompiles the workbook for a page
+  // or image. If Apps Script evicts this best-effort cache early, the fallback
+  // below recompiles once and serves only when the resulting revision still
+  // equals the caller's pin, so two Registry versions cannot be mixed.
+  if ((action === 'file' || action === 'asset') && expectedRevision) {
+    try { snapshot = registryV2ReadCachedSnapshot_(audience, expectedRevision); }
+    catch (cacheReadError) { snapshot = null; }
+    if (snapshot) {
+      cfg = { drive_folder_url: String(scriptProperties
+        .getProperty(REGISTRY_V2_OPERATION_PROPERTIES.drive_folder_url) || '').trim() };
+    }
+  }
+  if (!snapshot) {
+    var ss;
+    try {
+      ss = registryV2Spreadsheet_();
+    } catch (err) {
+      return jsonOut_({ ok: false,
+        error: 'registry v2 unavailable — commission the V2-bound script and deploy a new Web App version' });
+    }
+    try {
+      // Config and compilation share this one immutable read of all six tabs.
+      var workbookState = registryV2WorkbookState_(ss);
+      cfg = registryV2OperationalConfig_(ss, workbookState);
+      snapshot = registryV2Snapshot_(ss, cfg, audience, workbookState);
+      compiledFresh = true;
+    } catch (snapshotError) {
+      return jsonOut_({ ok: false, error: 'registry v2 unavailable' });
+    }
+  }
+  // Every freshly compiled response establishes or refreshes the
+  // exact pinned view. This includes a Hook-supplied opening revision and the
+  // closing manifest; the latter still compiled live state before arriving
+  // here and therefore never used the cached view as its consistency check.
+  if (compiledFresh) {
+    try { registryV2WriteCachedSnapshot_(snapshot); }
+    catch (cacheWriteError) { /* CacheService is an optimisation, not authority. */ }
+  }
   if (expectedRevision && expectedRevision !== snapshot.registry_revision) {
     return jsonOut_({
       ok: false,
@@ -3815,16 +4009,12 @@ function doGet(e) {
       registry_revision: snapshot.registry_revision
     });
   }
-  if ((p.action === 'file' || p.action === 'asset') && !p.id) {
-    return jsonOut_({ ok: false,
-      error: p.action === 'asset' ? 'unknown asset id' : 'unknown file id' });
-  }
   try {
     return jsonOut_(registryV2Response_(snapshot, cfg,
-      p.action || 'manifest', String(p.id || '')));
+      action, String(p.id || '')));
   } catch (readError) {
     return jsonOut_({ ok: false,
-      error: p.action === 'asset' ? 'could not read asset' : 'could not read file' });
+      error: action === 'asset' ? 'could not read asset' : 'could not read file' });
   }
 }
 

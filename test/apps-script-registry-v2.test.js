@@ -155,7 +155,8 @@ function driveFile(options) {
     getId: () => options.id || options.name,
     getName: () => options.name,
     getMimeType: () => options.mime,
-    getParents: () => iterator(options.parents),
+    getParents: () => iterator(options.parentsProvider
+      ? options.parentsProvider() : options.parents),
     getLastUpdated: () => new Date(modified),
     getDateCreated: () => new Date(created),
     getSize: () => options.declaredSize ?? bytes.length,
@@ -183,6 +184,41 @@ function utilities() {
     base64Encode: bytes => Buffer.from(bytes.map(byte => (byte < 0 ? byte + 256 : byte)))
       .toString('base64'),
     getUuid: () => '11111111-2222-4333-8444-555555555555',
+  };
+}
+
+function fakeScriptCache() {
+  let now = 0;
+  const entries = new Map();
+  const calls = { get: 0, put: 0, remove: 0, removeAll: 0 };
+  const cache = {
+    get(key) {
+      calls.get += 1;
+      const entry = entries.get(key);
+      if (!entry || entry.expiresAt <= now) {
+        entries.delete(key);
+        return null;
+      }
+      return entry.value;
+    },
+    put(key, value, ttlSeconds) {
+      calls.put += 1;
+      entries.set(key, { value: String(value), expiresAt: now + ttlSeconds * 1000 });
+    },
+    remove(key) {
+      calls.remove += 1;
+      entries.delete(key);
+    },
+    removeAll(keys) {
+      calls.removeAll += 1;
+      keys.forEach(key => entries.delete(key));
+    },
+  };
+  return {
+    service: { getScriptCache: () => cache },
+    calls,
+    entries,
+    advance(milliseconds) { now += milliseconds; },
   };
 }
 
@@ -363,6 +399,9 @@ function installServices(script, v2Sheet, files, properties = {}) {
   script.LockService = {
     getScriptLock: () => ({ tryLock: () => true, releaseLock: () => {} }),
   };
+  const cache = fakeScriptCache();
+  script.CacheService = cache.service;
+  script.__testSnapshotCache = cache;
   script.jsonOut_ = value => value;
   return values;
 }
@@ -375,6 +414,7 @@ function standardDrive(options = {}) {
     'page-live-12345': driveFile({
       id: 'page-live-12345', name: 'live.html', mime: 'text/html', parents: [demoFolder],
       mutateOnBlob: options.mutatePageOnBlob,
+      onBlob: options.onPageBlob,
     }),
     'page-draft-12345': driveFile({
       id: 'page-draft-12345', name: 'draft.html', mime: 'text/html', parents: [demoFolder],
@@ -1102,6 +1142,322 @@ test('v2 file responses are visible, revision-bound, read-only, and race-safe', 
     { ok: false, error: 'could not read file' });
 });
 
+test('v2 build snapshot cache compiles once, serves pinned blobs, and recompiles the closing manifest', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script, { cardName: 'card.png' });
+  let blobReads = 0;
+  installServices(script, sheet, standardDrive({
+    withAsset: true,
+    onPageBlob: () => { blobReads += 1; },
+    onAssetBlob: () => { blobReads += 1; },
+  }));
+  let driveFileReads = 0;
+  const getFileById = script.DriveApp.getFileById;
+  script.DriveApp.getFileById = id => {
+    driveFileReads += 1;
+    return getFileById(id);
+  };
+  let stateReads = 0;
+  let compiles = 0;
+  const readState = script.registryV2WorkbookState_;
+  const compile = script.registryV2CompileState_;
+  script.registryV2WorkbookState_ = (...args) => {
+    stateReads += 1;
+    return readState(...args);
+  };
+  script.registryV2CompileState_ = (...args) => {
+    compiles += 1;
+    return compile(...args);
+  };
+
+  const opening = script.doGet({ parameter: {
+    token: 'secret', schema: '2', action: 'manifest', audience: 'production',
+  } });
+  assert.equal(opening.ok, true);
+  assert.equal(stateReads, 1, 'config and compiler share one workbook state');
+  assert.equal(compiles, 1);
+  assert.equal(script.__testSnapshotCache.calls.put, 2,
+    'opening stores the snapshot and its audience marker');
+
+  const page = script.doGet({ parameter: {
+    token: 'secret', schema: '2', action: 'file', audience: 'production',
+    id: 'page-live-12345', registry_revision: opening.registry_revision,
+  } });
+  const asset = script.doGet({ parameter: {
+    token: 'secret', schema: '2', action: 'asset', audience: 'production',
+    id: 'live-card', registry_revision: opening.registry_revision,
+  } });
+  assert.equal(page.ok, true);
+  assert.equal(asset.ok, true);
+  assert.equal(stateReads, 1, 'pinned blobs do not reopen the workbook');
+  assert.equal(compiles, 1, 'pinned blobs reuse the opening snapshot');
+
+  const closing = script.doGet({ parameter: {
+    token: 'secret', schema: '2', action: 'manifest', audience: 'production',
+    registry_revision: opening.registry_revision,
+  } });
+  assert.equal(closing.ok, true);
+  assert.equal(closing.registry_revision, opening.registry_revision);
+  assert.equal(stateReads, 2, 'closing manifest reads one fresh workbook state');
+  assert.equal(compiles, 2, 'closing manifest never trusts the cache');
+  assert.equal(script.__testSnapshotCache.calls.put, 4,
+    'closing verification refreshes only after compiling the live Registry');
+  assert.equal(blobReads, 2, 'only the requested page and asset bytes are read');
+  assert.equal(driveFileReads, 9,
+    'compile 2+2, page read 2, and asset page/asset checks 1+2');
+});
+
+test('v2 cold-cache pinned opening manifest primes page and asset reads', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script, { cardName: 'card.png' });
+  const files = standardDrive({ withAsset: true });
+  installServices(script, sheet, files);
+  const state = script.registryV2WorkbookState_(sheet);
+  const cfg = script.registryV2OperationalConfig_(sheet, state);
+  const expected = script.registryV2Snapshot_(sheet, cfg, 'production', state)
+    .registry_revision;
+  script.__testSnapshotCache.entries.clear();
+
+  let compiles = 0;
+  const compile = script.registryV2CompileState_;
+  script.registryV2CompileState_ = (...args) => {
+    compiles += 1;
+    return compile(...args);
+  };
+  const opening = script.doGet({ parameter: {
+    token: 'secret', schema: '2', action: 'manifest', audience: 'production',
+    registry_revision: expected,
+  } });
+  assert.equal(opening.ok, true);
+  assert.equal(compiles, 1);
+  const page = script.doGet({ parameter: {
+    token: 'secret', schema: '2', action: 'file', audience: 'production',
+    id: 'page-live-12345', registry_revision: expected,
+  } });
+  const asset = script.doGet({ parameter: {
+    token: 'secret', schema: '2', action: 'asset', audience: 'production',
+    id: 'live-card', registry_revision: expected,
+  } });
+  assert.equal(page.ok, true);
+  assert.equal(asset.ok, true);
+  assert.equal(compiles, 1, 'both pinned resources use the opening manifest cache');
+});
+
+test('v2 cache-hit resources reject page or asset parent changes before reading bytes', async t => {
+  for (const moved of ['page', 'asset']) {
+    await t.test(moved, () => {
+      const script = loadAppsScript();
+      const root = folder('root-folder-12345');
+      const demo = folder('demo-folder-12345', [root]);
+      const other = folder('other-folder-12345', [root]);
+      let pageParents = [demo];
+      let assetParents = [demo];
+      let blobReads = 0;
+      const files = {
+        'page-live-12345': driveFile({
+          id: 'page-live-12345', name: 'live.html', mime: 'text/html',
+          parentsProvider: () => pageParents,
+        }),
+        'page-draft-12345': driveFile({
+          id: 'page-draft-12345', name: 'draft.html', mime: 'text/html', parents: [demo],
+        }),
+        'asset-live-12345': driveFile({
+          id: 'asset-live-12345', name: 'card.png', mime: 'image/png',
+          parentsProvider: () => assetParents,
+          bytes: Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+          onBlob: () => { blobReads += 1; },
+        }),
+      };
+      installServices(script, fixture(script, { cardName: 'card.png' }), files);
+      const manifest = script.doGet({ parameter: {
+        token: 'secret', schema: '2', action: 'manifest', audience: 'production',
+      } });
+      assert.equal(manifest.ok, true);
+      if (moved === 'page') pageParents = [other];
+      else assetParents = [other];
+
+      const result = script.doGet({ parameter: {
+        token: 'secret', schema: '2', action: 'asset', audience: 'production',
+        id: 'live-card', registry_revision: manifest.registry_revision,
+      } });
+      assert.deepEqual({ ok: result.ok, error: result.error },
+        { ok: false, error: 'could not read asset' });
+      assert.equal(blobReads, 0);
+    });
+  }
+});
+
+test('v2 pinned requests safely recompile after snapshot cache expiry', () => {
+  const script = loadAppsScript();
+  let blobReads = 0;
+  installServices(script, fixture(script), {
+    ...standardDrive(),
+    'page-live-12345': driveFile({
+      id: 'page-live-12345', name: 'live.html', mime: 'text/html',
+      parents: [folder('demo-folder-12345', [folder('root-folder-12345')])],
+      onBlob: () => { blobReads += 1; },
+    }),
+  });
+  let compiles = 0;
+  const compile = script.registryV2CompileState_;
+  script.registryV2CompileState_ = (...args) => {
+    compiles += 1;
+    return compile(...args);
+  };
+  const manifest = script.doGet({ parameter: {
+    token: 'secret', schema: '2', action: 'manifest', audience: 'production',
+  } });
+  assert.equal(manifest.ok, true);
+  script.__testSnapshotCache.advance(
+    script.REGISTRY_V2_SNAPSHOT_CACHE_TTL_SECONDS * 1000 + 1);
+
+  const expired = script.doGet({ parameter: {
+    token: 'secret', schema: '2', action: 'file', audience: 'production',
+    id: 'page-live-12345', registry_revision: manifest.registry_revision,
+  } });
+  assert.equal(expired.ok, true);
+  assert.match(expired.html, /live\.html/);
+  assert.equal(compiles, 2, 'an evicted snapshot is rebuilt before serving');
+  assert.equal(blobReads, 1);
+});
+
+test('v2 cached blobs retain their pinned view while the closing manifest detects a Sheet edit', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script);
+  let blobReads = 0;
+  installServices(script, sheet, standardDrive({
+    onPageBlob: () => { blobReads += 1; },
+  }));
+  const opening = script.doGet({ parameter: {
+    token: 'secret', schema: '2', action: 'manifest', audience: 'production',
+  } });
+  assert.equal(opening.ok, true);
+
+  const projects = sheet.getSheetByName('Projects');
+  projects.rows[1][projects.rows[0].indexOf('Project Title')] = 'Edited during build';
+  const pinnedPage = script.doGet({ parameter: {
+    token: 'secret', schema: '2', action: 'file', audience: 'production',
+    id: 'page-live-12345', registry_revision: opening.registry_revision,
+  } });
+  assert.equal(pinnedPage.ok, true, 'the opening revision remains internally consistent');
+
+  const closing = script.doGet({ parameter: {
+    token: 'secret', schema: '2', action: 'manifest', audience: 'production',
+    registry_revision: opening.registry_revision,
+  } });
+  assert.equal(closing.ok, false);
+  assert.equal(closing.error, 'registry revision changed');
+  assert.notEqual(closing.registry_revision, opening.registry_revision);
+  const oldRevision = script.doGet({ parameter: {
+    token: 'secret', schema: '2', action: 'file', audience: 'production',
+    id: 'page-live-12345', registry_revision: opening.registry_revision,
+  } });
+  assert.equal(oldRevision.error, 'registry revision changed');
+  assert.equal(blobReads, 1,
+    'the stale revision is rejected before a second page blob read');
+});
+
+test('v2 marker invalidation prevents a replaced image old revision from reading its old blob', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script, { cardName: 'card.png' });
+  let oldBlobReads = 0;
+  const files = standardDrive({
+    withAsset: true,
+    onAssetBlob: () => { oldBlobReads += 1; },
+  });
+  const root = folder('root-folder-12345');
+  const demo = folder('demo-folder-12345', [root]);
+  files['asset-new-12345'] = driveFile({
+    id: 'asset-new-12345', name: 'card-new.png', mime: 'image/png', parents: [demo],
+    bytes: Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+  });
+  installServices(script, sheet, files);
+  const opening = script.doGet({ parameter: {
+    token: 'secret', schema: '2', action: 'manifest', audience: 'production',
+  } });
+  assert.equal(opening.ok, true);
+
+  const projects = sheet.getSheetByName('Projects').rows;
+  projects[1][projects[0].indexOf('Card Image')] = 'card-new.png';
+  const assets = sheet.getSheetByName('_Assets').rows;
+  assets[1][assets[0].indexOf('drive_file_id')] = 'asset-new-12345';
+  assets[1][assets[0].indexOf('source_file_name')] = 'card-new.png';
+  assets[1][assets[0].indexOf('source_modified_at')]
+    = new Date('2026-08-13T00:00:00.000Z');
+  script.registryV2InvalidateSnapshotMarkers_();
+
+  const stale = script.doGet({ parameter: {
+    token: 'secret', schema: '2', action: 'asset', audience: 'production',
+    id: 'live-card', registry_revision: opening.registry_revision,
+  } });
+  assert.equal(stale.ok, false);
+  assert.equal(stale.error, 'registry revision changed');
+  assert.notEqual(stale.registry_revision, opening.registry_revision);
+  assert.equal(oldBlobReads, 0);
+});
+
+test('v2 malformed, unavailable, and oversized caches fall back to authoritative compilation', async t => {
+  await t.test('malformed descriptor', () => {
+    const script = loadAppsScript();
+    installServices(script, fixture(script), standardDrive());
+    const manifest = script.doGet({ parameter: {
+      token: 'secret', schema: '2', action: 'manifest', audience: 'production',
+    } });
+    const key = script.registryV2SnapshotCacheKey_('production', manifest.registry_revision);
+    const entry = script.__testSnapshotCache.entries.get(key);
+    const envelope = JSON.parse(entry.value);
+    delete envelope.snapshot.files_by_id['page-live-12345'].name;
+    entry.value = JSON.stringify(envelope);
+    let compiles = 0;
+    const compile = script.registryV2CompileState_;
+    script.registryV2CompileState_ = (...args) => {
+      compiles += 1;
+      return compile(...args);
+    };
+    const page = script.doGet({ parameter: {
+      token: 'secret', schema: '2', action: 'file', audience: 'production',
+      id: 'page-live-12345', registry_revision: manifest.registry_revision,
+    } });
+    assert.equal(page.ok, true);
+    assert.equal(compiles, 1);
+    assert.equal(script.__testSnapshotCache.calls.remove, 1);
+  });
+
+  await t.test('CacheService get and put throw', () => {
+    const script = loadAppsScript();
+    installServices(script, fixture(script), standardDrive());
+    const manifest = script.doGet({ parameter: {
+      token: 'secret', schema: '2', action: 'manifest', audience: 'production',
+    } });
+    script.CacheService = { getScriptCache: () => ({
+      get() { throw new Error('cache unavailable'); },
+      put() { throw new Error('cache unavailable'); },
+      remove() {}, removeAll() {},
+    }) };
+    const page = script.doGet({ parameter: {
+      token: 'secret', schema: '2', action: 'file', audience: 'production',
+      id: 'page-live-12345', registry_revision: manifest.registry_revision,
+    } });
+    assert.equal(page.ok, true);
+  });
+
+  await t.test('oversized cache DTO', () => {
+    const script = loadAppsScript();
+    installServices(script, fixture(script), standardDrive());
+    const cacheable = script.registryV2CacheableSnapshot_;
+    script.registryV2CacheableSnapshot_ = snapshot => ({
+      ...cacheable(snapshot),
+      padding: 'x'.repeat(script.REGISTRY_V2_SNAPSHOT_CACHE_MAX_BYTES),
+    });
+    const manifest = script.doGet({ parameter: {
+      token: 'secret', schema: '2', action: 'manifest', audience: 'production',
+    } });
+    assert.equal(manifest.ok, true);
+    assert.equal(script.__testSnapshotCache.calls.put, 0,
+      'the UTF-8 guard runs before CacheService.put');
+  });
+});
+
 test('v2 Drive card image returns the exact strict asset envelope', () => {
   const script = loadAppsScript();
   let blobReads = 0;
@@ -1745,4 +2101,31 @@ test('a v2 sync error disables both automatic Preview requests and retries', () 
   assert.match(result.error, /v2 auto-ingest failed/);
   assert.equal(observed.allowAutoRequest, false);
   assert.equal(observed.allowAttempt, false);
+});
+
+test('CacheService marker invalidation failure never changes the sync result', () => {
+  const script = loadAppsScript();
+  let released = false;
+  script.LockService = {
+    getScriptLock: () => ({
+      tryLock: () => true,
+      releaseLock: () => { released = true; },
+    }),
+  };
+  script.CacheService = { getScriptCache: () => ({
+    removeAll() { throw new Error('cache unavailable'); },
+  }) };
+  script.SpreadsheetApp = { flush: () => {} };
+  script.syncDriveUnlocked_ = () => ({ ok: true, registryV2: { checked: 2 } });
+  script.registryV2Spreadsheet_ = () => ({});
+  script.registryV2OperationalConfig_ = () => ({});
+  script.maintainPreviewPublish_ = () => ({
+    attempted: false, becameReady: false, phase: 'ready',
+  });
+  script.logEvent_ = () => {};
+
+  const result = script.syncDrive();
+  assert.equal(result.ok, true);
+  assert.equal(result.previewPublishPhase, 'ready');
+  assert.equal(released, true);
 });

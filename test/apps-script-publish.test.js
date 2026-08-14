@@ -377,6 +377,7 @@ test('Registry endpoint never lets legacy status=all bypass its audience', () =>
     AI4S_REGISTRY_ACCESS_TOKEN: 'secret',
   }).service;
   script.registryV2Spreadsheet_ = () => registry;
+  script.registryV2WorkbookState_ = () => ({});
   script.registryV2OperationalConfig_ = value => {
     assert.equal(value, registry);
     return {};
@@ -396,7 +397,10 @@ test('Registry endpoint never lets legacy status=all bypass its audience', () =>
         : { 'live-id': { id: 'live-id' }, 'draft-id': { id: 'draft-id' } },
       assets_by_id: audience === 'production'
         ? {}
-        : { 'draft-card': { info: { id: 'draft-card', extension: 'png', mime: 'image/png' } } },
+        : { 'draft-card': {
+          info: { id: 'draft-card', extension: 'png', mime: 'image/png' },
+          page_info: { id: 'draft-id' },
+        } },
     };
   };
   script.jsonOut_ = value => value;
@@ -410,6 +414,9 @@ test('Registry endpoint never lets legacy status=all bypass its audience', () =>
         : [],
     };
   };
+  script.registryV2DriveInfo_ = (cfg, id) => ({ id });
+  script.registryV2SameDriveInfo_ = (left, right) => left.id === right.id;
+  script.registryV2SharesParent_ = () => true;
   script.Utilities = fakeUtilities();
   script.Utilities.base64Encode = () => 'encoded-card';
 
