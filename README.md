@@ -105,6 +105,30 @@ content-only Drive/Sheet releases when the approved code is already on `main`.
 4. When the content is approved, change its status to **Live**.
 5. Only after explicit approval, choose **Rebuild production site (main)**.
 
+A warm sync still enumerates the complete Drive source inventory and rechecks
+metadata, MIME and direct-parent boundaries. It may use a hash-only
+Script Properties hint to avoid downloading unchanged, healthy HTML and
+provenance blobs; cache loss or failure safely falls back to a full read. If the
+verified target is already identical to V2, the no-op path also avoids an empty
+Sheets write, flush, reopen and post-read. Any real change keeps the guarded
+single-batch write and exact fresh-reopen verification. See the
+[Apps Script guide](google-apps-script/README.md#4-%E6%97%A5%E5%B8%B8-v2-%E5%B7%A5%E4%BD%9C%E6%B5%81)
+for the full safety contract.
+
+Drive-scan skip notices are sanitised before batching under the 1,000-character
+Audit limit. The usual three reasons use one append; oversized sets are
+fragmented and batched without dropping any sanitised reason, and a `finally`
+flush preserves reasons already observed if a later scan check fails closed.
+
+The shipped Version 12 warm run completed in 27 seconds with 16/16 fingerprint
+reuse and zero source parses. Against the previous 71-second no-change median
+(104/71/56 seconds), that is 44 seconds or 61.97% faster and a 2.63× speedup,
+meeting both the ≤35-second and ≥50% targets. V2 currently contains 16 Live,
+Publication-ready projects, including Raman as `Live + Public`, but Published
+Production intentionally remains at the prior 15 routes with Raman absent:
+automation was `off`, the rollout caused zero Netlify deploys, and Production
+was unchanged.
+
 Code changes follow the separate Git review path: review them on `develop`, then
 merge to `main` only when the code is approved **and ready to go live**. With
 Netlify continuous deployment enabled, merging `main` immediately creates the
@@ -121,6 +145,12 @@ when hourly Drive syncs should rebuild the stable develop Preview. Production
 is never an Apps Script automatic target; content-only Production releases use
 the confirmed manual action, while approved code merges follow Netlify's Git
 continuous-deployment path.
+
+With automation `off`, sync may reuse its exact post-verified Preview snapshot
+only to reconcile desired/callback state; it cannot POST the Preview Hook.
+Manual Preview publishing and automatic `preview` mode both compile the live V2
+workbook, and publish reconciliation rereads current operational Script
+Properties before making any request.
 
 Preview automation compares a deterministic Registry revision instead of only
 the sync counters, so additions, edits, missing files, recovered files, and

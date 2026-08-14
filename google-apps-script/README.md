@@ -100,15 +100,53 @@ configured Drive root/
 
 `AI4S dashboard → Sync Drive folder now`
 
-同步只扫描一次 Drive，并直接按 `_Registry.file_id` 与 V2 对账：
+每次同步都会完整枚举配置的 Drive root，并直接按 `_Registry.file_id` 与 V2 对账：
 
 - 新的英文直接子文件夹以 `Draft + Preview only + Featured=false` 进入 V2。
 - 根目录 loose HTML、shortcut、非英文文件夹和主 HTML 不明确的文件夹不自动入库。
 - 相同 Drive file ID 重跑幂等。
 - 文件移出边界后保留记录并标为 missing；同一 file ID 恢复后恢复原身份。
 - `Projects` 人工字段不被同步覆盖。
-- `_Registry`、`_Facets`、`_Assets`、Readiness 和 Preview URL 使用现有并发检查与单批写入。
+- `_Registry`、`_Facets`、`_Assets`、Readiness 和 Preview URL 继续使用现有并发检查。
 - 同步事件写入 `_Audit`，不再写 V1 Log。
+
+Drive scan 的 skip reason 会先经过与 `_Audit` 写入完全相同的英文净化，再按每条 Audit
+detail 的 1,000 字符上限打包。正常的 3 条 notice 只 append 一行；超长单条会带 part 标识
+分片，大批 notice 会拆成带 batch 标识的多行，所有净化后的 reason 都会保留。扫描使用
+`try/finally` flush 已观察到的 notice，因此后面即使发生 fail-closed Drive 错误，前面已经
+观察到的 skip reason 仍会进入 `_Audit`。
+
+增量快路径只省略不必要的 blob 和 workbook I/O，不省略 Drive 安全检查：
+
+- 每次同步仍会验证 demo folder、完整 HTML 清单、`PROVENANCE.md` 和受支持图片的 ID、
+  名称、MIME、修改时间、大小和直接父级关系；cache hit 不会绕过这些检查。
+- 健康且未变化的现有页面可以复用 Script Properties 中的 v1 fingerprint hint。该 hint
+  绑定 Spreadsheet ID、Drive root、页面身份和当前 `_Registry` 输出 hash；cache value 只有
+  schema 号与 input/output SHA-256，不保存 HTML、provenance 内容或任何凭据。
+- 首次读取、来源变化、cache 损坏、来源不健康、missing/recovery 都不能使用 warm hint；
+  对仍存在的来源会重新下载并解析 HTML 和 provenance，missing 记录则保留为 tombstone。
+- Script Properties 读取、写入、配额或解析失败只会让本次或下次同步走完整读取路径，
+  不会放宽验证，也不会改变正确结果。
+- metadata、原生 table 和最终 workbook equality gate 全部通过后，如果目标与起始状态完全
+  相同，本次 no-op 会跳过 Sheets batch、`flush()`、重新打开和 post-read。
+- 如果目标确实变化，仍使用一次受保护的原子 Sheets batch，随后 `flush()`、按稳定 ID
+  重新打开 V2，并对六张输入表做精确 post-write verification。Fingerprint 只会在 no-op
+  linearisation point 或这个精确验证成功后提交。
+
+当前已发布的 fast-path 基线为
+`develop@9a9fec8126de2673b729d4c1dc1788220fc2b2a1`，`Code.gs` SHA-256 为
+`5c2c56c2b04dfdea5386c20932be90e08a1220e0e41e6d3e81d793c3fb3b246a`。正式 Apps Script
+Web App 保持原 deployment ID 和 `/exec` URL，代码为 Version 12，deployment topology
+仍精确为 2，完整测试为 280/280。该上线步骤触发了 0 次 Netlify deploy，Published
+Production 保持不变。
+
+Version 12 现场 warm sync 从 17:41:10 到 17:41:37，`_Audit` 可见耗时 27 秒：16/16
+fingerprint reuse、0 个来源重新解析，且 Sheet 已是 current。旧版三次 no-change 样本为
+104/71/56 秒，中位数 71 秒；当前减少 44 秒（61.97%），速度为旧基线的 2.63 倍，同时满足
+`≤35 秒` 和 `≥50%` 两个目标。最终 V2 Sheet 是 Projects 16（全部 `Live + Publication
+ready`）、`_Registry=16`、`_Facets=50`、`_Assets=16`，其中 Raman 在 Sheet 中已是
+`Live + Public`；这不表示 Production 已更新：Published Production 仍是此前 15 条 demo
+route，Raman 因自动发布为 `off` 且没有 deploy 而尚未出现。
 
 新 Draft 补齐 Card Summary、Department、Subtopic、Task Type 和 Methods 后，才会成为
 Preview ready。Card Image 和 Data Source 仍为可选字段；选择图片时，图片必须是项目 HTML
@@ -124,6 +162,13 @@ Preview ready。Card Image 和 Data Source 仍为可选字段；选择图片时�
   audience（健康 Live + Public）。
 - `AI4S_AUTO_PUBLISH_TARGET=preview`：小时同步只可自动请求 Private Preview。
 - Production 永远没有 Apps Script 自动路径。
+
+当 `AI4S_AUTO_PUBLISH_TARGET=off` 时，一次成功同步可以把刚刚完成精确验证的 Preview
+snapshot 仅用于 desired revision 与 callback receipt 对账；这条路径不会 POST Build Hook。
+人工 `Build preview branch` 和 `AI4S_AUTO_PUBLISH_TARGET=preview` 的自动 Preview 请求都必须
+从当前 V2 workbook 重新 live compile，不能复用该 sync snapshot。发布阶段还会重新读取最新
+Script Properties 中的 branch、Hook、token 和自动发布开关；同步阶段携带的只是非敏感 Sheet
+config base。
 
 Web App 只接受 schema 2。省略 `schema` 等同于 schema 2；显式 `schema=1` 返回错误。构建端
 对 Production、stable develop、PR Preview 和其他 Netlify context 也全部请求 schema 2，

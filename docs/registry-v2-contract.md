@@ -40,17 +40,17 @@ There is no V1 Config fallback. V1 can be moved, protected or archived without
 affecting V2 sync, menus, publishing or the Web App. Operational events append
 to V2 `_Audit`; tokens and Hooks never enter a workbook cell or public artifact.
 
-V2 sync scans Drive once and reconciles directly against `_Registry.file_id`;
-it never reads or writes a V1 row. Automatic discovery accepts only an
-English-named direct child folder of the
+V2 sync enumerates the configured Drive root once per run and reconciles
+directly against `_Registry.file_id`; it never reads or writes a V1 row.
+Automatic discovery accepts only an English-named direct child folder of the
 configured Drive root with one unambiguous direct-child HTML page. A new page
 is appended to the native `ProjectsCatalogV2` table and the plain-grid
-`_Registry` / `_Facets` indexes in one Sheets API batch. It starts as `Draft`,
-`Preview only`, `Featured=false`, with a stable `demo-<folder-slug>` identity.
-Loose root HTML, shortcuts, non-English folder names and ambiguous primary
-pages are outside this creation boundary. Re-running with the same Drive
-`file_id` is idempotent; a slug or identity collision is reported and never
-replaces an existing source.
+`_Registry` / `_Facets` indexes. It starts as `Draft`, `Preview only`,
+`Featured=false`, with a stable `demo-<folder-slug>` identity. Loose root HTML,
+shortcuts, non-English folder names and ambiguous primary pages are outside
+this creation boundary. Re-running with the same Drive `file_id` is idempotent;
+a slug or identity collision is reported and never replaces an existing
+source.
 
 Initial HTML or provenance metadata is only a convenience seed. Taxonomy is
 copied only when the complete field resolves exactly; unknown initial values
@@ -61,11 +61,69 @@ request a deploy. Missing files remain as tombstones and recover when the same
 Drive file returns. A delete/re-upload with a new `file_id` is deliberately not
 guessed as a replacement and requires explicit migration.
 
-Every existing source is checked directly from Drive during reconciliation.
-The current page boundary and content health produce `_Registry.file_check`,
-and Drive creation time seeds `date_added`. Human-owned `Projects` fields are
-never overwritten. Optimistic workbook checks, native-table metadata checks,
-one Sheets batch write and exact post-write verification remain mandatory.
+Every run revalidates the complete Drive metadata and direct-parent contract
+before accepting its result. The fingerprint input binds the Spreadsheet ID,
+configured root, folder edge, selected page, complete relevant HTML inventory,
+`PROVENANCE.md`, supported image inventory, selection identities and collection
+notes. Each Drive entry contributes its ID, name, MIME type, direct parent,
+modification time and size. A cache hit therefore cannot bypass root/folder
+containment, MIME checks, inventory changes or primary-page selection.
+
+Blob ingestion is a separate, conservative optimisation. An unchanged,
+healthy existing source may reuse a Script Properties fingerprint-hint schema
+v1 entry only when both its complete input SHA-256 and its current `_Registry`
+output SHA-256 match. The entry is namespaced by Spreadsheet ID and Drive root,
+keyed per page identity, and its output binds `file_check` plus `date_added`.
+Its value contains only the schema number and input/output hashes: no HTML,
+provenance content, human fields, token, Hook or other secret is cached. Cold,
+changed, corrupt/unhealthy and recovered sources fall back to downloading and
+parsing their HTML and provenance; a source that is actually absent remains a
+missing tombstone without an impossible blob read. A missing, malformed,
+unavailable or quota-blocked property cache also degrades to this safe full-read
+path. The cache affects performance only, never accepted Registry state.
+
+Human-owned `Projects` fields are never overwritten. After Drive contract and
+native-table metadata validation, a final full workbook equality check is the
+linearisation point. If the guarded target exactly equals the initial workbook,
+the no-op path skips the Sheets batch, `SpreadsheetApp.flush()`, reopen and
+post-read. If any Sheet state must change, sync retains the guarded atomic
+Sheets batch, flushes, reopens V2 by its stable ID and verifies the exact six-tab
+result. Fingerprint hints are committed only after the no-op linearisation point
+or that exact post-write verification; property-write failure cannot invalidate
+the verified workbook.
+
+After a successful sync, `AI4S_AUTO_PUBLISH_TARGET=off` may reuse the exact
+post-verified Preview snapshot only to reconcile desired revision and callback
+receipt state; it cannot send a Build Hook request. An explicit Preview build or
+automatic `preview` mode always compiles the live V2 workbook. Immediately
+before publish reconciliation, operational controls are reread from current
+Script Properties; only a non-secret Sheet configuration base crosses the sync
+boundary.
+
+Drive-scan skip notices are sanitised before packing, using the same
+English-only transform as the final `_Audit` append. Each packed detail stays
+under the 1,000-character Audit cap. The normal three-notice case is one append;
+an oversized notice is split into labelled fragments and a large notice set is
+split into labelled batches without losing any sanitised reason. Collection
+flushes already-observed notices from a `finally` block, so a later fail-closed
+Drive scan error cannot erase earlier skip evidence.
+
+The shipped fast-path baseline is
+`develop@9a9fec8126de2673b729d4c1dc1788220fc2b2a1`; the exact `Code.gs` SHA-256 is
+`5c2c56c2b04dfdea5386c20932be90e08a1220e0e41e6d3e81d793c3fb3b246a`.
+The existing formal Apps Script deployment ID and URL now serve Version 12,
+with deployment topology still exactly two, and the full suite is 280/280. The
+rollout triggered zero Netlify deploys and left Published Production unchanged.
+
+The Version 12 warm field run was Audit-visible from 17:41:10 to 17:41:37:
+27 seconds, 16/16 fingerprint reuse, zero source parses and an already-current
+Sheet. The prior no-change samples were 104/71/56 seconds (71-second median), so
+the shipped path saves 44 seconds or 61.97%, is 2.63 times as fast, and satisfies
+both the `≤35 seconds` and `≥50%` acceptance targets. Final Sheet readback is
+Projects 16, all `Live + Publication ready`, with `_Registry=16`, `_Facets=50`
+and `_Assets=16`; Raman is `Live + Public` in the Sheet. Published Production
+remains the previous 15 demo routes and does not contain Raman because
+automation was `off` and no deploy occurred.
 
 ## Human sheet
 
