@@ -146,16 +146,27 @@ Version 16，精确对应 `6958b15`；deployment topology 仍精确为 2。V13�
 保留为首轮 facets、checkbox placeholder 与重复值去重的历史阶段。V16 rollout
 本身没有触发 Production。随后的 taxonomy-6 Private Preview
 `6a8195aef1aafb00082c247a` 已 ready，精确包含 16 demos / 16 cards，receipt
-verified 且 revision-bound；Published Production 保持不变。
+verified 且 revision-bound。
+
+第一次经确认的 Production rebuild `6a81e9d05083eb0008196fb2` 本身健康，但它仍
+构建旧 `main@1fa55688`，所以产物保持 taxonomy 4；这是已关闭的历史步骤，不是当前
+Published 基线。PR #7 随后把获批代码合并为
+`main@543c9bf725a78a8925e64a8f6c6882939803f806`，并由 Git continuous deployment
+产生唯一的新 Production `6a81fe58d4586c0008bb4518`。该构建 174 秒完成，公开产物
+为 schema 2 / taxonomy 6、16 demos / 16 cards / 7 domains，首页有 6 个 Data Type
+和 8 个 Instrument Type filters。所有两类 ID 数组最多单值，精确有两个项目的
+Instrument Type 留空。Production Registry revision 为
+`sha256:3cbc4b04fcc99d456ab8b1ccdbec52566bc19c6efd44a6786c4e8954fdd4e9f4`；
+收尾 deploy count 为 73，且没有第二个 PR #7 Production。
 
 Version 12 现场 warm sync 从 17:41:10 到 17:41:37，`_Audit` 可见耗时 27 秒：16/16
 fingerprint reuse、0 个来源重新解析，且 Sheet 已是 current。旧版三次 no-change 样本为
 104/71/56 秒，中位数 71 秒；当前减少 44 秒（61.97%），速度为旧基线的 2.63 倍，同时满足
 `≤35 秒` 和 `≥50%` 两个目标。该 Version 12 现场阶段的 V2 Sheet 是 Projects 16（全部
 `Live + Publication ready`）、`_Registry=16`、`_Facets=50`、`_Assets=16`；它保留为
-历史性能证据。随后内容发布已由当前 Published deploy
-`6a7ee842b481720008e4cf70` 接替：它是 schema 2 / taxonomy 4 的 16-demo 快照，
-已包含 Raman，但构建于新 optional-single facets / taxonomy 6 上线之前。
+历史性能证据。当前 Published deploy 已由 PR #7 Production
+`6a81fe58d4586c0008bb4518` 接替：它是 schema 2 / taxonomy 6 的 16-demo 快照，
+已包含 Raman 和 optional-single Data Type / Instrument Type filters。
 
 新 Draft 补齐 Card Summary、Department、Subtopic、Task Type 和 Methods 后，才会成为
 Preview ready。Card Image 和 Data Source 仍为可选字段；选择图片时，图片必须是项目 HTML
