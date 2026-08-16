@@ -40,17 +40,17 @@ There is no V1 Config fallback. V1 can be moved, protected or archived without
 affecting V2 sync, menus, publishing or the Web App. Operational events append
 to V2 `_Audit`; tokens and Hooks never enter a workbook cell or public artifact.
 
-V2 sync scans Drive once and reconciles directly against `_Registry.file_id`;
-it never reads or writes a V1 row. Automatic discovery accepts only an
-English-named direct child folder of the
+V2 sync enumerates the configured Drive root once per run and reconciles
+directly against `_Registry.file_id`; it never reads or writes a V1 row.
+Automatic discovery accepts only an English-named direct child folder of the
 configured Drive root with one unambiguous direct-child HTML page. A new page
 is appended to the native `ProjectsCatalogV2` table and the plain-grid
-`_Registry` / `_Facets` indexes in one Sheets API batch. It starts as `Draft`,
-`Preview only`, `Featured=false`, with a stable `demo-<folder-slug>` identity.
-Loose root HTML, shortcuts, non-English folder names and ambiguous primary
-pages are outside this creation boundary. Re-running with the same Drive
-`file_id` is idempotent; a slug or identity collision is reported and never
-replaces an existing source.
+`_Registry` / `_Facets` indexes. It starts as `Draft`, `Preview only`,
+`Featured=false`, with a stable `demo-<folder-slug>` identity. Loose root HTML,
+shortcuts, non-English folder names and ambiguous primary pages are outside
+this creation boundary. Re-running with the same Drive `file_id` is idempotent;
+a slug or identity collision is reported and never replaces an existing
+source.
 
 Initial HTML or provenance metadata is only a convenience seed. Taxonomy is
 copied only when the complete field resolves exactly; unknown initial values
@@ -61,29 +61,104 @@ request a deploy. Missing files remain as tombstones and recover when the same
 Drive file returns. A delete/re-upload with a new `file_id` is deliberately not
 guessed as a replacement and requires explicit migration.
 
-Every existing source is checked directly from Drive during reconciliation.
-The current page boundary and content health produce `_Registry.file_check`,
-and Drive creation time seeds `date_added`. Human-owned `Projects` fields are
-never overwritten. Optimistic workbook checks, native-table metadata checks,
-one Sheets batch write and exact post-write verification remain mandatory.
+Every run revalidates the complete Drive metadata and direct-parent contract
+before accepting its result. The fingerprint input binds the Spreadsheet ID,
+configured root, folder edge, selected page, complete relevant HTML inventory,
+`PROVENANCE.md`, supported image inventory, selection identities and collection
+notes. Each Drive entry contributes its ID, name, MIME type, direct parent,
+modification time and size. A cache hit therefore cannot bypass root/folder
+containment, MIME checks, inventory changes or primary-page selection.
+
+Blob ingestion is a separate, conservative optimisation. An unchanged,
+healthy existing source may reuse a Script Properties fingerprint-hint schema
+v1 entry only when both its complete input SHA-256 and its current `_Registry`
+output SHA-256 match. The entry is namespaced by Spreadsheet ID and Drive root,
+keyed per page identity, and its output binds `file_check` plus `date_added`.
+Its value contains only the schema number and input/output hashes: no HTML,
+provenance content, human fields, token, Hook or other secret is cached. Cold,
+changed, corrupt/unhealthy and recovered sources fall back to downloading and
+parsing their HTML and provenance; a source that is actually absent remains a
+missing tombstone without an impossible blob read. A missing, malformed,
+unavailable or quota-blocked property cache also degrades to this safe full-read
+path. The cache affects performance only, never accepted Registry state.
+
+Human-owned `Projects` fields are never overwritten. After Drive contract and
+native-table metadata validation, a final full workbook equality check is the
+linearisation point. If the guarded target exactly equals the initial workbook,
+the no-op path skips the Sheets batch, `SpreadsheetApp.flush()`, reopen and
+post-read. If any Sheet state must change, sync retains the guarded atomic
+Sheets batch, flushes, reopens V2 by its stable ID and verifies the exact six-tab
+result. Fingerprint hints are committed only after the no-op linearisation point
+or that exact post-write verification; property-write failure cannot invalidate
+the verified workbook.
+
+After a successful sync, `AI4S_AUTO_PUBLISH_TARGET=off` may reuse the exact
+post-verified Preview snapshot only to reconcile desired revision and callback
+receipt state; it cannot send a Build Hook request. An explicit Preview build or
+automatic `preview` mode always compiles the live V2 workbook. Immediately
+before publish reconciliation, operational controls are reread from current
+Script Properties; only a non-secret Sheet configuration base crosses the sync
+boundary.
+
+Drive-scan skip notices are sanitised before packing, using the same
+English-only transform as the final `_Audit` append. Each packed detail stays
+under the 1,000-character Audit cap. The normal three-notice case is one append;
+an oversized notice is split into labelled fragments and a large notice set is
+split into labelled batches without losing any sanitised reason. Collection
+flushes already-observed notices from a `finally` block, so a later fail-closed
+Drive scan error cannot erase earlier skip evidence.
+
+The current classification implementation baseline is
+`develop@6958b1557b07c18633a2651174ce03e4e4ce00b1`; the
+exact `Code.gs` SHA-256 is
+`a9e8e8d7b1b37326e404d2367b7d9f2513f523907397edf2463af386ced4401a`, and the
+full suite is 355/355. The existing formal Apps Script deployment ID and URL
+serve the same baseline as Version 16, with deployment topology still exactly
+two. Versions 13–15 remain historical rollout evidence for the first editable
+facets, checkbox-placeholder handling and same-ID de-duplication. The Version
+16 rollout did not publish a Netlify Preview or Production artifact. Published
+Production remains unchanged.
+
+The Version 12 warm field run was Audit-visible from 17:41:10 to 17:41:37:
+27 seconds, 16/16 fingerprint reuse, zero source parses and an already-current
+Sheet. The prior no-change samples were 104/71/56 seconds (71-second median), so
+the shipped path saves 44 seconds or 61.97%, is 2.63 times as fast, and satisfies
+both the `≤35 seconds` and `≥50%` acceptance targets. That Version 12 field-run
+readback was Projects 16, all `Live + Publication ready`, with `_Registry=16`,
+`_Facets=50` and `_Assets=16`; it remains historical performance evidence.
+The current live workbook readback is Projects / `_Registry` / `_Facets` /
+`_Assets` = `16/16/80/16`. `OptionsCatalogV2` contains 14 vocabulary
+rows: six Data Type options and eight Instrument Type options. Both project
+fields are optional single selections; exactly two current projects have a
+blank Instrument Type. Current Published Production is the later
+`6a7ee842b481720008e4cf70` artifact:
+schema 2 / taxonomy 4 with 16 demos including Raman. It predates editable
+facets, so the public site does not yet expose taxonomy 6 or these new filters.
+The taxonomy-6 private develop artifact is deploy
+`6a8195aef1aafb00082c247a`, build `6a8195ae4bbcc3e4f50685c9`, at
+`develop@6958b15`. It is ready with 16 demos and 16 cards. Its exact Registry
+revision is
+`sha256:eee266a5b81fe39ab2c643459698221c074a5a66fe081a687a7b4faa52157fc2`;
+the receipt is verified and revision-bound. Production remains taxonomy 4
+until explicit approval.
 
 ## Human sheet
 
-`Projects` has exactly 15 visible English-labelled columns, in this order:
+`Projects` has exactly 17 visible English-labelled columns, in this order:
 
 ```text
 Status, Readiness, Preview URL, Project Title, Card Summary,
-Department, Subtopic, Task Type, Methods, Card Image, Image Alt Text,
-Audience, Featured, Data Source, Public Permission
+Department, Subtopic, Task Type, Methods, Data Type, Instrument Type,
+Card Image, Image Alt Text, Audience, Featured, Data Source, Public Permission
 ```
 
 The corresponding stable machine keys are `status`, `readiness`,
 `preview_url`, `title`, `card_summary`, `department`, `subtopic`, `task`,
-`methods`, `card_image`, `image_alt`, `audience`, `featured`, `data_source`
-and `public_permission`.
+`methods`, `data_types`, `instrument_types`, `card_image`, `image_alt`,
+`audience`, `featured`, `data_source` and `public_permission`.
 
-- Editors own `status`, `title`, `card_summary`, taxonomy selections, image,
-  image alt text, audience, featured and `public_permission`.
+- Editors own `status`, `title`, `card_summary`, taxonomy and option selections,
+  image, image alt text, audience, featured and `public_permission`.
 - The compiler owns `readiness` and `preview_url`.
 - Provenance import owns `data_source`. It may never grant publication
   permission.
@@ -93,7 +168,7 @@ and `public_permission`.
 - `featured` is a boolean.
 - `question` is not a first-round card field and is not present in Registry v2.
 
-There is one additional hidden, non-editable sixteenth column named `demo_id`.
+There is one additional hidden, non-editable eighteenth column named `demo_id`.
 It moves with its project when a user sorts or moves rows. The Sheet adapter
 joins this hidden ID to `_Registry`, then supplies the compiler with the row's
 current position. `_Registry.row_number` may be stale during that read and is
@@ -111,13 +186,56 @@ conversation and is not part of the Sheet or Registry contract. The adapter
 rejects CJK text in any visible or hidden v2 Sheet cell, and the standalone
 compiler enforces the same boundary for non-Sheet callers.
 
-## Hidden sheets
+### Editable option vocabulary
+
+The visible `OptionsCatalogV2` native table is the only human control plane for
+the two flexible facet groups. It has exactly seven English headers:
+
+```text
+Category, Option ID, Option Label, Aliases, Display Order, Active, Description
+```
+
+`Category` is exactly `data_type` or `instrument_type`. `Option ID` is a stable
+lowercase kebab-case identity; it must be unique within its category and must
+not be changed merely to rename a label. `Option Label` is required and cannot
+contain `,`, `;`, `|`, carriage returns or line feeds because those characters
+are list delimiters. `Aliases` is input-only and may contain multiple values
+separated by those delimiters. `Display Order` must be a finite number and
+`Active` must be an explicit boolean checkbox value. `Description` is optional.
+
+`Projects.Data Type` and `Projects.Instrument Type` are independently optional,
+single-value cells. Blank means unclassified and is valid. A nonblank cell may
+contain one label, stable ID or unambiguous alias and normalises into a public
+array containing exactly one ID plus one matching `_Facets` row. Repeated input
+tokens that resolve to the same stable ID are de-duplicated and remain valid.
+More than one distinct resolved ID fails closed; unknown values, ambiguous
+alias collisions and inactive assigned terms also block the affected row. A
+blocked Live row fails the whole build.
+Deactivation therefore requires removing or replacing all current assignments
+first. A safe label rename retains the ID and adds the old label to `Aliases`
+before changing `Option Label`.
+
+The hidden `_OptionLists` sheet contains dynamic ranges used only for dropdown
+suggestions. It is not compiler input and is never the semantic authority. A
+dropdown may help an editor enter a value, but the strict optional-single
+compiler rules above remain the portable contract.
+
+For rollout compatibility, an old V2 workbook with no `Options` sheet may omit
+all four new human/machine columns and is interpreted as having no such facets.
+Once `Options` exists, both human columns and both `_Registry` ID columns are
+mandatory; deleting any one of them fails closed. A completely unused physical
+Options row whose only materialised value is `Active=false` is treated as a
+Google Sheets checkbox placeholder. Any partly populated row, or an otherwise
+empty row with `Active=true`, remains invalid.
+
+## Other sheets
 
 Header constants and field ownership are exported by `lib/registry-v2.js`:
 
 - `_Registry`: stable identity, normalised project record and Drive health.
 - `_Taxonomy`: stable department, subtopic, task and method IDs.
-- `_Facets`: one row per project/task or project/method relation.
+- `_Facets`: one row per project/task, project/method, project/data-type or
+  project/instrument-type relation.
 - `_Assets`: source locator and safe published path for card images.
 - `_Audit`: append-only operational events.
 - `_Config`: non-secret configuration plus site metadata. `site_title` and
@@ -127,30 +245,32 @@ Header constants and field ownership are exported by `lib/registry-v2.js`:
 Tokens, deploy hooks and credentials do not belong in any Sheet tab.
 
 `lib/registry-v2-sheet-adapter.js` is the pure Node boundary for converting the
-physical `_Registry`, `_Taxonomy`, `_Facets` and `_Assets` rows into compiler
-input and converting normalised records back to exact Sheet rows. It performs
-no Google API, filesystem or network operations. Every canonical machine
-header is required; missing or additional machine columns fail closed (column
-order may change because parsing is by header name). Every `_Taxonomy.active`
-cell must also contain an explicit boolean. The adapter and the standalone
-compiler both enforce this, so missing, blank or string values can never be
-silently interpreted as active.
+physical `Projects`, `Options`, `_Registry`, `_Taxonomy`, `_Facets` and
+`_Assets` rows into compiler input and converting normalised records back to
+exact Sheet rows. It performs no Google API, filesystem or network operations.
+Every canonical machine header is required after the Options rollout; missing
+or additional machine columns fail closed (column order may change because
+parsing is by header name). Every `_Taxonomy.active` and `Options.Active` cell
+must contain an explicit boolean. The adapter and standalone compiler both
+enforce this, so missing, blank or string values can never be silently
+interpreted as active.
 
 ## Compiler input and readiness
 
 ```js
 compileRegistryV2({
-  projects,          // 15 visible values plus transient current row metadata
+  projects,          // 17 visible values plus transient current row metadata
   sourceProjections, // joined by hidden demo_id; current row attached by adapter
   taxonomy,          // departments, subtopics, tasks and methods
-  facets,            // optional materialised task/method index
+  options,           // editable data_types and instrument_types definitions
+  facets,            // optional materialised task/method/data/instrument index
   assets,            // normalised card image source and public path
 });
 ```
 
 All IDs and slugs are lowercase kebab-case. A supplied `_Facets` index must
-match the human task/method selections; stale indexes fail validation rather
-than silently overriding an editor.
+match all human task/method/data-type/instrument-type selections; stale indexes
+fail validation rather than silently overriding an editor.
 
 First-round project readiness requires:
 
@@ -159,6 +279,13 @@ First-round project readiness requires:
 - audience exactly one of `General`, `Intro`, `Intermediate`, `Advanced`;
 - an explicit boolean `featured` value;
 - a healthy Drive HTML source and the appropriate human permission.
+
+Data Type and Instrument Type are optional readiness fields. Blank values do
+not block a project. Every nonblank selection must, however, resolve uniquely
+to exactly one currently active `Options` row. More than one distinct resolved
+ID is invalid. The additive public schema remains arrays for compatibility, but
+each of `data_type_ids` and `instrument_type_ids` is therefore always `[]` or
+`[id]`.
 
 These content requirements apply to Drafts too. A newly discovered HTML file
 may enter as a blocked Draft, but it enters private Preview only after the
@@ -209,17 +336,30 @@ path. The build-facing card asset contains only `asset_id`, `public_path` and
       active, theme_key, icon_key }],
     subtopics: [{ id, department_id, label, display_order, active }],
     tasks: [{ id, label, active }],
-    methods: [{ id, label, active }]
+    methods: [{ id, label, active }],
+    data_types: [{ id, label, description, display_order, active }],
+    instrument_types: [{ id, label, description, display_order, active }]
   },
   demos: [{
     demo_id, entry_type, slug, status, featured, sort_order, title,
     card_summary, department_id, subtopic_id, task_ids, method_ids,
+    data_type_ids, instrument_type_ids,
     audience, data_source_label, public_page_permission,
     card_asset: { asset_id, public_path, alt_text } | null,
     file_id, file_check, date_added
   }]
 }
 ```
+
+Aliases never cross this public boundary. The generated website manifest uses
+`taxonomy_version: 6`; it exposes the allowlisted option terms and stable demo
+ID arrays, then renders only active option chips used by at least one visible
+project. Card attributes store pipe-separated IDs. Selecting a chip tests
+the project's zero-or-one value, while different filter groups are combined
+with AND. Thus selecting Data Type `2D` plus Instrument Type `Raman` requires
+both conditions. Blank projects remain visible with no facet filter selected,
+but do not match a chip in the blank field's group. Option labels are also
+included in free-text card search.
 
 The internal compile result retains all human rows and their diagnostics. It
 does not expose a second `manifest` object; `toRegistryV2(compiled)` is the only

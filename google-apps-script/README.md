@@ -11,7 +11,11 @@ V2 上运行旧版 `setup()`。
 
 V2 workbook 保存：
 
-- `Projects`：维护者日常编辑的 15 个英文可见字段，以及隐藏 `demo_id`。
+- `Projects`：维护者日常编辑的 17 个英文可见字段，包括可留空、最多单选的
+  `Data Type` 与 `Instrument Type`；另有隐藏的第 18 列 `demo_id`。
+- `Options`：可见的 Data Type / Instrument Type 可编辑词表；必须保持
+  `OptionsCatalogV2` 原生 table。
+- `_OptionLists`：隐藏的动态下拉提示来源；不是人工分类的权威数据，不要直接编辑。
 - `_Registry`、`_Taxonomy`、`_Facets`、`_Assets`：构建使用的机器数据。
 - `_Config`：非敏感站点信息，例如 `schema_version`、`site_title`、
   `site_tagline`、`preview_base_url`。
@@ -63,14 +67,15 @@ Private Preview 验收新 endpoint 后切换。
 5. 从 V2 创建新的 bound Apps Script project，写入完整 code 和 manifest。
 6. 在新项目中逐项创建上表 Properties。复制值时不要把值写进操作文档或日志。
 7. 运行一次新版 `setup()`。它只会：
-   - 校验 V2 六张 compiler input tabs、`_Audit` 和原生 `ProjectsCatalogV2` table；
+   - 校验 V2 六张必需 compiler input tabs、当前 `Options`、`_Audit`，以及
+     原生 `ProjectsCatalogV2` / `OptionsCatalogV2` tables；
    - 校验必要 Properties、Hook、分支、Preview URL 和 Drive root；
    - 保存 V2 Spreadsheet ID；
    - 安装当前 owner 的唯一 hourly `syncDrive` trigger；
    - 创建 V2 菜单。
 8. 保持旧 V1 trigger 停用，确认当前只有新 V2 项目的一个 hourly `syncDrive` trigger，
-   再手动运行一次 V2 `Sync Drive folder now`。核对 `Projects`、`_Registry`、`_Facets`、
-   `_Assets`、Readiness 和 `_Audit`。
+   再手动运行一次 V2 `Sync Drive folder now`。核对 `Projects`、`Options`、
+   `_Registry`、`_Facets`、`_Assets`、Readiness 和 `_Audit`。
 9. 将新项目部署为 Web App：execute as owner，并使用允许 Netlify 无 Google 登录访问的
    access 设置。新 URL 必须先用无痕浏览器验证：无 token 返回 `bad token`；正确 token 的
    manifest 返回 `schema_version: 2`。
@@ -100,21 +105,110 @@ configured Drive root/
 
 `AI4S dashboard → Sync Drive folder now`
 
-同步只扫描一次 Drive，并直接按 `_Registry.file_id` 与 V2 对账：
+每次同步都会完整枚举配置的 Drive root，并直接按 `_Registry.file_id` 与 V2 对账：
 
 - 新的英文直接子文件夹以 `Draft + Preview only + Featured=false` 进入 V2。
 - 根目录 loose HTML、shortcut、非英文文件夹和主 HTML 不明确的文件夹不自动入库。
 - 相同 Drive file ID 重跑幂等。
 - 文件移出边界后保留记录并标为 missing；同一 file ID 恢复后恢复原身份。
 - `Projects` 人工字段不被同步覆盖。
-- `_Registry`、`_Facets`、`_Assets`、Readiness 和 Preview URL 使用现有并发检查与单批写入。
+- `_Registry`、`_Facets`、`_Assets`、Readiness 和 Preview URL 继续使用现有并发检查。
 - 同步事件写入 `_Audit`，不再写 V1 Log。
+
+Drive scan 的 skip reason 会先经过与 `_Audit` 写入完全相同的英文净化，再按每条 Audit
+detail 的 1,000 字符上限打包。正常的 3 条 notice 只 append 一行；超长单条会带 part 标识
+分片，大批 notice 会拆成带 batch 标识的多行，所有净化后的 reason 都会保留。扫描使用
+`try/finally` flush 已观察到的 notice，因此后面即使发生 fail-closed Drive 错误，前面已经
+观察到的 skip reason 仍会进入 `_Audit`。
+
+增量快路径只省略不必要的 blob 和 workbook I/O，不省略 Drive 安全检查：
+
+- 每次同步仍会验证 demo folder、完整 HTML 清单、`PROVENANCE.md` 和受支持图片的 ID、
+  名称、MIME、修改时间、大小和直接父级关系；cache hit 不会绕过这些检查。
+- 健康且未变化的现有页面可以复用 Script Properties 中的 v1 fingerprint hint。该 hint
+  绑定 Spreadsheet ID、Drive root、页面身份和当前 `_Registry` 输出 hash；cache value 只有
+  schema 号与 input/output SHA-256，不保存 HTML、provenance 内容或任何凭据。
+- 首次读取、来源变化、cache 损坏、来源不健康、missing/recovery 都不能使用 warm hint；
+  对仍存在的来源会重新下载并解析 HTML 和 provenance，missing 记录则保留为 tombstone。
+- Script Properties 读取、写入、配额或解析失败只会让本次或下次同步走完整读取路径，
+  不会放宽验证，也不会改变正确结果。
+- metadata、原生 table 和最终 workbook equality gate 全部通过后，如果目标与起始状态完全
+  相同，本次 no-op 会跳过 Sheets batch、`flush()`、重新打开和 post-read。
+- 如果目标确实变化，仍使用一次受保护的原子 Sheets batch，随后 `flush()`、按稳定 ID
+  重新打开 V2，并对六张输入表做精确 post-write verification。Fingerprint 只会在 no-op
+  linearisation point 或这个精确验证成功后提交。
+
+当前 Git 分类功能基线为
+`develop@6958b1557b07c18633a2651174ce03e4e4ce00b1`，`Code.gs` SHA-256 为
+`a9e8e8d7b1b37326e404d2367b7d9f2513f523907397edf2463af386ced4401a`，完整测试为
+355/355。正式 Apps Script Web App 已在原 deployment ID 和 `/exec` URL 上原地更新到
+Version 16，精确对应 `6958b15`；deployment topology 仍精确为 2。V13–V15
+保留为首轮 facets、checkbox placeholder 与重复值去重的历史阶段。V16 rollout
+本身没有触发 Production。随后的 taxonomy-6 Private Preview
+`6a8195aef1aafb00082c247a` 已 ready，精确包含 16 demos / 16 cards，receipt
+verified 且 revision-bound；Published Production 保持不变。
+
+Version 12 现场 warm sync 从 17:41:10 到 17:41:37，`_Audit` 可见耗时 27 秒：16/16
+fingerprint reuse、0 个来源重新解析，且 Sheet 已是 current。旧版三次 no-change 样本为
+104/71/56 秒，中位数 71 秒；当前减少 44 秒（61.97%），速度为旧基线的 2.63 倍，同时满足
+`≤35 秒` 和 `≥50%` 两个目标。该 Version 12 现场阶段的 V2 Sheet 是 Projects 16（全部
+`Live + Publication ready`）、`_Registry=16`、`_Facets=50`、`_Assets=16`；它保留为
+历史性能证据。随后内容发布已由当前 Published deploy
+`6a7ee842b481720008e4cf70` 接替：它是 schema 2 / taxonomy 4 的 16-demo 快照，
+已包含 Raman，但构建于新 optional-single facets / taxonomy 6 上线之前。
 
 新 Draft 补齐 Card Summary、Department、Subtopic、Task Type 和 Methods 后，才会成为
 Preview ready。Card Image 和 Data Source 仍为可选字段；选择图片时，图片必须是项目 HTML
 同一文件夹的直接子文件，在 Card Image 填写精确文件名（不是 Drive ID、路径或 URL），并
 填写英文 Image Alt Text。同步会自动维护 `_Assets`；同名图片替换后采用新的 Drive ID，
 清空 Card Image 会移除对应机器索引。
+
+### 4.1 维护 Data Type / Instrument Type 选项
+
+`Options` 是两组标签的唯一人工词表，表头必须精确保持：
+
+```text
+Category | Option ID | Option Label | Aliases | Display Order | Active | Description
+```
+
+新增或修改选项时：
+
+1. 新增一行；`Category` 只能是 `data_type` 或 `instrument_type`。
+2. `Option ID` 使用小写 kebab-case，例如 `satellite-imager`。一旦有项目使用就不再
+   修改 ID；网站、`_Registry` 和 `_Facets` 以它作为稳定身份。
+3. `Option Label` 是 Projects 下拉与网页 filter chip 显示的名称。名称不能包含
+   `,` / `;` / `|` 或换行。
+4. `Aliases` 可写旧名或别名，多个值可用逗号、分号、竖线或换行分隔。
+   如果改 `Option Label`，先把旧 label 放进 `Aliases`，并保持 ID 不变。
+5. `Display Order` 必须是数字；`Active` 必须是真实 checkbox boolean；
+   `Description` 可选。不要删除 table 或表头。
+
+`Projects.Data Type` 和 `Projects.Instrument Type` 是两个彼此独立的可选单值字段。
+不知道类别时直接留空；已知时每列最多填一个值，例如：
+
+```text
+Data Type: 1D
+Instrument Type: Sensor
+```
+
+Google Sheets 下拉只是来自隐藏 `_OptionLists` 的动态提示；最终以 V2 编译校验
+为准。项目值可以使用当前 label、稳定 ID 或唯一 alias。多个写法如果都解析到同一稳定 ID
+会自动去重；两个不同 ID、未知、有歧义或 inactive 值都会 fail closed。若要停用一个选项，先在所有 Projects 中清除或
+替换该标签，确认 Preview 正常后再取消 `Active`；否则被分配 inactive 选项的项目会
+被阻断，不会被静默改类。
+
+修改 `Options` 或 Projects 分类后的固定顺序是：
+
+1. `AI4S dashboard → Sync Drive folder now`；等待 `_Audit` 出现成功记录，并核对
+   `_Registry.data_type_ids` / `instrument_type_ids` 与 `_Facets`。
+2. `AI4S dashboard → Build preview branch`；在 Private `develop` Preview 检查标签、
+   搜索和 filter chips。
+3. 只有内容审批通过后，才使用 `Rebuild production site (main)`。同步本身
+   从不自动发布 Production。
+
+网页每个筛选组同时只选一个 chip，对项目的零或一个稳定 ID 做匹配。Data Type、Instrument Type、Department、
+Method/Task 等不同组合并时取 AND。只为当前页面上有可见项目使用的 active option
+生成 chip；label 同时进入搜索文本。
 
 ## 5. Preview 与 Production
 
@@ -124,6 +218,13 @@ Preview ready。Card Image 和 Data Source 仍为可选字段；选择图片时�
   audience（健康 Live + Public）。
 - `AI4S_AUTO_PUBLISH_TARGET=preview`：小时同步只可自动请求 Private Preview。
 - Production 永远没有 Apps Script 自动路径。
+
+当 `AI4S_AUTO_PUBLISH_TARGET=off` 时，一次成功同步可以把刚刚完成精确验证的 Preview
+snapshot 仅用于 desired revision 与 callback receipt 对账；这条路径不会 POST Build Hook。
+人工 `Build preview branch` 和 `AI4S_AUTO_PUBLISH_TARGET=preview` 的自动 Preview 请求都必须
+从当前 V2 workbook 重新 live compile，不能复用该 sync snapshot。发布阶段还会重新读取最新
+Script Properties 中的 branch、Hook、token 和自动发布开关；同步阶段携带的只是非敏感 Sheet
+config base。
 
 Web App 只接受 schema 2。省略 `schema` 等同于 schema 2；显式 `schema=1` 返回错误。构建端
 对 Production、stable develop、PR Preview 和其他 Netlify context 也全部请求 schema 2，

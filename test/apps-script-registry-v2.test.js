@@ -374,7 +374,13 @@ function installServices(script, v2Sheet, files, properties = {}) {
   script.PropertiesService = {
     getScriptProperties: () => ({
       getProperty: key => values[key] ?? null,
+      getProperties: () => ({ ...values }),
       setProperty: (key, value) => { values[key] = String(value); },
+      setProperties: (entries, deleteAllOthers) => {
+        assert.equal(deleteAllOthers, false);
+        Object.entries(entries).forEach(([key, value]) => { values[key] = String(value); });
+      },
+      deleteProperty: key => { delete values[key]; },
     }),
   };
   script.SpreadsheetApp = {
@@ -662,6 +668,12 @@ test('V2 operational config keeps public metadata in _Config and overrides contr
   assert.equal(cfg.netlify_site_id, '33333333-4444-4555-8666-777777777777');
   assert.equal(cfg.preview_callback_secret,
     'callback-secret-with-at-least-thirty-two-characters');
+  const base = script.registryV2NonOperationalConfig_(cfg);
+  assert.equal(base.site_title, 'Registry v2');
+  Object.keys(script.REGISTRY_V2_OPERATION_PROPERTIES).forEach(key => {
+    assert.equal(Object.prototype.hasOwnProperty.call(base, key), false,
+      `${key} must not be carried out of syncDriveUnlocked`);
+  });
 });
 
 test('syncDriveUnlocked reconciles V2 items directly with no V1 row map', () => {
@@ -709,6 +721,8 @@ test('syncDriveUnlocked reconciles V2 items directly with no V1 row map', () => 
 
   assert.equal(result.nNew, 1);
   assert.equal(result.registryV2.checked, 1);
+  assert.deepEqual(Object.keys(result._configBase), [],
+    'Script-Property-owned Drive controls must not escape syncDriveUnlocked');
 });
 
 test('audit logging writes the nine-column V2 record and removes CJK text', () => {
@@ -748,10 +762,11 @@ test('v2 manifest reads all six tables, keeps default images null, and applies a
   assert.equal(production.demos[0].card_asset, null);
   assert.equal(production.demos[0].file_check.startsWith('check assets:'), true);
   assert.deepEqual(Object.keys(production.demos[0]).sort(), [
-    'audience', 'card_asset', 'card_summary', 'data_source_label', 'date_added',
-    'demo_id', 'department_id', 'entry_type', 'featured', 'file_check', 'file_id',
-    'method_ids', 'public_page_permission', 'slug', 'sort_order', 'status',
-    'subtopic_id', 'task_ids', 'title',
+    'audience', 'card_asset', 'card_summary', 'data_source_label', 'data_type_ids',
+    'date_added', 'demo_id', 'department_id', 'entry_type', 'featured',
+    'file_check', 'file_id', 'instrument_type_ids', 'method_ids',
+    'public_page_permission', 'slug', 'sort_order', 'status', 'subtopic_id',
+    'task_ids', 'title',
   ]);
 
   const preview = script.doGet({ parameter: {
@@ -766,6 +781,326 @@ test('v2 manifest reads all six tables, keeps default images null, and applies a
   assert.deepEqual({ ok: archived.ok, error: archived.error }, {
     ok: false, error: 'schema 1 is archived; schema must be 2',
   });
+});
+
+test('the pre-migration V2 layout remains readable without Options or its four columns', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script);
+  const removeColumns = (sheetName, labels) => {
+    const target = sheet.getSheetByName(sheetName);
+    const indexes = labels.map(label => target.rows[0].indexOf(label))
+      .sort((left, right) => right - left);
+    indexes.forEach(index => {
+      assert.notEqual(index, -1);
+      target.rows.forEach(values => values.splice(index, 1));
+    });
+  };
+  removeColumns('Projects', ['Data Type', 'Instrument Type']);
+  removeColumns('_Registry', ['data_type_ids', 'instrument_type_ids']);
+  installServices(script, sheet, standardDrive());
+
+  const manifest = script.doGet({ parameter: {
+    token: 'secret', action: 'manifest', audience: 'production',
+  } });
+  assert.equal(manifest.ok, true);
+  assert.deepEqual(Array.from(manifest.demos[0].data_type_ids), []);
+  assert.deepEqual(Array.from(manifest.demos[0].instrument_type_ids), []);
+  assert.deepEqual(Array.from(manifest.taxonomy.data_types), []);
+  assert.deepEqual(Array.from(manifest.taxonomy.instrument_types), []);
+});
+
+test('blank optional Data Type and Instrument Type keep a Live project ready', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script);
+  const optionHeader = Array.from(script.REGISTRY_V2_HEADERS.Options);
+  sheet.sheets.Options = new FakeSheet([
+    optionHeader,
+    row(optionHeader, {
+      Category: 'data_type', 'Option ID': '1d', 'Option Label': '1D',
+      'Display Order': 1, Active: true,
+    }),
+    row(optionHeader, {
+      Category: 'instrument_type', 'Option ID': 'raman', 'Option Label': 'Raman',
+      'Display Order': 1, Active: true,
+    }),
+  ]);
+  installServices(script, sheet, standardDrive());
+
+  const manifest = script.doGet({ parameter: {
+    token: 'secret', action: 'manifest', audience: 'production',
+  } });
+
+  assert.equal(manifest.ok, true);
+  assert.deepEqual(Array.from(manifest.demos, demo => demo.demo_id), ['demo-live']);
+  assert.deepEqual(Array.from(manifest.demos[0].data_type_ids), []);
+  assert.deepEqual(Array.from(manifest.demos[0].instrument_type_ids), []);
+});
+
+test('v2 Options deduplicates labels and aliases that resolve to one optional facet', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script);
+  const optionHeader = Array.from(script.REGISTRY_V2_HEADERS.Options);
+  sheet.sheets.Options = new FakeSheet([
+    optionHeader,
+    row(optionHeader, {
+      Category: 'data_type', 'Option ID': '1d', 'Option Label': '1D',
+      Aliases: 'Line series', 'Display Order': 1, Active: true,
+      Description: 'One ordered measurement axis.',
+    }),
+    row(optionHeader, {
+      Category: 'data_type', 'Option ID': '2d', 'Option Label': '2D',
+      Aliases: 'Planar', 'Display Order': 2, Active: true,
+      Description: 'Two-dimensional records or spatial fields.',
+    }),
+    row(optionHeader, {
+      Category: 'instrument_type', 'Option ID': 'raman', 'Option Label': 'Raman',
+      Aliases: 'Raman spectroscopy', 'Display Order': 1, Active: true,
+      Description: 'Raman spectroscopy instruments.',
+    }),
+  ]);
+  const projects = sheet.getSheetByName('Projects');
+  projects.rows[1][projects.rows[0].indexOf('Data Type')]
+    = 'Planar | 2D | 2d';
+  projects.rows[1][projects.rows[0].indexOf('Instrument Type')]
+    = 'Raman spectroscopy | Raman | raman';
+  const registry = sheet.getSheetByName('_Registry');
+  registry.rows[1][registry.rows[0].indexOf('data_type_ids')] = '2d';
+  registry.rows[1][registry.rows[0].indexOf('instrument_type_ids')] = 'raman';
+  const facets = sheet.getSheetByName('_Facets');
+  const facetHeader = facets.rows[0];
+  facets.rows.push(
+    row(facetHeader, {
+      demo_id: 'demo-live', facet_type: 'data_type', term_id: '2d', display_order: 1,
+    }),
+    row(facetHeader, {
+      demo_id: 'demo-live', facet_type: 'instrument_type', term_id: 'raman',
+      display_order: 1,
+    }),
+  );
+  installServices(script, sheet, standardDrive());
+
+  const manifest = script.doGet({ parameter: {
+    token: 'secret', action: 'manifest', audience: 'production',
+  } });
+
+  assert.equal(manifest.ok, true);
+  assert.deepEqual(Array.from(manifest.demos[0].data_type_ids), ['2d']);
+  assert.deepEqual(Array.from(manifest.demos[0].instrument_type_ids), ['raman']);
+  assert.deepEqual(JSON.parse(JSON.stringify(manifest.taxonomy.data_types)), [
+    {
+      id: '1d', label: '1D', description: 'One ordered measurement axis.',
+      display_order: 1, active: true,
+    },
+    {
+      id: '2d', label: '2D',
+      description: 'Two-dimensional records or spatial fields.',
+      display_order: 2, active: true,
+    },
+  ]);
+  assert.equal(Object.hasOwn(manifest.taxonomy.instrument_types[0], 'aliases'), false,
+    'aliases are editor-only resolution helpers and never enter the public manifest');
+});
+
+test('distinct optional facet values fail closed before sync writes or API output', async t => {
+  const cases = [
+    {
+      name: 'Data Type', projectLabel: 'Data Type', value: '1D, 2D',
+      options: [
+        { Category: 'data_type', 'Option ID': '1d', 'Option Label': '1D' },
+        { Category: 'data_type', 'Option ID': '2d', 'Option Label': '2D' },
+      ],
+    },
+    {
+      name: 'Instrument Type', projectLabel: 'Instrument Type', value: 'Raman | Sensor',
+      options: [
+        { Category: 'instrument_type', 'Option ID': 'raman', 'Option Label': 'Raman' },
+        { Category: 'instrument_type', 'Option ID': 'sensor', 'Option Label': 'Sensor' },
+      ],
+    },
+  ];
+  for (const current of cases) {
+    await t.test(current.name, () => {
+      const script = loadAppsScript();
+      const sheet = fixture(script);
+      const optionHeader = Array.from(script.REGISTRY_V2_HEADERS.Options);
+      sheet.sheets.Options = new FakeSheet([
+        optionHeader,
+        ...current.options.map((option, index) => row(optionHeader, {
+          ...option, 'Display Order': index + 1, Active: true,
+        })),
+      ]);
+      const projects = sheet.getSheetByName('Projects');
+      projects.rows[1][projects.rows[0].indexOf(current.projectLabel)] = current.value;
+      installServices(script, sheet, standardDrive());
+      script.collectDemos_ = () => [];
+      script.registryV2PrepareIngestCache_ = () => null;
+      const expected = new RegExp(`${current.name} permits at most one option`);
+
+      assert.throws(() => script.syncDriveUnlocked_(), expected);
+      Object.values(sheet.sheets).forEach(target => {
+        assert.equal(target.writeCalls.length, 0,
+          'invalid optional facets must fail before the first Sheet write');
+      });
+
+      const response = script.doGet({ parameter: {
+        token: 'secret', action: 'manifest', audience: 'production',
+      } });
+      assert.deepEqual({ ok: response.ok, error: response.error }, {
+        ok: false, error: 'registry v2 unavailable',
+      });
+    });
+  }
+});
+
+test('an inactive selected Option blocks a Live project before output', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script);
+  const optionHeader = Array.from(script.REGISTRY_V2_HEADERS.Options);
+  sheet.sheets.Options = new FakeSheet([
+    optionHeader,
+    row(optionHeader, {
+      Category: 'data_type', 'Option ID': 'retired-shape',
+      'Option Label': 'Retired shape', 'Display Order': 1, Active: false,
+      Description: 'No longer offered.',
+    }),
+  ]);
+  const projects = sheet.getSheetByName('Projects');
+  projects.rows[1][projects.rows[0].indexOf('Data Type')] = 'Retired shape';
+  const registry = sheet.getSheetByName('_Registry');
+  registry.rows[1][registry.rows[0].indexOf('data_type_ids')] = 'retired-shape';
+  const facets = sheet.getSheetByName('_Facets');
+  const facetHeader = facets.rows[0];
+  facets.rows.push(row(facetHeader, {
+    demo_id: 'demo-live', facet_type: 'data_type', term_id: 'retired-shape',
+    display_order: 1,
+  }));
+  installServices(script, sheet, standardDrive());
+
+  assert.throws(
+    () => script.registryV2Snapshot_(sheet, script.readConfig_(sheet), 'production'),
+    /Live project is not ready: data type/,
+  );
+  const response = script.doGet({ parameter: {
+    token: 'secret', action: 'manifest', audience: 'production',
+  } });
+  assert.deepEqual({ ok: response.ok, error: response.error }, {
+    ok: false, error: 'registry v2 unavailable',
+  });
+});
+
+test('Options rejects ambiguous delimiter labels and nonnumeric display order', async t => {
+  const script = loadAppsScript();
+  await t.test('delimiter label', () => {
+    const rows = [{
+      Category: 'data_type', 'Option ID': 'bad-label', 'Option Label': '1D, 2D',
+      'Display Order': 1, Active: true,
+    }];
+    assert.throws(() => script.registryV2Options_(rows), /invalid or duplicate option/);
+  });
+  await t.test('display order type', () => {
+    const rows = [{
+      Category: 'instrument_type', 'Option ID': 'raman', 'Option Label': 'Raman',
+      'Display Order': '1', Active: true,
+    }];
+    assert.throws(() => script.registryV2Options_(rows), /Display Order values must be numbers/);
+  });
+});
+
+test('Options ignores only false-checkbox placeholder rows without shrinking table state', async t => {
+  const script = loadAppsScript();
+  const sheet = fixture(script);
+  const optionHeader = Array.from(script.REGISTRY_V2_HEADERS.Options);
+  const valid = row(optionHeader, {
+    Category: 'data_type', 'Option ID': '1d', 'Option Label': '1D',
+    'Display Order': 1, Active: true, Description: 'One ordered axis.',
+  });
+  const placeholder = row(optionHeader, { Active: false });
+  sheet.sheets.Options = new FakeSheet([
+    optionHeader, valid, placeholder, placeholder,
+  ]);
+
+  const state = script.registryV2WorkbookState_(sheet);
+  const optionRows = script.registryV2RowsFromState_(
+    state, 'Options', script.REGISTRY_V2_HEADERS.Options, false,
+  );
+  assert.equal(state.Options.rows, 4,
+    'physical native-table rows stay captured for range/concurrency guards');
+  assert.equal(optionRows.length, 1);
+  assert.equal(optionRows[0]._row_number, 2);
+  assert.deepEqual(
+    Array.from(script.registryV2Options_(optionRows).data_types, option => option.id),
+    ['1d'],
+  );
+
+  const metadata = {
+    Projects: { table_range: {
+      startRowIndex: 0, startColumnIndex: 0,
+      endRowIndex: state.Projects.rows, endColumnIndex: state.Projects.columns,
+    } },
+    Options: { table_range: {
+      startRowIndex: 0, startColumnIndex: 0,
+      endRowIndex: state.Options.rows, endColumnIndex: state.Options.columns,
+    } },
+  };
+  assert.doesNotThrow(() => script.registryV2VerifyTableMetadata_(metadata, state));
+  metadata.Options.table_range.endRowIndex -= 1;
+  assert.throws(
+    () => script.registryV2VerifyTableMetadata_(metadata, state),
+    /Options table range does not match/,
+    'placeholder filtering must not weaken the native table range guard',
+  );
+
+  await t.test('a partially filled false-checkbox row still fails closed', () => {
+    const partial = row(optionHeader, { Category: 'data_type', Active: false });
+    const parsed = script.registryV2RowsFromGrid_(
+      'Options', [optionHeader, partial], optionHeader, false,
+    );
+    assert.equal(parsed.length, 1);
+    assert.throws(
+      () => script.registryV2Options_(parsed),
+      /invalid or duplicate option/,
+    );
+  });
+
+  await t.test('an otherwise empty checked row still fails closed', () => {
+    const checked = row(optionHeader, { Active: true });
+    const parsed = script.registryV2RowsFromGrid_(
+      'Options', [optionHeader, checked], optionHeader, false,
+    );
+    assert.equal(parsed.length, 1);
+    assert.throws(
+      () => script.registryV2Options_(parsed),
+      /invalid or duplicate option/,
+    );
+  });
+});
+
+test('once Options exists, deleting any option column fails closed', async t => {
+  const script = loadAppsScript();
+  const header = Array.from(script.REGISTRY_V2_HEADERS.Options);
+  const cases = [
+    ['Projects', 'Data Type', /Projects is missing data_types/],
+    ['Projects', 'Instrument Type', /Projects is missing instrument_types/],
+    ['_Registry', 'data_type_ids', /_Registry is missing data_type_ids/],
+    ['_Registry', 'instrument_type_ids', /_Registry is missing instrument_type_ids/],
+  ];
+  for (const [sheetName, label, expected] of cases) {
+    await t.test(`${sheetName}.${label}`, () => {
+      const sheet = fixture(script);
+      sheet.sheets.Options = new FakeSheet([header]);
+      const target = sheet.getSheetByName(sheetName);
+      const index = target.rows[0].indexOf(label);
+      assert.notEqual(index, -1);
+      target.rows.forEach(values => values.splice(index, 1));
+      installServices(script, sheet, standardDrive());
+      assert.throws(
+        () => script.registryV2Snapshot_(sheet, {
+          drive_folder_url: 'https://drive.google.com/drive/folders/root-folder-12345',
+        }, 'production'),
+        expected,
+      );
+    });
+  }
 });
 
 test('v2 human taxonomy must match _Registry and _Facets before serving', async t => {
@@ -1552,7 +1887,9 @@ test('Preview always binds Hook state to V2 and a legacy schema property cannot 
   };
   script.registrySnapshot_ = () => { throw new Error('archived V1 must not be read'); };
   script.registryV2Spreadsheet_ = () => ({});
-  script.registryV2Snapshot_ = () => ({ registry_revision: revisionV2 });
+  script.registryV2Snapshot_ = () => ({
+    audience: 'preview', registry_revision: revisionV2,
+  });
   script.readPreviewPublishState_ = () => script.emptyPreviewPublishState_();
   script.writePreviewPublishState_ = state => state;
   script.checkPreviewReceipt_ = () => ({ ok: true, configured: true, ready: false, status: 0 });
@@ -1564,11 +1901,17 @@ test('Preview always binds Hook state to V2 and a legacy schema property cannot 
 });
 
 function autoItem(file, folderName, meta = {}) {
+  const parent = file.getParents().next();
   return {
     file,
+    pageFiles: [file],
+    folder: parent,
+    folderId: parent.getId(),
+    rootId: 'root-folder-12345',
     folderName,
     provFile: null,
     picFile: null,
+    imageFiles: [],
     card: null,
     stamp: new Date('2026-08-13T00:00:00.000Z'),
     notes: [],
@@ -1893,12 +2236,16 @@ test('v2 guarded auto-ingest detects a concurrent human edit before its first wr
   let writes = 0;
   script.registryV2SheetsMetadata_ = () => ({
     Projects: { sheet_id: 1, table_id: 'ProjectsCatalogV2',
-      table_range: { startRowIndex: 0, startColumnIndex: 0, endRowIndex: 3, endColumnIndex: 16 } },
+      table_range: { startRowIndex: 0, startColumnIndex: 0,
+        endRowIndex: context.before.Projects.rows,
+        endColumnIndex: context.before.Projects.columns } },
     _Registry: { sheet_id: 2, table_id: '' },
     _Facets: { sheet_id: 3, table_id: '' },
     _Assets: { sheet_id: 4, table_id: '' },
   });
   script.registryV2BatchWrite_ = () => { writes += 1; };
+  let cacheCommits = 0;
+  script.registryV2WriteIngestCache_ = () => { cacheCommits += 1; return true; };
   assert.throws(
     () => script.registryV2AutoIngest_(
       context, candidate.cfg, candidate.items,
@@ -1906,8 +2253,29 @@ test('v2 guarded auto-ingest detects a concurrent human edit before its first wr
     /changed during Drive scan/,
   );
   assert.equal(writes, 0);
+  assert.equal(cacheCommits, 0);
   assert.equal(sheet.getSheetByName('Projects').writeCalls.length, 0);
   assert.equal(sheet.getSheetByName('_Registry').writeCalls.length, 0);
+});
+
+test('v2 metadata-gate failure performs no Sheet write or fingerprint mutation', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script);
+  const candidate = installAutoCandidate(script, sheet);
+  const context = {
+    enabled: true, spreadsheet: sheet, spreadsheet_id: 'v2-sheet-id',
+    before: script.registryV2WorkbookState_(sheet),
+  };
+  let writes = 0;
+  let cacheCommits = 0;
+  script.registryV2SheetsMetadata_ = () => { throw new Error('metadata unavailable'); };
+  script.registryV2BatchWrite_ = () => { writes += 1; };
+  script.registryV2WriteIngestCache_ = () => { cacheCommits += 1; return true; };
+
+  assert.throws(() => script.registryV2AutoIngest_(
+    context, candidate.cfg, candidate.items), /metadata unavailable/);
+  assert.equal(writes, 0);
+  assert.equal(cacheCommits, 0);
 });
 
 test('v2 guarded auto-ingest reports failure when post-write state is not exact', () => {
@@ -1920,21 +2288,26 @@ test('v2 guarded auto-ingest reports failure when post-write state is not exact'
   };
   script.registryV2SheetsMetadata_ = () => ({
     Projects: { sheet_id: 1, table_id: 'ProjectsCatalogV2',
-      table_range: { startRowIndex: 0, startColumnIndex: 0, endRowIndex: 3, endColumnIndex: 16 } },
+      table_range: { startRowIndex: 0, startColumnIndex: 0,
+        endRowIndex: context.before.Projects.rows,
+        endColumnIndex: context.before.Projects.columns } },
     _Registry: { sheet_id: 2, table_id: '' },
     _Facets: { sheet_id: 3, table_id: '' },
     _Assets: { sheet_id: 4, table_id: '' },
   });
   script.registryV2BatchWrite_ = () => {};
+  let cacheCommits = 0;
+  script.registryV2WriteIngestCache_ = () => { cacheCommits += 1; return true; };
   assert.throws(
     () => script.registryV2AutoIngest_(
       context, candidate.cfg, candidate.items,
     ),
     /could not verify the completed write/,
   );
+  assert.equal(cacheCommits, 0, 'an unverified write must never advance fingerprints');
 });
 
-test('v2 guarded auto-ingest detects a concurrent formula before its first write', () => {
+test('v2 guarded auto-ingest detects a concurrent formula at the final pre-write capture', () => {
   const script = loadAppsScript();
   const sheet = fixture(script);
   const candidate = installAutoCandidate(script, sheet);
@@ -1949,7 +2322,19 @@ test('v2 guarded auto-ingest detects a concurrent formula before its first write
     sheet.getSheetByName('Projects').formulas['2:4'] = '=UPPER("Live project")';
   };
   let writes = 0;
-  script.registryV2SheetsMetadata_ = () => { throw new Error('must stop before metadata'); };
+  let metadataReads = 0;
+  script.registryV2SheetsMetadata_ = () => {
+    metadataReads += 1;
+    return {
+      Projects: { sheet_id: 1, table_id: 'ProjectsCatalogV2',
+        table_range: { startRowIndex: 0, startColumnIndex: 0,
+          endRowIndex: context.before.Projects.rows,
+          endColumnIndex: context.before.Projects.columns } },
+      _Registry: { sheet_id: 2, table_id: '' },
+      _Facets: { sheet_id: 3, table_id: '' },
+      _Assets: { sheet_id: 4, table_id: '' },
+    };
+  };
   script.registryV2BatchWrite_ = () => { writes += 1; };
   assert.throws(
     () => script.registryV2AutoIngest_(
@@ -1958,6 +2343,122 @@ test('v2 guarded auto-ingest detects a concurrent formula before its first write
     /changed during Drive scan/,
   );
   assert.equal(writes, 0);
+  assert.equal(metadataReads, 1, 'native table validation precedes the final linearisation read');
+});
+
+test('a guarded no-op auto-ingest skips batch, flush, reopen and post-write capture', () => {
+  const script = loadAppsScript();
+  const originalSheet = fixture(script);
+  const candidate = installAutoCandidate(script, originalSheet);
+  const first = script.registryV2AutoPlan_(
+    script.registryV2WorkbookState_(originalSheet), candidate.cfg, candidate.items,
+  );
+  const stateNames = script.REGISTRY_V2_COMPILE_SHEETS
+    .filter(name => !first.target[name].missing);
+  const current = new FakeSpreadsheet(Object.fromEntries(
+    stateNames.map(name => [name, first.target[name].values]),
+  ));
+  stateNames.forEach(name => {
+    first.target[name].formulas.forEach((row, r) => row.forEach((formula, c) => {
+      if (formula) current.sheets[name].formulas[`${r + 1}:${c + 1}`] = formula;
+    }));
+  });
+  installServices(script, current, candidate.files);
+  const before = script.registryV2WorkbookState_(current);
+  let batchWrites = 0;
+  let flushes = 0;
+  let reopens = 0;
+  let cacheCommits = 0;
+  script.registryV2SheetsMetadata_ = () => ({
+    Projects: { sheet_id: 1, table_id: 'ProjectsCatalogV2',
+      table_range: { startRowIndex: 0, startColumnIndex: 0,
+        endRowIndex: before.Projects.rows, endColumnIndex: before.Projects.columns } },
+    _Registry: { sheet_id: 2, table_id: '' },
+    _Facets: { sheet_id: 3, table_id: '' },
+    _Assets: { sheet_id: 4, table_id: '' },
+  });
+  script.registryV2BatchWrite_ = () => { batchWrites += 1; };
+  script.registryV2WriteIngestCache_ = () => { cacheCommits += 1; return true; };
+  script.SpreadsheetApp.flush = () => { flushes += 1; };
+  script.SpreadsheetApp.openById = () => { reopens += 1; return current; };
+
+  const result = script.registryV2AutoIngest_({
+    enabled: true, spreadsheet: current, spreadsheet_id: 'v2-sheet-id', before,
+  }, candidate.cfg, candidate.items);
+
+  assert.equal(result.sheet_changed, false);
+  assert.equal(batchWrites, 0);
+  assert.equal(flushes, 0);
+  assert.equal(reopens, 0);
+  assert.equal(cacheCommits, 1,
+    'fingerprints commit only after the metadata gate and final equality read');
+  assert.match(result.preview_snapshot.registry_revision, /^sha256:[0-9a-f]{64}$/);
+});
+
+test('cold planner commit becomes a warm no-blob fingerprint hit on the next ingest', () => {
+  const script = loadAppsScript();
+  const original = fixture(script);
+  const files = standardDrive();
+  installServices(script, original, files);
+  const cfg = {
+    drive_folder_url: 'https://drive.google.com/drive/folders/root-folder-12345',
+  };
+  const coldItems = existingItems(files);
+  const firstPlan = script.registryV2AutoPlan_(
+    script.registryV2WorkbookState_(original), cfg, coldItems,
+  );
+  const stateNames = script.REGISTRY_V2_COMPILE_SHEETS
+    .filter(name => !firstPlan.target[name].missing);
+  const current = new FakeSpreadsheet(Object.fromEntries(
+    stateNames.map(name => [name, firstPlan.target[name].values]),
+  ));
+  stateNames.forEach(name => {
+    firstPlan.target[name].formulas.forEach((row, r) => row.forEach((formula, c) => {
+      if (formula) current.sheets[name].formulas[`${r + 1}:${c + 1}`] = formula;
+    }));
+  });
+  const properties = installServices(script, current, files);
+  script.registryV2SheetsMetadata_ = () => {
+    const state = script.registryV2WorkbookState_(current);
+    return {
+      Projects: { sheet_id: 1, table_id: 'ProjectsCatalogV2',
+        table_range: { startRowIndex: 0, startColumnIndex: 0,
+          endRowIndex: state.Projects.rows, endColumnIndex: state.Projects.columns } },
+      _Registry: { sheet_id: 2, table_id: '' },
+      _Facets: { sheet_id: 3, table_id: '' },
+      _Assets: { sheet_id: 4, table_id: '' },
+    };
+  };
+  script.registryV2BatchWrite_ = () => {
+    throw new Error('the prepared current workbook must be a no-op');
+  };
+
+  let before = script.registryV2WorkbookState_(current);
+  let cache = script.registryV2PrepareIngestCache_(
+    coldItems, current.getId(), 'root-folder-12345');
+  const cold = script.registryV2AutoIngest_({
+    enabled: true, spreadsheet: current, spreadsheet_id: current.getId(),
+    before, ingest_cache: cache,
+  }, cfg, coldItems);
+  assert.equal(cold.cache_hits, 0);
+  assert.equal(cold.source_reads, 2);
+  assert.equal(cold.cache_committed, true);
+  assert.equal(cold.sheet_changed, false);
+  assert.equal(Object.keys(properties).filter(key =>
+    key.startsWith(script.REGISTRY_V2_INGEST_CACHE_PREFIX)).length, 2);
+
+  const warmItems = existingItems(files);
+  before = script.registryV2WorkbookState_(current);
+  cache = script.registryV2PrepareIngestCache_(
+    warmItems, current.getId(), 'root-folder-12345');
+  const warm = script.registryV2AutoIngest_({
+    enabled: true, spreadsheet: current, spreadsheet_id: current.getId(),
+    before, ingest_cache: cache,
+  }, cfg, warmItems);
+  assert.equal(warm.cache_hits, 2);
+  assert.equal(warm.source_reads, 0);
+  assert.equal(warm.sheet_changed, false);
+  assert.equal(warm.registry_revision, cold.registry_revision);
 });
 
 test('v2 guarded auto-ingest verifies success from a freshly opened spreadsheet', () => {
@@ -1970,21 +2471,26 @@ test('v2 guarded auto-ingest verifies success from a freshly opened spreadsheet'
   };
   script.registryV2SheetsMetadata_ = () => ({
     Projects: { sheet_id: 1, table_id: 'ProjectsCatalogV2',
-      table_range: { startRowIndex: 0, startColumnIndex: 0, endRowIndex: 3, endColumnIndex: 16 } },
+      table_range: { startRowIndex: 0, startColumnIndex: 0,
+        endRowIndex: context.before.Projects.rows,
+        endColumnIndex: context.before.Projects.columns } },
     _Registry: { sheet_id: 2, table_id: '' },
     _Facets: { sheet_id: 3, table_id: '' },
     _Assets: { sheet_id: 4, table_id: '' },
   });
   let target;
   script.registryV2BatchWrite_ = (id, before, plan) => { target = plan.target; };
+  let flushes = 0;
+  script.SpreadsheetApp.flush = () => { flushes += 1; };
   const fresh = new FakeSpreadsheet(Object.fromEntries(
-    script.REGISTRY_V2_COMPILE_SHEETS.map(name => [name, []]),
+    script.REGISTRY_V2_REQUIRED_COMPILE_SHEETS.map(name => [name, []]),
   ));
   let freshOpens = 0;
   script.SpreadsheetApp.openById = id => {
     assert.equal(id, 'v2-sheet-id');
     freshOpens += 1;
     Object.entries(target).forEach(([name, table]) => {
+      if (table.missing) return;
       fresh.sheets[name] = new FakeSheet(table.values);
       table.formulas.forEach((row, r) => row.forEach((formula, c) => {
         if (formula) fresh.sheets[name].formulas[`${r + 1}:${c + 1}`] = formula;
@@ -1996,6 +2502,7 @@ test('v2 guarded auto-ingest verifies success from a freshly opened spreadsheet'
     context, candidate.cfg, candidate.items,
   );
   assert.equal(result.added, 1);
+  assert.equal(flushes, 1, 'a changed path still flushes before fresh verification');
   assert.equal(freshOpens, 1);
 });
 
@@ -2007,12 +2514,16 @@ test('v2 native table metadata uses the Sheets advanced service', () => {
     return { sheets: [
       { properties: { sheetId: 1, title: 'Projects' }, tables: [{
         tableId: 'projects-table-id', name: 'ProjectsCatalogV2',
-        range: { startRowIndex: 0, endRowIndex: 16, startColumnIndex: 0, endColumnIndex: 16 },
+        range: { startRowIndex: 0, endRowIndex: 16, startColumnIndex: 0, endColumnIndex: 18 },
       }] },
       { properties: { sheetId: 2, title: '_Registry' } },
       { properties: { sheetId: 3, title: '_Facets' }, tables: [] },
       { properties: { sheetId: 4, title: '_Assets' }, tables: [] },
       { properties: { sheetId: 5, title: '_Audit' }, tables: [] },
+      { properties: { sheetId: 6, title: 'Options' }, tables: [{
+        tableId: 'options-table-id', name: 'OptionsCatalogV2',
+        range: { startRowIndex: 0, endRowIndex: 9, startColumnIndex: 0, endColumnIndex: 7 },
+      }] },
     ] };
   } } };
   const metadata = script.registryV2SheetsMetadata_('v2-sheet-id');
@@ -2024,6 +2535,8 @@ test('v2 native table metadata uses the Sheets advanced service', () => {
   assert.equal(metadata._Facets.table_count, 0);
   assert.equal(metadata._Assets.table_count, 0);
   assert.equal(metadata._Audit.table_count, 0);
+  assert.equal(metadata.Options.table_id, 'options-table-id');
+  assert.equal(metadata.Options.table_name, 'OptionsCatalogV2');
 });
 
 test('v2 batch append addresses Projects by native tableId and machines by sheetId', () => {
@@ -2101,6 +2614,103 @@ test('a v2 sync error disables both automatic Preview requests and retries', () 
   assert.match(result.error, /v2 auto-ingest failed/);
   assert.equal(observed.allowAutoRequest, false);
   assert.equal(observed.allowAttempt, false);
+});
+
+test('fresh auto-off properties override a stale preview scan and reuse the verified snapshot', () => {
+  const script = loadAppsScript();
+  const snapshot = {
+    audience: 'preview', registry_revision: `sha256:${'a'.repeat(64)}`,
+  };
+  script.LockService = {
+    getScriptLock: () => ({ tryLock: () => true, releaseLock: () => {} }),
+  };
+  script.CacheService = { getScriptCache: () => ({ removeAll: () => {} }) };
+  let flushes = 0;
+  script.SpreadsheetApp = { flush: () => { flushes += 1; } };
+  script.PropertiesService = { getScriptProperties: () => ({
+    getProperty: key => ({
+      AI4S_AUTO_PUBLISH_TARGET: 'off', AI4S_PREVIEW_BRANCH: 'develop',
+    })[key] ?? null,
+  }) };
+  script.syncDriveUnlocked_ = () => ({
+    registryV2: { checked: 16 },
+    _configBase: { site_title: 'Registry v2', auto_publish_target: 'preview' },
+    _previewSnapshot: snapshot,
+  });
+  script.registryV2Spreadsheet_ = () => ({ id: 'v2' });
+  script.registryV2OperationalConfig_ = () => {
+    throw new Error('must not recapture _Config or the workbook after a verified sync');
+  };
+  script.logEvent_ = () => {};
+  script.registryV2Snapshot_ = () => {
+    throw new Error('fresh auto-off must use the post-verified snapshot');
+  };
+  script.readPreviewPublishState_ = () => script.emptyPreviewPublishState_();
+  script.writePreviewPublishState_ = state => state;
+  script.checkPreviewReceipt_ = () => ({
+    ok: false, configured: true, ready: false, status: 404, error: 'not ready',
+  });
+  script.triggerBuildRequest_ = () => { throw new Error('fresh auto-off must not POST'); };
+
+  const result = script.syncDrive();
+
+  assert.equal(result.previewPublishPhase, 'dirty');
+  assert.equal(flushes, 0, 'a successful no-op sync has no legacy final flush');
+  assert.equal(Object.prototype.hasOwnProperty.call(result, '_configBase'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(result, '_previewSnapshot'), false);
+});
+
+test('fresh preview properties override stale auto-off and force a live compile', () => {
+  const script = loadAppsScript();
+  const staleSnapshot = {
+    audience: 'preview', registry_revision: `sha256:${'a'.repeat(64)}`,
+  };
+  const liveRevision = `sha256:${'b'.repeat(64)}`;
+  script.LockService = {
+    getScriptLock: () => ({ tryLock: () => true, releaseLock: () => {} }),
+  };
+  script.CacheService = { getScriptCache: () => ({ removeAll: () => {} }) };
+  script.SpreadsheetApp = { flush: () => {} };
+  script.PropertiesService = { getScriptProperties: () => ({
+    getProperty: key => ({
+      AI4S_AUTO_PUBLISH_TARGET: 'preview', AI4S_PREVIEW_BRANCH: 'develop',
+    })[key] ?? null,
+  }) };
+  script.Utilities = utilities();
+  script.syncDriveUnlocked_ = () => ({
+    registryV2: { checked: 16 },
+    _configBase: { site_title: 'Registry v2', auto_publish_target: 'off' },
+    _previewSnapshot: staleSnapshot,
+  });
+  script.registryV2Spreadsheet_ = () => ({});
+  script.registryV2OperationalConfig_ = () => {
+    throw new Error('must refresh properties without a workbook capture');
+  };
+  script.logEvent_ = () => {};
+  let liveCompiles = 0;
+  let posts = 0;
+  script.registryV2Snapshot_ = () => {
+    liveCompiles += 1;
+    return { audience: 'preview', registry_revision: liveRevision };
+  };
+  script.readPreviewPublishState_ = () => script.emptyPreviewPublishState_();
+  script.writePreviewPublishState_ = state => state;
+  script.checkPreviewReceipt_ = () => ({
+    ok: false, configured: true, ready: false, status: 404, error: 'not ready',
+  });
+  script.configuredBuildRequest_ = () => ({
+    ok: true, target: 'preview', branch: 'develop', hookUrl: 'redacted',
+  });
+  script.triggerBuildRequest_ = () => {
+    posts += 1;
+    return { ok: true, status: 202 };
+  };
+
+  const result = script.syncDrive();
+
+  assert.equal(liveCompiles, 1);
+  assert.equal(posts, 1);
+  assert.equal(result.previewPublishPhase, 'accepted');
 });
 
 test('CacheService marker invalidation failure never changes the sync result', () => {

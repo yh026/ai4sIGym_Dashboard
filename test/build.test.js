@@ -75,6 +75,22 @@ test('Registry v2 resolves only explicit active taxonomy references', () => {
       { id: 'pca', label: 'Principal Components', active: true },
       { id: 'retired-method', label: 'Retired method', active: false },
     ],
+    data_types: [
+      {
+        id: 'time-series', label: 'Time series', description: 'Ordered observations.',
+        display_order: 1, active: true,
+      },
+    ],
+    instrument_types: [
+      {
+        id: 'explorer', label: 'Explorer', description: 'Interactive exploration.',
+        display_order: 1, active: true,
+      },
+      {
+        id: 'retired-instrument', label: 'Retired instrument', description: '',
+        display_order: 2, active: false,
+      },
+    ],
   });
   const demo = normalizeV2Demo({
     demo_id: 'galaxy-demo', entry_type: 'project', slug: 'galaxy-demo', title: 'A galaxy project',
@@ -82,6 +98,7 @@ test('Registry v2 resolves only explicit active taxonomy references', () => {
     card_summary: 'Its explicit IDs still place it in Chemistry.',
     department_id: 'chemistry', subtopic_id: 'materials',
     task_ids: ['classification'], method_ids: ['pca'], featured: false,
+    data_type_ids: ['time-series'], instrument_type_ids: ['explorer'],
     audience: 'Intro', data_source_label: 'Synthetic', public_page_permission: 'Public',
     card_asset: { asset_id: 'galaxy-card', public_path: 'assets/cards/galaxy.jpg', alt_text: 'Galaxy points.' },
     file_id: 'galaxy-file', file_check: 'ok', date_added: '2026-08-11T00:00:00.000Z',
@@ -91,14 +108,16 @@ test('Registry v2 resolves only explicit active taxonomy references', () => {
   assert.equal(demo._domain, 'chemistry-materials');
   assert.equal(demo.department_label, 'Chemistry from Sheet');
   assert.deepEqual(demo._methodTerms.map(term => term.label), ['Principal Components']);
+  assert.deepEqual(demo._dataTypeTerms.map(term => term.label), ['Time series']);
+  assert.deepEqual(demo._instrumentTypeTerms.map(term => term.label), ['Explorer']);
   assert.deepEqual(Object.keys(taxonomy.departments.get('chemistry')).sort(), [
     'active', 'description', 'display_order', 'icon_key', 'id', 'label',
     'short_label', 'theme_key',
   ]);
   assert.deepEqual(Object.keys(demo).sort(), [
-    'audience', 'card_asset', 'card_summary', 'data_source_label', 'date_added',
+    'audience', 'card_asset', 'card_summary', 'data_source_label', 'data_type_ids', 'date_added',
     'demo_id', 'department_id', 'entry_type', 'featured', 'file_check', 'file_id',
-    'method_ids', 'public_page_permission', 'slug', 'sort_order', 'status',
+    'instrument_type_ids', 'method_ids', 'public_page_permission', 'slug', 'sort_order', 'status',
     'subtopic_id', 'task_ids', 'title',
   ]);
   assert.equal('category' in demo, false);
@@ -106,6 +125,29 @@ test('Registry v2 resolves only explicit active taxonomy references', () => {
   assert.throws(() => normalizeV2Demo({
     ...demo, demo_id: 'second-demo', slug: 'second-demo', method_ids: ['retired-method'],
   }, taxonomy, { demoIds: new Set(), slugs: new Set() }, 1), /unknown or inactive method/);
+  assert.throws(() => normalizeV2Demo({
+    ...demo, demo_id: 'third-demo', slug: 'third-demo',
+    instrument_type_ids: ['retired-instrument'],
+  }, taxonomy, { demoIds: new Set(), slugs: new Set() }, 2), /unknown or inactive instrument type/);
+  assert.throws(() => normalizeV2Demo({
+    ...demo, demo_id: 'fourth-demo', slug: 'fourth-demo',
+    data_type_ids: ['time-series', 'time-series-2'],
+  }, taxonomy, { demoIds: new Set(), slugs: new Set() }, 3), /data_type_ids must contain at most one ID/);
+  assert.throws(() => normalizeV2Demo({
+    ...demo, demo_id: 'fifth-demo', slug: 'fifth-demo',
+    instrument_type_ids: ['explorer', 'explorer-2'],
+  }, taxonomy, { demoIds: new Set(), slugs: new Set() }, 4), /instrument_type_ids must contain at most one ID/);
+
+  const compatibilitySource = {
+    ...demo, demo_id: 'compatibility-demo', slug: 'compatibility-demo',
+  };
+  delete compatibilitySource.data_type_ids;
+  delete compatibilitySource.instrument_type_ids;
+  const compatibilityDemo = normalizeV2Demo(
+    compatibilitySource, taxonomy, { demoIds: new Set(), slugs: new Set() }, 5,
+  );
+  assert.deepEqual(compatibilityDemo.data_type_ids, []);
+  assert.deepEqual(compatibilityDemo.instrument_type_ids, []);
 });
 
 test('preview lookup survives a duplicate-row slug suffix by using the HTML file identity', () => {

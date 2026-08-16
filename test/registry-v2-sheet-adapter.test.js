@@ -9,6 +9,8 @@ const {
   toRegistryV2,
 } = require('../lib/registry-v2');
 const {
+  OPTIONS_SHEET_COLUMNS,
+  OPTIONS_SHEET_HEADERS,
   PROJECTS_SHEET_COLUMNS,
   PROJECTS_SHEET_HEADERS,
   RegistryV2SheetAdapterError,
@@ -19,6 +21,8 @@ const {
   configToSheetRows,
   facetsToSheetRows,
   formatReadiness,
+  optionsRowsToOptions,
+  optionsToSheetRows,
   projectsRowsToProjects,
   projectsToSheetRows,
   registryToSheetRows,
@@ -55,14 +59,14 @@ function removeColumn(rows, header) {
   rows.forEach(row => row.splice(index, 1));
 }
 
-test('Projects exposes fifteen English-labelled fields and one hidden identity field', () => {
-  assert.equal(HUMAN_PROJECT_HEADERS.length, 15);
-  assert.equal(PROJECTS_SHEET_COLUMNS.length, 16);
+test('Projects exposes seventeen English-labelled fields and one hidden identity field', () => {
+  assert.equal(HUMAN_PROJECT_HEADERS.length, 17);
+  assert.equal(PROJECTS_SHEET_COLUMNS.length, 18);
   assert.deepEqual(PROJECTS_SHEET_HEADERS, [
     'Status', 'Readiness', 'Preview URL', 'Project Title', 'Card Summary',
-    'Department', 'Subtopic', 'Task Type', 'Methods', 'Card Image',
-    'Image Alt Text', 'Audience', 'Featured', 'Data Source',
-    'Public Permission', 'demo_id',
+    'Department', 'Subtopic', 'Task Type', 'Methods', 'Data Type',
+    'Instrument Type', 'Card Image', 'Image Alt Text', 'Audience', 'Featured',
+    'Data Source', 'Public Permission', 'demo_id',
   ]);
   assert.equal(PROJECTS_SHEET_HEADERS.some(header => /\p{Script=Han}/u.test(header)), false);
   assert.equal(PROJECTS_SHEET_COLUMNS.at(-1).hidden, true);
@@ -77,6 +81,139 @@ test('Projects exposes fifteen English-labelled fields and one hidden identity f
   englishHeaders[0] = [...HUMAN_PROJECT_HEADERS, 'demo_id'];
   const decodedEnglish = projectsRowsToProjects(englishHeaders);
   assert.deepEqual(decodedEnglish.projects[0], decodedLabels.projects[0]);
+});
+
+test('legacy Projects without the two option columns and without Options remains readable', () => {
+  const snapshot = makeTwentyProjectSnapshot();
+  removeColumn(snapshot.Projects, 'Data Type');
+  removeColumn(snapshot.Projects, 'Instrument Type');
+  removeColumn(snapshot._Registry, 'data_type_ids');
+  removeColumn(snapshot._Registry, 'instrument_type_ids');
+  assert.equal(Object.hasOwn(snapshot, 'Options'), false);
+
+  const adapted = adaptRegistryV2Sheet(snapshot);
+  assert.equal(adapted.compilerInput.projects[0].data_types, '');
+  assert.equal(adapted.compilerInput.projects[0].instrument_types, '');
+  assert.deepEqual(adapted.compilerInput.options, { data_types: [], instrument_types: [] });
+  const result = compileRegistryV2Sheet(snapshot);
+  assert.equal(result.compiled.ok, true);
+  result.compiled.demos.forEach(demo => {
+    assert.deepEqual(demo.data_type_ids, []);
+    assert.deepEqual(demo.instrument_type_ids, []);
+  });
+});
+
+test('present Options requires both project and registry option columns', async t => {
+  for (const [sheetName, header] of [
+    ['Projects', 'Data Type'],
+    ['Projects', 'Instrument Type'],
+    ['_Registry', 'data_type_ids'],
+    ['_Registry', 'instrument_type_ids'],
+  ]) {
+    await t.test(`${sheetName}.${header}`, () => {
+      const snapshot = makeTwentyProjectSnapshot();
+      snapshot.Options = [OPTIONS_SHEET_HEADERS.slice()];
+      removeColumn(snapshot[sheetName], header);
+      assert.throws(
+        () => adaptRegistryV2Sheet(snapshot),
+        error => error instanceof RegistryV2SheetAdapterError
+          && adapterErrorCodes(error).includes(
+            sheetName === 'Projects' ? 'projects_header_missing' : 'machine_header_missing',
+          ),
+      );
+    });
+  }
+});
+
+test('Options uses one strict seven-column controlled vocabulary contract', () => {
+  assert.deepEqual(OPTIONS_SHEET_HEADERS, [
+    'Category', 'Option ID', 'Option Label', 'Aliases', 'Display Order',
+    'Active', 'Description',
+  ]);
+  assert.equal(OPTIONS_SHEET_COLUMNS.length, 7);
+  assert.deepEqual(SHEET_HEADERS.Options, OPTIONS_SHEET_HEADERS);
+
+  const options = {
+    data_types: [
+      {
+        id: '2d', label: '2D', aliases: ['Image matrix', 'Two dimensional'],
+        display_order: 2, active: true, description: 'Rows by columns.',
+      },
+    ],
+    instrument_types: [
+      {
+        id: 'raman', label: 'Raman', aliases: 'Raman spectroscopy',
+        display_order: 1, active: true, description: 'Vibrational spectra.',
+      },
+    ],
+  };
+  const rows = optionsToSheetRows(options);
+  assert.deepEqual(rows[0], OPTIONS_SHEET_HEADERS);
+  assert.deepEqual(optionsRowsToOptions(rows), {
+    data_types: [{
+      id: '2d', label: '2D', aliases: 'Image matrix, Two dimensional',
+      display_order: 2, active: true, description: 'Rows by columns.',
+    }],
+    instrument_types: [{
+      id: 'raman', label: 'Raman', aliases: 'Raman spectroscopy',
+      display_order: 1, active: true, description: 'Vibrational spectra.',
+    }],
+  });
+  const reordered = rows.map(row => [row[1], row[0], ...row.slice(2)]);
+  assert.deepEqual(optionsRowsToOptions(reordered), optionsRowsToOptions(rows));
+
+  const snapshot = makeTwentyProjectSnapshot();
+  snapshot.Options = rows;
+  snapshot.Projects[1][snapshot.Projects[0].indexOf('Data Type')] = 'Image matrix';
+  snapshot.Projects[1][snapshot.Projects[0].indexOf('Instrument Type')] = 'raman spectroscopy';
+  const result = compileRegistryV2Sheet(snapshot);
+  assert.equal(result.compiled.ok, true);
+  const demo = result.compiled.demos.find(item => item.demo_id === 'demo-soh-battery');
+  assert.deepEqual(demo.data_type_ids, ['2d']);
+  assert.deepEqual(demo.instrument_type_ids, ['raman']);
+  assert.equal(result.compiled.taxonomy.data_types[0].description, 'Rows by columns.');
+});
+
+test('Options ignores only an unused false-checkbox placeholder row', async t => {
+  const rows = [
+    OPTIONS_SHEET_HEADERS.slice(),
+    ['data_type', '1d', '1D', '', 1, true, 'One ordered axis.'],
+    ['', '', '', '', '', false, ''],
+  ];
+  assert.deepEqual(optionsRowsToOptions(rows), {
+    data_types: [{
+      id: '1d', label: '1D', aliases: '', display_order: 1,
+      active: true, description: 'One ordered axis.',
+    }],
+    instrument_types: [],
+  });
+
+  await t.test('a partially populated unchecked row remains invalid', () => {
+    const errors = [];
+    optionsRowsToOptions([
+      OPTIONS_SHEET_HEADERS.slice(),
+      ['data_type', '', '', '', '', false, ''],
+    ], errors);
+    assert.ok(errors.some(error => error.code === 'option_display_order_invalid'));
+  });
+
+  await t.test('an otherwise empty checked row remains invalid', () => {
+    const errors = [];
+    optionsRowsToOptions([
+      OPTIONS_SHEET_HEADERS.slice(),
+      ['', '', '', '', '', true, ''],
+    ], errors);
+    assert.ok(errors.some(error => error.code === 'option_category_invalid'));
+  });
+
+  await t.test('whitespace is data and remains invalid like Apps Script', () => {
+    const errors = [];
+    optionsRowsToOptions([
+      OPTIONS_SHEET_HEADERS.slice(),
+      [' ', '', '', '', '', false, ''],
+    ], errors);
+    assert.ok(errors.some(error => error.code === 'option_category_invalid'));
+  });
 });
 
 test('any CJK text in a visible or hidden v2 Sheet cell fails closed', () => {
@@ -114,6 +251,10 @@ test('all Sheet-facing readiness messages are English-only', () => {
       status: 'blocked',
       issues: [{ code: 'card_summary_missing' }, { code: 'file_check_unhealthy' }],
     }, 'Live'),
+    formatReadiness({
+      status: 'blocked',
+      issues: [{ code: 'data_type_multiple' }, { code: 'instrument_type_multiple' }],
+    }, 'Live'),
   ];
   assert.deepEqual(values, [
     '— Archived',
@@ -121,6 +262,7 @@ test('all Sheet-facing readiness messages are English-only', () => {
     '✅ Publication ready',
     '⛔ Action needed: Needs review',
     '⛔ Action needed: Card Summary, Source File Check',
+    '⛔ Action needed: Data Type, Instrument Type',
   ]);
   assert.equal(values.some(value => /\p{Script=Han}/u.test(value)), false);
 });
@@ -189,7 +331,7 @@ test('derived write-back patches touch only readiness and preview_url with a dem
 
   const readyDraft = result.writebackPatches.find(item => item.demo_id === 'demo-draft-a');
   assert.deepEqual(readyDraft.identity_guard, {
-    range: "'Projects'!P16",
+    range: "'Projects'!R16",
     expected_value: 'demo-draft-a',
   });
   assert.deepEqual(readyDraft.writes.map(write => write.field_key), ['readiness', 'preview_url']);
@@ -209,7 +351,8 @@ test('derived write-back patches touch only readiness and preview_url with a dem
 test('missing or duplicate hidden identities fail structurally before compilation', async t => {
   await t.test('missing demo_id in Projects', () => {
     const snapshot = makeTwentyProjectSnapshot();
-    snapshot.Projects[1][15] = '';
+    const demoIdIndex = snapshot.Projects[0].indexOf('demo_id');
+    snapshot.Projects[1][demoIdIndex] = '';
     assert.throws(
       () => adaptRegistryV2Sheet(snapshot),
       error => error instanceof RegistryV2SheetAdapterError
@@ -219,7 +362,8 @@ test('missing or duplicate hidden identities fail structurally before compilatio
 
   await t.test('duplicate demo_id in Projects', () => {
     const snapshot = makeTwentyProjectSnapshot();
-    snapshot.Projects[2][15] = snapshot.Projects[1][15];
+    const demoIdIndex = snapshot.Projects[0].indexOf('demo_id');
+    snapshot.Projects[2][demoIdIndex] = snapshot.Projects[1][demoIdIndex];
     assert.throws(
       () => adaptRegistryV2Sheet(snapshot),
       error => error instanceof RegistryV2SheetAdapterError
@@ -239,6 +383,73 @@ test('missing or duplicate hidden identities fail structurally before compilatio
         && adapterErrorCodes(error).includes('registry_projection_missing'),
     );
   });
+});
+
+test('present Options fails structurally on header, category or Active violations', async t => {
+  await t.test('all canonical headers are required and unsupported headers fail', () => {
+    const snapshot = makeTwentyProjectSnapshot();
+    snapshot.Options = [OPTIONS_SHEET_HEADERS.slice()];
+    snapshot.Options[0][0] = 'Unsupported';
+    assert.throws(
+      () => adaptRegistryV2Sheet(snapshot),
+      error => error instanceof RegistryV2SheetAdapterError
+        && adapterErrorCodes(error).includes('options_header_invalid'),
+    );
+  });
+
+  await t.test('Category accepts only stable singular keys', () => {
+    const snapshot = makeTwentyProjectSnapshot();
+    snapshot.Options = [OPTIONS_SHEET_HEADERS.slice(), [
+      'Data Type', '2d', '2D', '', 1, true, 'Rows by columns.',
+    ]];
+    assert.throws(
+      () => adaptRegistryV2Sheet(snapshot),
+      error => error instanceof RegistryV2SheetAdapterError
+        && adapterErrorCodes(error).includes('option_category_invalid'),
+    );
+  });
+
+  await t.test('Active must be an explicit boolean', () => {
+    const snapshot = makeTwentyProjectSnapshot();
+    snapshot.Options = [OPTIONS_SHEET_HEADERS.slice(), [
+      'data_type', '2d', '2D', '', 1, 'true', 'Rows by columns.',
+    ]];
+    assert.throws(
+      () => adaptRegistryV2Sheet(snapshot),
+      error => error instanceof RegistryV2SheetAdapterError
+        && adapterErrorCodes(error).includes('option_active_invalid'),
+    );
+  });
+
+  for (const delimiter of [',', ';', '|', '\r', '\n']) {
+    await t.test(`Option Label rejects ${JSON.stringify(delimiter)}`, () => {
+      const snapshot = makeTwentyProjectSnapshot();
+      snapshot.Options = [OPTIONS_SHEET_HEADERS.slice(), [
+        'data_type', 'time-series', `Time${delimiter}series`,
+        'Temporal data; Ordered samples|Sequence', 1, true, 'Ordered observations.',
+      ]];
+      assert.throws(
+        () => adaptRegistryV2Sheet(snapshot),
+        error => error instanceof RegistryV2SheetAdapterError
+          && adapterErrorCodes(error).includes('option_label_delimiter_invalid'),
+      );
+    });
+  }
+
+  for (const value of ['', '1', NaN, Infinity, -Infinity, null]) {
+    await t.test(`Display Order rejects ${String(value)}`, () => {
+      const snapshot = makeTwentyProjectSnapshot();
+      snapshot.Options = [OPTIONS_SHEET_HEADERS.slice(), [
+        'data_type', 'time-series', 'Time series', '', value, true,
+        'Ordered observations.',
+      ]];
+      assert.throws(
+        () => adaptRegistryV2Sheet(snapshot),
+        error => error instanceof RegistryV2SheetAdapterError
+          && adapterErrorCodes(error).includes('option_display_order_invalid'),
+      );
+    });
+  }
 });
 
 test('every canonical machine header is required and unknown schema columns fail closed', async t => {
