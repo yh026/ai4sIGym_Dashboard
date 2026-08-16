@@ -109,14 +109,15 @@ flushes already-observed notices from a `finally` block, so a later fail-closed
 Drive scan error cannot erase earlier skip evidence.
 
 The current classification implementation baseline is
-`develop@a6611bcd4db31c39805a436a96d4eb9b259de204`; the
+`develop@6958b1557b07c18633a2651174ce03e4e4ce00b1`; the
 exact `Code.gs` SHA-256 is
-`0dafd921e0ac4de430ec3b1902ddefecb1a3d1918159d0256c739def34e84a57`, and the
-full suite is 345/345. The existing formal Apps Script deployment ID and URL
-serve the same baseline as Version 15, with deployment topology still exactly
-two. The Version 14 and Version 15 rollouts executed no functions or Netlify
-Hook, and all related Git changes used `[skip netlify]`. Published Production
-remains unchanged.
+`a9e8e8d7b1b37326e404d2367b7d9f2513f523907397edf2463af386ced4401a`, and the
+full suite is 355/355. The existing formal Apps Script deployment ID and URL
+serve the same baseline as Version 16, with deployment topology still exactly
+two. Versions 13–15 remain historical rollout evidence for the first editable
+facets, checkbox-placeholder handling and same-ID de-duplication. The Version
+16 rollout did not publish a Netlify Preview or Production artifact. Published
+Production remains unchanged.
 
 The Version 12 warm field run was Audit-visible from 17:41:10 to 17:41:37:
 27 seconds, 16/16 fingerprint reuse, zero source parses and an already-current
@@ -125,9 +126,21 @@ the shipped path saves 44 seconds or 61.97%, is 2.63 times as fast, and satisfie
 both the `≤35 seconds` and `≥50%` acceptance targets. That Version 12 field-run
 readback was Projects 16, all `Live + Publication ready`, with `_Registry=16`,
 `_Facets=50` and `_Assets=16`; it remains historical performance evidence.
-Current Published Production is the later `6a7ee842b481720008e4cf70` artifact:
+The current live workbook readback is Projects / `_Registry` / `_Facets` /
+`_Assets` = `16/16/80/16`. `OptionsCatalogV2` contains 14 vocabulary
+rows: six Data Type options and eight Instrument Type options. Both project
+fields are optional single selections; exactly two current projects have a
+blank Instrument Type. Current Published Production is the later
+`6a7ee842b481720008e4cf70` artifact:
 schema 2 / taxonomy 4 with 16 demos including Raman. It predates editable
-facets, so the public site does not yet expose taxonomy 5 or these new filters.
+facets, so the public site does not yet expose taxonomy 6 or these new filters.
+The taxonomy-6 private develop artifact is deploy
+`6a8195aef1aafb00082c247a`, build `6a8195ae4bbcc3e4f50685c9`, at
+`develop@6958b15`. It is ready with 16 demos and 16 cards. Its exact Registry
+revision is
+`sha256:eee266a5b81fe39ab2c643459698221c074a5a66fe081a687a7b4faa52157fc2`;
+the receipt is verified and revision-bound. Production remains taxonomy 4
+until explicit approval.
 
 ## Human sheet
 
@@ -190,23 +203,22 @@ are list delimiters. `Aliases` is input-only and may contain multiple values
 separated by those delimiters. `Display Order` must be a finite number and
 `Active` must be an explicit boolean checkbox value. `Description` is optional.
 
-`Projects.Data Type` and `Projects.Instrument Type` are optional multi-value
-cells. The normal human representation is a comma-separated label list such as
-`1D, 2D`; the compiler also accepts a stable ID or one unambiguous alias. It
-normalises those values into `_Registry.data_type_ids` /
-`instrument_type_ids` and one `_Facets` row per selected `data_type` or
-`instrument_type`. Repeated selections that resolve to the same stable ID are
-de-duplicated. Unknown values, ambiguous alias collisions and inactive assigned
-terms block the affected row; a blocked Live row fails the whole build.
+`Projects.Data Type` and `Projects.Instrument Type` are independently optional,
+single-value cells. Blank means unclassified and is valid. A nonblank cell may
+contain one label, stable ID or unambiguous alias and normalises into a public
+array containing exactly one ID plus one matching `_Facets` row. Repeated input
+tokens that resolve to the same stable ID are de-duplicated and remain valid.
+More than one distinct resolved ID fails closed; unknown values, ambiguous
+alias collisions and inactive assigned terms also block the affected row. A
+blocked Live row fails the whole build.
 Deactivation therefore requires removing or replacing all current assignments
 first. A safe label rename retains the ID and adds the old label to `Aliases`
 before changing `Option Label`.
 
 The hidden `_OptionLists` sheet contains dynamic ranges used only for dropdown
 suggestions. It is not compiler input and is never the semantic authority. A
-dropdown or native multi-select chip may help an editor enter values, but the
-comma-separated cell content and the strict compiler rules above remain the
-portable contract.
+dropdown may help an editor enter a value, but the strict optional-single
+compiler rules above remain the portable contract.
 
 For rollout compatibility, an old V2 workbook with no `Options` sheet may omit
 all four new human/machine columns and is interpreted as having no such facets.
@@ -270,7 +282,10 @@ First-round project readiness requires:
 
 Data Type and Instrument Type are optional readiness fields. Blank values do
 not block a project. Every nonblank selection must, however, resolve uniquely
-to a currently active `Options` row.
+to exactly one currently active `Options` row. More than one distinct resolved
+ID is invalid. The additive public schema remains arrays for compatibility, but
+each of `data_type_ids` and `instrument_type_ids` is therefore always `[]` or
+`[id]`.
 
 These content requirements apply to Drafts too. A newly discovered HTML file
 may enter as a blocked Draft, but it enters private Preview only after the
@@ -337,13 +352,14 @@ path. The build-facing card asset contains only `asset_id`, `public_path` and
 ```
 
 Aliases never cross this public boundary. The generated website manifest uses
-`taxonomy_version: 5`; it exposes the allowlisted option terms and stable demo
+`taxonomy_version: 6`; it exposes the allowlisted option terms and stable demo
 ID arrays, then renders only active option chips used by at least one visible
 project. Card attributes store pipe-separated IDs. Selecting a chip tests
-membership in that array, while different filter groups are combined with AND.
-Thus a project assigned `1D, 2D` matches either Data Type chip, and selecting
-Data Type `2D` plus Instrument Type `Raman` requires both conditions. Option
-labels are also included in free-text card search.
+the project's zero-or-one value, while different filter groups are combined
+with AND. Thus selecting Data Type `2D` plus Instrument Type `Raman` requires
+both conditions. Blank projects remain visible with no facet filter selected,
+but do not match a chip in the blank field's group. Option labels are also
+included in free-text card search.
 
 The internal compile result retains all human rows and their diagnostics. It
 does not expose a second `manifest` object; `toRegistryV2(compiled)` is the only

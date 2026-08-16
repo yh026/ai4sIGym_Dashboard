@@ -1,6 +1,6 @@
 # AIS Dashboard 项目状态汇报
 
-- 更新时间：2026-08-14（Asia/Singapore）
+- 更新时间：2026-08-16（Asia/Singapore）
 - 汇报对象：项目负责人
 - 汇报范围：当前上线状态、已完成工作、费用影响、剩余事项和下一步
 
@@ -15,21 +15,20 @@
   `main@1fa55688043deddd69aeabda6ed2cd56d02e0751`；它于 18:04:50 SGT 创建、
   18:08:19 SGT 发布，早于本轮 facet / Apps Script rollout。
 - 当前公开 manifest 为 `schema_version=2` / `taxonomy_version=4`，精确包含
-  16 个 demo，已包含 Raman；它尚不包含 taxonomy 5 的 Data Type / Instrument Type
+  16 个 demo，已包含 Raman；它尚不包含 taxonomy 6 的 Data Type / Instrument Type
   分类和新 filter UI。
 - 当前 Production receipt 仍为 revision-bound，Registry revision 为
   `sha256:46383083127407ab331fc934c4384fa9455fce80334b7f44c7e4624bf1dec178`。
   旧切换 deploy `6a7ebce1…` 和其路由/安全验收数据保留在
   历史阶段，不再作为当前 Published 基线。
-- 新 Registry v2 Sheet、V2-only sync、V2 API、新凭据和 V2-bound Apps Script Web App 均为正式控制面。新增的 Data Type / Instrument Type 可编辑分类代码基线为 `develop@a6611bcd4db31c39805a436a96d4eb9b259de204`，完整测试 345/345。
-- V2 Sheet 已完成实体迁移：`Projects=16`、`_Registry=16`、`_Facets=91`、`_Assets=16`；可见 `Options` 有 3 个 Data Type 和 8 个 Instrument Type 选项，隐藏 `_OptionLists` 提供动态下拉提示。
-- 正式 Web App 已在原 ID / URL 上原地更新到 Version 15，精确对应
-  `a6611bc`，topology=2。V13 现场小时同步暴露空 checkbox placeholder，V14 修复；
-  V15 进一步统一 Apps Script 与 compiler 的重复选择去重行为。V14/V15 rollout 均为
-  functions=0、Netlify requests/Hooks=0，Production 不变。
+- 新 Registry v2 Sheet、V2-only sync、V2 API、新凭据和 V2-bound Apps Script Web App 均为正式控制面。当前可编辑分类代码基线为 `develop@6958b1557b07c18633a2651174ce03e4e4ce00b1`，完整测试 355/355。
+- V2 Sheet 当前精确读回为 `Projects=16`、`_Registry=16`、`_Facets=80`、`_Assets=16`；可见 `Options` 有 6 个 Data Type 和 8 个 Instrument Type，共 14 个选项，隐藏 `_OptionLists` 提供动态下拉提示。
+- `Data Type` 与 `Instrument Type` 现在均为可留空、最多单选；不知道时留空是合法状态。当前精确有 2 个项目的 Instrument Type 留空。同一 ID 的 label/alias 重复会去重，两个不同选项会 fail closed。
+- 正式 Web App 已在原 ID / URL 上原地更新到 Version 16，精确对应
+  `6958b15`，topology=2。V13–V15 分别保留为首轮 facets、checkbox placeholder 修复与重复选择去重的历史阶段；Production 不变。
 - Version 12 在 V11 增量指纹快速路径上合并正常 skip audit 写入；warm run 命中 16/16、零 source parse，用时 27 秒，较原 71 秒中位数减少 61.97%，达到 `≤35 秒 / ≥50%` 目标。代码推送带 `[skip netlify]`，Apps Script 沿用原 deployment / URL，且没有新增 Netlify deploy。
 - 当前 V2 Sheet 为 16/16 `Live + Publication ready`，Raman 也已在当前公开
-  16-demo artifact 中。Sheet 与 Production 的新差异是 taxonomy 5 / facet UI 尚未构建公开，
+  16-demo artifact 中。Sheet 与 Production 的新差异是 taxonomy 6 / optional-single facet UI 尚未构建公开，
   不是内容或 V2 同步回退。
 - 新 V2 项目保留唯一 owner-owned hourly `syncDrive` trigger，`AI4S_AUTO_PUBLISH_TARGET=off`；develop Preview 继续保持 Private，匿名访问返回 HTTP 401。
 - V1 Sheet 已移动到 AIS Instrumentation Gym Drive root 下的 `Archive` 文件夹并按日期标记归档；旧 V1 trigger 已为 0、旧 Hook 已删除、旧正式 Apps Script Web App deployment 已停用。
@@ -37,28 +36,28 @@
 - 切换前 Published deploy `6a7ac80744313c0007499f29` 仍为 ready，保留为现成的原子站点回滚点。
 
 因此，“是否已经全部接入 V2”的答案是：**是，完整切换已经完成。**
-当前不是再做 V1→V2 迁移，而是验收新增的可编辑 facets：先 V15 Sync 与
-Private Preview，然后再由负责人决定是否发布 taxonomy 5 网页。
+当前不是再做 V1→V2 迁移，而是验收 taxonomy 6 的 optional-single facets：
+Sheet、V16 与 Private Preview 已全绿验收；下一步只剩负责人决定是否发布到 Production。
 
 ## 二、管理状态总览
 
 | 管理项目 | 状态 | 负责人需要知道的结论 |
 | --- | --- | --- |
 | 公开网站 | V2 已上线，新 facets 待发布 | `6a7ee842b481720008e4cf70` / `main@1fa55688`；schema 2 / taxonomy 4，16 demos，含 Raman，不含新 filters |
-| 团队预览 | 已验收 | 最新 `6a7eb82127b60f0008c234ea` ready；16 条 demo 路由；fresh callback E2E 通过；匿名访问返回 401 |
+| 团队预览 | taxonomy-6 已全绿验收 | `6a8195aef1aafb00082c247a` / `develop@6958b15` / 190s；16 demos / 16 cards；receipt verified + revision-bound |
 | P1-A Sheet 并发保护 | 已部署 | 同步只更新受管理字段，扫描期间的人工编辑不会被旧快照整行覆盖 |
 | P1-B Drive 边界 | 已部署 | 每条直接 parent 关系都会复核；异常时停止同步；shortcut 明确跳过 |
-| Registry v2 control plane | 已正式接管 | V2 Sheet/API/sync/credentials 为唯一日常控制面；正式 Web App 已为 V15 |
+| Registry v2 control plane | 已正式接管 | V2 Sheet/API/sync/credentials 为唯一日常控制面；正式 Web App 已为 V16 |
 | V2 发布状态写回 | 已验收 | 当前 16/16 项目均为 `Live + Publication ready`；Raman 已在公开 16-demo artifact 中 |
-| V2 Drive 同步 | V15 已上线，待 Sync 复验 | Sheet 已为 `16/16/91/16`；V15 同时包含 placeholder 修复和重复选择去重 parity |
+| V2 Drive 同步 | V16 已上线 | Sheet 已为 `16/16/80/16`；两个 optional-single 字段均可留空，隐藏投影已对齐 |
 | Drive 卡片图片 | V2 链路已验收 | 16 个项目文件夹均有受控卡片图；本轮 facet 不改图片链路 |
 | 自动 Preview | 关闭 | 新 V2 property `AI4S_AUTO_PUBLISH_TARGET=off`；不存在自动 Production 路径 |
 | Apps Script trigger | 已单一化 | 旧 V1 trigger=0；新 V2 owner-owned hourly `syncDrive` trigger=1 |
-| 测试 | 通过 | 345/345 |
+| 测试 | 通过 | 355/355 |
 | V1 | 已归档、已停用 | Sheet 位于 `Archive`；trigger=0；旧 Hook 与正式 Web App deployment 已清理 |
 | Production 发布控制 | V2 cutover 已完成 | PR #6、required test、恰好 1 次 Production deploy 均已验收 |
 | 回滚 | 可用 | 切换前 deploy `6a7ac80744313c0007499f29` 仍 ready，可原子回滚 |
-| 当前待办 | 分类功能 commissioning + V2 稳态运维 | V15 已上线；现在做 Sync 与 Private Preview 验收，其后再决定 taxonomy-5 Production 发布 |
+| 当前待办 | Production 发布决策 + V2 稳态运维 | taxonomy-6 Preview 已全绿；由负责人决定何时发布 Production |
 
 ## 三、当前版本与部署状态
 
@@ -71,8 +70,8 @@ Private Preview，然后再由负责人决定是否发布 taxonomy 5 网页。
 | Published commit | `main@1fa55688043deddd69aeabda6ed2cd56d02e0751` |
 | Registry revision | `sha256:46383083127407ab331fc934c4384fa9455fce80334b7f44c7e4624bf1dec178`；revision-bound |
 | Registry schema | schema 2 / taxonomy 4 |
-| Production 内容 | 16 个 demo / 7 个 domain，已包含 Raman；尚不包含 taxonomy 5 和 Data Type / Instrument Type filters |
-| 本轮 facet 上线影响 | `[skip netlify]` pushes 与 V14/V15 原地 rollouts 都为 0 次 Netlify request/deploy |
+| Production 内容 | 16 个 demo / 7 个 domain，已包含 Raman；尚不包含 taxonomy 6 和 Data Type / Instrument Type filters |
+| 本轮 facet 上线影响 | `[skip netlify]` pushes 与 V14–V16 原地 rollouts 都未发布 Production |
 | 原子回滚点 | 旧 deploy `6a7ac80744313c0007499f29` 仍 ready |
 
 结论：公开主站已由 V2 schema-2 产物接管，Raman 已经公开。当前
@@ -83,14 +82,18 @@ Published artifact 仍是 taxonomy 4，因构建时间早于本轮 facets，不�
 
 | 项目 | 当前值 |
 | --- | --- |
-| develop commit | `9a9fec8126de2673b729d4c1dc1788220fc2b2a1`；已用 `[skip netlify]` 推送 |
-| 最新 Branch Deploy | `6a7eb82127b60f0008c234ea`；ready；deploy time 182 秒 |
+| develop commit | `6958b1557b07c18633a2651174ce03e4e4ce00b1`；已用 `[skip netlify]` 推送 |
+| taxonomy-6 Branch Deploy | `6a8195aef1aafb00082c247a`；ready；`develop@6958b15`；deploy time 190 秒 |
+| Callback / revision | request `751f0766-fade-4702-b3c0-9961ebdef171`；revision `sha256:eee266a5b81fe39ab2c643459698221c074a5a66fe081a687a7b4faa52157fc2` |
+| Build / receipt | build `6a8195ae4bbcc3e4f50685c9`；receipt SHA-256 `fef82444094b1cfdbc4012397793af27c02ace42693401e767b93a6c21cbabb9` |
+| Artifact SHA-256 | manifest `de520a45f65e47314f0a035171571a35e333e1f225d796dfa5c2d986062add5f`；index `0fc901feb551b295e15093682506c416ddb13a547676a1782637c9946c49583c` |
+| 上一个已验收 Preview（历史） | `6a7eb82127b60f0008c234ea`；ready；deploy time 182 秒；pre-facet 基线 |
 | Registry schema | v2 |
 | Registry mode | `production`；同一 V2 Registry 继续提供受控 Preview audience |
-| 数据与路由 | Projects 16 / Registry 16 / Facets 50 / Assets 16；16 条 demo 路由，包含 `raman-spectroscopy` |
+| 已验收数据 | Projects 16 / Registry 16 / Facets 80 / Assets 16；Options 14（6 Data + 8 Instrument） |
 | 当前 Sheet 内容状态 | 16/16 `Live + Publication ready`；Raman 已改为 Live/Public |
-| 构建产物 | 61 个文件；16 张从 Drive 本地化的 card JPG；receipt 629 bytes；manifest 42,300 bytes |
-| 发布证据 | Fresh V2 callback E2E 已 verified/revision-bound；request、revision 与 deploy 精确绑定 |
+| 构建产物 | taxonomy 6；16 demos / 16 cards |
+| 发布证据 | callback E2E verified/revision-bound；receipt 精确绑定 request、revision、build、deploy；artifact SHA 为同一 immutable deploy 的独立读回证据 |
 | 团队登录访问 | 200，可正常查看 |
 | 匿名访问 | 401，不可查看 |
 | 卡片图片 | 成功，16/16 个 Drive card asset 已进入本地公开产物路径 |
@@ -103,14 +106,14 @@ Published artifact 仍是 taxonomy 4，因构建时间早于本轮 facets，不�
 | 项目 | 当前值 |
 | --- | --- |
 | Apps Script project | 新项目，container-bound 到 Registry v2 Sheet |
-| 正式 Web App | Version 15；沿用 V2 deployment / URL，topology=2；精确对应 `a6611bcd4db31c39805a436a96d4eb9b259de204` / `Code.gs` SHA-256 `0dafd921e0ac4de430ec3b1902ddefecb1a3d1918159d0256c739def34e84a57` |
+| 正式 Web App | Version 16；沿用 V2 deployment / URL，topology=2；精确对应 `6958b1557b07c18633a2651174ce03e4e4ce00b1` / `Code.gs` SHA-256 `a9e8e8d7b1b37326e404d2367b7d9f2513f523907397edf2463af386ced4401a` |
 | Script Properties / credentials | 在新 V2 项目重新配置；不继承旧 V1；实际值从未记录 |
 | 旧 V1 syncDrive trigger | 0 个 |
 | 新 V2 syncDrive trigger | 1 个 owner-owned hourly trigger |
 | 自动发布目标 | `AI4S_AUTO_PUBLISH_TARGET=off` |
 | V1 状态 | 已归档；trigger=0；旧 Hook 已删除；Version 12 正式 Web App deployment 已停用 |
 
-当前正式控制面是新 V2-bound Apps Script Web App Version 15，不再是原 V1 项目的 Version 12。新项目拥有独立 Properties、credentials、trigger、deployment 和 URL，并同时服务 V2 Production 与 Private Preview。自动目标保持 `off`，因此小时同步不会自动创建 Preview，也不存在自动 Production 路径。Version 15 已原地上线且未执行任何函数或 Hook；现在需要取得分类 Sync 成功证据。
+当前正式控制面是新 V2-bound Apps Script Web App Version 16，不再是原 V1 项目的 Version 12。新项目拥有独立 Properties、credentials、trigger、deployment 和 URL，并同时服务 V2 Production 与 Private Preview。自动目标保持 `off`，因此小时同步不会自动创建 Preview，也不存在自动 Production 路径。Version 16 已原地上线，taxonomy-6 Preview 已全绿验收。
 
 ## 四、本阶段已经完成的工作
 
@@ -207,7 +210,7 @@ Published artifact 仍是 taxonomy 4，因构建时间早于本轮 facets，不�
 - 如果文件被删除后以新 Drive ID 重建，系统不会猜测它是旧项目的替代品，必须由维护者明确处理。
 - 写入前会再次核对 Sheet；如果期间发生人工编辑、公式变化或行移动，本次 V2 写入和 Preview 尝试都会停止。
 
-该历史阶段代码通过 229/229 测试和独立审查，并原址部署为旧 bound Apps Script Version 12；当时 Deployment ID 与 URL 未变，部署代码和 manifest 与 `develop@eeb4d88` 精确匹配。此基线后来由 `c4ff498`、244/244 和新 V2-bound Web App Version 1 替代；Phase 14 又更新为 `045253c6`、257/257 和 Version 8，Phase 16 更新为 `c824588`、276/276 和 Version 11，Phase 17 为 `9a9fec8`、280/280 和 Version 12。当前基线见第 14 节的 `a6611bc`、345/345 和 Version 15。
+该历史阶段代码通过 229/229 测试和独立审查，并原址部署为旧 bound Apps Script Version 12；当时 Deployment ID 与 URL 未变，部署代码和 manifest 与 `develop@eeb4d88` 精确匹配。此基线后来由 `c4ff498`、244/244 和新 V2-bound Web App Version 1 替代；Phase 14 又更新为 `045253c6`、257/257 和 Version 8，Phase 16 更新为 `c824588`、276/276 和 Version 11，Phase 17 为 `9a9fec8`、280/280 和 Version 12。当前基线见第 15 节的 `6958b15`、355/355 和 Version 16。
 
 空同步 commissioning 分为两次：Version 11 在 11:47 因 Sheets REST HTTP 403 停止，且在写入前失败，因此 V2 与 Netlify 均为零变化；启用 Advanced Sheets v4 后，Version 12 在 12:02 成功完成空同步。日志记录 legacy `0 new / 0 updated / 0 missing`，以及 V2 `0 added / 15 checked / 0 skipped`。复核结果为 `Projects=15`、`_Registry=15`、`_Facets=45`、`_Assets=1`。
 
@@ -237,7 +240,7 @@ Published artifact 仍是 taxonomy 4，因构建时间早于本轮 facets，不�
 
 以上是 2026-08-13 的控制面 cutover 基线。该基线先由下一节的 Version 8、
 16 张卡片图与缓存优化 Preview 接替，之后由第 12 节的 Version 11、第 13 节的
-Version 12 和第 14 节的 Version 15 依次接替；
+Version 12、第 14 节的 Version 15 和第 15 节的 Version 16 依次接替；
 本节的 Version 1、单图产物和 deploy ID 继续作为历史证据保留。
 
 ### 10. 16 项卡片图片与 V2 构建缓存优化已验收
@@ -300,25 +303,25 @@ Version 12 和第 14 节的 Version 15 依次接替；
 schema 2 的 15-demo artifact，尚不包含 Raman；后续已由包含 Raman 的 16-demo
 `6a7ee842b481720008e4cf70` 接替。
 
-### 14. 可编辑 Data Type / Instrument Type facets（V15 已上线，待 Sync/Preview 复验）
+### 14. 历史：可编辑 Data Type / Instrument Type facets V13–V15
 
 - `a1663e8` 实现两组稳定 ID 分类、Sheet adapter、Apps Script 投影、网页
   filter chips、搜索与 provenance 显示；`6adaa6f` 补上 Google Sheets 空 checkbox
   placeholder 行回归；`a6611bc` 将重复人工选择在 Apps Script 与 compiler 两边都去重。
-  facet 实现提交为 `a6611bcd4db31c39805a436a96d4eb9b259de204`，345/345 测试通过，
+  该历史多值 facet 基线为 `a6611bcd4db31c39805a436a96d4eb9b259de204`，345/345 测试通过，
   `git diff --check` clean。三次 push 均为 `[skip netlify]`，没有产生 Preview 或
   Production deploy。
-- Live V2 Sheet 已原子迁移为 `Projects` 17 可见字段 + 隐藏 `demo_id`，
+- 当时 Live V2 Sheet 原子迁移为 `Projects` 17 可见字段 + 隐藏 `demo_id`，
   `_Registry` 加入 `data_type_ids` / `instrument_type_ids`，`_Facets` 加入两类
   relation。新的可见 `OptionsCatalogV2` 为 7 列、11 个有效选项（3 个
   Data Type：1D / 2D / 3D；8 个 Instrument Type）；隐藏 `_OptionLists` 为
   Projects 两列提供 active label 动态下拉提示。
-- 迁移后精确读回为 `Projects=16 / _Registry=16 / _Facets=91 /
+- 当时精确读回为 `Projects=16 / _Registry=16 / _Facets=91 /
   _Assets=16`；`_Schema` 为 100 条 data rows。所有 16 个现有 demo 已填入初始
   Data Type，14 个 demo 已填 Instrument Type；两个 instrument 空值是允许的可选状态。
-- `Option ID` 是不随名称改变的小写 kebab-case 身份；`Option Label` 是人看和
+- 该历史版中，`Option ID` 是不随名称改变的小写 kebab-case 身份；`Option Label` 是人看和
   网页显示的名称；`Aliases` 用于旧名/别名兼容；`Display Order` 控制顺序；
-  `Active` 控制选项是否可用。项目可在 `Data Type` / `Instrument Type` 中用逗号选多个
+  `Active` 控制选项是否可用。当时的 taxonomy-5 设计允许项目用逗号选多个
   label。同一稳定 ID 的重复选择会去重；未知、有歧义或 inactive 选择会 fail closed。
 - 页面同一分类组对项目多值做 membership 匹配，不同组合并取 AND；仅显示
   当前页面有项目使用的 active option，label 同时进入搜索。
@@ -330,13 +333,20 @@ schema 2 的 15-demo artifact，尚不包含 Raman；后续已由包含 Raman �
   false 行和全空但 checked 的行仍会 fail closed。Version 14 已在原正式
   deployment ID / URL 上原地发布，topology 仍为 2；发布过程执行函数 0 次、
   Netlify requests/Hooks=0。Version 15 也已在同一正式 ID / URL 上原地发布 `a6611bc`，
-  topology=2、functions=0、Netlify requests/Hooks=0。下一步必须完成 1 次成功 Sync 和 Private Preview
-  验收，再决定任何 Production 内容发布。
+  topology=2、functions=0、Netlify requests/Hooks=0。该多值 taxonomy-5 设计已在发布新 Preview 前被下一节的 V16 optional-single 设计替代。
 
-日常操作顺序固定为：先在 `Options` 增/改词表，再在 `Projects` 填写逗号分隔的
-label，然后 **Sync Drive folder now → Build preview branch → Private Preview 审核**；只在
-负责人明确批准后才点 **Rebuild production site (main)**。改 label 时保留 ID 并把旧
-label 加到 `Aliases`；停用选项前先清理所有引用。
+### 15. Optional-single Data Type / Instrument Type facets（当前 V16）
+
+- `6958b1557b07c18633a2651174ce03e4e4ce00b1` 把两组分类收紧为“可留空、最多一个不同稳定 ID”，但保持 schema 2 的 `[]` / `[id]` 数组输出兼容。网页对应升为 `taxonomy_version=6`。
+- 空值合法，不会阻断项目；同一 ID 的 label / ID / alias 重复会去重。两个不同 ID、未知值、歧义 alias 或 inactive 选项都会 fail closed。
+- Live Sheet 当前精确为 `Projects/Registry/Facets/Assets=16/16/80/16`；`Options=14`，其中 6 个 Data Type、8 个 Instrument Type。Instrument Type 精确有 2 个合法空值。
+- 正式 Apps Script Web App Version 16 原地沿用同一 deployment ID / URL，topology=2；代码 SHA-256 为 `a9e8e8d7b1b37326e404d2367b7d9f2513f523907397edf2463af386ced4401a`，完整测试 355/355。
+- 新 taxonomy-6 Private Preview `6a8195aef1aafb00082c247a` 已全绿；request / revision / build / receipt / manifest / index 精确证据已回读。公开 Production `6a7ee842...` 仍是 taxonomy 4，未变。
+
+当前日常操作顺序为：先在 `Options` 增/改词表，再在 `Projects`
+每列留空或填写一个 label，然后 **Sync Drive folder now → Build preview branch →
+Private Preview 审核**；只在负责人明确批准后才点 **Rebuild production site
+(main)**。改 label 时保留 ID 并把旧 label 加到 `Aliases`；停用选项前先清理所有引用。
 
 ## 五、费用影响
 
@@ -345,7 +355,7 @@ label 加到 `Aliases`；停用选项前先清理所有引用。
 | 费用项目 | 本轮结果 |
 | --- | --- |
 | Production deploy | 1 次：`6a7ebce1232712000852c07c`；15 deployment credits |
-| 当前 V2 控制面 Private Preview | 最新 develop Branch Deploy：`6a7eb82127b60f0008c234ea` ready；Branch Deploy 本身为 0 deployment credits |
+| 当前 V2 控制面 Private Preview | taxonomy-6 develop Branch Deploy：`6a8195aef1aafb00082c247a` ready；Branch Deploy 本身为 0 deployment credits |
 | 历史 Private Preview commissioning | 曾有一次安全失败和一次成功，已在上文明确标记为历史 |
 | Production 页面或流量 | 已切换到 V2 静态产物；带宽与 Web requests 继续按实际使用计费 |
 | Auto recharge | 仍为 Disabled |
@@ -356,18 +366,15 @@ Netlify 当前 credit-based 规则下，Branch Deploy 和 Deploy Preview 本身�
 
 Production V2 cutover、V1 归档和旧控制路径清理均已完成，当前没有迁移 blocker。剩余事项只有：
 
-1. 运行一次 `Sync Drive folder now`，确认 16/16 项目、91 facets 与 `_Audit` 成功摘要；然后只构建 Private develop Preview，验收 Data Type / Instrument Type chips、搜索与组合筛选。
-2. 分类验收通过后，负责人再决定何时把新分类网页发布到 Production；不能依赖 `syncDrive`。
-3. 做一次卡片图片 replacement revision canary，继续观察唯一 V2 hourly trigger，并周期性审计 Drive/Sheet 权限、Hooks、contexts 与 secret 生命周期。
+1. 负责人决定何时把已验收的 taxonomy-6 分类网页发布到 Production；不能依赖 `syncDrive`。
+2. 做一次卡片图片 replacement revision canary，继续观察唯一 V2 hourly trigger，并周期性审计 Drive/Sheet 权限、Hooks、contexts 与 secret 生命周期。
 
 ## 七、下一步执行顺序
 
 | 顺序 | 工作 | 目的 | 是否影响 Production |
 | --- | --- | --- | --- |
-| 1 | 在 V15 运行一次成功 Sync | 验证 placeholder 修复、去重一致性与机器投影 | 否 |
-| 2 | 构建一次 Private develop Preview | 验收新分类 chip、搜索与 AND 组合 | 否 |
-| 3 | 决定并审批分类 Production 发布 | 把获批的 V2 UI 纳入公开 artifact | 是；获批后只发布一次 |
-| 4 | replacement canary + 小时 sync 观察 | 继续验证图片 revision 与 trigger 健康 | 否 |
+| 1 | 决定并审批分类 Production 发布 | 把已验收的 V2 UI 纳入公开 artifact | 是；获批后只发布一次 |
+| 2 | replacement canary + 小时 sync 观察 | 继续验证图片 revision 与 trigger 健康 | 否 |
 
 ## 八、当前风险与处理方式
 
@@ -377,7 +384,7 @@ Production V2 cutover、V1 归档和旧控制路径清理均已完成，当前�
 | 回滚点是旧原子站点产物 | `6a7ac807...` 可直接回滚，但旧 V1 endpoint/Hook 已停用 | 故障时回滚现有 deploy，不通过 V1 重建 |
 | 新 Drive ID 不自动迁移 | 删除后重传同名文件不会被猜成旧项目 | 保留旧行并由维护者明确决定迁移或创建新项目 |
 | 图片替换尚未真实验证 | 16 张图片首次读取成功，但原址替换流程还缺一次现场证据 | 在 Private Preview 做 replacement canary |
-| Sheet/`develop` 与公开 artifact 存在版本差异 | Production 已有 16 个 demo 和 Raman，但仍为 taxonomy 4，未包含新 facets/filter UI | 这是 `[skip netlify]` + 显式发布门的预期保护；先验收 Private Preview，批准后再发布一次 Production |
+| Sheet/`develop` 与公开 artifact 存在版本差异 | Production 已有 16 个 demo 和 Raman，但仍为 taxonomy 4，未包含 taxonomy-6 optional-single facets/filter UI | 这是 `[skip netlify]` + 显式发布门的预期保护；Private Preview 已验收，批准后再发布一次 Production |
 | 同步运行仍有平台波动 | V11 曾出现 138 秒自然小时运行；V12 warm 实测为 27 秒 | 继续观察小时 trigger；用 reused/parsed/audit 摘要区分缓存失效与平台固定开销 |
 | HTML 内容仍由受信任编辑者维护 | 有编辑权限的人可以影响项目页面内容 | 继续限制 Drive / Sheet 编辑权限 |
 
@@ -409,4 +416,4 @@ Production V2 cutover、V1 归档和旧控制路径清理均已完成，当前�
 
 ## 一句话汇报
 
-**V2 已完成全系统切换；新分类代码基线为 `develop@a6611bc` / Apps Script V15 / 345/345，Live Sheet 已迁移为 16 个项目、91 facets 和 11 个 Options。下一步是 Sync 与 Private Preview 复验。Production 仍是分类上线前的 schema-2/taxonomy-4 快照。**
+**V2 已完成全系统切换；当前分类基线为 `develop@6958b15` / Apps Script V16 / 355/355，Live Sheet 为 16 个项目、80 facets 和 14 个 Options，Data Type / Instrument Type 均可留空且最多单选。taxonomy-6 Private Preview 已全绿，下一步只剩负责人决定 Production 发布。Production 当前仍是 schema-2/taxonomy-4 快照。**

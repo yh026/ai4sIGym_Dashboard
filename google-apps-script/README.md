@@ -11,8 +11,8 @@ V2 上运行旧版 `setup()`。
 
 V2 workbook 保存：
 
-- `Projects`：维护者日常编辑的 17 个英文可见字段，包括可多值的
-  `Data Type` 与 `Instrument Type`，以及隐藏 `demo_id`。
+- `Projects`：维护者日常编辑的 17 个英文可见字段，包括可留空、最多单选的
+  `Data Type` 与 `Instrument Type`；另有隐藏的第 18 列 `demo_id`。
 - `Options`：可见的 Data Type / Instrument Type 可编辑词表；必须保持
   `OptionsCatalogV2` 原生 table。
 - `_OptionLists`：隐藏的动态下拉提示来源；不是人工分类的权威数据，不要直接编辑。
@@ -139,12 +139,14 @@ detail 的 1,000 字符上限打包。正常的 3 条 notice 只 append 一行�
   linearisation point 或这个精确验证成功后提交。
 
 当前 Git 分类功能基线为
-`develop@a6611bcd4db31c39805a436a96d4eb9b259de204`，`Code.gs` SHA-256 为
-`0dafd921e0ac4de430ec3b1902ddefecb1a3d1918159d0256c739def34e84a57`，完整测试为
-345/345。正式 Apps Script Web App 已在原 deployment ID 和 `/exec` URL 上原地更新到
-Version 15，精确对应 `a6611bc`；deployment topology 仍精确为 2。V14 与 V15
-rollout 均为 functions executed=0、Netlify requests/Hooks=0；`[skip netlify]` 推送也没有创建 deploy，Published
-Production 保持不变。
+`develop@6958b1557b07c18633a2651174ce03e4e4ce00b1`，`Code.gs` SHA-256 为
+`a9e8e8d7b1b37326e404d2367b7d9f2513f523907397edf2463af386ced4401a`，完整测试为
+355/355。正式 Apps Script Web App 已在原 deployment ID 和 `/exec` URL 上原地更新到
+Version 16，精确对应 `6958b15`；deployment topology 仍精确为 2。V13–V15
+保留为首轮 facets、checkbox placeholder 与重复值去重的历史阶段。V16 rollout
+本身没有触发 Production。随后的 taxonomy-6 Private Preview
+`6a8195aef1aafb00082c247a` 已 ready，精确包含 16 demos / 16 cards，receipt
+verified 且 revision-bound；Published Production 保持不变。
 
 Version 12 现场 warm sync 从 17:41:10 到 17:41:37，`_Audit` 可见耗时 27 秒：16/16
 fingerprint reuse、0 个来源重新解析，且 Sheet 已是 current。旧版三次 no-change 样本为
@@ -153,7 +155,7 @@ fingerprint reuse、0 个来源重新解析，且 Sheet 已是 current。旧版�
 `Live + Publication ready`）、`_Registry=16`、`_Facets=50`、`_Assets=16`；它保留为
 历史性能证据。随后内容发布已由当前 Published deploy
 `6a7ee842b481720008e4cf70` 接替：它是 schema 2 / taxonomy 4 的 16-demo 快照，
-已包含 Raman，但构建于新 facets / taxonomy 5 上线之前。
+已包含 Raman，但构建于新 optional-single facets / taxonomy 6 上线之前。
 
 新 Draft 补齐 Card Summary、Department、Subtopic、Task Type 和 Methods 后，才会成为
 Preview ready。Card Image 和 Data Source 仍为可选字段；选择图片时，图片必须是项目 HTML
@@ -181,17 +183,17 @@ Category | Option ID | Option Label | Aliases | Display Order | Active | Descrip
 5. `Display Order` 必须是数字；`Active` 必须是真实 checkbox boolean；
    `Description` 可选。不要删除 table 或表头。
 
-`Projects.Data Type` 和 `Projects.Instrument Type` 都可以留空，也可以填多个值。
-多值用逗号分隔，例如：
+`Projects.Data Type` 和 `Projects.Instrument Type` 是两个彼此独立的可选单值字段。
+不知道类别时直接留空；已知时每列最多填一个值，例如：
 
 ```text
-Data Type: 1D, 2D
+Data Type: 1D
 Instrument Type: Sensor
 ```
 
 Google Sheets 下拉只是来自隐藏 `_OptionLists` 的动态提示；最终以 V2 编译校验
-为准。项目值可以使用当前 label、稳定 ID 或唯一 alias。重复选到同一稳定 ID
-会自动去重；未知、有歧义或 inactive 值会 fail closed。若要停用一个选项，先在所有 Projects 中清除或
+为准。项目值可以使用当前 label、稳定 ID 或唯一 alias。多个写法如果都解析到同一稳定 ID
+会自动去重；两个不同 ID、未知、有歧义或 inactive 值都会 fail closed。若要停用一个选项，先在所有 Projects 中清除或
 替换该标签，确认 Preview 正常后再取消 `Active`；否则被分配 inactive 选项的项目会
 被阻断，不会被静默改类。
 
@@ -204,8 +206,7 @@ Google Sheets 下拉只是来自隐藏 `_OptionLists` 的动态提示；最终�
 3. 只有内容审批通过后，才使用 `Rebuild production site (main)`。同步本身
    从不自动发布 Production。
 
-网页每个筛选组同时只选一个 chip，对项目的多值集合做 membership 匹配；
-例如 `1D, 2D` 会分别匹配 `1D` 或 `2D`。Data Type、Instrument Type、Department、
+网页每个筛选组同时只选一个 chip，对项目的零或一个稳定 ID 做匹配。Data Type、Instrument Type、Department、
 Method/Task 等不同组合并时取 AND。只为当前页面上有可见项目使用的 active option
 生成 chip；label 同时进入搜索文本。
 

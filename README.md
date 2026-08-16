@@ -101,8 +101,9 @@ content-only Drive/Sheet releases when the approved code is already on `main`.
    `.html` inside.
 2. Sync from V2 (menu, or the hourly auto-run) → the project is created as
    **Draft + Preview only**.
-3. In `Projects`, complete the descriptive fields and choose any `Data Type`
-   and `Instrument Type` labels defined by the visible `Options` table.
+3. In `Projects`, complete the descriptive fields and optionally choose one
+   `Data Type` and one `Instrument Type` label from the visible `Options`
+   table. Leave either cell blank when the classification is not known.
 4. Build the stable `develop` Branch Deploy and review the Draft there.
 5. When the content is approved, change its status to **Live** and its
    permission to **Public**.
@@ -127,15 +128,19 @@ The shipped Version 12 warm run completed in 27 seconds with 16/16 fingerprint
 reuse and zero source parses. Against the previous 71-second no-change median
 (104/71/56 seconds), that is 44 seconds or 61.97% faster and a 2.63× speedup,
 meeting both the ≤35-second and ≥50% targets. The current classification code
-baseline is `develop@a6611bcd4db31c39805a436a96d4eb9b259de204` and passes
-345/345 tests. The formal Web App serves the same baseline as Version 15 at its
-existing deployment ID and URL; deployment topology remains exactly two. All
-related Git pushes used `[skip netlify]`, and both in-place rollouts executed no
-functions or Hook, so none of these actions published a new Preview or Production
-artifact. Published Production is the earlier
+baseline is `develop@6958b1557b07c18633a2651174ce03e4e4ce00b1` and passes
+355/355 tests. The formal Web App serves the same baseline as Version 16 at its
+existing deployment ID and URL; deployment topology remains exactly two. The
+V13–V15 editable-facet, checkbox-placeholder and duplicate-resolution rollouts
+remain historical predecessors. All related Git pushes used `[skip netlify]`,
+and the Version 16 in-place rollout executed no function or Hook, so it did not
+publish a Preview or Production artifact. Published Production is the earlier
 `6a7ee842b481720008e4cf70` artifact: schema 2 / taxonomy 4 with 16 demos,
 including Raman. It was built before the editable-facet rollout and therefore
-does not yet contain taxonomy 5 or the new filters.
+does not yet contain the new taxonomy-6 optional-single facets or filters.
+The taxonomy-6 private develop Branch Deploy `6a8195aef1aafb00082c247a`
+is ready at `develop@6958b15`; its verified, revision-bound artifact contains
+16 demos and 16 cards. Production remains unchanged until explicit approval.
 
 Code changes follow the separate Git review path: review them on `develop`, then
 merge to `main` only when the code is approved **and ready to go live**. With
@@ -212,19 +217,19 @@ also has `Option ID`, `Option Label`, `Aliases`, `Display Order`, `Active` and
   replace every assignment that uses it; an assigned inactive option blocks
   that project rather than silently changing its meaning.
 
-In `Projects`, enter one or more labels in `Data Type` and `Instrument Type`,
-separated by commas, for example `1D, 2D` and `Sensor`. The dropdowns are
-suggestions generated from active `Options`; the compiler remains the authority
-and also accepts an unambiguous ID or alias. Repeated selections of the same
-stable ID are de-duplicated; unknown, ambiguous or inactive selections fail
-closed.
+In `Projects`, each of `Data Type` and `Instrument Type` is independently
+optional and single-select: leave the cell blank when unknown, or enter exactly
+one active option such as `1D` or `Sensor`. The dropdowns are suggestions
+generated from active `Options`; the compiler remains the authority and also
+accepts an unambiguous ID or alias. Repeated spellings that all resolve to the
+same stable ID are de-duplicated. More than one distinct option, or any unknown,
+ambiguous or inactive selection, fails closed before publication.
 
 After an option or assignment changes, run **AI4S dashboard → Sync Drive folder
 now**, then **Build preview branch** and review the stable private `develop`
 Preview. The page generates filter chips only for active options currently used
-by visible projects. A selected chip matches membership in that facet (a
-project tagged `1D, 2D` matches either `1D` or `2D`); filters from different
-groups are combined with AND. Only after approval should a maintainer choose
+by visible projects. A selected chip matches the project's zero-or-one value;
+filters from different groups are combined with AND. Only after approval should a maintainer choose
 **Rebuild production site (main)**. Sync never publishes Production by itself.
 
 Registry v2 gives each project zero or one optional card image. Editors put the
