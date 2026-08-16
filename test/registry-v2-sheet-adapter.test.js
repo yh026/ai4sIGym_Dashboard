@@ -251,6 +251,10 @@ test('all Sheet-facing readiness messages are English-only', () => {
       status: 'blocked',
       issues: [{ code: 'card_summary_missing' }, { code: 'file_check_unhealthy' }],
     }, 'Live'),
+    formatReadiness({
+      status: 'blocked',
+      issues: [{ code: 'data_type_multiple' }, { code: 'instrument_type_multiple' }],
+    }, 'Live'),
   ];
   assert.deepEqual(values, [
     '— Archived',
@@ -258,6 +262,7 @@ test('all Sheet-facing readiness messages are English-only', () => {
     '✅ Publication ready',
     '⛔ Action needed: Needs review',
     '⛔ Action needed: Card Summary, Source File Check',
+    '⛔ Action needed: Data Type, Instrument Type',
   ]);
   assert.equal(values.some(value => /\p{Script=Han}/u.test(value)), false);
 });

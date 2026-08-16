@@ -120,7 +120,7 @@ function v2Demo(overrides = {}) {
     task_ids: ['classification'],
     method_ids: ['pca', 'umap'],
     data_type_ids: ['time-series'],
-    instrument_type_ids: ['explorer', 'simulator'],
+    instrument_type_ids: ['explorer'],
     audience: 'Intro',
     data_source_label: 'Synthetic fixture',
     public_page_permission: 'Public',
@@ -192,7 +192,7 @@ test('mock build completes and publishes a safe seven-department manifest', () =
   assert.equal(result.status, 0, result.stdout + result.stderr);
 
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'dist', 'manifest.json'), 'utf8'));
-  assert.equal(manifest.taxonomy_version, 5);
+  assert.equal(manifest.taxonomy_version, 6);
   assert.equal(manifest.domains.length, 7);
   assert.equal(manifest.demos.length, 3);
   assert.equal(manifest.demos.some(demo => demo.slug === 'ai-for-science-demos'), false);
@@ -222,10 +222,10 @@ test('Registry v2 renders referenced taxonomy facets, safe card assets, and a pu
   assert.match(page, /data-method="pca\|umap"/);
   assert.match(page, /data-group="data-type" data-value="time-series">Time series<\/button>/);
   assert.match(page, /data-group="instrument-type" data-value="explorer">Explorer<\/button>/);
-  assert.match(page, /data-group="instrument-type" data-value="simulator">Simulator<\/button>/);
+  assert.doesNotMatch(page, /data-group="instrument-type" data-value="simulator">Simulator<\/button>/);
   assert.match(page, /data-data-type="time-series"/);
-  assert.match(page, /data-instrument-type="explorer\|simulator"/);
-  assert.match(page, /data-search="[^"]*time series[^"]*explorer simulator[^"]*"/);
+  assert.match(page, /data-instrument-type="explorer"/);
+  assert.match(page, /data-search="[^"]*time series[^"]*explorer[^"]*"/);
   assert.doesNotMatch(page, />Tabular<\/button>|>Retired data<\/button>|>Unused viewer<\/button>/);
   assert.match(page, /getAttribute\('data-' \+ group\) \|\| ''\)\.split\('\|'\)/);
   assert.match(page, /src="assets\/cards\/explicit-chemistry\.jpg"/);
@@ -242,7 +242,7 @@ test('Registry v2 renders referenced taxonomy facets, safe card assets, and a pu
     path.join(root, 'dist', 'demos', 'explicit-chemistry-demo', 'index.html'), 'utf8',
   );
   assert.match(demoPage, /<span>Data Type<\/span><span>Time series<\/span>/);
-  assert.match(demoPage, /<span>Instrument Type<\/span><span>Explorer, Simulator<\/span>/);
+  assert.match(demoPage, /<span>Instrument Type<\/span><span>Explorer<\/span>/);
 
   const manifest = builtManifest();
   assert.equal(manifest.schema_version, 2);
@@ -255,7 +255,7 @@ test('Registry v2 renders referenced taxonomy facets, safe card assets, and a pu
   assert.equal(manifest.demos[0].department_id, 'chemistry');
   assert.deepEqual(manifest.demos[0].method_ids, ['pca', 'umap']);
   assert.deepEqual(manifest.demos[0].data_type_ids, ['time-series']);
-  assert.deepEqual(manifest.demos[0].instrument_type_ids, ['explorer', 'simulator']);
+  assert.deepEqual(manifest.demos[0].instrument_type_ids, ['explorer']);
   assert.deepEqual(manifest.taxonomy.data_types.map(term => term.id), [
     'time-series', 'tabular', 'retired-data',
   ]);
@@ -432,6 +432,16 @@ test('Registry v2 rejects malformed or empty build-facing data', async t => {
     assert.notEqual(result.status, 0);
     assert.match(result.stdout + result.stderr, /data_type_ids must be an array/);
   });
+
+  for (const field of ['data_type_ids', 'instrument_type_ids']) {
+    await t.test(`${field} allows at most one ID`, child => {
+      const result = withV2Fixture(child, v2Manifest([
+        v2Demo({ [field]: ['first', 'second'] }),
+      ]), manifestPath => statusBuild('production', 'main', { MOCK_MANIFEST: manifestPath }));
+      assert.notEqual(result.status, 0);
+      assert.match(result.stdout + result.stderr, new RegExp(`${field} must contain at most one ID`));
+    });
+  }
 
   await t.test('audience uses the closed first-round vocabulary', child => {
     const result = withV2Fixture(child, v2Manifest([

@@ -500,6 +500,14 @@ function optionalV2Refs(source, field, index) {
   return v2Refs(hasOwn(source, field) ? source[field] : [], field, index);
 }
 
+function optionalV2SingletonRefs(source, field, index) {
+  const ids = optionalV2Refs(source, field, index);
+  if (ids.length > 1) {
+    v2ContractError('demo ' + index + ' ' + field + ' must contain at most one ID');
+  }
+  return ids;
+}
+
 function safePublicCardAssetUrl(value, hrefBase) {
   const source = String(value || '').trim();
   if (!source || /[\\?#%\s]/.test(source) || !PUBLIC_CARD_ASSET_PATTERN.test(source)) return '';
@@ -527,8 +535,8 @@ function normalizeV2Demo(source, taxonomy, seen, index) {
   const subtopicId = requireV2String(source.subtopic_id, 'demo ' + demoId + ' subtopic_id');
   const taskIds = v2Refs(source.task_ids, 'task_ids', demoId);
   const methodIds = v2Refs(source.method_ids, 'method_ids', demoId);
-  const dataTypeIds = optionalV2Refs(source, 'data_type_ids', demoId);
-  const instrumentTypeIds = optionalV2Refs(source, 'instrument_type_ids', demoId);
+  const dataTypeIds = optionalV2SingletonRefs(source, 'data_type_ids', demoId);
+  const instrumentTypeIds = optionalV2SingletonRefs(source, 'instrument_type_ids', demoId);
   if (isProject && (!taskIds.length || !methodIds.length)) {
     v2ContractError('demo ' + demoId + ' task_ids and method_ids must be non-empty');
   }
@@ -2017,7 +2025,7 @@ async function main() {
   }));
   const publicManifest = {
     generated: new Date().toISOString(),
-    taxonomy_version: 5,
+    taxonomy_version: 6,
     site: schemaVersion === REGISTRY_SCHEMA_V2
       ? { title: String(site.title || ''), tagline: String(site.tagline || '') }
       : site,

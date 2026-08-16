@@ -195,7 +195,7 @@ test('missing Options and missing optional project values remain backward compat
   });
 });
 
-test('controlled option labels and aliases compile to stable ids, taxonomy and machine facets', () => {
+test('controlled option labels and duplicate aliases compile to one stable id', () => {
   const data = copyFixture();
   data.options = {
     data_types: [
@@ -216,16 +216,12 @@ test('controlled option labels and aliases compile to stable ids, taxonomy and m
     ],
   };
   const project = findProject(data, 3);
-  project.data_types = 'Image matrix | 1D | Line scan';
+  project.data_types = 'Image matrix | 2D | Two dimensional';
   project.instrument_types = 'raman spectroscopy, Raman';
   data.facets.push(
     {
       demo_id: 'demo-soh-battery', facet_type: 'data_type',
       term_id: '2d', display_order: 1,
-    },
-    {
-      demo_id: 'demo-soh-battery', facet_type: 'data_type',
-      term_id: '1d', display_order: 2,
     },
     {
       demo_id: 'demo-soh-battery', facet_type: 'instrument_type',
@@ -236,7 +232,7 @@ test('controlled option labels and aliases compile to stable ids, taxonomy and m
   const compiled = compileRegistryV2(data);
   assert.equal(compiled.ok, true);
   const demo = compiled.demos.find(item => item.demo_id === 'demo-soh-battery');
-  assert.deepEqual(demo.data_type_ids, ['2d', '1d']);
+  assert.deepEqual(demo.data_type_ids, ['2d']);
   assert.deepEqual(demo.instrument_type_ids, ['raman']);
   assert.deepEqual(compiled.taxonomy.data_types, [
     {
@@ -253,14 +249,61 @@ test('controlled option labels and aliases compile to stable ids, taxonomy and m
     compiled.hidden._Facets
       .filter(item => item.demo_id === demo.demo_id && item.facet_type === 'data_type')
       .map(item => item.term_id),
-    ['2d', '1d'],
+    ['2d'],
   );
   const machineRow = compiled.hidden._Registry.find(item => item.demo_id === demo.demo_id);
-  assert.equal(machineRow.data_type_ids, '2d,1d');
+  assert.equal(machineRow.data_type_ids, '2d');
   assert.equal(machineRow.instrument_type_ids, 'raman');
   const site = compiled.demos.find(item => item.entry_type === 'site');
   assert.deepEqual(site.data_type_ids, []);
   assert.deepEqual(site.instrument_type_ids, []);
+});
+
+test('Data Type and Instrument Type are independently optional single selections', async t => {
+  function optionFixture() {
+    const data = copyFixture();
+    data.options = {
+      data_types: [
+        { id: '1d', label: '1D', aliases: 'Line', display_order: 1, active: true },
+        { id: '2d', label: '2D', aliases: 'Matrix', display_order: 2, active: true },
+      ],
+      instrument_types: [
+        { id: 'raman', label: 'Raman', aliases: 'Spectrometer', display_order: 1, active: true },
+        { id: 'sensor', label: 'Sensor', aliases: 'Probe', display_order: 2, active: true },
+      ],
+    };
+    return data;
+  }
+
+  await t.test('both values may be blank', () => {
+    const data = optionFixture();
+    const compiled = compileRegistryV2(data);
+    assert.equal(compiled.ok, true);
+    const demo = compiled.demos.find(item => item.demo_id === 'demo-soh-battery');
+    assert.deepEqual(demo.data_type_ids, []);
+    assert.deepEqual(demo.instrument_type_ids, []);
+  });
+
+  for (const [field, facetType, values] of [
+    ['data_types', 'data_type', '1D, 2D'],
+    ['instrument_types', 'instrument_type', 'Raman | Sensor'],
+  ]) {
+    await t.test(`${field} rejects more than one distinct selection`, () => {
+      const data = optionFixture();
+      findProject(data, 3)[field] = values;
+      const compiled = compileRegistryV2(data);
+      assert.equal(compiled.ok, false);
+      assert.ok(errorCodes(compiled).includes(`${facetType}_multiple`));
+      const readiness = compiled.readiness.find(item => item.demo_id === 'demo-soh-battery');
+      assert.ok(readiness.issues.some(item => (
+        item.code === `${facetType}_multiple`
+        && /at most one distinct value; leave it blank when unknown/.test(item.message)
+      )));
+      const demo = compiled.demos.find(item => item.demo_id === 'demo-soh-battery');
+      assert.deepEqual(demo[`${facetType}_ids`], []);
+      assert.throws(() => toRegistryV2(compiled), RegistryV2ValidationError);
+    });
+  }
 });
 
 test('unknown, ambiguous and inactive controlled option values block rows strictly', async t => {

@@ -809,7 +809,34 @@ test('the pre-migration V2 layout remains readable without Options or its four c
   assert.deepEqual(Array.from(manifest.taxonomy.instrument_types), []);
 });
 
-test('v2 Options resolves editable labels and aliases into public data and instrument facets', () => {
+test('blank optional Data Type and Instrument Type keep a Live project ready', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script);
+  const optionHeader = Array.from(script.REGISTRY_V2_HEADERS.Options);
+  sheet.sheets.Options = new FakeSheet([
+    optionHeader,
+    row(optionHeader, {
+      Category: 'data_type', 'Option ID': '1d', 'Option Label': '1D',
+      'Display Order': 1, Active: true,
+    }),
+    row(optionHeader, {
+      Category: 'instrument_type', 'Option ID': 'raman', 'Option Label': 'Raman',
+      'Display Order': 1, Active: true,
+    }),
+  ]);
+  installServices(script, sheet, standardDrive());
+
+  const manifest = script.doGet({ parameter: {
+    token: 'secret', action: 'manifest', audience: 'production',
+  } });
+
+  assert.equal(manifest.ok, true);
+  assert.deepEqual(Array.from(manifest.demos, demo => demo.demo_id), ['demo-live']);
+  assert.deepEqual(Array.from(manifest.demos[0].data_type_ids), []);
+  assert.deepEqual(Array.from(manifest.demos[0].instrument_type_ids), []);
+});
+
+test('v2 Options deduplicates labels and aliases that resolve to one optional facet', () => {
   const script = loadAppsScript();
   const sheet = fixture(script);
   const optionHeader = Array.from(script.REGISTRY_V2_HEADERS.Options);
@@ -833,19 +860,17 @@ test('v2 Options resolves editable labels and aliases into public data and instr
   ]);
   const projects = sheet.getSheetByName('Projects');
   projects.rows[1][projects.rows[0].indexOf('Data Type')]
-    = 'Planar | 1D | 2D | 1d';
-  projects.rows[1][projects.rows[0].indexOf('Instrument Type')] = 'Raman spectroscopy';
+    = 'Planar | 2D | 2d';
+  projects.rows[1][projects.rows[0].indexOf('Instrument Type')]
+    = 'Raman spectroscopy | Raman | raman';
   const registry = sheet.getSheetByName('_Registry');
-  registry.rows[1][registry.rows[0].indexOf('data_type_ids')] = '2d, 1d';
+  registry.rows[1][registry.rows[0].indexOf('data_type_ids')] = '2d';
   registry.rows[1][registry.rows[0].indexOf('instrument_type_ids')] = 'raman';
   const facets = sheet.getSheetByName('_Facets');
   const facetHeader = facets.rows[0];
   facets.rows.push(
     row(facetHeader, {
       demo_id: 'demo-live', facet_type: 'data_type', term_id: '2d', display_order: 1,
-    }),
-    row(facetHeader, {
-      demo_id: 'demo-live', facet_type: 'data_type', term_id: '1d', display_order: 2,
     }),
     row(facetHeader, {
       demo_id: 'demo-live', facet_type: 'instrument_type', term_id: 'raman',
@@ -859,7 +884,7 @@ test('v2 Options resolves editable labels and aliases into public data and instr
   } });
 
   assert.equal(manifest.ok, true);
-  assert.deepEqual(Array.from(manifest.demos[0].data_type_ids), ['2d', '1d']);
+  assert.deepEqual(Array.from(manifest.demos[0].data_type_ids), ['2d']);
   assert.deepEqual(Array.from(manifest.demos[0].instrument_type_ids), ['raman']);
   assert.deepEqual(JSON.parse(JSON.stringify(manifest.taxonomy.data_types)), [
     {
@@ -874,6 +899,57 @@ test('v2 Options resolves editable labels and aliases into public data and instr
   ]);
   assert.equal(Object.hasOwn(manifest.taxonomy.instrument_types[0], 'aliases'), false,
     'aliases are editor-only resolution helpers and never enter the public manifest');
+});
+
+test('distinct optional facet values fail closed before sync writes or API output', async t => {
+  const cases = [
+    {
+      name: 'Data Type', projectLabel: 'Data Type', value: '1D, 2D',
+      options: [
+        { Category: 'data_type', 'Option ID': '1d', 'Option Label': '1D' },
+        { Category: 'data_type', 'Option ID': '2d', 'Option Label': '2D' },
+      ],
+    },
+    {
+      name: 'Instrument Type', projectLabel: 'Instrument Type', value: 'Raman | Sensor',
+      options: [
+        { Category: 'instrument_type', 'Option ID': 'raman', 'Option Label': 'Raman' },
+        { Category: 'instrument_type', 'Option ID': 'sensor', 'Option Label': 'Sensor' },
+      ],
+    },
+  ];
+  for (const current of cases) {
+    await t.test(current.name, () => {
+      const script = loadAppsScript();
+      const sheet = fixture(script);
+      const optionHeader = Array.from(script.REGISTRY_V2_HEADERS.Options);
+      sheet.sheets.Options = new FakeSheet([
+        optionHeader,
+        ...current.options.map((option, index) => row(optionHeader, {
+          ...option, 'Display Order': index + 1, Active: true,
+        })),
+      ]);
+      const projects = sheet.getSheetByName('Projects');
+      projects.rows[1][projects.rows[0].indexOf(current.projectLabel)] = current.value;
+      installServices(script, sheet, standardDrive());
+      script.collectDemos_ = () => [];
+      script.registryV2PrepareIngestCache_ = () => null;
+      const expected = new RegExp(`${current.name} permits at most one option`);
+
+      assert.throws(() => script.syncDriveUnlocked_(), expected);
+      Object.values(sheet.sheets).forEach(target => {
+        assert.equal(target.writeCalls.length, 0,
+          'invalid optional facets must fail before the first Sheet write');
+      });
+
+      const response = script.doGet({ parameter: {
+        token: 'secret', action: 'manifest', audience: 'production',
+      } });
+      assert.deepEqual({ ok: response.ok, error: response.error }, {
+        ok: false, error: 'registry v2 unavailable',
+      });
+    });
+  }
 });
 
 test('an inactive selected Option blocks a Live project before output', () => {

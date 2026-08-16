@@ -129,6 +129,14 @@ test('Registry v2 resolves only explicit active taxonomy references', () => {
     ...demo, demo_id: 'third-demo', slug: 'third-demo',
     instrument_type_ids: ['retired-instrument'],
   }, taxonomy, { demoIds: new Set(), slugs: new Set() }, 2), /unknown or inactive instrument type/);
+  assert.throws(() => normalizeV2Demo({
+    ...demo, demo_id: 'fourth-demo', slug: 'fourth-demo',
+    data_type_ids: ['time-series', 'time-series-2'],
+  }, taxonomy, { demoIds: new Set(), slugs: new Set() }, 3), /data_type_ids must contain at most one ID/);
+  assert.throws(() => normalizeV2Demo({
+    ...demo, demo_id: 'fifth-demo', slug: 'fifth-demo',
+    instrument_type_ids: ['explorer', 'explorer-2'],
+  }, taxonomy, { demoIds: new Set(), slugs: new Set() }, 4), /instrument_type_ids must contain at most one ID/);
 
   const compatibilitySource = {
     ...demo, demo_id: 'compatibility-demo', slug: 'compatibility-demo',
@@ -136,7 +144,7 @@ test('Registry v2 resolves only explicit active taxonomy references', () => {
   delete compatibilitySource.data_type_ids;
   delete compatibilitySource.instrument_type_ids;
   const compatibilityDemo = normalizeV2Demo(
-    compatibilitySource, taxonomy, { demoIds: new Set(), slugs: new Set() }, 3,
+    compatibilitySource, taxonomy, { demoIds: new Set(), slugs: new Set() }, 5,
   );
   assert.deepEqual(compatibilityDemo.data_type_ids, []);
   assert.deepEqual(compatibilityDemo.instrument_type_ids, []);

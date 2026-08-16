@@ -2900,9 +2900,9 @@ function registryV2ProjectProjection_(project, taxonomyIndex) {
     subtopic_id: subtopic,
     task_ids: registryV2ResolveHumanList_(project.task, 'tasks', taxonomyIndex),
     method_ids: registryV2ResolveHumanList_(project.methods, 'methods', taxonomyIndex),
-    data_type_ids: registryV2ResolveHumanList_(
+    data_type_ids: registryV2ResolveOptionalSingle_(
       project.data_types, 'data_types', taxonomyIndex),
-    instrument_type_ids: registryV2ResolveHumanList_(
+    instrument_type_ids: registryV2ResolveOptionalSingle_(
       project.instrument_types, 'instrument_types', taxonomyIndex)
   };
 }
@@ -3659,6 +3659,16 @@ function registryV2ResolveHumanList_(value, group, taxonomyIndex) {
   });
 }
 
+/** Resolve a controlled facet that is optional but never multi-valued. */
+function registryV2ResolveOptionalSingle_(value, group, taxonomyIndex) {
+  var ids = registryV2ResolveHumanList_(value, group, taxonomyIndex);
+  if (ids.length > 1) {
+    var label = group === 'data_types' ? 'Data Type' : 'Instrument Type';
+    throw new Error('Registry v2 Projects ' + label + ' permits at most one option.');
+  }
+  return ids;
+}
+
 function registryV2SameIdSet_(left, right) {
   if (left.length !== right.length) return false;
   var leftSorted = left.slice().sort();
@@ -3677,9 +3687,9 @@ function registryV2HumanTaxonomy_(project, source, demoFacets, taxonomyIndex) {
       project.subtopic, 'subtopics', taxonomyIndex),
     task_ids: registryV2ResolveHumanList_(project.task, 'tasks', taxonomyIndex),
     method_ids: registryV2ResolveHumanList_(project.methods, 'methods', taxonomyIndex),
-    data_type_ids: registryV2ResolveHumanList_(
+    data_type_ids: registryV2ResolveOptionalSingle_(
       project.data_types, 'data_types', taxonomyIndex),
-    instrument_type_ids: registryV2ResolveHumanList_(
+    instrument_type_ids: registryV2ResolveOptionalSingle_(
       project.instrument_types, 'instrument_types', taxonomyIndex)
   };
   var indexedTasks = demoFacets.task.map(function (item) { return item.id; });
