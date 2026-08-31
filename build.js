@@ -1539,6 +1539,9 @@ function injectionSnippet(demo) {
   #ai4s-info{left:max(6px,env(safe-area-inset-left));right:max(6px,env(safe-area-inset-right));bottom:calc(max(8px,env(safe-area-inset-bottom)) + 66px);width:auto;max-height:70vh;max-height:min(70vh,calc(100dvh - 86px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));padding:16px;overscroll-behavior:contain}
   .ai4s-row{grid-template-columns:72px minmax(0,1fr)}
 }
+@media(orientation:landscape) and (max-height:500px) and (hover:none) and (pointer:coarse){
+  #ai4s-nav,#ai4s-info{display:none!important}
+}
 </style>
 <nav id="ai4s-nav" class="${toolbarClass}" aria-label="AIS Instrument Gym navigation">
   <a class="ai4s-toolbar-control ai4s-nav-link ai4s-domain-link" href="../../domains/${domain.id}/index.html" aria-label="Back to ${esc(domain.name)}" title="${esc(domain.name)}"><span class="ai4s-domain-arrow" aria-hidden="true">&#8592;</span><span class="ai4s-domain-label">${esc(domain.short)}</span></a>

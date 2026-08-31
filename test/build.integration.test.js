@@ -259,6 +259,8 @@ test('Registry v2 renders referenced taxonomy facets, safe card assets, and a pu
   assert.match(demoPage, /class="ai4s-toolbar-control ai4s-nav-link ai4s-all-demos-link"[^>]*href="\.\.\/\.\.\/index\.html#projects">All demos<\/a>/);
   assert.match(demoPage, /#ai4s-nav\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(demoPage, /class="ai4s-control ai4s-toolbar-control ai4s-info-control"/);
+  assert.match(demoPage, /@media\(orientation:landscape\) and \(max-height:500px\) and \(hover:none\) and \(pointer:coarse\)\{/);
+  assert.match(demoPage, /#ai4s-nav,#ai4s-info\{display:none!important\}/);
   assert.doesNotMatch(demoPage, /a:last-child\{display:none\}/);
 
   const manifest = builtManifest();
