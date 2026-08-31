@@ -204,6 +204,13 @@ test('mock build completes and publishes a safe seven-department manifest', () =
   assert.equal(receipt.verified, false);
   assert.equal(receipt.revision_bound, true);
   assert.equal('request_id' in receipt, false);
+
+  const plainDemo = fs.readFileSync(
+    path.join(root, 'dist', 'demos', 'plain-page', 'index.html'), 'utf8',
+  );
+  assert.match(plainDemo, /class="ai4s-nav--without-info"/);
+  assert.match(plainDemo, /class="ai4s-toolbar-control ai4s-nav-link ai4s-all-demos-link"[^>]*href="\.\.\/\.\.\/index\.html#projects">All demos<\/a>/);
+  assert.doesNotMatch(plainDemo, /id="ai4s-info-btn"/);
 });
 
 test('Registry v2 renders referenced taxonomy facets, safe card assets, and a public allowlist', t => {
@@ -223,6 +230,11 @@ test('Registry v2 renders referenced taxonomy facets, safe card assets, and a pu
   assert.match(page, /data-group="data-type" data-value="time-series">Time series<\/button>/);
   assert.match(page, /data-group="instrument-type" data-value="explorer">Explorer<\/button>/);
   assert.doesNotMatch(page, /data-group="instrument-type" data-value="simulator">Simulator<\/button>/);
+  assert.match(page, /class="filter-panel home-filter-panel"/);
+  assert.match(page, /id="mobile-filter-toggle"[^>]*aria-expanded="false"[^>]*aria-controls="home-filter-options"/);
+  assert.match(page, /class="filter-actions" id="home-filter-options"/);
+  assert.match(page, /id="active-filter-count">\(0\)<\/span>/);
+  assert.match(page, /filterPanel\.classList\.toggle\('filters-open', expanded\)/);
   assert.match(page, /data-data-type="time-series"/);
   assert.match(page, /data-instrument-type="explorer"/);
   assert.match(page, /data-search="[^"]*time series[^"]*explorer[^"]*"/);
@@ -243,6 +255,11 @@ test('Registry v2 renders referenced taxonomy facets, safe card assets, and a pu
   );
   assert.match(demoPage, /<span>Data Type<\/span><span>Time series<\/span>/);
   assert.match(demoPage, /<span>Instrument Type<\/span><span>Explorer<\/span>/);
+  assert.match(demoPage, /class="ai4s-toolbar-control ai4s-nav-link ai4s-domain-link"[^>]*href="\.\.\/\.\.\/domains\/chemistry-materials\/index\.html"/);
+  assert.match(demoPage, /class="ai4s-toolbar-control ai4s-nav-link ai4s-all-demos-link"[^>]*href="\.\.\/\.\.\/index\.html#projects">All demos<\/a>/);
+  assert.match(demoPage, /#ai4s-nav\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(demoPage, /class="ai4s-control ai4s-toolbar-control ai4s-info-control"/);
+  assert.doesNotMatch(demoPage, /a:last-child\{display:none\}/);
 
   const manifest = builtManifest();
   assert.equal(manifest.schema_version, 2);

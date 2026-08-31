@@ -7,8 +7,13 @@
   var cards = Array.prototype.slice.call(document.querySelectorAll('.project-card'));
   var chips = Array.prototype.slice.call(document.querySelectorAll('.chip'));
   var clear = document.getElementById('clear-filters');
+  var mobileClear = document.querySelector('.mobile-clear-filters');
+  var clearButtons = [clear, mobileClear].filter(Boolean);
   var showing = document.getElementById('showing');
   var empty = document.getElementById('empty');
+  var filterPanel = document.querySelector('.home-filter-panel');
+  var filterToggle = document.getElementById('mobile-filter-toggle');
+  var filterCount = document.getElementById('active-filter-count');
   var activeFilters = {};
 
   // A remote registry preview may disappear after a successful build. Replace
@@ -35,6 +40,23 @@
     return Boolean(hasQuery || hasActiveChip);
   }
 
+  function activeFilterCount() {
+    return Object.keys(activeFilters).filter(function (key) {
+      return Boolean(activeFilters[key]);
+    }).length;
+  }
+
+  function updateFilterControls(filtered) {
+    var count = activeFilterCount();
+    if (filterCount) filterCount.textContent = '(' + count + ')';
+    if (filterToggle) {
+      filterToggle.setAttribute('aria-label', count
+        ? 'Filters, ' + plural(count, 'active filter')
+        : 'Filters, none active');
+    }
+    clearButtons.forEach(function (button) { button.hidden = !filtered; });
+  }
+
   function applyFilters() {
     if (!grid || !showing || !empty) return;
     var search = q ? q.value.trim().toLowerCase() : '';
@@ -53,9 +75,17 @@
     showing.textContent = filtered
       ? 'Showing ' + visible + ' of ' + plural(cards.length, 'project')
       : plural(cards.length, 'project');
-    if (clear) clear.hidden = !filtered;
+    updateFilterControls(filtered);
     empty.hidden = visible !== 0;
     grid.hidden = visible === 0;
+  }
+
+  if (filterToggle && filterPanel) {
+    filterToggle.addEventListener('click', function () {
+      var expanded = filterToggle.getAttribute('aria-expanded') !== 'true';
+      filterToggle.setAttribute('aria-expanded', String(expanded));
+      filterPanel.classList.toggle('filters-open', expanded);
+    });
   }
 
   chips.forEach(function (chip) {
@@ -76,8 +106,8 @@
   });
 
   if (q) q.addEventListener('input', applyFilters);
-  if (clear) {
-    clear.addEventListener('click', function () {
+  clearButtons.forEach(function (button) {
+    button.addEventListener('click', function () {
       activeFilters = {};
       if (q) {
         q.value = '';
@@ -86,7 +116,7 @@
       chips.forEach(function (chip) { chip.setAttribute('aria-pressed', 'false'); });
       applyFilters();
     });
-  }
+  });
   applyFilters();
 
   // Interactive science-map state shared by the art regions and HTML labels.
