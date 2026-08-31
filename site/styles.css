@@ -850,6 +850,8 @@ a { color: inherit; }
   gap: 10px 16px;
 }
 
+.mobile-filter-toolbar { display: none; }
+
 .chiprow {
   display: flex;
   flex-wrap: wrap;
@@ -1426,6 +1428,74 @@ a { color: inherit; }
   .filter-panel { padding: 16px; }
   .filter-actions { align-items: flex-start; flex-direction: column; }
   .chiprow { gap: 7px; }
+
+  .map-page .home-filter-panel .mobile-filter-toolbar {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .map-page .home-filter-panel .mobile-filter-toggle,
+  .map-page .home-filter-panel .mobile-clear-filters {
+    min-height: 44px;
+    border: 1px solid #aebbc4;
+    border-radius: 9px;
+    background: var(--paper-raised);
+    color: #344654;
+    cursor: pointer;
+    font: 700 11px/1.2 var(--mono);
+  }
+
+  .map-page .home-filter-panel .mobile-filter-toggle {
+    min-width: 0;
+    padding: 10px 14px;
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    text-align: left;
+  }
+
+  .map-page .home-filter-panel .mobile-clear-filters {
+    padding: 8px 12px;
+    flex: 0 0 auto;
+    text-decoration: none;
+  }
+
+  .map-page .home-filter-panel .mobile-filter-toggle:hover,
+  .map-page .home-filter-panel .mobile-clear-filters:hover {
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+
+  .map-page .home-filter-panel .mobile-filter-toggle:focus-visible,
+  .map-page .home-filter-panel .mobile-clear-filters:focus-visible {
+    outline: 3px solid rgba(23, 100, 135, .3);
+    outline-offset: 2px;
+  }
+
+  .mobile-filter-toggle-icon {
+    width: 8px;
+    height: 8px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: rotate(45deg) translate(-2px, 2px);
+    transition: transform .16s ease;
+  }
+
+  .mobile-filter-toggle[aria-expanded="true"] .mobile-filter-toggle-icon {
+    transform: rotate(225deg) translate(-2px, 2px);
+  }
+
+  .map-page .home-filter-panel:not(.filters-open) .filter-actions { display: none; }
+
+  .map-page .home-filter-panel .filter-actions { margin-top: 12px; }
+
+  .map-page .home-filter-panel .filter-actions > .clear-filters { display: none; }
+
+  .map-page .home-filter-panel .chip { min-height: 44px; }
   .project-grid { grid-template-columns: 1fr; }
   .project-card { min-height: 420px; }
 

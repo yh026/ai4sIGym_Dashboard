@@ -86,7 +86,7 @@
       </div>
     </div>
 
-    <div class="filter-panel" aria-label="Demo search and filters">
+    <div class="filter-panel home-filter-panel" aria-label="Demo search and filters">
       <label class="search-field" for="q">
         <span class="search-label">Search the library</span>
         <span class="search-control">
@@ -94,7 +94,14 @@
           <input id="q" type="search" placeholder="Search demos, methods, datasets..." autocomplete="off">
         </span>
       </label>
-      <div class="filter-actions">
+      <div class="mobile-filter-toolbar">
+        <button class="mobile-filter-toggle" id="mobile-filter-toggle" type="button" aria-expanded="false" aria-controls="home-filter-options" aria-label="Filters, none active">
+          <span>Filters <span id="active-filter-count">(0)</span></span>
+          <span class="mobile-filter-toggle-icon" aria-hidden="true"></span>
+        </button>
+        <button class="clear-filters mobile-clear-filters" type="button" aria-label="Clear search and filters" hidden>Clear</button>
+      </div>
+      <div class="filter-actions" id="home-filter-options">
 {{DOMAIN_FILTERS}}
         <button class="clear-filters" id="clear-filters" type="button" hidden>Clear filters</button>
       </div>

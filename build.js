@@ -1506,28 +1506,46 @@ function injectionSnippet(demo) {
     `<div class="ai4s-row"><span>${key}</span><span>${value}</span></div>`).join('');
   const hasPanel = rows.length > 0 || demo.learning_goal;
 
+  const infoControl = hasPanel ? `
+  <button id="ai4s-info-btn" class="ai4s-control ai4s-toolbar-control ai4s-info-control" type="button" aria-label="Data and methods" aria-expanded="false" aria-controls="ai4s-info">
+    <span class="ai4s-info-label-full">Data &amp; methods</span><span class="ai4s-info-label-short" aria-hidden="true">Info</span>
+  </button>` : '';
   const panel = hasPanel ? `
-<button id="ai4s-info-btn" class="ai4s-control" type="button" aria-expanded="false" aria-controls="ai4s-info">Data &amp; methods</button>
 <section id="ai4s-info" hidden aria-labelledby="ai4s-info-title">
   <h2 id="ai4s-info-title">${esc(demo.title)}</h2>${goal}${details}
 </section>
 <script>(function(){var b=document.getElementById('ai4s-info-btn'),p=document.getElementById('ai4s-info');function set(open,restore){p.hidden=!open;b.setAttribute('aria-expanded',String(open));if(restore)b.focus();}b.addEventListener('click',function(){set(p.hidden,false);});document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!p.hidden)set(false,true);});})();</script>` : '';
+  const toolbarClass = hasPanel ? 'ai4s-nav--with-info' : 'ai4s-nav--without-info';
 
   return `
 <!-- injected by AIS Instrument Gym build -->
 <style>
 #ai4s-nav{position:fixed;left:max(12px,env(safe-area-inset-left));bottom:max(12px,env(safe-area-inset-bottom));z-index:2147483000;display:flex;gap:6px;font:650 13px/1 system-ui,sans-serif}
-#ai4s-nav a,.ai4s-control{min-height:44px;display:inline-flex;align-items:center;padding:0 14px;border:1px solid #b6c2c9;border-radius:999px;background:#f7fbfd;color:#0b1724;text-decoration:none;box-shadow:0 6px 22px rgba(2,10,18,.2)}
-#ai4s-nav a:first-child{background:#0b1724;border-color:#0b1724;color:#f7fbfd}
-.ai4s-control{position:fixed;right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));z-index:2147483000;cursor:pointer;font:650 13px/1 system-ui,sans-serif}
-#ai4s-info{position:fixed;right:max(12px,env(safe-area-inset-right));bottom:68px;z-index:2147483000;width:min(390px,calc(100vw - 24px));max-height:min(70vh,620px);overflow:auto;padding:20px;border:1px solid #cbd4da;border-radius:14px;background:#fff;color:#0b1724;box-shadow:0 16px 44px rgba(2,10,18,.24);font:14px/1.55 system-ui,sans-serif}
+#ai4s-nav .ai4s-toolbar-control{box-sizing:border-box;min-height:44px;display:inline-flex;align-items:center;padding:0 14px;border:1px solid #b6c2c9;border-radius:999px;background:#f7fbfd;color:#0b1724;text-decoration:none;box-shadow:0 6px 22px rgba(2,10,18,.2)}
+#ai4s-nav .ai4s-domain-link{background:#0b1724;border-color:#0b1724;color:#f7fbfd}
+#ai4s-nav .ai4s-domain-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ai4s-info-control{position:fixed;right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));z-index:2147483000;cursor:pointer;font:650 13px/1 system-ui,sans-serif}
+.ai4s-info-label-short{display:none}
+#ai4s-info{box-sizing:border-box;position:fixed;right:max(12px,env(safe-area-inset-right));bottom:68px;z-index:2147483000;width:min(390px,calc(100vw - 24px));max-height:min(70vh,620px);overflow:auto;padding:20px;border:1px solid #cbd4da;border-radius:14px;background:#fff;color:#0b1724;box-shadow:0 16px 44px rgba(2,10,18,.24);font:14px/1.55 system-ui,sans-serif}
 #ai4s-info h2{margin:0 0 12px;font:650 17px/1.3 system-ui,sans-serif}.ai4s-goal{margin:0 0 14px;color:#435462;font-style:italic}.ai4s-row{display:grid;grid-template-columns:86px minmax(0,1fr);gap:10px;margin:8px 0}.ai4s-row>span:first-child{color:#536674;font:700 10px/1.5 ui-monospace,monospace;text-transform:uppercase;letter-spacing:.06em}.ai4s-row>span:last-child{min-width:0;overflow-wrap:anywhere}.ai4s-row a{color:#075f87}
-#ai4s-nav a:focus-visible,.ai4s-control:focus-visible,#ai4s-info a:focus-visible{outline:3px solid #38a9df;outline-offset:3px}
-@media(max-width:480px){#ai4s-nav a:last-child{display:none}.ai4s-row{grid-template-columns:72px minmax(0,1fr)}}
+#ai4s-nav .ai4s-toolbar-control:focus-visible,#ai4s-info a:focus-visible{outline:3px solid #38a9df;outline-offset:3px}
+@media(max-width:480px){
+  #ai4s-nav{box-sizing:border-box;left:max(6px,env(safe-area-inset-left));right:max(6px,env(safe-area-inset-right));bottom:max(8px,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:6px;border:1px solid rgba(182,194,201,.9);border-radius:16px;background:rgba(247,251,253,.96);box-shadow:0 8px 28px rgba(2,10,18,.24);font-size:12px}
+  #ai4s-nav.ai4s-nav--without-info{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #ai4s-nav .ai4s-toolbar-control{position:static;right:auto;bottom:auto;z-index:auto;justify-content:center;width:100%;min-width:0;height:44px;min-height:44px;max-width:100%;gap:4px;padding:0 7px;overflow:hidden;white-space:nowrap;box-shadow:none;font:650 12px/1 system-ui,sans-serif}
+  #ai4s-nav .ai4s-domain-arrow{flex:0 0 auto}
+  #ai4s-nav .ai4s-domain-label{display:block}
+  .ai4s-info-label-full{display:none}.ai4s-info-label-short{display:inline}
+  #ai4s-info{left:max(6px,env(safe-area-inset-left));right:max(6px,env(safe-area-inset-right));bottom:calc(max(8px,env(safe-area-inset-bottom)) + 66px);width:auto;max-height:70vh;max-height:min(70vh,calc(100dvh - 86px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));padding:16px;overscroll-behavior:contain}
+  .ai4s-row{grid-template-columns:72px minmax(0,1fr)}
+}
+@media(orientation:landscape) and (max-height:500px) and (hover:none) and (pointer:coarse){
+  #ai4s-nav,#ai4s-info{display:none!important}
+}
 </style>
-<nav id="ai4s-nav" aria-label="AIS Instrument Gym navigation">
-  <a href="../../domains/${domain.id}/index.html" aria-label="Back to ${esc(domain.name)}">&#8592; ${esc(domain.short)}</a>
-  <a href="../../index.html">Instrument Gym</a>
+<nav id="ai4s-nav" class="${toolbarClass}" aria-label="AIS Instrument Gym navigation">
+  <a class="ai4s-toolbar-control ai4s-nav-link ai4s-domain-link" href="../../domains/${domain.id}/index.html" aria-label="Back to ${esc(domain.name)}" title="${esc(domain.name)}"><span class="ai4s-domain-arrow" aria-hidden="true">&#8592;</span><span class="ai4s-domain-label">${esc(domain.short)}</span></a>
+  <a class="ai4s-toolbar-control ai4s-nav-link ai4s-all-demos-link" href="../../index.html#projects">All demos</a>${infoControl}
 </nav>${panel}
 `;
 }

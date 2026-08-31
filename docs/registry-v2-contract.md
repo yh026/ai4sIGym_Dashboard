@@ -116,8 +116,8 @@ full suite is 355/355. The existing formal Apps Script deployment ID and URL
 serve the same baseline as Version 16, with deployment topology still exactly
 two. Versions 13–15 remain historical rollout evidence for the first editable
 facets, checkbox-placeholder handling and same-ID de-duplication. The Version
-16 rollout did not publish a Netlify Preview or Production artifact. Published
-Production remains unchanged.
+16 rollout itself did not change the then-Published Production; the later
+taxonomy-6 Preview and PR #7 Production release are recorded below.
 
 The Version 12 warm field run was Audit-visible from 17:41:10 to 17:41:37:
 27 seconds, 16/16 fingerprint reuse, zero source parses and an already-current
@@ -130,17 +130,26 @@ The current live workbook readback is Projects / `_Registry` / `_Facets` /
 `_Assets` = `16/16/80/16`. `OptionsCatalogV2` contains 14 vocabulary
 rows: six Data Type options and eight Instrument Type options. Both project
 fields are optional single selections; exactly two current projects have a
-blank Instrument Type. Current Published Production is the later
-`6a7ee842b481720008e4cf70` artifact:
-schema 2 / taxonomy 4 with 16 demos including Raman. It predates editable
-facets, so the public site does not yet expose taxonomy 6 or these new filters.
-The taxonomy-6 private develop artifact is deploy
+blank Instrument Type. The taxonomy-6 private develop artifact is deploy
 `6a8195aef1aafb00082c247a`, build `6a8195ae4bbcc3e4f50685c9`, at
 `develop@6958b15`. It is ready with 16 demos and 16 cards. Its exact Registry
 revision is
 `sha256:eee266a5b81fe39ab2c643459698221c074a5a66fe081a687a7b4faa52157fc2`;
-the receipt is verified and revision-bound. Production remains taxonomy 4
-until explicit approval.
+the receipt is verified and revision-bound.
+
+The first confirmed Production rebuild, `6a81e9d05083eb0008196fb2`, was healthy
+but used the earlier `main@1fa55688` code and therefore remained taxonomy 4.
+That deploy is historical evidence of a safe but unsuccessful release goal; it
+is not the current Published baseline. PR #7 then merged the approved code as
+`main@543c9bf725a78a8925e64a8f6c6882939803f806`. Its single Production deploy,
+`6a81fe58d4586c0008bb4518`, became Published after a 174-second build. Current
+Production is schema 2 / taxonomy 6 with 16 demos, 16 cards and seven domains;
+it exposes six Data Type and eight Instrument Type options. Both ID arrays are
+always `[]` or `[id]`, and exactly two projects have an empty Instrument Type.
+The Production Registry revision is
+`sha256:3cbc4b04fcc99d456ab8b1ccdbec52566bc19c6efd44a6786c4e8954fdd4e9f4`.
+The closing Netlify deploy count was 73, and no second PR #7 Production deploy
+was created.
 
 ## Human sheet
 

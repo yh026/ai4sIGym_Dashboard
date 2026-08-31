@@ -134,13 +134,22 @@ existing deployment ID and URL; deployment topology remains exactly two. The
 V13–V15 editable-facet, checkbox-placeholder and duplicate-resolution rollouts
 remain historical predecessors. All related Git pushes used `[skip netlify]`,
 and the Version 16 in-place rollout executed no function or Hook, so it did not
-publish a Preview or Production artifact. Published Production is the earlier
-`6a7ee842b481720008e4cf70` artifact: schema 2 / taxonomy 4 with 16 demos,
-including Raman. It was built before the editable-facet rollout and therefore
-does not yet contain the new taxonomy-6 optional-single facets or filters.
-The taxonomy-6 private develop Branch Deploy `6a8195aef1aafb00082c247a`
-is ready at `develop@6958b15`; its verified, revision-bound artifact contains
-16 demos and 16 cards. Production remains unchanged until explicit approval.
+publish a Preview or Production artifact. The taxonomy-6 private develop Branch
+Deploy `6a8195aef1aafb00082c247a` was approved at `develop@6958b15` with a
+verified, revision-bound artifact containing 16 demos and 16 cards.
+
+The first confirmed Production rebuild, `6a81e9d05083eb0008196fb2`, was healthy
+but rebuilt the old `main@1fa55688` code and therefore remained taxonomy 4. It
+is retained as explicit failed-goal history, not as the current release. PR #7
+then merged the approved code as
+`main@543c9bf725a78a8925e64a8f6c6882939803f806`; Netlify published exactly one
+new Production deploy, `6a81fe58d4586c0008bb4518`, in 174 seconds. The public
+site is now schema 2 / taxonomy 6 with 16 demos, 16 cards, seven manifest domains,
+six Data Type filters and eight Instrument Type filters. Its Registry revision
+is `sha256:3cbc4b04fcc99d456ab8b1ccdbec52566bc19c6efd44a6786c4e8954fdd4e9f4`.
+Exactly two projects have a blank Instrument Type, and every public
+`data_type_ids` / `instrument_type_ids` array contains at most one ID. The
+closing Netlify deploy count was 73, with no second PR #7 Production deploy.
 
 Code changes follow the separate Git review path: review them on `develop`, then
 merge to `main` only when the code is approved **and ready to go live**. With
