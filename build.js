@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * AIS Instrument Gym build.
+ * AIS Instrumentation Gym build.
  *
  * Generates:
  *   dist/index.html                         interactive science map
@@ -1518,7 +1518,7 @@ function injectionSnippet(demo) {
   const toolbarClass = hasPanel ? 'ai4s-nav--with-info' : 'ai4s-nav--without-info';
 
   return `
-<!-- injected by AIS Instrument Gym build -->
+<!-- injected by AIS Instrumentation Gym build -->
 <style>
 #ai4s-nav{position:fixed;left:max(12px,env(safe-area-inset-left));bottom:max(12px,env(safe-area-inset-bottom));z-index:2147483000;display:flex;gap:6px;font:650 13px/1 system-ui,sans-serif}
 #ai4s-nav .ai4s-toolbar-control{box-sizing:border-box;min-height:44px;display:inline-flex;align-items:center;padding:0 14px;border:1px solid #b6c2c9;border-radius:999px;background:#f7fbfd;color:#0b1724;text-decoration:none;box-shadow:0 6px 22px rgba(2,10,18,.2)}
@@ -1543,7 +1543,7 @@ function injectionSnippet(demo) {
   #ai4s-nav,#ai4s-info{display:none!important}
 }
 </style>
-<nav id="ai4s-nav" class="${toolbarClass}" aria-label="AIS Instrument Gym navigation">
+<nav id="ai4s-nav" class="${toolbarClass}" aria-label="AIS Instrumentation Gym navigation">
   <a class="ai4s-toolbar-control ai4s-nav-link ai4s-domain-link" href="../../domains/${domain.id}/index.html" aria-label="Back to ${esc(domain.name)}" title="${esc(domain.name)}"><span class="ai4s-domain-arrow" aria-hidden="true">&#8592;</span><span class="ai4s-domain-label">${esc(domain.short)}</span></a>
   <a class="ai4s-toolbar-control ai4s-nav-link ai4s-all-demos-link" href="../../index.html#projects">All demos</a>${infoControl}
 </nav>${panel}
@@ -1741,7 +1741,7 @@ function domainSwitcherHtml(currentDomain, grouped, domains = DOMAIN_DEFINITIONS
 // ------------------------------------------------------------------ main
 
 async function main() {
-  console.log(MOCK ? 'Build AIS Instrument Gym (mock fixtures)…' : 'Build AIS Instrument Gym (live registry)…');
+  console.log(MOCK ? 'Build AIS Instrumentation Gym (mock fixtures)…' : 'Build AIS Instrumentation Gym (live registry)…');
   validateTaxonomy();
   const policy = resolveBuildContentPolicy(process.env);
   const trigger = resolvePreviewHookReceipt(process.env, policy);
@@ -1791,7 +1791,7 @@ async function main() {
   if (!demos.length && schemaVersion === REGISTRY_SCHEMA_V2) {
     v2ContractError('no publishable project remains for this build');
   }
-  if (!demos.length) console.warn('  No publishable demos in the registry — the Instrument Gym will show an empty library.');
+  if (!demos.length) console.warn('  No publishable demos in the registry — the Instrumentation Gym will show an empty library.');
 
   if (schemaVersion !== REGISTRY_SCHEMA_V2) {
     const used = {};
@@ -1907,7 +1907,7 @@ async function main() {
     .filter(Boolean).join('\n');
 
   const page = fillTemplate(template, {
-    PAGE_TITLE: 'AIS Instrument Gym',
+    PAGE_TITLE: 'AIS Instrumentation Gym',
     COUNT_LINE: countLine,
     MAP_HOTSPOTS: domains.map(mapHotspotHtml).join('\n'),
     MAP_MARKERS: domains.map(domain => mapMarkerHtml(domain, grouped[domain.id])).join('\n'),
@@ -1945,9 +1945,9 @@ async function main() {
     const cards = domainDemos.map((demo, index) =>
       cardHtml(demo, domain, isNew(demo), '../../', index)).join('\n');
     const count = domainDemos.length;
-    const futureText = 'Reserved paths include ' + domain.futurePaths.join(', ') + '. New projects will appear here as they are added to AIS Instrument Gym.';
+    const futureText = 'Reserved paths include ' + domain.futurePaths.join(', ') + '. New projects will appear here as they are added to AIS Instrumentation Gym.';
     const domainPage = fillTemplate(domainTemplate, {
-      PAGE_TITLE: esc(domain.name + ' | AIS Instrument Gym'),
+      PAGE_TITLE: esc(domain.name + ' | AIS Instrumentation Gym'),
       DOMAIN_NAME: esc(domain.name),
       DOMAIN_SHORT: esc(domain.short),
       DOMAIN_DESCRIPTION: esc(domain.description),
@@ -1979,7 +1979,7 @@ async function main() {
       const directory = path.join(DIST, 'domains', legacyId);
       fs.mkdirSync(directory, { recursive: true });
       const target = '../' + domain.id + '/index.html';
-      const redirect = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Redirecting | AIS Instrument Gym</title><link rel="canonical" href="${target}"><meta http-equiv="refresh" content="0;url=${target}"></head><body><p>This domain has moved to <a href="${target}">${esc(domain.name)}</a>.</p><script>location.replace(${JSON.stringify(target)}+location.search+location.hash);</script></body></html>`;
+      const redirect = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Redirecting | AIS Instrumentation Gym</title><link rel="canonical" href="${target}"><meta http-equiv="refresh" content="0;url=${target}"></head><body><p>This domain has moved to <a href="${target}">${esc(domain.name)}</a>.</p><script>location.replace(${JSON.stringify(target)}+location.search+location.hash);</script></body></html>`;
       fs.writeFileSync(path.join(directory, 'index.html'), redirect);
       console.log('  legacy redirect: /domains/' + legacyId + '/ → /domains/' + domain.id + '/');
     });
@@ -1989,7 +1989,7 @@ async function main() {
     const directory = path.join(DIST, 'domains', legacyId);
     const target = '../../index.html#science-map';
     fs.mkdirSync(directory, { recursive: true });
-    const redirect = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Science map | AIS Instrument Gym</title><link rel="canonical" href="${target}"><meta http-equiv="refresh" content="0;url=${target}"></head><body><p>This former collection has been reorganised across the seven NUS Science departments. <a href="${target}">Return to the science map</a>.</p><script>location.replace(${JSON.stringify(target)});</script></body></html>`;
+    const redirect = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Science map | AIS Instrumentation Gym</title><link rel="canonical" href="${target}"><meta http-equiv="refresh" content="0;url=${target}"></head><body><p>This former collection has been reorganised across the seven NUS Science departments. <a href="${target}">Return to the science map</a>.</p><script>location.replace(${JSON.stringify(target)});</script></body></html>`;
     fs.writeFileSync(path.join(directory, 'index.html'), redirect);
     console.log('  retired collection: /domains/' + legacyId + '/ → science map');
   });
