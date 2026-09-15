@@ -1,0 +1,110 @@
+[
+  {
+    "feature": "PC",
+    "convention": "255 K",
+    "interval_start": 0,
+    "interval_end": 0.18
+  },
+  {
+    "feature": "PC",
+    "convention": "278.5 K",
+    "interval_start": 0.18,
+    "interval_end": 0.98
+  },
+  {
+    "feature": "PC",
+    "convention": "missing",
+    "interval_start": 0.98,
+    "interval_end": 1
+  },
+  {
+    "feature": "FP",
+    "convention": "255 K",
+    "interval_start": 0,
+    "interval_end": 0.72
+  },
+  {
+    "feature": "FP",
+    "convention": "278.5 K",
+    "interval_start": 0.72,
+    "interval_end": 0.97
+  },
+  {
+    "feature": "FP",
+    "convention": "missing",
+    "interval_start": 0.97,
+    "interval_end": 1
+  },
+  {
+    "feature": "KP",
+    "convention": "255 K",
+    "interval_start": 0,
+    "interval_end": 0.09
+  },
+  {
+    "feature": "KP",
+    "convention": "278.5 K",
+    "interval_start": 0.09,
+    "interval_end": 0.99
+  },
+  {
+    "feature": "KP",
+    "convention": "missing",
+    "interval_start": 0.99,
+    "interval_end": 1
+  },
+  {
+    "feature": "CP",
+    "convention": "255 K",
+    "interval_start": 0,
+    "interval_end": 0.11
+  },
+  {
+    "feature": "CP",
+    "convention": "278.5 K",
+    "interval_start": 0.11,
+    "interval_end": 0.99
+  },
+  {
+    "feature": "CP",
+    "convention": "missing",
+    "interval_start": 0.99,
+    "interval_end": 1
+  },
+  {
+    "feature": "APC",
+    "convention": "255 K",
+    "interval_start": 0,
+    "interval_end": 0.24
+  },
+  {
+    "feature": "APC",
+    "convention": "278.5 K",
+    "interval_start": 0.24,
+    "interval_end": 0.96
+  },
+  {
+    "feature": "APC",
+    "convention": "missing",
+    "interval_start": 0.96,
+    "interval_end": 1
+  },
+  {
+    "feature": "FA",
+    "convention": "255 K",
+    "interval_start": 0,
+    "interval_end": 0.84
+  },
+  {
+    "feature": "FA",
+    "convention": "278.5 K",
+    "interval_start": 0.84,
+    "interval_end": 0.95
+  },
+  {
+    "feature": "FA",
+    "convention": "missing",
+    "interval_start": 0.95,
+    "interval_end": 1
+  }
+]

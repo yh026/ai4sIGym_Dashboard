@@ -1,0 +1,139 @@
+{
+  "schema_version": "3.0.0",
+  "renderer_contract": {"name": "render-payload-dashboard", "version": "3.0.0", "strict": true},
+  "report": {
+    "title": "Follow-up service summary",
+    "subtitle": "Synthetic operational example",
+    "summary": "A domain example showing proportions and declared uncertainty without embedding analytical code.",
+    "claim": "Every displayed estimate and interval is supplied explicitly by the upstream producer."
+  },
+  "run": {"id": "follow-up-run", "label": "Synthetic service run", "status": "complete"},
+  "dataset": {
+    "id": "follow-up-cohort",
+    "title": "Synthetic follow-up cohort",
+    "description": "Fabricated aggregate values for renderer demonstration only.",
+    "row_count": 4,
+    "feature_count": 6
+  },
+  "provenance": {
+    "generator": {"name": "service-summary-example", "version": "1.0.0"},
+    "inputs": [{"id": "synthetic-cohort", "kind": "dataset", "description": "Fabricated aggregate example values."}]
+  },
+  "theme": {
+    "name": "generic",
+    "mode": "dark",
+    "palette": "colorblind-safe",
+    "density": "comfortable",
+    "tokens": {
+      "accent": "#63B3ED",
+      "accent_contrast": "#08111F",
+      "background": "#0B1220",
+      "surface": "#111B2E",
+      "surface_muted": "#17243A",
+      "text": "#EDF4FF",
+      "muted_text": "#AFC0D8",
+      "border": "#31435E",
+      "radius": 10,
+      "max_width": 1320
+    }
+  },
+  "presentation": {
+    "locale": "en-GB",
+    "section_prefix": "Section",
+    "show_section_numbers": true,
+    "show_figure_titles": true,
+    "show_figure_descriptions": true,
+    "show_coverage": false,
+    "show_build_footer": false
+  },
+  "data": [
+    {
+      "id": "follow-up-estimates",
+      "semantic_type": "service.follow-up-estimates",
+      "title": "Follow-up completion estimates",
+      "fields": [
+        {"name": "pathway", "type": "string", "role": "dimension"},
+        {"name": "responders", "type": "integer", "role": "measure"},
+        {"name": "total", "type": "integer", "role": "measure"},
+        {"name": "rate", "type": "number", "role": "measure"},
+        {"name": "lower", "type": "number", "role": "uncertainty"},
+        {"name": "upper", "type": "number", "role": "uncertainty"}
+      ],
+      "storage": {
+        "kind": "inline",
+        "format": "rows",
+        "rows": [
+          {"pathway": "Routine", "responders": 82, "total": 100, "rate": 0.82, "lower": 0.74, "upper": 0.89},
+          {"pathway": "Extended", "responders": 71, "total": 96, "rate": 0.74, "lower": 0.65, "upper": 0.82},
+          {"pathway": "Remote", "responders": 88, "total": 110, "rate": 0.80, "lower": 0.72, "upper": 0.87},
+          {"pathway": "Hybrid", "responders": 93, "total": 108, "rate": 0.86, "lower": 0.78, "upper": 0.92}
+        ]
+      }
+    }
+  ],
+  "sections": [
+    {
+      "id": "completion",
+      "number": 1,
+      "title": "Completion overview",
+      "summary": "Compare declared completion proportions and their supplied intervals.",
+      "figure_ids": ["completion-figure"],
+      "findings": ["Hybrid has the largest synthetic completion estimate in this example."],
+      "method_notes": [
+        {"kind": "uses", "text": "Precomputed aggregate counts and intervals."},
+        {"kind": "note", "text": "Values are fabricated and carry no clinical interpretation."}
+      ],
+      "initial_state": "open"
+    }
+  ],
+  "figures": [
+    {
+      "id": "completion-figure",
+      "title": "Completion by pathway",
+      "description": "Bars show declared rates; error bars show supplied lower and upper bounds.",
+      "recipe": "generic.figure@1",
+      "layout": {"type": "grid", "columns": 2, "rows": 1, "gap": 18},
+      "panels": [
+        {
+          "id": "completion-bars",
+          "title": "Completion rate",
+          "data_ref": "follow-up-estimates",
+          "coordinate": {"type": "cartesian"},
+          "layers": [
+            {
+              "id": "rates",
+              "mark": {"type": "bar"},
+              "encoding": {
+                "x": {"field": "pathway", "type": "nominal", "axis": {"title": "Pathway"}},
+                "y": {"field": "rate", "type": "quantitative", "axis": {"title": "Completion", "format": "percent", "grid": true}},
+                "text": {"field": "rate", "type": "quantitative", "format": "percent"},
+                "color": {"value": "completion", "type": "nominal", "scale_role": "semantic"},
+                "tooltip": {"field": "responders", "type": "quantitative", "title": "Completed"}
+              }
+            }
+          ]
+        },
+        {
+          "id": "completion-intervals",
+          "title": "Supplied intervals",
+          "data_ref": "follow-up-estimates",
+          "coordinate": {"type": "cartesian"},
+          "layers": [
+            {
+              "id": "intervals",
+              "mark": {"type": "errorbar", "orient": "vertical", "stroke_width": 2},
+              "encoding": {
+                "x": {"field": "pathway", "type": "nominal", "axis": {"title": "Pathway"}},
+                "y": {"field": "rate", "type": "quantitative", "axis": {"title": "Estimate", "format": "percent", "grid": true}},
+                "y_lower": {"field": "lower", "type": "quantitative"},
+                "y_upper": {"field": "upper", "type": "quantitative"},
+                "color": {"value": "interval", "type": "nominal", "scale_role": "semantic"},
+                "tooltip": {"field": "total", "type": "quantitative", "title": "Total"}
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

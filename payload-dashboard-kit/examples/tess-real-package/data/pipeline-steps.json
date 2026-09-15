@@ -1,0 +1,18 @@
+[
+  {
+    "id": "split",
+    "label": "Split by host"
+  },
+  {
+    "id": "impute",
+    "label": "Median impute"
+  },
+  {
+    "id": "scale",
+    "label": "Standardise when required"
+  },
+  {
+    "id": "fit",
+    "label": "Fit model"
+  }
+]

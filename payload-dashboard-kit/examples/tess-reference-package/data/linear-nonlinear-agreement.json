@@ -1,0 +1,57 @@
+[
+  {
+    "feature": "pl_orbper",
+    "coefficient_abs": 0.18,
+    "importance": 0.052
+  },
+  {
+    "feature": "pl_trandurh",
+    "coefficient_abs": 0.12,
+    "importance": 0.031
+  },
+  {
+    "feature": "pl_trandep",
+    "coefficient_abs": 0.71,
+    "importance": 0.047
+  },
+  {
+    "feature": "pl_rade",
+    "coefficient_abs": 0.86,
+    "importance": 0.081
+  },
+  {
+    "feature": "pl_insol",
+    "coefficient_abs": 0.24,
+    "importance": 0.09
+  },
+  {
+    "feature": "st_tmag",
+    "coefficient_abs": 0.09,
+    "importance": 0.018
+  },
+  {
+    "feature": "st_dist",
+    "coefficient_abs": 0.16,
+    "importance": 0.039
+  },
+  {
+    "feature": "st_teff",
+    "coefficient_abs": 0.08,
+    "importance": 0.022
+  },
+  {
+    "feature": "st_logg",
+    "coefficient_abs": 0.31,
+    "importance": 0.028
+  },
+  {
+    "feature": "st_rad",
+    "coefficient_abs": 0.44,
+    "importance": 0.064
+  },
+  {
+    "feature": "pm_total",
+    "coefficient_abs": 0.21,
+    "importance": 0.035
+  }
+]

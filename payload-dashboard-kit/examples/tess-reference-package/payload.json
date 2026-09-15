@@ -1,0 +1,6348 @@
+{
+  "schema_version": "3.0.0",
+  "renderer_contract": {
+    "name": "render-payload-dashboard",
+    "version": "3.0.0",
+    "strict": true
+  },
+  "report": {
+    "title": "TESS Objects of Interest · visualization reference package",
+    "subtitle": "20-stage method spine rendered from payload.json + verified data sidecars",
+    "summary": "A deterministic visual-coverage package reproducing the reference report's figure structure with declared illustrative arrays and Inventory-grounded summary values.",
+    "claim": "The package demonstrates that chart intent, data semantics, interactions, and accordion order can be carried entirely by a strict payload plus typed sidecars.",
+    "facts": [
+      {
+        "label": "Raw TOIs",
+        "value": 7372
+      },
+      {
+        "label": "After QC",
+        "value": 7364
+      },
+      {
+        "label": "Features",
+        "value": 11
+      },
+      {
+        "label": "Accordion stages",
+        "value": 20
+      },
+      {
+        "label": "Figures",
+        "value": 24
+      }
+    ],
+    "final_verdict": "Renderer acceptance fixture only: controlled arrays are not a substitute for the original TESS analysis outputs."
+  },
+  "run": {
+    "id": "tess-reference-package",
+    "label": "TESS visualization acceptance",
+    "status": "complete",
+    "seed": 0,
+    "notes": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results."
+  },
+  "dataset": {
+    "id": "tess-toi-reference",
+    "title": "TESS Objects of Interest · controlled visual reference",
+    "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+    "row_count": 7364,
+    "feature_count": 11,
+    "target": "disposition"
+  },
+  "provenance": {
+    "generator": {
+      "name": "generate-tess-reference-package",
+      "version": "1.0.0"
+    },
+    "inputs": [
+      {
+        "id": "tess-inventory",
+        "kind": "configuration",
+        "description": "Read-only Inventory summary of the reference dashboard."
+      },
+      {
+        "id": "controlled-arrays",
+        "kind": "dataset",
+        "description": "Deterministic illustrative arrays generated locally; not original scientific measurements."
+      }
+    ],
+    "notes": "Reference snapshot: 2025-02-03; seed 0; summary inventory reports sklearn 1.6.1 and umap-learn 0.5.12. Original PNG arrays were not digitised."
+  },
+  "theme": {
+    "name": "tess",
+    "mode": "light",
+    "palette": "colorblind-safe",
+    "density": "comfortable",
+    "semantic_colors": {
+      "Planet": "#2F6B8A",
+      "False_positive": "#D97941",
+      "Open": "#8C96A5",
+      "Candidate": "#527EAA",
+      "Confirmed": "#2D7D63",
+      "noise": "#A9B0B8"
+    }
+  },
+  "data": [
+    {
+      "id": "reference-one",
+      "semantic_type": "renderer.constant-row",
+      "title": "One-row reference source",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "role": "id"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/reference-one.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "8cef4f634ca8800349d45b585fbc575cb4d7d840bbd29e280e729d209f258876",
+        "rows": 1,
+        "bytes": 34
+      }
+    },
+    {
+      "id": "transit-bodies",
+      "semantic_type": "geometry.ellipses",
+      "title": "transit-bodies",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "body",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "x",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "x_radius",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "y_radius",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/transit-bodies.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "d867851b8aa538799f24a1e7023f8493d8d54e9eac59b5334b4d731c15bae84a",
+        "rows": 2,
+        "bytes": 195
+      }
+    },
+    {
+      "id": "transit-orbit",
+      "semantic_type": "geometry.polygon-vertices",
+      "title": "transit-orbit",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "region",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "vertex_order",
+          "type": "integer",
+          "role": "metadata"
+        },
+        {
+          "name": "x",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/transit-orbit.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "462dfce67bcb6ebf602da2e144b951d0d9cfdf37f08109bed32590d96845b2ec",
+        "rows": 41,
+        "bytes": 3717
+      }
+    },
+    {
+      "id": "transit-motion",
+      "semantic_type": "geometry.vectors",
+      "title": "transit-motion",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "x",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "x2",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "y2",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/transit-motion.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "54d17c2d63d0ad4c0afef40e4cdf2ca90bc125e7b58666792a2bdd17b4862f08",
+        "rows": 1,
+        "bytes": 74
+      }
+    },
+    {
+      "id": "transit-light-curve",
+      "semantic_type": "timeseries.relative-brightness",
+      "title": "transit-light-curve",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "time",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "brightness",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/transit-light-curve.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "c1c24e718b264730b5ffd63f77704c03b6fa5c25e85d5b4efd896f5a19bdb65a",
+        "rows": 61,
+        "bytes": 3029
+      }
+    },
+    {
+      "id": "label-dispositions",
+      "semantic_type": "labels.class-counts",
+      "title": "label-dispositions",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "disposition",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "count",
+          "type": "integer",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/label-dispositions.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "0e490f6659e5974c1d4d8b7f565254041c6842f7bc328aa83f7ff883dff44c2e",
+        "rows": 6,
+        "bytes": 311
+      }
+    },
+    {
+      "id": "label-adjudication",
+      "semantic_type": "labels.adjudication-counts",
+      "title": "label-adjudication",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "status",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "count",
+          "type": "integer",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/label-adjudication.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "7c48564b15e69004f3f337ffa6b6c71177f7dbe4ef71ffc1bd7bd7163168624b",
+        "rows": 2,
+        "bytes": 108
+      }
+    },
+    {
+      "id": "provenance-missingness",
+      "semantic_type": "data-quality.missingness",
+      "title": "provenance-missingness",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "feature",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "missing_fraction",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/provenance-missingness.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "079db5b262dc280fa936c133981a59aba292d06a44baa061edfb07628f529c1b",
+        "rows": 11,
+        "bytes": 716
+      }
+    },
+    {
+      "id": "host-multiplicity",
+      "semantic_type": "provenance.host-multiplicity",
+      "title": "host-multiplicity",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "host_group",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "hosts",
+          "type": "integer",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/host-multiplicity.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "2b2ae9b50b509e0d34fe311b44bcf196142865a8e6375d8dda4815d4f49d893f",
+        "rows": 5,
+        "bytes": 284
+      }
+    },
+    {
+      "id": "quality-rule-removals",
+      "semantic_type": "data-quality.rule-removals",
+      "title": "quality-rule-removals",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "rule",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "removed",
+          "type": "integer",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/quality-rule-removals.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "28c37246c775cea2ea6f0630df905a6b6cd5b006e8dd38ff9f520d7a8e1c3692",
+        "rows": 5,
+        "bytes": 301
+      }
+    },
+    {
+      "id": "retained-radius-histogram",
+      "semantic_type": "distribution.histogram-bins",
+      "title": "retained-radius-histogram",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "log10_radius",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "count",
+          "type": "integer",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/retained-radius-histogram.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "c8c99a3e885261fe87ff29c929007af81767e21beb0a7d4ae825f947d0696b5e",
+        "rows": 40,
+        "bytes": 2137
+      }
+    },
+    {
+      "id": "structure-correlation",
+      "semantic_type": "matrix.correlation",
+      "title": "structure-correlation",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "row",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "column",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/structure-correlation.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "c88dcf13fd6b8f314c643b1d85fce51447631800d670317677d1a381be8a06cd",
+        "rows": 121,
+        "bytes": 9391
+      }
+    },
+    {
+      "id": "structure-mutual-information",
+      "semantic_type": "matrix.mutual-information",
+      "title": "structure-mutual-information",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "row",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "column",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/structure-mutual-information.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "3eeab858f9e7ede0282145ede10d9494679295fc08d7f1565064d622c1f43c6b",
+        "rows": 110,
+        "bytes": 8549
+      }
+    },
+    {
+      "id": "structure-uncertainty",
+      "semantic_type": "estimate.log-uncertainty",
+      "title": "structure-uncertainty",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "feature",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "estimate",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "lower",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "upper",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/structure-uncertainty.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "a87a3ad6e4f2702995b4ca6741864e96e0e5f225bed26ce73e7d186aaf02ec47",
+        "rows": 11,
+        "bytes": 1150
+      }
+    },
+    {
+      "id": "implied-constant-histogram",
+      "semantic_type": "distribution.histogram-bins",
+      "title": "implied-constant-histogram",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "value",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "count",
+          "type": "integer",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/implied-constant-histogram.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "7fb9607510cc07a0832003337d2a606e099fbe3a5f55809631c1edfc00604967",
+        "rows": 2,
+        "bytes": 95
+      }
+    },
+    {
+      "id": "feature-conventions",
+      "semantic_type": "summary.stacked-intervals",
+      "title": "feature-conventions",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "feature",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "convention",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "interval_start",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "interval_end",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/feature-conventions.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "e70225988d59821b3b05ad13d9baf9ed63c593a9391a0eae8d194252433be179",
+        "rows": 18,
+        "bytes": 1974
+      }
+    },
+    {
+      "id": "skew-before-after",
+      "semantic_type": "feature-audit.skewness",
+      "title": "skew-before-after",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "feature",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "before",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "after",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/skew-before-after.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "bd02f1a41242ac15ddad781f963eb0a086750df8bf04733357d7745da4cfda63",
+        "rows": 8,
+        "bytes": 591
+      }
+    },
+    {
+      "id": "baseline-loss",
+      "semantic_type": "optimization.loss-curve",
+      "title": "baseline-loss",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "iteration",
+          "type": "integer",
+          "role": "measure"
+        },
+        {
+          "name": "loss",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/baseline-loss.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "4393e78eed90ef0df0cd7dca16a583dde984d83a723f1213c95376d2c459dba2",
+        "rows": 400,
+        "bytes": 20652
+      }
+    },
+    {
+      "id": "baseline-two-feature",
+      "semantic_type": "classification.labelled-points",
+      "title": "baseline-two-feature",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "object_id",
+          "type": "string",
+          "role": "id"
+        },
+        {
+          "name": "period_log",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "depth_log",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "class",
+          "type": "string",
+          "role": "dimension"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/baseline-two-feature.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "b6cd4959ef6855f4707e4b576bfe957e9aeaa9ef3e5f59ec2f8fdc1ca9d7c799",
+        "rows": 2242,
+        "bytes": 267618
+      }
+    },
+    {
+      "id": "baseline-boundary",
+      "semantic_type": "classification.decision-boundary",
+      "title": "baseline-boundary",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "x",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/baseline-boundary.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "c90e586d647f325c25fbe3a11127a0413c2ca8dbe99986839ef3724341d4b602",
+        "rows": 2,
+        "bytes": 81
+      }
+    },
+    {
+      "id": "native-variance",
+      "semantic_type": "preprocessing.feature-variance",
+      "title": "native-variance",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "feature",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "variance",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/native-variance.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "199ad43d895ff1c914e9781d5cc258d4906a8851f9bb4fc0bd83ca186039a4ac",
+        "rows": 11,
+        "bytes": 646
+      }
+    },
+    {
+      "id": "preprocess-scree",
+      "semantic_type": "preprocessing.scree-comparison",
+      "title": "preprocess-scree",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "component",
+          "type": "integer",
+          "role": "measure"
+        },
+        {
+          "name": "variance",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "series",
+          "type": "string",
+          "role": "dimension"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/preprocess-scree.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "5eb61732fe3e46134214038400287f2a463fc271f49b39a5d84df6cecfcd2b11",
+        "rows": 22,
+        "bytes": 1723
+      }
+    },
+    {
+      "id": "preprocess-boxes",
+      "semantic_type": "distribution.box-summary",
+      "title": "preprocess-boxes",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "feature",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "q1",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "median",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "q3",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "whisker_low",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "whisker_high",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/preprocess-boxes.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "f719aae37c0641cfe9da9d4eabb1eccbe9226385115c1ccdf827d612d85262a5",
+        "rows": 11,
+        "bytes": 1826
+      }
+    },
+    {
+      "id": "pca-scree",
+      "semantic_type": "pca.explained-variance",
+      "title": "pca-scree",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "component",
+          "type": "integer",
+          "role": "measure"
+        },
+        {
+          "name": "variance",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "cumulative",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/pca-scree.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "44e47c37d8f331eb4954f69063978976cdad973a803e10a06634f0c82a70db7d",
+        "rows": 11,
+        "bytes": 831
+      }
+    },
+    {
+      "id": "pca-loadings",
+      "semantic_type": "pca.loadings",
+      "title": "pca-loadings",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "component",
+          "type": "integer",
+          "role": "measure"
+        },
+        {
+          "name": "feature",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/pca-loadings.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "02f15d2647c260ba88ad1367c4c42f803b6a0fccf5b0bd85d01a08d9bb13a254",
+        "rows": 55,
+        "bytes": 4252
+      }
+    },
+    {
+      "id": "pca-circle",
+      "semantic_type": "pca.loading-vectors",
+      "title": "pca-circle",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "feature",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "x",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/pca-circle.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "23ef4db4af2e3a4fcec7167d464ab7790b44d657e2afe91e3ff097e5bce2186c",
+        "rows": 11,
+        "bytes": 782
+      }
+    },
+    {
+      "id": "pca-residuals",
+      "semantic_type": "pca.covariance-residual",
+      "title": "pca-residuals",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "component",
+          "type": "integer",
+          "role": "measure"
+        },
+        {
+          "name": "row",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "column",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/pca-residuals.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "0e9a164de2ced58cefed9448dab1f065205cbdf4892afae673cf83c3dec89a71",
+        "rows": 363,
+        "bytes": 35905
+      }
+    },
+    {
+      "id": "k-distance",
+      "semantic_type": "geometry.k-distance",
+      "title": "k-distance",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "rank",
+          "type": "integer",
+          "role": "measure"
+        },
+        {
+          "name": "distance",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/k-distance.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "7fb0ae290379857090a42009e5215849c11193cf2beddd9fb8d0d7bc5648180a",
+        "rows": 7364,
+        "bytes": 373609
+      }
+    },
+    {
+      "id": "density-histogram",
+      "semantic_type": "distribution.local-density",
+      "title": "density-histogram",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "log10_density",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "count",
+          "type": "integer",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/density-histogram.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "33e1b90262364506a2696d3c6decf3639853abe9b2025f6e26b035b3efd6db05",
+        "rows": 36,
+        "bytes": 1981
+      }
+    },
+    {
+      "id": "metric-distances",
+      "semantic_type": "geometry.metric-curves",
+      "title": "metric-distances",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "rank",
+          "type": "integer",
+          "role": "measure"
+        },
+        {
+          "name": "distance",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "metric",
+          "type": "string",
+          "role": "dimension"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/metric-distances.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "01576b0e7df2d5e197cc51cd24bdeedcff9be98e3824327931158dae046129fb",
+        "rows": 7500,
+        "bytes": 573330
+      }
+    },
+    {
+      "id": "embedding-sweep",
+      "semantic_type": "embedding.coordinates",
+      "title": "embedding-sweep",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "facet",
+          "type": "string",
+          "role": "metadata"
+        },
+        {
+          "name": "object_id",
+          "type": "string",
+          "role": "id"
+        },
+        {
+          "name": "disposition",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "x",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/embedding-sweep.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "d0ce8c98edfcd76d296a92f2c2e012728bb350afd33d9b37fa560ff05993d846",
+        "rows": 18000,
+        "bytes": 2374363
+      }
+    },
+    {
+      "id": "embedding-quality",
+      "semantic_type": "embedding.neighbourhood-quality",
+      "title": "embedding-quality",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "k",
+          "type": "integer",
+          "role": "measure"
+        },
+        {
+          "name": "score",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "series",
+          "type": "string",
+          "role": "dimension"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/embedding-quality.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "2a1806e93e36b4ace6d6e815c75bbf805cc5a22e62554c6355df69d7fe5d52fe",
+        "rows": 36,
+        "bytes": 2664
+      }
+    },
+    {
+      "id": "shepard-distances",
+      "semantic_type": "embedding.shepard-pairs",
+      "title": "shepard-distances",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "feature_distance",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "embedding_distance",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/shepard-distances.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "81923d66a8340fb92780e69de89d75f7f769410d9995a3cadb1d7d28f51590a6",
+        "rows": 6000,
+        "bytes": 454627
+      }
+    },
+    {
+      "id": "seed-disparity",
+      "semantic_type": "embedding.procrustes-disparity",
+      "title": "seed-disparity",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "seed_pair",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "disparity",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/seed-disparity.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "fe19798373eb7b159ce3d5b74b6acd27f07084ec05fdf43898ec7b2cb8082469",
+        "rows": 3,
+        "bytes": 180
+      }
+    },
+    {
+      "id": "partition-overlays",
+      "semantic_type": "partition.embedding-overlay",
+      "title": "partition-overlays",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "method",
+          "type": "string",
+          "role": "metadata"
+        },
+        {
+          "name": "object_id",
+          "type": "string",
+          "role": "id"
+        },
+        {
+          "name": "x",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "cluster",
+          "type": "string",
+          "role": "dimension"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/partition-overlays.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "3e02c1a9b85bf7a4bc123d24319ce3b2254c934f5054c03cdbd0d281c3a64a96",
+        "rows": 3600,
+        "bytes": 434946
+      }
+    },
+    {
+      "id": "max-responsibility-histogram",
+      "semantic_type": "mixture.max-responsibility-histogram",
+      "title": "max-responsibility-histogram",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "responsibility",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "count",
+          "type": "integer",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/max-responsibility-histogram.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "6610aa370a2a2f6dd34b7542fc0a110f48d6c9956bc4898dbe52d2a90d260138",
+        "rows": 30,
+        "bytes": 1658
+      }
+    },
+    {
+      "id": "responsibility-map",
+      "semantic_type": "mixture.embedding-responsibility",
+      "title": "responsibility-map",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "object_id",
+          "type": "string",
+          "role": "id"
+        },
+        {
+          "name": "x",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "max_responsibility",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/responsibility-map.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "3d2a517afefb8e10714d5031818c389499188a0238fecc0e8710c254d1bb9b53",
+        "rows": 1400,
+        "bytes": 151462
+      }
+    },
+    {
+      "id": "responsibility-matrix",
+      "semantic_type": "mixture.responsibility-matrix",
+      "title": "responsibility-matrix",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "object_id",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "component",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "responsibility",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/responsibility-matrix.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "f63f61e9cd20c4b8a2d0fd46aaaf1cafa6f59f849069a93182d1498ffe6c0c68",
+        "rows": 720,
+        "bytes": 65102
+      }
+    },
+    {
+      "id": "silhouette-null",
+      "semantic_type": "partition.silhouette-null",
+      "title": "silhouette-null",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "k",
+          "type": "integer",
+          "role": "measure"
+        },
+        {
+          "name": "score",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "series",
+          "type": "string",
+          "role": "dimension"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/silhouette-null.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "438f34d578c10251175c3490c7089e82df8cc0a199d02f59acafd76c0bfe9d17",
+        "rows": 18,
+        "bytes": 1342
+      }
+    },
+    {
+      "id": "gmm-bic",
+      "semantic_type": "mixture.bic-curve",
+      "title": "gmm-bic",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "k",
+          "type": "integer",
+          "role": "measure"
+        },
+        {
+          "name": "bic",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/gmm-bic.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "7cc9e1b50ba5ab5133c1deebad40b970bb0e08be8a3bea4a4f5b2f078ad47fc6",
+        "rows": 9,
+        "bytes": 349
+      }
+    },
+    {
+      "id": "partition-agreement",
+      "semantic_type": "partition.agreement-metrics",
+      "title": "partition-agreement",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "comparison",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "metric",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "bar_label",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/partition-agreement.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "f6999d20677b637ee535394771110e949db16e416ecda1ce0eb341239aa959e8",
+        "rows": 10,
+        "bytes": 1343
+      }
+    },
+    {
+      "id": "silhouette-spaces",
+      "semantic_type": "partition.silhouette-by-space",
+      "title": "silhouette-spaces",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "space",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "scored_in",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "bar_label",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "score",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/silhouette-spaces.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "9b45b79924d31bdaadc0b773ba93281ed34d190b1ace0569c5a274b4a2e3a4f4",
+        "rows": 10,
+        "bytes": 1188
+      }
+    },
+    {
+      "id": "partition-seed-ari",
+      "semantic_type": "partition.seed-reproducibility",
+      "title": "partition-seed-ari",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "method",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "ari",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/partition-seed-ari.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "896c59218dfb7fc3d01536dc667d42f8093e979c174cfd317bcf6819719d7b0a",
+        "rows": 2,
+        "bytes": 124
+      }
+    },
+    {
+      "id": "vq-distortion",
+      "semantic_type": "vq.distortion-curve",
+      "title": "vq-distortion",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "k",
+          "type": "integer",
+          "role": "measure"
+        },
+        {
+          "name": "distortion",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/vq-distortion.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "e08cc7121ef54cf766564f3e6f17807276a3b1f8990d27d730ce10310e82a3cf",
+        "rows": 6,
+        "bytes": 279
+      }
+    },
+    {
+      "id": "vq-design-matrix",
+      "semantic_type": "vq.cluster-sorted-design-matrix",
+      "title": "vq-design-matrix",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "object_id",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "feature",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "z",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "codeword",
+          "type": "integer",
+          "role": "dimension"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/vq-design-matrix.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "1285f7224fa0a81c8bc156ed3f56fb5e6d96b4fe6105ff516591fd53ca3aee56",
+        "rows": 1584,
+        "bytes": 157265
+      }
+    },
+    {
+      "id": "vq-planet-fraction",
+      "semantic_type": "vq.codeword-planet-fraction",
+      "title": "vq-planet-fraction",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "codeword",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "adjudicated",
+          "type": "integer",
+          "role": "measure"
+        },
+        {
+          "name": "planet_fraction",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/vq-planet-fraction.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "250058cb550eda948b4a7ca591e485136851df16eb5cd0f92f222c44dc972d12",
+        "rows": 8,
+        "bytes": 667
+      }
+    },
+    {
+      "id": "vq-reconstruction",
+      "semantic_type": "vq.space-reconstruction",
+      "title": "vq-reconstruction",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "k",
+          "type": "integer",
+          "role": "measure"
+        },
+        {
+          "name": "space",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "error",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/vq-reconstruction.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "a53d92f2403159f11e25ee576f701e65dd261a84618adb6338f51e8b63d6a47e",
+        "rows": 16,
+        "bytes": 1105
+      }
+    },
+    {
+      "id": "vq-excess-error",
+      "semantic_type": "vq.embedding-excess-error",
+      "title": "vq-excess-error",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "k",
+          "type": "integer",
+          "role": "measure"
+        },
+        {
+          "name": "excess_percent",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/vq-excess-error.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "3a1df60fc21b06478bf24bc836cddd3d53fb5073734f1c7134dc0b4f60d5c74d",
+        "rows": 8,
+        "bytes": 406
+      }
+    },
+    {
+      "id": "vq-map-agreement",
+      "semantic_type": "vq.space-agreement",
+      "title": "vq-map-agreement",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "k",
+          "type": "integer",
+          "role": "measure"
+        },
+        {
+          "name": "series",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "score",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/vq-map-agreement.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "15099dcf465a35512fe0facb5a71dcd0c80d6d0bd3226984d48df703ba983776",
+        "rows": 24,
+        "bytes": 1854
+      }
+    },
+    {
+      "id": "vq-explorer-points",
+      "semantic_type": "vq.interactive-codeword-map",
+      "title": "vq-explorer-points",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "object_id",
+          "type": "string",
+          "role": "id"
+        },
+        {
+          "name": "space",
+          "type": "string",
+          "role": "metadata"
+        },
+        {
+          "name": "k",
+          "type": "integer",
+          "role": "metadata"
+        },
+        {
+          "name": "codeword",
+          "type": "integer",
+          "role": "dimension"
+        },
+        {
+          "name": "x",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/vq-explorer-points.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "f00d1508d734130100daf994dd60a1fbb4e5b26b7b727e3979d5afc575327cc7",
+        "rows": 3840,
+        "bytes": 510245
+      }
+    },
+    {
+      "id": "vq-explorer-profiles",
+      "semantic_type": "vq.codeword-feature-profile",
+      "title": "vq-explorer-profiles",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "space",
+          "type": "string",
+          "role": "metadata"
+        },
+        {
+          "name": "k",
+          "type": "integer",
+          "role": "metadata"
+        },
+        {
+          "name": "codeword",
+          "type": "integer",
+          "role": "dimension"
+        },
+        {
+          "name": "feature",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "mean",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "lower",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "upper",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/vq-explorer-profiles.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "64b954f1526ec087f00c01741283aa4caefe2f3237a0a36aaaf08d8d50a48e55",
+        "rows": 1584,
+        "bytes": 253385
+      }
+    },
+    {
+      "id": "split-leakage",
+      "semantic_type": "supervised.split-leakage-audit",
+      "title": "split-leakage",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "strategy",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "shared_hosts",
+          "type": "integer",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/split-leakage.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "a4011041c090bd64156d92e8672b0f6079ea1396d258f6be739af0ac9b971ca2",
+        "rows": 2,
+        "bytes": 138
+      }
+    },
+    {
+      "id": "split-class-balance",
+      "semantic_type": "supervised.split-class-counts",
+      "title": "split-class-balance",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "split",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "class",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "interval_start",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "interval_end",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "count",
+          "type": "integer",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/split-class-balance.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "b448034f45c28ee41243ad3cb8561e8164c168366c1eaa0e1315b99f27d50c32",
+        "rows": 4,
+        "bytes": 542
+      }
+    },
+    {
+      "id": "pipeline-steps",
+      "semantic_type": "supervised.pipeline-order",
+      "title": "pipeline-steps",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "role": "id"
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "role": "label"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/pipeline-steps.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "8b83e944e0e7e8a0b870f8b3e7237d4029ddacffd66db2e1430df7ff8eb082f7",
+        "rows": 4,
+        "bytes": 224
+      }
+    },
+    {
+      "id": "interpretable-coefficients",
+      "semantic_type": "model.logistic-coefficients",
+      "title": "interpretable-coefficients",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "feature",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "coefficient",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/interpretable-coefficients.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "169d1c97ee95bb99835b3f4abad916b7e85a712061e9b68a781a4cd70634c06c",
+        "rows": 11,
+        "bytes": 667
+      }
+    },
+    {
+      "id": "interpretable-roc",
+      "semantic_type": "model.roc-curves",
+      "title": "interpretable-roc",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "model",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "fpr",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "tpr",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/interpretable-roc.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "eafe6bb60fc375323eca302f106047552d4989c5728be88327c2f2204ff5b501",
+        "rows": 153,
+        "bytes": 13367
+      }
+    },
+    {
+      "id": "tree-depth-sweep",
+      "semantic_type": "model.tree-depth-sweep",
+      "title": "tree-depth-sweep",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "depth",
+          "type": "integer",
+          "role": "measure"
+        },
+        {
+          "name": "accuracy",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "split",
+          "type": "string",
+          "role": "dimension"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/tree-depth-sweep.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "adf924e0c4a481a44620ced012aeddabc81b1625c615477b3993920100fd000b",
+        "rows": 14,
+        "bytes": 997
+      }
+    },
+    {
+      "id": "decision-tree-nodes",
+      "semantic_type": "hierarchy.decision-tree-nodes",
+      "title": "decision-tree-nodes",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "role": "id"
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "role": "label"
+        },
+        {
+          "name": "kind",
+          "type": "string",
+          "role": "dimension"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/decision-tree-nodes.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "4d1f5b2095d1a82ffee58aaa21c4bf301d69b4c0d2804d30803224dff45228a7",
+        "rows": 15,
+        "bytes": 1240
+      }
+    },
+    {
+      "id": "decision-tree-links",
+      "semantic_type": "hierarchy.decision-tree-links",
+      "title": "decision-tree-links",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "source",
+          "type": "string",
+          "role": "id"
+        },
+        {
+          "name": "target",
+          "type": "string",
+          "role": "id"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/decision-tree-links.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "2308de28f776c8b50f2fb9cd6fde8d03db092e7dc1dfdadce3db5a750b12eb2e",
+        "rows": 14,
+        "bytes": 792
+      }
+    },
+    {
+      "id": "ensemble-auc",
+      "semantic_type": "model.heldout-auc",
+      "title": "ensemble-auc",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "model",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "auc",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/ensemble-auc.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "a59c80251fbce29d74e8b12a7d73cdc187b354e86eb52762fc7ca169feb5d064",
+        "rows": 5,
+        "bytes": 287
+      }
+    },
+    {
+      "id": "permutation-importance",
+      "semantic_type": "model.permutation-importance",
+      "title": "permutation-importance",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "feature",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "mean",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "lower",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "upper",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/permutation-importance.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "3b80515ca19615385239faa487ee6a5a54962c211c5d2dd498dab632c79b1d59",
+        "rows": 11,
+        "bytes": 1123
+      }
+    },
+    {
+      "id": "linear-nonlinear-agreement",
+      "semantic_type": "model.feature-agreement",
+      "title": "linear-nonlinear-agreement",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "feature",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "coefficient_abs",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "importance",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/linear-nonlinear-agreement.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "cc3eb05c996438ae0d65332d1b26d72b5517fa140def3c4cbeb3fd95f918f40f",
+        "rows": 11,
+        "bytes": 980
+      }
+    },
+    {
+      "id": "cv-scores",
+      "semantic_type": "validation.grouped-cv",
+      "title": "cv-scores",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "model",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "mean",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "lower",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "upper",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/cv-scores.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "e41955afa4adaefe5a0741b161914cad373ba8978f4a317b06143e1c1ccd7cda",
+        "rows": 3,
+        "bytes": 286
+      }
+    },
+    {
+      "id": "learning-curve",
+      "semantic_type": "validation.learning-curve",
+      "title": "learning-curve",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "n_train",
+          "type": "integer",
+          "role": "measure"
+        },
+        {
+          "name": "series",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "score",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "lower",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "upper",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/learning-curve.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "a9954ee89b2a78783c90ff458479834847c5a5f81114e161cb43881737c0b665",
+        "rows": 12,
+        "bytes": 1510
+      }
+    },
+    {
+      "id": "calibration",
+      "semantic_type": "validation.calibration-curve",
+      "title": "calibration",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "predicted",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "observed",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/calibration.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "1ea5cab9c45e238893ada4ebb64d2e40a9b735ca1f43034833de71bf3f41ac4d",
+        "rows": 10,
+        "bytes": 562
+      }
+    },
+    {
+      "id": "confusion",
+      "semantic_type": "validation.row-normalised-confusion",
+      "title": "confusion",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "actual",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "predicted",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/confusion.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "37b3d53735debbccead35ca2a723910e1cb03889a9d35093e60cba68fb66f6d7",
+        "rows": 4,
+        "bytes": 347
+      }
+    },
+    {
+      "id": "confounder-nmi",
+      "semantic_type": "science.metadata-nmi",
+      "title": "confounder-nmi",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "metadata",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "target",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "bar_label",
+          "type": "string",
+          "role": "dimension"
+        },
+        {
+          "name": "nmi",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/confounder-nmi.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "01d4b492c1a7fcb00ec56128bba788bdbc2723503c55287966c14661a2954c0c",
+        "rows": 12,
+        "bytes": 1653
+      }
+    },
+    {
+      "id": "sky-map",
+      "semantic_type": "science.sky-cluster-map",
+      "title": "sky-map",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "ra_deg",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "dec_deg",
+          "type": "number",
+          "role": "measure"
+        },
+        {
+          "name": "cluster",
+          "type": "string",
+          "role": "dimension"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/sky-map.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "2da3aab5e922b2bde7664db3825ce92f8bc4fe0e5ed8d9195168846f56d700ff",
+        "rows": 1600,
+        "bytes": 122456
+      }
+    },
+    {
+      "id": "yearly-planet-fraction",
+      "semantic_type": "science.temporal-stationarity",
+      "title": "yearly-planet-fraction",
+      "description": "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "fields": [
+        {
+          "name": "year",
+          "type": "integer",
+          "role": "measure"
+        },
+        {
+          "name": "planet_fraction",
+          "type": "number",
+          "role": "measure"
+        }
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/yearly-planet-fraction.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "20926784158dc3d487dca5b28128761f8f4726cd1ee78e68a38a5efe8c0a1719",
+        "rows": 7,
+        "bytes": 388
+      }
+    }
+  ],
+  "sections": [
+    {
+      "id": "stage-00",
+      "number": 0,
+      "title": "Scientific question",
+      "short_label": "Scientific question",
+      "summary": "Frame the transit signal and the controlled label vocabulary before analysis.",
+      "caveats": [
+        "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results."
+      ],
+      "figure_ids": [
+        "stage00-transit-question",
+        "stage00-label-taxonomy"
+      ],
+      "initial_state": "open"
+    },
+    {
+      "id": "stage-01",
+      "number": 1,
+      "title": "Provenance",
+      "short_label": "Provenance",
+      "summary": "Audit source completeness and the repeated-host structure.",
+      "caveats": [
+        "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results."
+      ],
+      "figure_ids": [
+        "stage01-provenance"
+      ],
+      "initial_state": "closed"
+    },
+    {
+      "id": "stage-02",
+      "number": 2,
+      "title": "Quality control",
+      "short_label": "Quality control",
+      "summary": "Make row exclusions and retained measurement support visible.",
+      "caveats": [
+        "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results."
+      ],
+      "figure_ids": [
+        "stage02-quality-control"
+      ],
+      "initial_state": "closed"
+    },
+    {
+      "id": "stage-03",
+      "number": 3,
+      "title": "Structure",
+      "short_label": "Structure",
+      "summary": "Compare linear, nonlinear, and measurement-level relationships.",
+      "caveats": [
+        "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results."
+      ],
+      "figure_ids": [
+        "stage03-structure"
+      ],
+      "initial_state": "closed"
+    },
+    {
+      "id": "stage-04",
+      "number": 4,
+      "title": "Feature audit",
+      "short_label": "Feature audit",
+      "summary": "Expose constants, mixed conventions, and transformation effects.",
+      "caveats": [
+        "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results."
+      ],
+      "figure_ids": [
+        "stage04-feature-audit"
+      ],
+      "initial_state": "closed"
+    },
+    {
+      "id": "stage-05",
+      "number": 5,
+      "title": "Baseline",
+      "short_label": "Baseline",
+      "summary": "Establish a simple optimisation and decision-boundary reference.",
+      "caveats": [
+        "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results."
+      ],
+      "figure_ids": [
+        "stage05-baseline"
+      ],
+      "initial_state": "closed"
+    },
+    {
+      "id": "stage-06",
+      "number": 6,
+      "title": "Preprocessing",
+      "short_label": "Preprocessing",
+      "summary": "Verify scale imbalance, component concentration, and standardised ranges.",
+      "caveats": [
+        "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results."
+      ],
+      "figure_ids": [
+        "stage06-preprocessing"
+      ],
+      "initial_state": "closed"
+    },
+    {
+      "id": "stage-07",
+      "number": 7,
+      "title": "PCA diagnostics",
+      "short_label": "PCA diagnostics",
+      "summary": "Inspect explained variance, loadings, correlation geometry, and covariance residuals.",
+      "caveats": [
+        "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results."
+      ],
+      "figure_ids": [
+        "stage07-pca-diagnostics"
+      ],
+      "initial_state": "closed"
+    },
+    {
+      "id": "stage-08",
+      "number": 8,
+      "title": "Geometry",
+      "short_label": "Geometry",
+      "summary": "Compare epsilon evidence, local density, and metric sensitivity.",
+      "caveats": [
+        "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results."
+      ],
+      "figure_ids": [
+        "stage08-geometry"
+      ],
+      "initial_state": "closed"
+    },
+    {
+      "id": "stage-09",
+      "number": 9,
+      "title": "Embedding sweep",
+      "short_label": "Embedding sweep",
+      "summary": "Compare two nonlinear embedding families under declared hyperparameters.",
+      "caveats": [
+        "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results."
+      ],
+      "figure_ids": [
+        "stage09-embedding-sweep"
+      ],
+      "initial_state": "closed"
+    },
+    {
+      "id": "stage-10",
+      "number": 10,
+      "title": "Embedding validation",
+      "short_label": "Embedding validation",
+      "summary": "Test neighbourhood preservation, distance agreement, and seed stability.",
+      "caveats": [
+        "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results."
+      ],
+      "figure_ids": [
+        "stage10-embedding-validation"
+      ],
+      "initial_state": "closed"
+    },
+    {
+      "id": "stage-11",
+      "number": 11,
+      "title": "Partition comparison",
+      "short_label": "Partition comparison",
+      "summary": "Fit partitions in the declared feature space and compare their assignments on one map.",
+      "caveats": [
+        "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results."
+      ],
+      "figure_ids": [
+        "stage11-partition-comparison"
+      ],
+      "initial_state": "closed"
+    },
+    {
+      "id": "stage-12",
+      "number": 12,
+      "title": "Soft assignment",
+      "short_label": "Soft assignment",
+      "summary": "Show confidence, boundary ambiguity, and the full component responsibility pattern.",
+      "caveats": [
+        "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results."
+      ],
+      "figure_ids": [
+        "stage12-soft-assignment"
+      ],
+      "initial_state": "closed"
+    },
+    {
+      "id": "stage-13",
+      "number": 13,
+      "title": "Partition validation",
+      "short_label": "Partition validation",
+      "summary": "Separate apparent map tidiness from stable high-dimensional partition evidence.",
+      "caveats": [
+        "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results."
+      ],
+      "figure_ids": [
+        "stage13-partition-validation-a",
+        "stage13-partition-validation-b"
+      ],
+      "initial_state": "closed"
+    },
+    {
+      "id": "stage-14",
+      "number": 14,
+      "title": "Vector quantisation",
+      "short_label": "Vector quantisation",
+      "summary": "Compare codebook objectives, space dependence, class composition, and linked codeword profiles.",
+      "caveats": [
+        "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results."
+      ],
+      "figure_ids": [
+        "stage14-vector-quantisation-a",
+        "stage14-vector-quantisation-b",
+        "stage14-codeword-explorer"
+      ],
+      "initial_state": "closed"
+    },
+    {
+      "id": "stage-15",
+      "number": 15,
+      "title": "Task setup",
+      "short_label": "Task setup",
+      "summary": "Audit host leakage, class balance, and the split-before-fit pipeline rule.",
+      "caveats": [
+        "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results."
+      ],
+      "figure_ids": [
+        "stage15-task-setup"
+      ],
+      "initial_state": "closed"
+    },
+    {
+      "id": "stage-16",
+      "number": 16,
+      "title": "Interpretable models",
+      "short_label": "Interpretable models",
+      "summary": "Compare linear effects, held-out discrimination, tree capacity, and the complete shallow tree.",
+      "caveats": [
+        "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results."
+      ],
+      "figure_ids": [
+        "stage16-interpretable-models"
+      ],
+      "initial_state": "closed"
+    },
+    {
+      "id": "stage-17",
+      "number": 17,
+      "title": "Ensembles",
+      "short_label": "Ensembles",
+      "summary": "Quantify ensemble gains and compare linear with nonlinear feature evidence.",
+      "caveats": [
+        "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results."
+      ],
+      "figure_ids": [
+        "stage17-ensembles"
+      ],
+      "initial_state": "closed"
+    },
+    {
+      "id": "stage-18",
+      "number": 18,
+      "title": "Validation",
+      "short_label": "Validation",
+      "summary": "Use host-grouped folds, learning curves, calibration, and row-normalised errors; the leak probe is 0.720 versus 0.703 without the suspect column.",
+      "caveats": [
+        "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results."
+      ],
+      "figure_ids": [
+        "stage18-validation"
+      ],
+      "initial_state": "closed"
+    },
+    {
+      "id": "stage-19",
+      "number": 19,
+      "title": "Scientific close",
+      "short_label": "Scientific close",
+      "summary": "Close with metadata, sky-position, and temporal confounder checks plus explicit provenance.",
+      "caveats": [
+        "Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results."
+      ],
+      "figure_ids": [
+        "stage19-scientific-close"
+      ],
+      "initial_state": "closed"
+    }
+  ],
+  "figures": [
+    {
+      "id": "stage00-transit-question",
+      "title": "From geometry to a transit signal",
+      "caption": "From geometry to a transit signal. Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "recipe": "generic.figure@1",
+      "layout": {
+        "type": "grid",
+        "columns": 2,
+        "gap": 16
+      },
+      "panels": [
+        {
+          "id": "transit-geometry",
+          "title": "Transit geometry",
+          "data_ref": "transit-bodies",
+          "coordinate": {
+            "type": "cartesian",
+            "equal_aspect": true
+          },
+          "layers": [
+            {
+              "id": "orbit",
+              "data_ref": "transit-orbit",
+              "mark": {
+                "type": "polygon",
+                "opacity": 0.12,
+                "stroke_width": 1.5
+              },
+              "encoding": {
+                "x": {
+                  "field": "x",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Projected x",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "y",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Projected y",
+                    "grid": true
+                  }
+                },
+                "group": {
+                  "field": "region",
+                  "type": "nominal"
+                },
+                "color": {
+                  "value": "Orbit",
+                  "type": "nominal",
+                  "scale_role": "semantic"
+                }
+              }
+            },
+            {
+              "id": "bodies",
+              "mark": {
+                "type": "ellipse",
+                "opacity": 0.72
+              },
+              "encoding": {
+                "x": {
+                  "field": "x",
+                  "type": "quantitative"
+                },
+                "y": {
+                  "field": "y",
+                  "type": "quantitative"
+                },
+                "x_radius": {
+                  "field": "x_radius",
+                  "type": "quantitative"
+                },
+                "y_radius": {
+                  "field": "y_radius",
+                  "type": "quantitative"
+                },
+                "color": {
+                  "field": "body",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": {
+                    "title": "Body"
+                  }
+                }
+              }
+            },
+            {
+              "id": "motion",
+              "data_ref": "transit-motion",
+              "mark": {
+                "type": "vector",
+                "role": "annotation",
+                "stroke_width": 2
+              },
+              "encoding": {
+                "x": {
+                  "field": "x",
+                  "type": "quantitative"
+                },
+                "y": {
+                  "field": "y",
+                  "type": "quantitative"
+                },
+                "x2": {
+                  "field": "x2",
+                  "type": "quantitative"
+                },
+                "y2": {
+                  "field": "y2",
+                  "type": "quantitative"
+                },
+                "color": {
+                  "value": "Motion",
+                  "type": "nominal",
+                  "scale_role": "semantic"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "transit-brightness",
+          "title": "Annotated brightness versus time",
+          "data_ref": "transit-light-curve",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "brightness",
+              "mark": {
+                "type": "line",
+                "stroke_width": 2.5
+              },
+              "encoding": {
+                "x": {
+                  "field": "time",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Time from mid-transit",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "brightness",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Relative brightness",
+                    "grid": true
+                  }
+                }
+              }
+            },
+            {
+              "id": "baseline",
+              "data_ref": "reference-one",
+              "mark": {
+                "type": "rule",
+                "role": "reference"
+              },
+              "encoding": {
+                "y": {
+                  "value": 1,
+                  "type": "quantitative"
+                }
+              }
+            },
+            {
+              "id": "depth-label",
+              "data_ref": "reference-one",
+              "mark": {
+                "type": "text",
+                "role": "annotation",
+                "dx": 6,
+                "dy": -6
+              },
+              "encoding": {
+                "x": {
+                  "value": 0.05,
+                  "type": "quantitative"
+                },
+                "y": {
+                  "value": 0.984,
+                  "type": "quantitative"
+                },
+                "text": {
+                  "value": "Transit depth",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage00-label-taxonomy",
+      "title": "Label taxonomy and adjudication",
+      "caption": "Label taxonomy and adjudication. Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "recipe": "generic.figure@1",
+      "layout": {
+        "type": "grid",
+        "columns": 2,
+        "gap": 16
+      },
+      "panels": [
+        {
+          "id": "disposition-counts",
+          "title": "Disposition counts",
+          "data_ref": "label-dispositions",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "bars",
+              "mark": {
+                "type": "bar"
+              },
+              "encoding": {
+                "x": {
+                  "field": "disposition",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Disposition"
+                  }
+                },
+                "y": {
+                  "field": "count",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Objects",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "field": "disposition",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": false
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "adjudication-status",
+          "title": "Adjudicated versus open",
+          "data_ref": "label-adjudication",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "bars",
+              "mark": {
+                "type": "bar",
+                "orient": "horizontal"
+              },
+              "encoding": {
+                "x": {
+                  "field": "count",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Objects",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "status",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Status"
+                  }
+                },
+                "color": {
+                  "field": "status",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": false
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage01-provenance",
+      "title": "Data provenance and coverage",
+      "caption": "Data provenance and coverage. Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "recipe": "generic.figure@1",
+      "layout": {
+        "type": "grid",
+        "columns": 2,
+        "gap": 16
+      },
+      "panels": [
+        {
+          "id": "missingness",
+          "title": "Feature missingness",
+          "data_ref": "provenance-missingness",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "missing-bars",
+              "mark": {
+                "type": "bar",
+                "orient": "horizontal"
+              },
+              "encoding": {
+                "x": {
+                  "field": "missing_fraction",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Missing fraction",
+                    "grid": true,
+                    "format": "percent"
+                  }
+                },
+                "y": {
+                  "field": "feature",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Feature"
+                  }
+                },
+                "color": {
+                  "value": "missing",
+                  "type": "nominal",
+                  "scale_role": "semantic"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "host-multiplicity",
+          "title": "Host multiplicity (log scale)",
+          "data_ref": "host-multiplicity",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "host-bars",
+              "mark": {
+                "type": "bar",
+                "orient": "horizontal"
+              },
+              "encoding": {
+                "x": {
+                  "field": "hosts",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Host systems",
+                    "grid": true
+                  },
+                  "scale_id": "host-log"
+                },
+                "y": {
+                  "field": "host_group",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Signals per host"
+                  }
+                },
+                "color": {
+                  "value": "hosts",
+                  "type": "nominal",
+                  "scale_role": "semantic"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "scales": [
+        {
+          "id": "host-log",
+          "type": "log",
+          "domain": [
+            1,
+            7000
+          ],
+          "title": "Host systems"
+        }
+      ]
+    },
+    {
+      "id": "stage02-quality-control",
+      "title": "Rule-based quality control",
+      "caption": "Rule-based quality control. Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "recipe": "generic.figure@1",
+      "layout": {
+        "type": "grid",
+        "columns": 2,
+        "gap": 16
+      },
+      "panels": [
+        {
+          "id": "rule-removals",
+          "title": "Rows removed by rule",
+          "data_ref": "quality-rule-removals",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "removal-bars",
+              "mark": {
+                "type": "bar",
+                "orient": "horizontal"
+              },
+              "encoding": {
+                "x": {
+                  "field": "removed",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Rows removed",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "rule",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Rule"
+                  }
+                },
+                "color": {
+                  "value": "removed",
+                  "type": "nominal",
+                  "scale_role": "semantic"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "retained-radius",
+          "title": "Retained radius distribution",
+          "data_ref": "retained-radius-histogram",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "radius-bars",
+              "mark": {
+                "type": "bar"
+              },
+              "encoding": {
+                "x": {
+                  "field": "log10_radius",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "log10 planet radius (Earth radii)",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "count",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Objects",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "value": "retained",
+                  "type": "nominal",
+                  "scale_role": "semantic"
+                }
+              }
+            },
+            {
+              "id": "radius-threshold",
+              "data_ref": "reference-one",
+              "mark": {
+                "type": "rule",
+                "role": "threshold",
+                "stroke_width": 2
+              },
+              "encoding": {
+                "x": {
+                  "value": 1.477121,
+                  "type": "quantitative"
+                }
+              }
+            },
+            {
+              "id": "threshold-label",
+              "data_ref": "reference-one",
+              "mark": {
+                "type": "text",
+                "role": "annotation",
+                "dx": 5,
+                "dy": -5
+              },
+              "encoding": {
+                "x": {
+                  "value": 1.477121,
+                  "type": "quantitative"
+                },
+                "y": {
+                  "value": 500,
+                  "type": "quantitative"
+                },
+                "text": {
+                  "value": "30 R_earth · 49 retained",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage03-structure",
+      "title": "Dependence and uncertainty structure",
+      "caption": "Dependence and uncertainty structure. Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "recipe": "generic.figure@1",
+      "layout": {
+        "type": "grid",
+        "columns": 3,
+        "gap": 16
+      },
+      "panels": [
+        {
+          "id": "correlation",
+          "title": "Diverging correlation heatmap",
+          "type": "matrix",
+          "data_ref": "structure-correlation",
+          "coordinate": {
+            "type": "matrix"
+          },
+          "layers": [
+            {
+              "id": "cells",
+              "mark": {
+                "type": "rect"
+              },
+              "encoding": {
+                "x": {
+                  "field": "column",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Feature"
+                  }
+                },
+                "y": {
+                  "field": "row",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Feature"
+                  }
+                },
+                "color": {
+                  "field": "value",
+                  "type": "quantitative",
+                  "scale_role": "diverging",
+                  "legend": {
+                    "title": "Correlation"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "mutual-information",
+          "title": "Mutual information heatmap",
+          "type": "matrix",
+          "data_ref": "structure-mutual-information",
+          "coordinate": {
+            "type": "matrix"
+          },
+          "layers": [
+            {
+              "id": "cells",
+              "mark": {
+                "type": "rect"
+              },
+              "encoding": {
+                "x": {
+                  "field": "column",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Feature"
+                  }
+                },
+                "y": {
+                  "field": "row",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Feature"
+                  }
+                },
+                "color": {
+                  "field": "value",
+                  "type": "quantitative",
+                  "scale_role": "sequential",
+                  "legend": {
+                    "title": "MI"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "uncertainty",
+          "title": "Measurement uncertainty (log scale)",
+          "data_ref": "structure-uncertainty",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "intervals",
+              "mark": {
+                "type": "errorbar",
+                "orient": "horizontal",
+                "stroke_width": 2
+              },
+              "encoding": {
+                "x": {
+                  "field": "estimate",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Typical uncertainty",
+                    "grid": true
+                  },
+                  "scale_id": "uncertainty-log"
+                },
+                "x_lower": {
+                  "field": "lower",
+                  "type": "quantitative",
+                  "scale_id": "uncertainty-log"
+                },
+                "x_upper": {
+                  "field": "upper",
+                  "type": "quantitative",
+                  "scale_id": "uncertainty-log"
+                },
+                "y": {
+                  "field": "feature",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Feature"
+                  }
+                },
+                "color": {
+                  "value": "uncertainty",
+                  "type": "nominal",
+                  "scale_role": "semantic"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "scales": [
+        {
+          "id": "uncertainty-log",
+          "type": "log",
+          "domain": [
+            0.0001,
+            20
+          ],
+          "title": "Median reported uncertainty (%)"
+        }
+      ]
+    },
+    {
+      "id": "stage04-feature-audit",
+      "title": "Feature semantics and transformation audit",
+      "caption": "Feature semantics and transformation audit. Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "recipe": "generic.figure@1",
+      "layout": {
+        "type": "grid",
+        "columns": 3,
+        "gap": 16
+      },
+      "panels": [
+        {
+          "id": "implied-constant",
+          "title": "One column, two conventions",
+          "data_ref": "implied-constant-histogram",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "histogram",
+              "mark": {
+                "type": "bar"
+              },
+              "encoding": {
+                "x": {
+                  "field": "value",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Implied constant (K)",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "count",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Objects",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "value": "constant",
+                  "type": "nominal",
+                  "scale_role": "semantic"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "conventions",
+          "title": "The convention tracks the label",
+          "data_ref": "feature-conventions",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "segments",
+              "mark": {
+                "type": "bar",
+                "orient": "horizontal"
+              },
+              "encoding": {
+                "x": {
+                  "field": "interval_end",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Fraction",
+                    "grid": true,
+                    "format": "percent"
+                  }
+                },
+                "x2": {
+                  "field": "interval_start",
+                  "type": "quantitative"
+                },
+                "y": {
+                  "field": "feature",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Disposition"
+                  }
+                },
+                "color": {
+                  "field": "convention",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": {
+                    "title": "Convention"
+                  }
+                },
+                "group": {
+                  "field": "convention",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "skew",
+          "title": "Skewness before and after",
+          "data_ref": "skew-before-after",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "identity",
+              "data_ref": "reference-one",
+              "mark": {
+                "type": "rule",
+                "role": "reference"
+              },
+              "encoding": {
+                "x": {
+                  "value": 0,
+                  "type": "quantitative"
+                },
+                "y": {
+                  "value": 0,
+                  "type": "quantitative"
+                },
+                "x2": {
+                  "value": 4.5,
+                  "type": "quantitative"
+                },
+                "y2": {
+                  "value": 4.5,
+                  "type": "quantitative"
+                }
+              }
+            },
+            {
+              "id": "features",
+              "mark": {
+                "type": "point",
+                "point_size": 54
+              },
+              "encoding": {
+                "x": {
+                  "field": "before",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Before",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "after",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "After",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "field": "feature",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": false
+                },
+                "tooltip": {
+                  "field": "feature",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage05-baseline",
+      "title": "Interpretable baseline",
+      "caption": "Interpretable baseline. Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "recipe": "generic.figure@1",
+      "layout": {
+        "type": "grid",
+        "columns": 2,
+        "gap": 16
+      },
+      "panels": [
+        {
+          "id": "loss",
+          "title": "Optimisation loss",
+          "data_ref": "baseline-loss",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "loss-line",
+              "mark": {
+                "type": "line",
+                "stroke_width": 2.5
+              },
+              "encoding": {
+                "x": {
+                  "field": "iteration",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Iteration",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "loss",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Objective",
+                    "grid": true
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "decision",
+          "title": "Two-feature labelled baseline",
+          "data_ref": "baseline-two-feature",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "boundary",
+              "data_ref": "baseline-boundary",
+              "mark": {
+                "type": "line",
+                "role": "reference",
+                "stroke_width": 2
+              },
+              "encoding": {
+                "x": {
+                  "field": "x",
+                  "type": "quantitative"
+                },
+                "y": {
+                  "field": "y",
+                  "type": "quantitative"
+                },
+                "color": {
+                  "value": "Decision boundary",
+                  "type": "nominal",
+                  "scale_role": "semantic"
+                }
+              }
+            },
+            {
+              "id": "objects",
+              "mark": {
+                "type": "point",
+                "point_size": 18,
+                "opacity": 0.62
+              },
+              "encoding": {
+                "x": {
+                  "field": "period_log",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "log orbital period",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "depth_log",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "log transit depth",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "field": "class",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": {
+                    "title": "Adjudicated label"
+                  }
+                },
+                "tooltip": {
+                  "field": "object_id",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage06-preprocessing",
+      "title": "Preprocessing diagnostics",
+      "caption": "Preprocessing diagnostics. Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "recipe": "generic.figure@1",
+      "layout": {
+        "type": "grid",
+        "columns": 3,
+        "gap": 16
+      },
+      "panels": [
+        {
+          "id": "native-variance",
+          "title": "Native feature variance (log)",
+          "data_ref": "native-variance",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "variance-bars",
+              "mark": {
+                "type": "bar",
+                "orient": "horizontal"
+              },
+              "encoding": {
+                "x": {
+                  "field": "variance",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Variance",
+                    "grid": true
+                  },
+                  "scale_id": "variance-log"
+                },
+                "y": {
+                  "field": "feature",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Feature"
+                  }
+                },
+                "color": {
+                  "value": "native",
+                  "type": "nominal",
+                  "scale_role": "semantic"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "scree-comparison",
+          "title": "Native versus standardised scree",
+          "data_ref": "preprocess-scree",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "scree-lines",
+              "mark": {
+                "type": "line",
+                "stroke_width": 2.2,
+                "point": true,
+                "point_size": 2.6
+              },
+              "encoding": {
+                "x": {
+                  "field": "component",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Component",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "variance",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Explained variance",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "field": "series",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": {
+                    "title": "Representation"
+                  }
+                },
+                "group": {
+                  "field": "series",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "feature-boxplots",
+          "title": "Standardised feature summaries",
+          "data_ref": "preprocess-boxes",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "boxes",
+              "mark": {
+                "type": "boxplot",
+                "opacity": 0.62
+              },
+              "encoding": {
+                "x": {
+                  "field": "feature",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Feature"
+                  }
+                },
+                "q1": {
+                  "field": "q1",
+                  "type": "quantitative"
+                },
+                "q3": {
+                  "field": "q3",
+                  "type": "quantitative"
+                },
+                "median": {
+                  "field": "median",
+                  "type": "quantitative"
+                },
+                "whisker_low": {
+                  "field": "whisker_low",
+                  "type": "quantitative"
+                },
+                "whisker_high": {
+                  "field": "whisker_high",
+                  "type": "quantitative"
+                },
+                "color": {
+                  "field": "feature",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": false
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "scales": [
+        {
+          "id": "variance-log",
+          "type": "log",
+          "domain": [
+            0.0001,
+            1000000000000
+          ],
+          "title": "Native variance"
+        }
+      ]
+    },
+    {
+      "id": "stage07-pca-diagnostics",
+      "title": "PCA diagnostics",
+      "recipe": "pca.diagnostics@1",
+      "recipe_config": {
+        "bindings": {
+          "scree": {
+            "data": "pca-scree",
+            "component": "component",
+            "variance": "variance",
+            "cumulative": "cumulative"
+          },
+          "loadings": {
+            "data": "pca-loadings",
+            "component": "component",
+            "feature": "feature",
+            "value": "value"
+          },
+          "circle": {
+            "data": "pca-circle",
+            "x": "x",
+            "y": "y",
+            "label": "feature"
+          },
+          "residuals": {
+            "data": "pca-residuals",
+            "component": "component",
+            "row": "row",
+            "column": "column",
+            "value": "value"
+          }
+        },
+        "params": {
+          "selected_components": 6,
+          "variance_threshold": 0.9,
+          "residual_components": [
+            2,
+            6,
+            8
+          ]
+        }
+      },
+      "layout": {
+        "type": "grid",
+        "columns": 3,
+        "rows": 2,
+        "gap": 16
+      },
+      "panels": [],
+      "caption": "PCA diagnostics. Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results."
+    },
+    {
+      "id": "stage08-geometry",
+      "title": "Neighbourhood geometry",
+      "caption": "Neighbourhood geometry. Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "recipe": "generic.figure@1",
+      "layout": {
+        "type": "grid",
+        "columns": 3,
+        "gap": 16
+      },
+      "panels": [
+        {
+          "id": "k-distance",
+          "title": "Sorted k-distance",
+          "data_ref": "k-distance",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "distance-line",
+              "mark": {
+                "type": "line",
+                "stroke_width": 2.2
+              },
+              "encoding": {
+                "x": {
+                  "field": "rank",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Sorted object rank",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "distance",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "k-distance",
+                    "grid": true
+                  }
+                }
+              }
+            },
+            {
+              "id": "epsilon",
+              "data_ref": "reference-one",
+              "mark": {
+                "type": "rule",
+                "role": "threshold",
+                "stroke_width": 2
+              },
+              "encoding": {
+                "y": {
+                  "value": 2.19,
+                  "type": "quantitative"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "density",
+          "title": "Local-density distribution",
+          "data_ref": "density-histogram",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "density-bars",
+              "mark": {
+                "type": "bar"
+              },
+              "encoding": {
+                "x": {
+                  "field": "log10_density",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "log10 local density",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "count",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Objects",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "value": "density",
+                  "type": "nominal",
+                  "scale_role": "semantic"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "metric-comparison",
+          "title": "Metric distance profiles",
+          "data_ref": "metric-distances",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "metric-lines",
+              "mark": {
+                "type": "line",
+                "stroke_width": 2
+              },
+              "encoding": {
+                "x": {
+                  "field": "rank",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Sorted rank",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "distance",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Normalised k-distance",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "field": "metric",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": {
+                    "title": "Metric"
+                  }
+                },
+                "group": {
+                  "field": "metric",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage09-embedding-sweep",
+      "title": "t-SNE and UMAP sweep",
+      "recipe": "embedding.small-multiples@1",
+      "recipe_config": {
+        "bindings": {
+          "points": {
+            "data": "embedding-sweep",
+            "facet": "facet",
+            "x": "x",
+            "y": "y",
+            "color": "disposition",
+            "tooltip": "object_id"
+          }
+        },
+        "params": {
+          "columns": 3,
+          "variants": [
+            {
+              "id": "tsne-10",
+              "label": "t-SNE · perplexity 10",
+              "value": "tsne-10"
+            },
+            {
+              "id": "tsne-30",
+              "label": "t-SNE · perplexity 30",
+              "value": "tsne-30"
+            },
+            {
+              "id": "tsne-80",
+              "label": "t-SNE · perplexity 80",
+              "value": "tsne-80"
+            },
+            {
+              "id": "umap-5",
+              "label": "UMAP · neighbours 5",
+              "value": "umap-5"
+            },
+            {
+              "id": "umap-15",
+              "label": "UMAP · neighbours 15",
+              "value": "umap-15"
+            },
+            {
+              "id": "umap-50",
+              "label": "UMAP · neighbours 50",
+              "value": "umap-50"
+            }
+          ]
+        }
+      },
+      "layout": {
+        "type": "grid",
+        "columns": 3,
+        "rows": 2,
+        "gap": 16
+      },
+      "panels": [],
+      "caption": "t-SNE and UMAP sweep. Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results."
+    },
+    {
+      "id": "stage10-embedding-validation",
+      "title": "Embedding validation",
+      "caption": "Embedding validation. Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "recipe": "generic.figure@1",
+      "layout": {
+        "type": "grid",
+        "columns": 3,
+        "gap": 16
+      },
+      "panels": [
+        {
+          "id": "neighbourhood-quality",
+          "title": "Quality against neighbourhood size",
+          "data_ref": "embedding-quality",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "quality-curves",
+              "mark": {
+                "type": "line",
+                "stroke_width": 2,
+                "point": true,
+                "point_size": 2.6
+              },
+              "encoding": {
+                "x": {
+                  "field": "k",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Neighbourhood size k",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "score",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Score",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "field": "series",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": {
+                    "title": "Method · metric"
+                  }
+                },
+                "group": {
+                  "field": "series",
+                  "type": "nominal"
+                }
+              }
+            },
+            {
+              "id": "random-null",
+              "data_ref": "reference-one",
+              "mark": {
+                "type": "rule",
+                "role": "reference",
+                "stroke_width": 1.8
+              },
+              "encoding": {
+                "y": {
+                  "value": 0.65,
+                  "type": "quantitative"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "shepard",
+          "title": "Shepard diagram · Spearman rho = 0.71",
+          "data_ref": "shepard-distances",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "pairs",
+              "mark": {
+                "type": "point",
+                "point_size": 10,
+                "opacity": 0.24
+              },
+              "encoding": {
+                "x": {
+                  "field": "feature_distance",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Feature-space distance",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "embedding_distance",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Embedding distance",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "value": "sampled pairs",
+                  "type": "nominal",
+                  "scale_role": "semantic"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "seed-reproducibility",
+          "title": "Procrustes disparity across seeds",
+          "data_ref": "seed-disparity",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "disparity-bars",
+              "mark": {
+                "type": "bar"
+              },
+              "encoding": {
+                "x": {
+                  "field": "seed_pair",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Seed pair"
+                  }
+                },
+                "y": {
+                  "field": "disparity",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Disparity",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "value": "UMAP",
+                  "type": "nominal",
+                  "scale_role": "semantic"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage11-partition-comparison",
+      "title": "Partition comparison on UMAP",
+      "caption": "Partition comparison on UMAP. Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "recipe": "generic.figure@1",
+      "layout": {
+        "type": "grid",
+        "columns": 3,
+        "gap": 16
+      },
+      "panels": [
+        {
+          "id": "kmeans-overlay",
+          "title": "k-means · k=4",
+          "data_ref": "partition-overlays",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "transform": {
+            "op": "filter",
+            "field": "method",
+            "predicate": {
+              "eq": "kmeans"
+            }
+          },
+          "layers": [
+            {
+              "id": "points",
+              "mark": {
+                "type": "point",
+                "point_size": 14,
+                "opacity": 0.62
+              },
+              "encoding": {
+                "x": {
+                  "field": "x",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "UMAP 1",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "y",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "UMAP 2",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "field": "cluster",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": {
+                    "title": "Assignment"
+                  }
+                },
+                "tooltip": {
+                  "field": "object_id",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "hdbscan-overlay",
+          "title": "HDBSCAN · min cluster size 25",
+          "data_ref": "partition-overlays",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "transform": {
+            "op": "filter",
+            "field": "method",
+            "predicate": {
+              "eq": "hdbscan"
+            }
+          },
+          "layers": [
+            {
+              "id": "points",
+              "mark": {
+                "type": "point",
+                "point_size": 14,
+                "opacity": 0.62
+              },
+              "encoding": {
+                "x": {
+                  "field": "x",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "UMAP 1",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "y",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "UMAP 2",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "field": "cluster",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": {
+                    "title": "Assignment"
+                  }
+                },
+                "tooltip": {
+                  "field": "object_id",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "dbscan-overlay",
+          "title": "DBSCAN · epsilon 2.19",
+          "data_ref": "partition-overlays",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "transform": {
+            "op": "filter",
+            "field": "method",
+            "predicate": {
+              "eq": "dbscan"
+            }
+          },
+          "layers": [
+            {
+              "id": "points",
+              "mark": {
+                "type": "point",
+                "point_size": 14,
+                "opacity": 0.62
+              },
+              "encoding": {
+                "x": {
+                  "field": "x",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "UMAP 1",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "y",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "UMAP 2",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "field": "cluster",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": {
+                    "title": "Assignment"
+                  }
+                },
+                "tooltip": {
+                  "field": "object_id",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage12-soft-assignment",
+      "title": "Gaussian-mixture soft assignment",
+      "caption": "Gaussian-mixture soft assignment. Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "recipe": "generic.figure@1",
+      "layout": {
+        "type": "grid",
+        "columns": 3,
+        "gap": 16
+      },
+      "panels": [
+        {
+          "id": "max-responsibility",
+          "title": "How confident is the mixture?",
+          "data_ref": "max-responsibility-histogram",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "histogram",
+              "mark": {
+                "type": "bar"
+              },
+              "encoding": {
+                "x": {
+                  "field": "responsibility",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Maximum responsibility",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "count",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Objects",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "value": "GMM",
+                  "type": "nominal",
+                  "scale_role": "semantic"
+                }
+              }
+            },
+            {
+              "id": "threshold",
+              "data_ref": "reference-one",
+              "mark": {
+                "type": "rule",
+                "role": "threshold",
+                "stroke_width": 2
+              },
+              "encoding": {
+                "x": {
+                  "value": 0.6,
+                  "type": "quantitative"
+                }
+              }
+            },
+            {
+              "id": "threshold-label",
+              "data_ref": "reference-one",
+              "mark": {
+                "type": "text",
+                "role": "annotation",
+                "dx": 5,
+                "dy": -5
+              },
+              "encoding": {
+                "x": {
+                  "value": 0.6,
+                  "type": "quantitative"
+                },
+                "y": {
+                  "value": 560,
+                  "type": "quantitative"
+                },
+                "text": {
+                  "value": "280 below 0.6 (4%)",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "responsibility-map",
+          "title": "Ambiguity is on the boundaries",
+          "data_ref": "responsibility-map",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "points",
+              "mark": {
+                "type": "point",
+                "point_size": 15,
+                "opacity": 0.72
+              },
+              "encoding": {
+                "x": {
+                  "field": "x",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "UMAP 1",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "y",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "UMAP 2",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "field": "max_responsibility",
+                  "type": "quantitative",
+                  "scale_id": "responsibility-color",
+                  "scale_role": "continuous",
+                  "legend": {
+                    "title": "Max responsibility"
+                  }
+                },
+                "tooltip": {
+                  "field": "object_id",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "responsibility-heatmap",
+          "title": "Sorted responsibility matrix",
+          "type": "matrix",
+          "data_ref": "responsibility-matrix",
+          "coordinate": {
+            "type": "matrix"
+          },
+          "layers": [
+            {
+              "id": "cells",
+              "mark": {
+                "type": "rect"
+              },
+              "encoding": {
+                "x": {
+                  "field": "component",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Component"
+                  }
+                },
+                "y": {
+                  "field": "object_id",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Objects sorted by component"
+                  }
+                },
+                "color": {
+                  "field": "responsibility",
+                  "type": "quantitative",
+                  "scale_id": "responsibility-color",
+                  "scale_role": "sequential",
+                  "legend": {
+                    "title": "Responsibility"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "scales": [
+        {
+          "id": "responsibility-color",
+          "type": "linear",
+          "domain": [
+            0,
+            1
+          ],
+          "range": [
+            "#E8EEF5",
+            "#1D4E89"
+          ],
+          "scheme": "sequential",
+          "title": "Responsibility"
+        }
+      ]
+    },
+    {
+      "id": "stage13-partition-validation-a",
+      "title": "Partition validation · model order and agreement",
+      "caption": "Partition validation · model order and agreement. Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "recipe": "generic.figure@1",
+      "layout": {
+        "type": "grid",
+        "columns": 3,
+        "gap": 16
+      },
+      "panels": [
+        {
+          "id": "silhouette",
+          "title": "Silhouette never gets good",
+          "data_ref": "silhouette-null",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "curves",
+              "mark": {
+                "type": "line",
+                "stroke_width": 2.2,
+                "point": true,
+                "point_size": 2.6
+              },
+              "encoding": {
+                "x": {
+                  "field": "k",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Cluster count k",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "score",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Silhouette",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "field": "series",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": {
+                    "title": "Series"
+                  }
+                },
+                "group": {
+                  "field": "series",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "bic",
+          "title": "BIC prefers k=10 at the range edge",
+          "data_ref": "gmm-bic",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "bic-line",
+              "mark": {
+                "type": "line",
+                "stroke_width": 2.2,
+                "point": true,
+                "point_size": 2.6
+              },
+              "encoding": {
+                "x": {
+                  "field": "k",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Components k",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "bic",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "BIC",
+                    "grid": true
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "agreement",
+          "title": "Agreement between methods and labels",
+          "data_ref": "partition-agreement",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "agreement-bars",
+              "mark": {
+                "type": "bar",
+                "orient": "horizontal"
+              },
+              "encoding": {
+                "x": {
+                  "field": "value",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Agreement",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "bar_label",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Comparison"
+                  }
+                },
+                "color": {
+                  "field": "metric",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": {
+                    "title": "Metric"
+                  }
+                },
+                "group": {
+                  "field": "metric",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage13-partition-validation-b",
+      "title": "Partition validation · space and reproducibility",
+      "caption": "Partition validation · space and reproducibility. Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "recipe": "generic.figure@1",
+      "layout": {
+        "type": "grid",
+        "columns": 2,
+        "gap": 16
+      },
+      "panels": [
+        {
+          "id": "space-scoring",
+          "title": "The same partition, scored two ways",
+          "data_ref": "silhouette-spaces",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "space-bars",
+              "mark": {
+                "type": "bar",
+                "orient": "horizontal"
+              },
+              "encoding": {
+                "x": {
+                  "field": "score",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Silhouette",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "bar_label",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Space · scoring space"
+                  }
+                },
+                "color": {
+                  "field": "scored_in",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": {
+                    "title": "Scored in"
+                  }
+                },
+                "group": {
+                  "field": "scored_in",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "seed-reproducibility",
+          "title": "Is the partition reproducible?",
+          "data_ref": "partition-seed-ari",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "ari-bars",
+              "mark": {
+                "type": "bar",
+                "orient": "horizontal"
+              },
+              "encoding": {
+                "x": {
+                  "field": "ari",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "ARI between reruns",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "method",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Method"
+                  }
+                },
+                "color": {
+                  "field": "method",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": false
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage14-vector-quantisation-a",
+      "title": "Vector quantisation · codebook and profiles",
+      "caption": "Vector quantisation · codebook and profiles. Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "recipe": "generic.figure@1",
+      "layout": {
+        "type": "grid",
+        "columns": 3,
+        "gap": 16
+      },
+      "panels": [
+        {
+          "id": "distortion",
+          "title": "Distortion versus codebook size",
+          "data_ref": "vq-distortion",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "distortion-line",
+              "mark": {
+                "type": "line",
+                "stroke_width": 2.2,
+                "point": true,
+                "point_size": 2.6
+              },
+              "encoding": {
+                "x": {
+                  "field": "k",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Codebook size k",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "distortion",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Distortion",
+                    "grid": true
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "design-matrix",
+          "title": "Design matrix, cluster-sorted",
+          "type": "matrix",
+          "data_ref": "vq-design-matrix",
+          "coordinate": {
+            "type": "matrix"
+          },
+          "layers": [
+            {
+              "id": "cells",
+              "mark": {
+                "type": "rect"
+              },
+              "encoding": {
+                "x": {
+                  "field": "feature",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Seriated feature"
+                  }
+                },
+                "y": {
+                  "field": "object_id",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Objects sorted by codeword"
+                  }
+                },
+                "color": {
+                  "field": "z",
+                  "type": "quantitative",
+                  "scale_role": "diverging",
+                  "legend": {
+                    "title": "z score"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "planet-fraction",
+          "title": "Codewords are not classes",
+          "data_ref": "vq-planet-fraction",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "fractions",
+              "mark": {
+                "type": "bar"
+              },
+              "encoding": {
+                "x": {
+                  "field": "codeword",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Codeword"
+                  }
+                },
+                "y": {
+                  "field": "planet_fraction",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Planet fraction",
+                    "grid": true,
+                    "format": "percent"
+                  }
+                },
+                "color": {
+                  "field": "codeword",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": false
+                }
+              }
+            },
+            {
+              "id": "base-rate",
+              "data_ref": "reference-one",
+              "mark": {
+                "type": "rule",
+                "role": "reference",
+                "stroke_width": 2
+              },
+              "encoding": {
+                "y": {
+                  "value": 0.46,
+                  "type": "quantitative"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage14-vector-quantisation-b",
+      "title": "Vector quantisation · space comparison",
+      "caption": "Vector quantisation · space comparison. Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "recipe": "generic.figure@1",
+      "layout": {
+        "type": "grid",
+        "columns": 3,
+        "gap": 16
+      },
+      "panels": [
+        {
+          "id": "reconstruction",
+          "title": "What the codebook is for",
+          "data_ref": "vq-reconstruction",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "reconstruction-lines",
+              "mark": {
+                "type": "line",
+                "stroke_width": 2.2,
+                "point": true,
+                "point_size": 2.6
+              },
+              "encoding": {
+                "x": {
+                  "field": "k",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Codebook size k",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "error",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "11-D reconstruction error",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "field": "space",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": {
+                    "title": "Codebook space"
+                  }
+                },
+                "group": {
+                  "field": "space",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "excess-error",
+          "title": "Cost of quantising in the embedding",
+          "data_ref": "vq-excess-error",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "excess-bars",
+              "mark": {
+                "type": "bar"
+              },
+              "encoding": {
+                "x": {
+                  "field": "k",
+                  "type": "ordinal",
+                  "axis": {
+                    "title": "Codebook size k"
+                  }
+                },
+                "y": {
+                  "field": "excess_percent",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Excess error (%)",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "value": "embedding cost",
+                  "type": "nominal",
+                  "scale_role": "semantic"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "map-agreement",
+          "title": "Tidiness on the map and agreement",
+          "data_ref": "vq-map-agreement",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "agreement-lines",
+              "mark": {
+                "type": "line",
+                "stroke_width": 2.2,
+                "point": true,
+                "point_size": 2.6
+              },
+              "encoding": {
+                "x": {
+                  "field": "k",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Codebook size k",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "score",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Score",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "field": "series",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": {
+                    "title": "Metric"
+                  }
+                },
+                "group": {
+                  "field": "series",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage14-codeword-explorer",
+      "title": "Interactive codeword explorer",
+      "caption": "Interactive codeword explorer. Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "recipe": "generic.figure@1",
+      "layout": {
+        "type": "grid",
+        "columns": 2,
+        "gap": 16
+      },
+      "panels": [
+        {
+          "id": "codeword-map",
+          "title": "Codeword map",
+          "data_ref": "vq-explorer-points",
+          "coordinate": {
+            "type": "canvas"
+          },
+          "layers": [
+            {
+              "id": "codeword-points",
+              "mark": {
+                "type": "point",
+                "point_size": 16,
+                "opacity": 0.72
+              },
+              "encoding": {
+                "x": {
+                  "field": "x",
+                  "type": "quantitative"
+                },
+                "y": {
+                  "field": "y",
+                  "type": "quantitative"
+                },
+                "color": {
+                  "field": "codeword",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": {
+                    "title": "Codeword"
+                  }
+                },
+                "tooltip": {
+                  "field": "object_id",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "codeword-profile",
+          "title": "Hovered codeword feature profile",
+          "data_ref": "vq-explorer-profiles",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "profile-errors",
+              "mark": {
+                "type": "errorbar",
+                "stroke_width": 1.5
+              },
+              "encoding": {
+                "x": {
+                  "field": "feature",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Feature"
+                  }
+                },
+                "y": {
+                  "field": "mean",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Mean z score",
+                    "grid": true
+                  },
+                  "scale_id": "profile-y"
+                },
+                "y_lower": {
+                  "field": "lower",
+                  "type": "quantitative",
+                  "scale_id": "profile-y"
+                },
+                "y_upper": {
+                  "field": "upper",
+                  "type": "quantitative",
+                  "scale_id": "profile-y"
+                },
+                "color": {
+                  "field": "codeword",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": {
+                    "title": "Codeword"
+                  }
+                },
+                "group": {
+                  "field": "codeword",
+                  "type": "nominal"
+                }
+              }
+            },
+            {
+              "id": "profile-points",
+              "mark": {
+                "type": "point",
+                "point_size": 32,
+                "opacity": 0.85
+              },
+              "encoding": {
+                "x": {
+                  "field": "feature",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Feature"
+                  }
+                },
+                "y": {
+                  "field": "mean",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Mean z score",
+                    "grid": true
+                  },
+                  "scale_id": "profile-y"
+                },
+                "color": {
+                  "field": "codeword",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": false
+                },
+                "group": {
+                  "field": "codeword",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "scales": [
+        {
+          "id": "profile-y",
+          "type": "linear",
+          "domain": [
+            -3,
+            3
+          ],
+          "title": "Feature z score"
+        }
+      ],
+      "interactions": [
+        {
+          "id": "explorer-space",
+          "type": "parameter",
+          "parameter": "space",
+          "control": "select",
+          "label": "Codebook space",
+          "options": [
+            "PCA-6",
+            "PCA-6-to-UMAP-2"
+          ],
+          "default": "PCA-6",
+          "targets": [
+            "codeword-map/codeword-points",
+            "codeword-profile/profile-points",
+            "codeword-profile/profile-errors"
+          ]
+        },
+        {
+          "id": "explorer-k",
+          "type": "parameter",
+          "parameter": "k",
+          "control": "range",
+          "label": "Codebook size k",
+          "minimum": 2,
+          "maximum": 16,
+          "step": 2,
+          "default": 8,
+          "targets": [
+            "codeword-map/codeword-points",
+            "codeword-profile/profile-points",
+            "codeword-profile/profile-errors"
+          ]
+        },
+        {
+          "id": "explorer-map-tooltip",
+          "type": "tooltip",
+          "targets": [
+            "codeword-map/codeword-points"
+          ],
+          "fields": [
+            "object_id",
+            "codeword",
+            "space",
+            "k"
+          ],
+          "mode": "nearest"
+        },
+        {
+          "id": "explorer-profile-tooltip",
+          "type": "tooltip",
+          "targets": [
+            "codeword-profile/profile-points",
+            "codeword-profile/profile-errors"
+          ],
+          "fields": [
+            "codeword",
+            "feature",
+            "mean",
+            "lower",
+            "upper"
+          ],
+          "mode": "nearest"
+        },
+        {
+          "id": "explorer-linked-codeword",
+          "type": "linked_highlight",
+          "targets": [
+            "codeword-map/codeword-points",
+            "codeword-profile/profile-points",
+            "codeword-profile/profile-errors"
+          ],
+          "fields": [
+            "codeword"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage15-task-setup",
+      "title": "Leak-safe supervised task setup",
+      "caption": "Leak-safe supervised task setup. Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "recipe": "generic.figure@1",
+      "layout": {
+        "type": "grid",
+        "columns": 3,
+        "gap": 16
+      },
+      "panels": [
+        {
+          "id": "split-leakage",
+          "title": "Why the split must be grouped",
+          "data_ref": "split-leakage",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "leakage-bars",
+              "mark": {
+                "type": "bar"
+              },
+              "encoding": {
+                "x": {
+                  "field": "strategy",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Split strategy"
+                  }
+                },
+                "y": {
+                  "field": "shared_hosts",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Hosts in both splits",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "field": "strategy",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": false
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "class-balance",
+          "title": "Class balance after the split",
+          "data_ref": "split-class-balance",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "class-segments",
+              "mark": {
+                "type": "bar",
+                "orient": "horizontal"
+              },
+              "encoding": {
+                "x": {
+                  "field": "interval_end",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Rows",
+                    "grid": true
+                  }
+                },
+                "x2": {
+                  "field": "interval_start",
+                  "type": "quantitative"
+                },
+                "y": {
+                  "field": "split",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Split"
+                  }
+                },
+                "color": {
+                  "field": "class",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": {
+                    "title": "Class"
+                  }
+                },
+                "group": {
+                  "field": "class",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "pipeline-order",
+          "title": "Pipeline order · hard rule",
+          "type": "diagram",
+          "data_ref": "pipeline-steps",
+          "coordinate": {
+            "type": "flow"
+          },
+          "layers": [
+            {
+              "id": "steps",
+              "mark": {
+                "type": "node"
+              },
+              "encoding": {
+                "key": {
+                  "field": "id",
+                  "type": "nominal"
+                },
+                "text": {
+                  "field": "label",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage16-interpretable-models",
+      "title": "Interpretable supervised models",
+      "caption": "Interpretable supervised models. Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "recipe": "generic.figure@1",
+      "layout": {
+        "type": "grid",
+        "columns": 2,
+        "rows": 2,
+        "gap": 16
+      },
+      "panels": [
+        {
+          "id": "coefficients",
+          "title": "What the linear model uses",
+          "data_ref": "interpretable-coefficients",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "coefficient-bars",
+              "mark": {
+                "type": "bar",
+                "orient": "horizontal"
+              },
+              "encoding": {
+                "x": {
+                  "field": "coefficient",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Standardised coefficient",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "feature",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Feature"
+                  }
+                },
+                "color": {
+                  "field": "coefficient",
+                  "type": "quantitative",
+                  "scale_role": "diverging",
+                  "legend": {
+                    "title": "Coefficient"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "roc",
+          "title": "Held-out ROC",
+          "data_ref": "interpretable-roc",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "chance",
+              "data_ref": "reference-one",
+              "mark": {
+                "type": "rule",
+                "role": "reference"
+              },
+              "encoding": {
+                "x": {
+                  "value": 0,
+                  "type": "quantitative"
+                },
+                "y": {
+                  "value": 0,
+                  "type": "quantitative"
+                },
+                "x2": {
+                  "value": 1,
+                  "type": "quantitative"
+                },
+                "y2": {
+                  "value": 1,
+                  "type": "quantitative"
+                }
+              }
+            },
+            {
+              "id": "roc-lines",
+              "mark": {
+                "type": "line",
+                "stroke_width": 2.2
+              },
+              "encoding": {
+                "x": {
+                  "field": "fpr",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "False-positive rate",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "tpr",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "True-positive rate",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "field": "model",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": {
+                    "title": "Model"
+                  }
+                },
+                "group": {
+                  "field": "model",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "depth-sweep",
+          "title": "Where the tree starts memorising",
+          "data_ref": "tree-depth-sweep",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "depth-lines",
+              "mark": {
+                "type": "line",
+                "stroke_width": 2.2,
+                "point": true,
+                "point_size": 2.6
+              },
+              "encoding": {
+                "x": {
+                  "field": "depth",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Maximum depth",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "accuracy",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Accuracy",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "field": "split",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": {
+                    "title": "Split"
+                  }
+                },
+                "group": {
+                  "field": "split",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "decision-tree",
+          "title": "Depth-3 tree, in full",
+          "type": "tree",
+          "data_ref": "decision-tree-nodes",
+          "coordinate": {
+            "type": "tree"
+          },
+          "layers": [
+            {
+              "id": "tree-links",
+              "data_ref": "decision-tree-links",
+              "mark": {
+                "type": "link",
+                "stroke_width": 1.5
+              },
+              "encoding": {
+                "from": {
+                  "field": "source",
+                  "type": "nominal"
+                },
+                "to": {
+                  "field": "target",
+                  "type": "nominal"
+                }
+              }
+            },
+            {
+              "id": "tree-nodes",
+              "mark": {
+                "type": "node",
+                "opacity": 0.86
+              },
+              "encoding": {
+                "key": {
+                  "field": "id",
+                  "type": "nominal"
+                },
+                "text": {
+                  "field": "label",
+                  "type": "nominal"
+                },
+                "color": {
+                  "field": "kind",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": {
+                    "title": "Node"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage17-ensembles",
+      "title": "Ensemble gains and feature use",
+      "caption": "Ensemble gains and feature use. Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "recipe": "generic.figure@1",
+      "layout": {
+        "type": "grid",
+        "columns": 3,
+        "gap": 16
+      },
+      "panels": [
+        {
+          "id": "auc",
+          "title": "What the ensemble buys",
+          "data_ref": "ensemble-auc",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "auc-bars",
+              "mark": {
+                "type": "bar"
+              },
+              "encoding": {
+                "x": {
+                  "field": "model",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Model"
+                  }
+                },
+                "y": {
+                  "field": "auc",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Held-out AUC",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "field": "model",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": false
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "importance",
+          "title": "What the forest uses",
+          "data_ref": "permutation-importance",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "importance-bars",
+              "mark": {
+                "type": "bar"
+              },
+              "encoding": {
+                "x": {
+                  "field": "feature",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Feature"
+                  }
+                },
+                "y": {
+                  "field": "mean",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Mean AUC drop",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "value": "Random forest",
+                  "type": "nominal",
+                  "scale_role": "semantic"
+                }
+              }
+            },
+            {
+              "id": "importance-errors",
+              "mark": {
+                "type": "errorbar",
+                "stroke_width": 1.6
+              },
+              "encoding": {
+                "x": {
+                  "field": "feature",
+                  "type": "nominal"
+                },
+                "y": {
+                  "field": "mean",
+                  "type": "quantitative"
+                },
+                "y_lower": {
+                  "field": "lower",
+                  "type": "quantitative"
+                },
+                "y_upper": {
+                  "field": "upper",
+                  "type": "quantitative"
+                },
+                "color": {
+                  "value": "15 shuffles",
+                  "type": "nominal",
+                  "scale_role": "semantic"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "agreement",
+          "title": "Linear and nonlinear agreement",
+          "data_ref": "linear-nonlinear-agreement",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "features",
+              "mark": {
+                "type": "point",
+                "point_size": 44
+              },
+              "encoding": {
+                "x": {
+                  "field": "coefficient_abs",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Absolute logistic coefficient",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "importance",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Permutation importance",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "field": "feature",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": false
+                }
+              }
+            },
+            {
+              "id": "labels",
+              "mark": {
+                "type": "text",
+                "role": "annotation",
+                "dx": 5,
+                "dy": -5
+              },
+              "encoding": {
+                "x": {
+                  "field": "coefficient_abs",
+                  "type": "quantitative"
+                },
+                "y": {
+                  "field": "importance",
+                  "type": "quantitative"
+                },
+                "text": {
+                  "field": "feature",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage18-validation",
+      "title": "Grouped validation and calibration",
+      "caption": "Grouped validation and calibration. Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "recipe": "generic.figure@1",
+      "layout": {
+        "type": "grid",
+        "columns": 2,
+        "rows": 2,
+        "gap": 16
+      },
+      "panels": [
+        {
+          "id": "cv",
+          "title": "Scores against their nulls",
+          "data_ref": "cv-scores",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "score-bars",
+              "mark": {
+                "type": "bar"
+              },
+              "encoding": {
+                "x": {
+                  "field": "model",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Model"
+                  }
+                },
+                "y": {
+                  "field": "mean",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Balanced accuracy",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "field": "model",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": false
+                }
+              }
+            },
+            {
+              "id": "score-errors",
+              "mark": {
+                "type": "errorbar",
+                "stroke_width": 1.6
+              },
+              "encoding": {
+                "x": {
+                  "field": "model",
+                  "type": "nominal"
+                },
+                "y": {
+                  "field": "mean",
+                  "type": "quantitative"
+                },
+                "y_lower": {
+                  "field": "lower",
+                  "type": "quantitative"
+                },
+                "y_upper": {
+                  "field": "upper",
+                  "type": "quantitative"
+                },
+                "color": {
+                  "value": "SE",
+                  "type": "nominal",
+                  "scale_role": "semantic"
+                }
+              }
+            },
+            {
+              "id": "majority",
+              "data_ref": "reference-one",
+              "mark": {
+                "type": "rule",
+                "role": "reference"
+              },
+              "encoding": {
+                "y": {
+                  "value": 0.539,
+                  "type": "quantitative"
+                }
+              }
+            },
+            {
+              "id": "permuted",
+              "data_ref": "reference-one",
+              "mark": {
+                "type": "rule",
+                "role": "reference"
+              },
+              "encoding": {
+                "y": {
+                  "value": 0.5,
+                  "type": "quantitative"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "learning",
+          "title": "More data would still help",
+          "data_ref": "learning-curve",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "heldout-band",
+              "transform": {
+                "op": "filter",
+                "field": "series",
+                "predicate": {
+                  "eq": "Held-out"
+                }
+              },
+              "mark": {
+                "type": "band",
+                "role": "uncertainty",
+                "opacity": 0.2
+              },
+              "encoding": {
+                "x": {
+                  "field": "n_train",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Training rows",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "lower",
+                  "type": "quantitative"
+                },
+                "y2": {
+                  "field": "upper",
+                  "type": "quantitative"
+                },
+                "color": {
+                  "value": "Held-out uncertainty",
+                  "type": "nominal",
+                  "scale_role": "semantic"
+                }
+              }
+            },
+            {
+              "id": "learning-lines",
+              "mark": {
+                "type": "line",
+                "stroke_width": 2.2,
+                "point": true,
+                "point_size": 2.6
+              },
+              "encoding": {
+                "x": {
+                  "field": "n_train",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Training rows",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "score",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Balanced accuracy",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "field": "series",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": {
+                    "title": "Series"
+                  }
+                },
+                "group": {
+                  "field": "series",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "calibration",
+          "title": "Calibration · random forest",
+          "data_ref": "calibration",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "identity",
+              "data_ref": "reference-one",
+              "mark": {
+                "type": "rule",
+                "role": "reference"
+              },
+              "encoding": {
+                "x": {
+                  "value": 0,
+                  "type": "quantitative"
+                },
+                "y": {
+                  "value": 0,
+                  "type": "quantitative"
+                },
+                "x2": {
+                  "value": 1,
+                  "type": "quantitative"
+                },
+                "y2": {
+                  "value": 1,
+                  "type": "quantitative"
+                }
+              }
+            },
+            {
+              "id": "observed",
+              "mark": {
+                "type": "line",
+                "stroke_width": 2.2
+              },
+              "encoding": {
+                "x": {
+                  "field": "predicted",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Predicted probability",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "observed",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Observed frequency",
+                    "grid": true
+                  }
+                }
+              }
+            },
+            {
+              "id": "observed-points",
+              "mark": {
+                "type": "point",
+                "point_size": 34
+              },
+              "encoding": {
+                "x": {
+                  "field": "predicted",
+                  "type": "quantitative"
+                },
+                "y": {
+                  "field": "observed",
+                  "type": "quantitative"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "confusion",
+          "title": "Confusion · row normalised",
+          "type": "matrix",
+          "data_ref": "confusion",
+          "coordinate": {
+            "type": "matrix"
+          },
+          "layers": [
+            {
+              "id": "cells",
+              "mark": {
+                "type": "rect"
+              },
+              "encoding": {
+                "x": {
+                  "field": "predicted",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Predicted"
+                  }
+                },
+                "y": {
+                  "field": "actual",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Actual"
+                  }
+                },
+                "color": {
+                  "field": "value",
+                  "type": "quantitative",
+                  "scale_role": "sequential",
+                  "legend": {
+                    "title": "Row fraction"
+                  }
+                }
+              }
+            },
+            {
+              "id": "values",
+              "mark": {
+                "type": "text",
+                "role": "annotation"
+              },
+              "encoding": {
+                "x": {
+                  "field": "predicted",
+                  "type": "nominal"
+                },
+                "y": {
+                  "field": "actual",
+                  "type": "nominal"
+                },
+                "text": {
+                  "field": "value",
+                  "type": "quantitative",
+                  "format": "percent"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stage19-scientific-close",
+      "title": "Back to the science",
+      "caption": "Back to the science. Controlled illustrative data for renderer acceptance; values are not reconstructed TESS scientific results.",
+      "recipe": "generic.figure@1",
+      "layout": {
+        "type": "grid",
+        "columns": 3,
+        "gap": 16
+      },
+      "panels": [
+        {
+          "id": "confounders",
+          "title": "Confounder check, every metadata column",
+          "data_ref": "confounder-nmi",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "nmi-bars",
+              "mark": {
+                "type": "bar",
+                "orient": "horizontal"
+              },
+              "encoding": {
+                "x": {
+                  "field": "nmi",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Normalised mutual information",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "bar_label",
+                  "type": "nominal",
+                  "axis": {
+                    "title": "Metadata · target"
+                  }
+                },
+                "color": {
+                  "field": "target",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": {
+                    "title": "Compared with"
+                  }
+                },
+                "group": {
+                  "field": "target",
+                  "type": "nominal"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "sky",
+          "title": "Clusters are not a patch of sky",
+          "data_ref": "sky-map",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "sky-points",
+              "mark": {
+                "type": "point",
+                "point_size": 12,
+                "opacity": 0.48
+              },
+              "encoding": {
+                "x": {
+                  "field": "ra_deg",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Right ascension (deg)",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "dec_deg",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Declination (deg)",
+                    "grid": true
+                  }
+                },
+                "color": {
+                  "field": "cluster",
+                  "type": "nominal",
+                  "scale_role": "semantic",
+                  "legend": {
+                    "title": "k-means cluster"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "time",
+          "title": "The sample is not stationary in time",
+          "data_ref": "yearly-planet-fraction",
+          "coordinate": {
+            "type": "cartesian"
+          },
+          "layers": [
+            {
+              "id": "fraction-line",
+              "mark": {
+                "type": "line",
+                "stroke_width": 2.2,
+                "point": true,
+                "point_size": 2.6
+              },
+              "encoding": {
+                "x": {
+                  "field": "year",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "TOI-issued year",
+                    "grid": true
+                  }
+                },
+                "y": {
+                  "field": "planet_fraction",
+                  "type": "quantitative",
+                  "axis": {
+                    "title": "Adjudicated planet fraction",
+                    "grid": true,
+                    "format": "percent"
+                  }
+                }
+              }
+            },
+            {
+              "id": "base-rate",
+              "data_ref": "reference-one",
+              "mark": {
+                "type": "rule",
+                "role": "reference",
+                "stroke_width": 1.8
+              },
+              "encoding": {
+                "y": {
+                  "value": 0.46,
+                  "type": "quantitative"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

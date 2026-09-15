@@ -1,0 +1,90 @@
+[
+  {
+    "feature": "pl_orbper",
+    "q1": -0.72,
+    "median": -0.04,
+    "q3": 0.69,
+    "whisker_low": -1.8,
+    "whisker_high": 1.7
+  },
+  {
+    "feature": "pl_trandurh",
+    "q1": -0.6699999999999999,
+    "median": -0.02,
+    "q3": 0.73,
+    "whisker_low": -1.8800000000000001,
+    "whisker_high": 1.81
+  },
+  {
+    "feature": "pl_trandep",
+    "q1": -0.62,
+    "median": 0,
+    "q3": 0.7699999999999999,
+    "whisker_low": -1.96,
+    "whisker_high": 1.92
+  },
+  {
+    "feature": "pl_rade",
+    "q1": -0.57,
+    "median": 0.019999999999999997,
+    "q3": 0.8099999999999999,
+    "whisker_low": -2.04,
+    "whisker_high": 2.03
+  },
+  {
+    "feature": "pl_insol",
+    "q1": -0.52,
+    "median": 0.04,
+    "q3": 0.85,
+    "whisker_low": -2.12,
+    "whisker_high": 2.14
+  },
+  {
+    "feature": "st_tmag",
+    "q1": -0.47,
+    "median": 0.060000000000000005,
+    "q3": 0.8899999999999999,
+    "whisker_low": -2.2,
+    "whisker_high": 2.25
+  },
+  {
+    "feature": "st_dist",
+    "q1": -0.41999999999999993,
+    "median": 0.07999999999999999,
+    "q3": 0.9299999999999999,
+    "whisker_low": -2.2800000000000002,
+    "whisker_high": 2.36
+  },
+  {
+    "feature": "st_teff",
+    "q1": -0.36999999999999994,
+    "median": 0.1,
+    "q3": 0.97,
+    "whisker_low": -2.3600000000000003,
+    "whisker_high": 2.4699999999999998
+  },
+  {
+    "feature": "st_logg",
+    "q1": -0.31999999999999995,
+    "median": 0.12,
+    "q3": 1.01,
+    "whisker_low": -2.44,
+    "whisker_high": 2.58
+  },
+  {
+    "feature": "st_rad",
+    "q1": -0.26999999999999996,
+    "median": 0.13999999999999999,
+    "q3": 1.0499999999999998,
+    "whisker_low": -2.52,
+    "whisker_high": 2.69
+  },
+  {
+    "feature": "pm_total",
+    "q1": -0.21999999999999997,
+    "median": 0.16,
+    "q3": 1.0899999999999999,
+    "whisker_low": -2.6,
+    "whisker_high": 2.8
+  }
+]

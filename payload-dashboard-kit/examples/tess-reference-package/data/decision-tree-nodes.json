@@ -1,0 +1,77 @@
+[
+  {
+    "id": "node-0",
+    "label": "pl_orbper <= 0.2",
+    "kind": "split"
+  },
+  {
+    "id": "node-1",
+    "label": "pl_trandurh <= 0.37",
+    "kind": "split"
+  },
+  {
+    "id": "node-2",
+    "label": "pl_trandep <= 0.54",
+    "kind": "split"
+  },
+  {
+    "id": "node-3",
+    "label": "pl_rade <= 0.71",
+    "kind": "split"
+  },
+  {
+    "id": "node-4",
+    "label": "pl_insol <= 0.88",
+    "kind": "split"
+  },
+  {
+    "id": "node-5",
+    "label": "st_tmag <= 1.05",
+    "kind": "split"
+  },
+  {
+    "id": "node-6",
+    "label": "st_dist <= 1.22",
+    "kind": "split"
+  },
+  {
+    "id": "node-7",
+    "label": "Planet · 15%",
+    "kind": "leaf"
+  },
+  {
+    "id": "node-8",
+    "label": "False positive · 16%",
+    "kind": "leaf"
+  },
+  {
+    "id": "node-9",
+    "label": "Planet · 17%",
+    "kind": "leaf"
+  },
+  {
+    "id": "node-10",
+    "label": "False positive · 18%",
+    "kind": "leaf"
+  },
+  {
+    "id": "node-11",
+    "label": "Planet · 19%",
+    "kind": "leaf"
+  },
+  {
+    "id": "node-12",
+    "label": "False positive · 20%",
+    "kind": "leaf"
+  },
+  {
+    "id": "node-13",
+    "label": "Planet · 21%",
+    "kind": "leaf"
+  },
+  {
+    "id": "node-14",
+    "label": "False positive · 22%",
+    "kind": "leaf"
+  }
+]

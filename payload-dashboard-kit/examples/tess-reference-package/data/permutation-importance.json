@@ -1,0 +1,68 @@
+[
+  {
+    "feature": "pl_orbper",
+    "mean": 0.052,
+    "lower": 0.048,
+    "upper": 0.055999999999999994
+  },
+  {
+    "feature": "pl_trandurh",
+    "mean": 0.031,
+    "lower": 0.025,
+    "upper": 0.037
+  },
+  {
+    "feature": "pl_trandep",
+    "mean": 0.047,
+    "lower": 0.039,
+    "upper": 0.055
+  },
+  {
+    "feature": "pl_rade",
+    "mean": 0.081,
+    "lower": 0.07100000000000001,
+    "upper": 0.091
+  },
+  {
+    "feature": "pl_insol",
+    "mean": 0.09,
+    "lower": 0.086,
+    "upper": 0.094
+  },
+  {
+    "feature": "st_tmag",
+    "mean": 0.018,
+    "lower": 0.011999999999999999,
+    "upper": 0.024
+  },
+  {
+    "feature": "st_dist",
+    "mean": 0.039,
+    "lower": 0.031,
+    "upper": 0.047
+  },
+  {
+    "feature": "st_teff",
+    "mean": 0.022,
+    "lower": 0.011999999999999999,
+    "upper": 0.032
+  },
+  {
+    "feature": "st_logg",
+    "mean": 0.028,
+    "lower": 0.024,
+    "upper": 0.032
+  },
+  {
+    "feature": "st_rad",
+    "mean": 0.064,
+    "lower": 0.058,
+    "upper": 0.07
+  },
+  {
+    "feature": "pm_total",
+    "mean": 0.035,
+    "lower": 0.027000000000000003,
+    "upper": 0.043000000000000003
+  }
+]

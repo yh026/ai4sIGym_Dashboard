@@ -1,0 +1,65 @@
+[
+  {
+    "body": "StarRing",
+    "x": 0.0,
+    "x_radius": 0.25,
+    "y": 0.0,
+    "y_radius": 0.25
+  },
+  {
+    "body": "StarRing",
+    "x": 0.0,
+    "x_radius": 0.48,
+    "y": 0.0,
+    "y_radius": 0.48
+  },
+  {
+    "body": "StarRing",
+    "x": 0.0,
+    "x_radius": 0.7,
+    "y": 0.0,
+    "y_radius": 0.7
+  },
+  {
+    "body": "StarRing",
+    "x": 0.0,
+    "x_radius": 0.9,
+    "y": 0.0,
+    "y_radius": 0.9
+  },
+  {
+    "body": "PlanetOutline",
+    "x": -1.35,
+    "x_radius": 0.13,
+    "y": 0.12,
+    "y_radius": 0.13
+  },
+  {
+    "body": "PlanetOutline",
+    "x": -0.68,
+    "x_radius": 0.13,
+    "y": 0.12,
+    "y_radius": 0.13
+  },
+  {
+    "body": "PlanetOutline",
+    "x": 0.0,
+    "x_radius": 0.13,
+    "y": 0.12,
+    "y_radius": 0.13
+  },
+  {
+    "body": "PlanetOutline",
+    "x": 0.68,
+    "x_radius": 0.13,
+    "y": 0.12,
+    "y_radius": 0.13
+  },
+  {
+    "body": "PlanetOutline",
+    "x": 1.35,
+    "x_radius": 0.13,
+    "y": 0.12,
+    "y_radius": 0.13
+  }
+]

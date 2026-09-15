@@ -1,0 +1,1766 @@
+[
+  {
+    "region": "StarFill",
+    "vertex_order": 0,
+    "x": 0.9,
+    "y": 0.0
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 1,
+    "x": 0.8923003752364294,
+    "y": 0.11747357299804642
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 2,
+    "x": 0.8693332436601615,
+    "y": 0.23293714059226867
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 3,
+    "x": 0.831491579260158,
+    "y": 0.3444150891285808
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 4,
+    "x": 0.7794228634059949,
+    "y": 0.44999999999999996
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 5,
+    "x": 0.7140180062621118,
+    "y": 0.5478852861078485
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 6,
+    "x": 0.6363961030678928,
+    "y": 0.6363961030678927
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 7,
+    "x": 0.5478852861078486,
+    "y": 0.7140180062621116
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 8,
+    "x": 0.4500000000000001,
+    "y": 0.7794228634059948
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 9,
+    "x": 0.3444150891285809,
+    "y": 0.831491579260158
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 10,
+    "x": 0.23293714059226886,
+    "y": 0.8693332436601614
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 11,
+    "x": 0.11747357299804655,
+    "y": 0.8923003752364294
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 12,
+    "x": 5.5109105961630896e-17,
+    "y": 0.9
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 13,
+    "x": -0.11747357299804624,
+    "y": 0.8923003752364295
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 14,
+    "x": -0.23293714059226858,
+    "y": 0.8693332436601615
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 15,
+    "x": -0.34441508912858054,
+    "y": 0.8314915792601582
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 16,
+    "x": -0.44999999999999984,
+    "y": 0.7794228634059949
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 17,
+    "x": -0.5478852861078483,
+    "y": 0.7140180062621119
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 18,
+    "x": -0.6363961030678927,
+    "y": 0.6363961030678928
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 19,
+    "x": -0.7140180062621115,
+    "y": 0.5478852861078488
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 20,
+    "x": -0.7794228634059946,
+    "y": 0.4500000000000003
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 21,
+    "x": -0.831491579260158,
+    "y": 0.34441508912858093
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 22,
+    "x": -0.8693332436601614,
+    "y": 0.23293714059226892
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 23,
+    "x": -0.8923003752364294,
+    "y": 0.1174735729980468
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 24,
+    "x": -0.9,
+    "y": 1.1021821192326179e-16
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 25,
+    "x": -0.8923003752364295,
+    "y": -0.1174735729980462
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 26,
+    "x": -0.8693332436601616,
+    "y": -0.23293714059226833
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 27,
+    "x": -0.8314915792601583,
+    "y": -0.3444150891285803
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 28,
+    "x": -0.779422863405995,
+    "y": -0.4499999999999998
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 29,
+    "x": -0.7140180062621119,
+    "y": -0.5478852861078483
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 30,
+    "x": -0.6363961030678932,
+    "y": -0.6363961030678924
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 31,
+    "x": -0.5478852861078488,
+    "y": -0.7140180062621114
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 32,
+    "x": -0.4500000000000004,
+    "y": -0.7794228634059945
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 33,
+    "x": -0.3444150891285813,
+    "y": -0.8314915792601579
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 34,
+    "x": -0.23293714059226936,
+    "y": -0.8693332436601613
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 35,
+    "x": -0.11747357299804724,
+    "y": -0.8923003752364292
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 36,
+    "x": -1.6532731788489269e-16,
+    "y": -0.9
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 37,
+    "x": 0.11747357299804614,
+    "y": -0.8923003752364295
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 38,
+    "x": 0.23293714059226828,
+    "y": -0.8693332436601616
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 39,
+    "x": 0.34441508912858027,
+    "y": -0.8314915792601583
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 40,
+    "x": 0.4499999999999994,
+    "y": -0.7794228634059952
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 41,
+    "x": 0.5478852861078479,
+    "y": -0.7140180062621122
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 42,
+    "x": 0.6363961030678926,
+    "y": -0.636396103067893
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 43,
+    "x": 0.7140180062621114,
+    "y": -0.5478852861078488
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 44,
+    "x": 0.7794228634059945,
+    "y": -0.4500000000000004
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 45,
+    "x": 0.8314915792601579,
+    "y": -0.3444150891285814
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 46,
+    "x": 0.8693332436601613,
+    "y": -0.23293714059226941
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 47,
+    "x": 0.8923003752364292,
+    "y": -0.11747357299804732
+  },
+  {
+    "region": "StarFill",
+    "vertex_order": 48,
+    "x": 0.9,
+    "y": -2.2043642384652358e-16
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 0,
+    "x": -1.2200000000000002,
+    "y": 0.12
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 1,
+    "x": -1.2211121680214048,
+    "y": 0.1369684049886067
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 2,
+    "x": -1.2244296425824213,
+    "y": 0.1536464758633277
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 3,
+    "x": -1.2298956607735327,
+    "y": 0.16974884620746167
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 4,
+    "x": -1.237416697508023,
+    "y": 0.185
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 5,
+    "x": -1.2468640657621395,
+    "y": 0.19913898577113368
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 6,
+    "x": -1.258076118445749,
+    "y": 0.21192388155425118
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 7,
+    "x": -1.2708610142288663,
+    "y": 0.22313593423786057
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 8,
+    "x": -1.2850000000000001,
+    "y": 0.232583302491977
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 9,
+    "x": -1.3002511537925383,
+    "y": 0.2401043392264673
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 10,
+    "x": -1.3163535241366724,
+    "y": 0.24557035741757888
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 11,
+    "x": -1.3330315950113933,
+    "y": 0.24888783197859535
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 12,
+    "x": -1.35,
+    "y": 0.25
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 13,
+    "x": -1.3669684049886068,
+    "y": 0.24888783197859538
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 14,
+    "x": -1.3836464758633278,
+    "y": 0.24557035741757888
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 15,
+    "x": -1.3997488462074616,
+    "y": 0.2401043392264673
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 16,
+    "x": -1.415,
+    "y": 0.23258330249197703
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 17,
+    "x": -1.4291389857711336,
+    "y": 0.2231359342378606
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 18,
+    "x": -1.4419238815542512,
+    "y": 0.21192388155425118
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 19,
+    "x": -1.4531359342378607,
+    "y": 0.1991389857711337
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 20,
+    "x": -1.4625833024919772,
+    "y": 0.18500000000000005
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 21,
+    "x": -1.4701043392264674,
+    "y": 0.16974884620746167
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 22,
+    "x": -1.475570357417579,
+    "y": 0.15364647586332772
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 23,
+    "x": -1.4788878319785954,
+    "y": 0.13696840498860674
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 24,
+    "x": -1.48,
+    "y": 0.12000000000000001
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 25,
+    "x": -1.4788878319785954,
+    "y": 0.10303159501139332
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 26,
+    "x": -1.475570357417579,
+    "y": 0.08635352413667235
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 27,
+    "x": -1.4701043392264674,
+    "y": 0.07025115379253839
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 28,
+    "x": -1.4625833024919772,
+    "y": 0.05500000000000002
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 29,
+    "x": -1.4531359342378607,
+    "y": 0.04086101422886636
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 30,
+    "x": -1.4419238815542512,
+    "y": 0.028076118445748866
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 31,
+    "x": -1.4291389857711339,
+    "y": 0.016864065762139446
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 32,
+    "x": -1.415,
+    "y": 0.0074166975080229985
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 33,
+    "x": -1.3997488462074619,
+    "y": -0.00010433922646725657
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 34,
+    "x": -1.3836464758633278,
+    "y": -0.005570357417578858
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 35,
+    "x": -1.3669684049886068,
+    "y": -0.008887831978595356
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 36,
+    "x": -1.35,
+    "y": -0.010000000000000009
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 37,
+    "x": -1.3330315950113933,
+    "y": -0.008887831978595384
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 38,
+    "x": -1.3163535241366724,
+    "y": -0.005570357417578914
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 39,
+    "x": -1.3002511537925385,
+    "y": -0.00010433922646731209
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 40,
+    "x": -1.2850000000000001,
+    "y": 0.007416697508022915
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 41,
+    "x": -1.2708610142288665,
+    "y": 0.01686406576213935
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 42,
+    "x": -1.258076118445749,
+    "y": 0.028076118445748796
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 43,
+    "x": -1.2468640657621395,
+    "y": 0.040861014228866274
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 44,
+    "x": -1.2374166975080232,
+    "y": 0.05499999999999994
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 45,
+    "x": -1.2298956607735327,
+    "y": 0.07025115379253824
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 46,
+    "x": -1.2244296425824213,
+    "y": 0.08635352413667219
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 47,
+    "x": -1.2211121680214048,
+    "y": 0.10303159501139317
+  },
+  {
+    "region": "PlanetFill1",
+    "vertex_order": 48,
+    "x": -1.2200000000000002,
+    "y": 0.11999999999999997
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 0,
+    "x": -0.55,
+    "y": 0.12
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 1,
+    "x": -0.5511121680214047,
+    "y": 0.1369684049886067
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 2,
+    "x": -0.5544296425824211,
+    "y": 0.1536464758633277
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 3,
+    "x": -0.5598956607735328,
+    "y": 0.16974884620746167
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 4,
+    "x": -0.567416697508023,
+    "y": 0.185
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 5,
+    "x": -0.5768640657621394,
+    "y": 0.19913898577113368
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 6,
+    "x": -0.5880761184457488,
+    "y": 0.21192388155425118
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 7,
+    "x": -0.6008610142288664,
+    "y": 0.22313593423786057
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 8,
+    "x": -0.615,
+    "y": 0.232583302491977
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 9,
+    "x": -0.6302511537925384,
+    "y": 0.2401043392264673
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 10,
+    "x": -0.6463535241366724,
+    "y": 0.24557035741757888
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 11,
+    "x": -0.6630315950113933,
+    "y": 0.24888783197859535
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 12,
+    "x": -0.68,
+    "y": 0.25
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 13,
+    "x": -0.6969684049886067,
+    "y": 0.24888783197859538
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 14,
+    "x": -0.7136464758633277,
+    "y": 0.24557035741757888
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 15,
+    "x": -0.7297488462074617,
+    "y": 0.2401043392264673
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 16,
+    "x": -0.745,
+    "y": 0.23258330249197703
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 17,
+    "x": -0.7591389857711337,
+    "y": 0.2231359342378606
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 18,
+    "x": -0.7719238815542512,
+    "y": 0.21192388155425118
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 19,
+    "x": -0.7831359342378607,
+    "y": 0.1991389857711337
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 20,
+    "x": -0.7925833024919771,
+    "y": 0.18500000000000005
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 21,
+    "x": -0.8001043392264673,
+    "y": 0.16974884620746167
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 22,
+    "x": -0.805570357417579,
+    "y": 0.15364647586332772
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 23,
+    "x": -0.8088878319785954,
+    "y": 0.13696840498860674
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 24,
+    "x": -0.81,
+    "y": 0.12000000000000001
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 25,
+    "x": -0.8088878319785955,
+    "y": 0.10303159501139332
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 26,
+    "x": -0.805570357417579,
+    "y": 0.08635352413667235
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 27,
+    "x": -0.8001043392264674,
+    "y": 0.07025115379253839
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 28,
+    "x": -0.7925833024919771,
+    "y": 0.05500000000000002
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 29,
+    "x": -0.7831359342378607,
+    "y": 0.04086101422886636
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 30,
+    "x": -0.7719238815542513,
+    "y": 0.028076118445748866
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 31,
+    "x": -0.7591389857711338,
+    "y": 0.016864065762139446
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 32,
+    "x": -0.7450000000000001,
+    "y": 0.0074166975080229985
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 33,
+    "x": -0.7297488462074618,
+    "y": -0.00010433922646725657
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 34,
+    "x": -0.7136464758633279,
+    "y": -0.005570357417578858
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 35,
+    "x": -0.6969684049886069,
+    "y": -0.008887831978595356
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 36,
+    "x": -0.68,
+    "y": -0.010000000000000009
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 37,
+    "x": -0.6630315950113934,
+    "y": -0.008887831978595384
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 38,
+    "x": -0.6463535241366725,
+    "y": -0.005570357417578914
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 39,
+    "x": -0.6302511537925385,
+    "y": -0.00010433922646731209
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 40,
+    "x": -0.6150000000000001,
+    "y": 0.007416697508022915
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 41,
+    "x": -0.6008610142288665,
+    "y": 0.01686406576213935
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 42,
+    "x": -0.5880761184457489,
+    "y": 0.028076118445748796
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 43,
+    "x": -0.5768640657621396,
+    "y": 0.040861014228866274
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 44,
+    "x": -0.567416697508023,
+    "y": 0.05499999999999994
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 45,
+    "x": -0.5598956607735328,
+    "y": 0.07025115379253824
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 46,
+    "x": -0.5544296425824212,
+    "y": 0.08635352413667219
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 47,
+    "x": -0.5511121680214047,
+    "y": 0.10303159501139317
+  },
+  {
+    "region": "PlanetFill2",
+    "vertex_order": 48,
+    "x": -0.55,
+    "y": 0.11999999999999997
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 0,
+    "x": 0.13,
+    "y": 0.12
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 1,
+    "x": 0.12888783197859535,
+    "y": 0.1369684049886067
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 2,
+    "x": 0.12557035741757888,
+    "y": 0.1536464758633277
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 3,
+    "x": 0.12010433922646728,
+    "y": 0.16974884620746167
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 4,
+    "x": 0.11258330249197704,
+    "y": 0.185
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 5,
+    "x": 0.10313593423786059,
+    "y": 0.19913898577113368
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 6,
+    "x": 0.09192388155425119,
+    "y": 0.21192388155425118
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 7,
+    "x": 0.0791389857711337,
+    "y": 0.22313593423786057
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 8,
+    "x": 0.06500000000000002,
+    "y": 0.232583302491977
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 9,
+    "x": 0.04974884620746168,
+    "y": 0.2401043392264673
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 10,
+    "x": 0.033646475863327724,
+    "y": 0.24557035741757888
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 11,
+    "x": 0.016968404988606724,
+    "y": 0.24888783197859535
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 12,
+    "x": 7.960204194457797e-18,
+    "y": 0.25
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 13,
+    "x": -0.01696840498860668,
+    "y": 0.24888783197859538
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 14,
+    "x": -0.03364647586332768,
+    "y": 0.24557035741757888
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 15,
+    "x": -0.04974884620746164,
+    "y": 0.2401043392264673
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 16,
+    "x": -0.06499999999999997,
+    "y": 0.23258330249197703
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 17,
+    "x": -0.07913898577113364,
+    "y": 0.2231359342378606
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 18,
+    "x": -0.09192388155425117,
+    "y": 0.21192388155425118
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 19,
+    "x": -0.10313593423786056,
+    "y": 0.1991389857711337
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 20,
+    "x": -0.11258330249197701,
+    "y": 0.18500000000000005
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 21,
+    "x": -0.12010433922646728,
+    "y": 0.16974884620746167
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 22,
+    "x": -0.12557035741757888,
+    "y": 0.15364647586332772
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 23,
+    "x": -0.12888783197859535,
+    "y": 0.13696840498860674
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 24,
+    "x": -0.13,
+    "y": 0.12000000000000001
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 25,
+    "x": -0.12888783197859538,
+    "y": 0.10303159501139332
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 26,
+    "x": -0.1255703574175789,
+    "y": 0.08635352413667235
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 27,
+    "x": -0.12010433922646731,
+    "y": 0.07025115379253839
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 28,
+    "x": -0.11258330249197705,
+    "y": 0.05500000000000002
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 29,
+    "x": -0.1031359342378606,
+    "y": 0.04086101422886636
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 30,
+    "x": -0.09192388155425123,
+    "y": 0.028076118445748866
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 31,
+    "x": -0.07913898577113372,
+    "y": 0.016864065762139446
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 32,
+    "x": -0.06500000000000006,
+    "y": 0.0074166975080229985
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 33,
+    "x": -0.04974884620746175,
+    "y": -0.00010433922646725657
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 34,
+    "x": -0.0336464758633278,
+    "y": -0.005570357417578858
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 35,
+    "x": -0.016968404988606824,
+    "y": -0.008887831978595356
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 36,
+    "x": -2.3880612583373387e-17,
+    "y": -0.010000000000000009
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 37,
+    "x": 0.016968404988606665,
+    "y": -0.008887831978595384
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 38,
+    "x": 0.03364647586332764,
+    "y": -0.005570357417578914
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 39,
+    "x": 0.049748846207461596,
+    "y": -0.00010433922646731209
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 40,
+    "x": 0.06499999999999992,
+    "y": 0.007416697508022915
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 41,
+    "x": 0.07913898577113358,
+    "y": 0.01686406576213935
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 42,
+    "x": 0.09192388155425116,
+    "y": 0.028076118445748796
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 43,
+    "x": 0.10313593423786055,
+    "y": 0.040861014228866274
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 44,
+    "x": 0.112583302491977,
+    "y": 0.05499999999999994
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 45,
+    "x": 0.12010433922646725,
+    "y": 0.07025115379253824
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 46,
+    "x": 0.12557035741757885,
+    "y": 0.08635352413667219
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 47,
+    "x": 0.12888783197859535,
+    "y": 0.10303159501139317
+  },
+  {
+    "region": "PlanetFill3",
+    "vertex_order": 48,
+    "x": 0.13,
+    "y": 0.11999999999999997
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 0,
+    "x": 0.81,
+    "y": 0.12
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 1,
+    "x": 0.8088878319785954,
+    "y": 0.1369684049886067
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 2,
+    "x": 0.805570357417579,
+    "y": 0.1536464758633277
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 3,
+    "x": 0.8001043392264673,
+    "y": 0.16974884620746167
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 4,
+    "x": 0.7925833024919771,
+    "y": 0.185
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 5,
+    "x": 0.7831359342378607,
+    "y": 0.19913898577113368
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 6,
+    "x": 0.7719238815542513,
+    "y": 0.21192388155425118
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 7,
+    "x": 0.7591389857711337,
+    "y": 0.22313593423786057
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 8,
+    "x": 0.7450000000000001,
+    "y": 0.232583302491977
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 9,
+    "x": 0.7297488462074617,
+    "y": 0.2401043392264673
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 10,
+    "x": 0.7136464758633277,
+    "y": 0.24557035741757888
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 11,
+    "x": 0.6969684049886068,
+    "y": 0.24888783197859535
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 12,
+    "x": 0.68,
+    "y": 0.25
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 13,
+    "x": 0.6630315950113934,
+    "y": 0.24888783197859538
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 14,
+    "x": 0.6463535241366724,
+    "y": 0.24557035741757888
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 15,
+    "x": 0.6302511537925384,
+    "y": 0.2401043392264673
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 16,
+    "x": 0.6150000000000001,
+    "y": 0.23258330249197703
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 17,
+    "x": 0.6008610142288664,
+    "y": 0.2231359342378606
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 18,
+    "x": 0.5880761184457489,
+    "y": 0.21192388155425118
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 19,
+    "x": 0.5768640657621394,
+    "y": 0.1991389857711337
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 20,
+    "x": 0.567416697508023,
+    "y": 0.18500000000000005
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 21,
+    "x": 0.5598956607735328,
+    "y": 0.16974884620746167
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 22,
+    "x": 0.5544296425824211,
+    "y": 0.15364647586332772
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 23,
+    "x": 0.5511121680214047,
+    "y": 0.13696840498860674
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 24,
+    "x": 0.55,
+    "y": 0.12000000000000001
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 25,
+    "x": 0.5511121680214046,
+    "y": 0.10303159501139332
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 26,
+    "x": 0.5544296425824211,
+    "y": 0.08635352413667235
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 27,
+    "x": 0.5598956607735327,
+    "y": 0.07025115379253839
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 28,
+    "x": 0.567416697508023,
+    "y": 0.05500000000000002
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 29,
+    "x": 0.5768640657621394,
+    "y": 0.04086101422886636
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 30,
+    "x": 0.5880761184457488,
+    "y": 0.028076118445748866
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 31,
+    "x": 0.6008610142288663,
+    "y": 0.016864065762139446
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 32,
+    "x": 0.615,
+    "y": 0.0074166975080229985
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 33,
+    "x": 0.6302511537925383,
+    "y": -0.00010433922646725657
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 34,
+    "x": 0.6463535241366722,
+    "y": -0.005570357417578858
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 35,
+    "x": 0.6630315950113932,
+    "y": -0.008887831978595356
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 36,
+    "x": 0.68,
+    "y": -0.010000000000000009
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 37,
+    "x": 0.6969684049886067,
+    "y": -0.008887831978595384
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 38,
+    "x": 0.7136464758633276,
+    "y": -0.005570357417578914
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 39,
+    "x": 0.7297488462074616,
+    "y": -0.00010433922646731209
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 40,
+    "x": 0.745,
+    "y": 0.007416697508022915
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 41,
+    "x": 0.7591389857711336,
+    "y": 0.01686406576213935
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 42,
+    "x": 0.7719238815542512,
+    "y": 0.028076118445748796
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 43,
+    "x": 0.7831359342378605,
+    "y": 0.040861014228866274
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 44,
+    "x": 0.7925833024919771,
+    "y": 0.05499999999999994
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 45,
+    "x": 0.8001043392264673,
+    "y": 0.07025115379253824
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 46,
+    "x": 0.8055703574175789,
+    "y": 0.08635352413667219
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 47,
+    "x": 0.8088878319785954,
+    "y": 0.10303159501139317
+  },
+  {
+    "region": "PlanetFill4",
+    "vertex_order": 48,
+    "x": 0.81,
+    "y": 0.11999999999999997
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 0,
+    "x": 1.48,
+    "y": 0.12
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 1,
+    "x": 1.4788878319785954,
+    "y": 0.1369684049886067
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 2,
+    "x": 1.475570357417579,
+    "y": 0.1536464758633277
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 3,
+    "x": 1.4701043392264674,
+    "y": 0.16974884620746167
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 4,
+    "x": 1.4625833024919772,
+    "y": 0.185
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 5,
+    "x": 1.4531359342378607,
+    "y": 0.19913898577113368
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 6,
+    "x": 1.4419238815542512,
+    "y": 0.21192388155425118
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 7,
+    "x": 1.4291389857711339,
+    "y": 0.22313593423786057
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 8,
+    "x": 1.415,
+    "y": 0.232583302491977
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 9,
+    "x": 1.3997488462074619,
+    "y": 0.2401043392264673
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 10,
+    "x": 1.3836464758633278,
+    "y": 0.24557035741757888
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 11,
+    "x": 1.3669684049886068,
+    "y": 0.24888783197859535
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 12,
+    "x": 1.35,
+    "y": 0.25
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 13,
+    "x": 1.3330315950113933,
+    "y": 0.24888783197859538
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 14,
+    "x": 1.3163535241366724,
+    "y": 0.24557035741757888
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 15,
+    "x": 1.3002511537925385,
+    "y": 0.2401043392264673
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 16,
+    "x": 1.2850000000000001,
+    "y": 0.23258330249197703
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 17,
+    "x": 1.2708610142288665,
+    "y": 0.2231359342378606
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 18,
+    "x": 1.258076118445749,
+    "y": 0.21192388155425118
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 19,
+    "x": 1.2468640657621395,
+    "y": 0.1991389857711337
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 20,
+    "x": 1.237416697508023,
+    "y": 0.18500000000000005
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 21,
+    "x": 1.2298956607735327,
+    "y": 0.16974884620746167
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 22,
+    "x": 1.2244296425824213,
+    "y": 0.15364647586332772
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 23,
+    "x": 1.2211121680214048,
+    "y": 0.13696840498860674
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 24,
+    "x": 1.2200000000000002,
+    "y": 0.12000000000000001
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 25,
+    "x": 1.2211121680214048,
+    "y": 0.10303159501139332
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 26,
+    "x": 1.2244296425824213,
+    "y": 0.08635352413667235
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 27,
+    "x": 1.2298956607735327,
+    "y": 0.07025115379253839
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 28,
+    "x": 1.237416697508023,
+    "y": 0.05500000000000002
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 29,
+    "x": 1.2468640657621395,
+    "y": 0.04086101422886636
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 30,
+    "x": 1.258076118445749,
+    "y": 0.028076118445748866
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 31,
+    "x": 1.2708610142288663,
+    "y": 0.016864065762139446
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 32,
+    "x": 1.2850000000000001,
+    "y": 0.0074166975080229985
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 33,
+    "x": 1.3002511537925383,
+    "y": -0.00010433922646725657
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 34,
+    "x": 1.3163535241366724,
+    "y": -0.005570357417578858
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 35,
+    "x": 1.3330315950113933,
+    "y": -0.008887831978595356
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 36,
+    "x": 1.35,
+    "y": -0.010000000000000009
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 37,
+    "x": 1.3669684049886068,
+    "y": -0.008887831978595384
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 38,
+    "x": 1.3836464758633278,
+    "y": -0.005570357417578914
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 39,
+    "x": 1.3997488462074616,
+    "y": -0.00010433922646731209
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 40,
+    "x": 1.415,
+    "y": 0.007416697508022915
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 41,
+    "x": 1.4291389857711336,
+    "y": 0.01686406576213935
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 42,
+    "x": 1.4419238815542512,
+    "y": 0.028076118445748796
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 43,
+    "x": 1.4531359342378607,
+    "y": 0.040861014228866274
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 44,
+    "x": 1.462583302491977,
+    "y": 0.05499999999999994
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 45,
+    "x": 1.4701043392264674,
+    "y": 0.07025115379253824
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 46,
+    "x": 1.475570357417579,
+    "y": 0.08635352413667219
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 47,
+    "x": 1.4788878319785954,
+    "y": 0.10303159501139317
+  },
+  {
+    "region": "PlanetFill5",
+    "vertex_order": 48,
+    "x": 1.48,
+    "y": 0.11999999999999997
+  }
+]

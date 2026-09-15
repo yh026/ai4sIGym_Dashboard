@@ -1,0 +1,22 @@
+[
+  {
+    "auc": 0.7941344369915798,
+    "model": "Logistic"
+  },
+  {
+    "auc": 0.823680783502212,
+    "model": "CART depth 5"
+  },
+  {
+    "auc": 0.9178946053946054,
+    "model": "Random forest"
+  },
+  {
+    "auc": 0.9092470029970031,
+    "model": "Gradient boosting"
+  },
+  {
+    "auc": 0.9158966033966033,
+    "model": "RF + ratio features"
+  }
+]

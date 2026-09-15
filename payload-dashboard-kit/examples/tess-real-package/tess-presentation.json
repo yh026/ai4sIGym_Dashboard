@@ -1,0 +1,465 @@
+{
+  "source": "TESS Objects of Interest — AIS5102 method spine_files/saved_resource.html",
+  "stages": {
+    "00": {
+      "number": 0,
+      "title": "Question and instrument",
+      "short_label": "Question",
+      "badge": "Ch 01",
+      "concepts": [
+        "**Ch 01** supervised classification vs regression · features and labels · stating a claim that could be falsified"
+      ],
+      "findings": [
+        "**Why anyone measures this.** Whether other planetary systems exist stopped being the question decades ago — 5,762 planets have been confirmed since the first in 1992. The open questions are what those planets are made of, whether any has an atmosphere, and whether any could support life. None of those can be answered from a brightness dip. They need a **spectrum** of the planet itself.",
+        "You obtain one by watching starlight filter through the planet's atmosphere during a transit. Different molecules absorb at different wavelengths, so the transit depth becomes slightly wavelength-dependent and the atmosphere's composition is imprinted on it. That measurement is starved of photons: it works only when the host star is **bright and nearby**.",
+        "This is what TESS was built for, and it is why TESS is not a smaller Kepler. Kepler stared at one patch of sky and counted planets, which answered how common they are — but most of its hosts are too faint to follow up. TESS instead surveys nearly the whole sky for planets around bright, nearby stars. **Its scientific product is a queue of targets**, not a census. 1,338 of the TOIs here sit on stars brighter than TESS magnitude 10.",
+        "**The queue, and why it is expensive.** A TOI alert is only the first step. Ground-based photometry and reconnaissance spectroscopy rule out eclipsing binaries; precise radial-velocity monitoring measures the planet's mass; mass with radius gives bulk density, which says whether the object is rocky or gaseous; and only then is it worth pointing **JWST** at it for an atmospheric spectrum. Each step costs more than the last, and JWST is heavily oversubscribed — a single atmospheric spectrum can consume many hours across several transits of a scarce, irreplaceable instrument.",
+        "**So this dashboard's task is triage.** Separating false positives from planets using cheap catalogue numbers decides which candidates consume expensive telescope time. The cost is asymmetric: a false positive that survives into the follow-up queue wastes hours that a real planet could have used, while a genuine small planet wrongly dismissed may never be revisited. That asymmetry, not convention, is what should decide which error the model is tuned to avoid.",
+        "TESS is a four-camera wide-field photometer. It measures the brightness of every star in its field, repeatedly, for about 27 days per patch of sky. Every column in this dataset is derived from that sequence of brightness measurements.",
+        "When a planet's orbit is edge-on as seen from Earth, the planet crosses in front of its star once per orbit and blocks a fraction of the light equal to the ratio of areas, (Rp/R★)². Earth crossing the Sun would dim it by **84 parts per million**. Jupiter would dim it by about 1%. Depths are recorded in parts per million, and an Earth-sized planet requires resolving a brightness change of roughly one part in 10,000.",
+        "Three quantities are read directly from the dip: **depth**, **duration** and **period**. They give the size ratio, the geometry of the crossing, and the orbit. Converting the size ratio to a planet radius requires the star's radius, which comes from a separate catalogue. That borrowed value is why `pl_rade` carries about 10% uncertainty while `pl_orbper` is known to parts per million.",
+        "Several configurations produce a periodic dip. Two stars orbiting each other produce a deeper one. A faint eclipsing binary falling on the same detector pixel produces a shallow one. The spacecraft produces artefacts. A TESS pixel spans **21 arcseconds**, so many stars can contribute light to one pixel. Follow-up observations distinguish these cases, and the resulting verdict is the label this dashboard predicts.",
+        "**2,242 of 7,372** TOIs have been adjudicated. The remaining 5,130 are open candidates. Supervised training uses the adjudicated rows only, where the two classes are close to balanced: 1,033 planets and 1,209 false positives."
+      ],
+      "method_notes": [],
+      "caveats": [
+        "The transit schematic is a diagram, not data: depth and planet size are exaggerated for legibility, and a real dip is a part-in-10,000 effect buried in noise. Dispositions are human-curated by the TESS Follow-up Observing Program and are revised over time — they are labels, not ground truth, and this dashboard is scored against the archive as of 2025-02-03."
+      ]
+    },
+    "01": {
+      "number": 1,
+      "title": "Provenance and design matrix",
+      "short_label": "Provenance",
+      "badge": "Ch 03, 09",
+      "concepts": [
+        "**Ch 03** the design matrix as N x D · units and published uncertainties",
+        "**Ch 09** missingness, and what each treatment assumes"
+      ],
+      "findings": [
+        "No column exceeds **11% missing** values, and the two quantities fitted directly to the light curve, transit duration and depth, are complete. **225 host stars carry 2–5 TOIs each**, covering 513 rows. Rows sharing a host share every stellar column, so the split at stage 15 holds out host stars."
+      ],
+      "method_notes": [],
+      "caveats": [
+        "Uncertainty columns (*err1/*err2) exist for 14 quantities and are used at stage 3; they are not themselves features."
+      ]
+    },
+    "02": {
+      "number": 2,
+      "title": "Quality control",
+      "short_label": "Quality control",
+      "badge": "Ch 09",
+      "concepts": [
+        "**Ch 09** row deletion and its assumptions · duplicate detection · missingness mechanism"
+      ],
+      "findings": [
+        "Quality control removes **8 of 7,372 rows**. The archive table is already curated, so few rows fail basic physical checks. The **49 objects larger than 30 R⊕** are stellar companions and are **retained**, because they belong to the false-positive class the model must identify."
+      ],
+      "method_notes": [],
+      "caveats": [
+        "No column is dropped at this stage. pl_eqt is dropped at stage 4, for a reason that becomes visible only after the structure survey."
+      ]
+    },
+    "03": {
+      "number": 3,
+      "title": "Structure survey",
+      "short_label": "Structure",
+      "badge": "Ch 03, 04",
+      "concepts": [
+        "**Ch 03** feature covariance · correlation between features",
+        "**Ch 04** mutual information · dependence that correlation misses"
+      ],
+      "findings": [
+        "Reported precision spans **five orders of magnitude**: orbital period to a few parts per million, transit duration and planet radius to 7–10%. The strongest correlations come from catalogue construction: surface gravity with stellar radius (0.81, linked through mass) and distance with proper motion (0.78, because nearby stars appear to move faster). Correlation and mutual information rank the pairs differently, so both matrices are shown."
+      ],
+      "method_notes": [
+        {
+          "kind": "reports",
+          "text": "**Pearson correlation; plug-in mutual information (16 quantile bins)**"
+        }
+      ],
+      "caveats": [
+        "Median-filled for this survey only (worst column 11% missing); the supervised stages impute inside folds instead. Diagonal of the MI matrix blanked."
+      ]
+    },
+    "04": {
+      "number": 4,
+      "title": "Feature engineering",
+      "short_label": "Features",
+      "badge": "Ch 03, 04, 09",
+      "concepts": [
+        "**Ch 03** collinearity, via the centred rank",
+        "**Ch 09** variance-stabilising log transform"
+      ],
+      "findings": [
+        "**pl_eqt is dropped.** It equals insolation¼ times a constant, so it adds no information beyond pl_insol. The table uses **two different constants**, 255.0 K and 278.5 K, depending on which pipeline epoch processed the row, and that epoch is associated with the label: **65.5% of known planets use the 255 K constant, against 19.2% of false positives**. A model given both columns can recover the constant from their ratio and use it to infer the processing epoch. Log-transforming the eight heavy-tailed columns reduces |skew| from as high as 15 to below 1."
+      ],
+      "method_notes": [
+        {
+          "kind": "minimises",
+          "text": "**nothing is fitted at this stage**"
+        }
+      ],
+      "caveats": [
+        "Ratio features (duty cycle, stellar density, radius residual) are exact linear combinations in log space — centred rank stays 11 of 14 on the 6,331 complete rows — so they are withheld from the linear design matrix and tested on trees at stage 17."
+      ]
+    },
+    "05": {
+      "number": 5,
+      "title": "Baseline with a stated loss",
+      "short_label": "Baseline",
+      "badge": "Ch 05, 06, 07",
+      "concepts": [
+        "**Ch 05** negative log-likelihood · cross-entropy as the Bernoulli NLL · the loss minimised is not the metric reported",
+        "**Ch 06** first-order gradient descent · watching an optimiser converge"
+      ],
+      "findings": [
+        "Two features and a linear boundary reach **66.3% balanced accuracy** (AUC 0.733) against a majority-class rate of 53.9%. The false-positive rate is **non-monotonic in radius**: highest around 4–8 R⊕, lower at Jupiter size, and close to total above 20 R⊕. A linear boundary cannot represent that pattern, which limits this baseline. **Later methods are compared against this score.**"
+      ],
+      "method_notes": [
+        {
+          "kind": "minimises",
+          "text": "**mean binary cross-entropy, by batch gradient descent (convex; unique unless separable)**"
+        },
+        {
+          "kind": "reports",
+          "text": "**balanced accuracy and ROC AUC, in-sample**"
+        }
+      ],
+      "caveats": [
+        "These scores are in-sample and use no train/test split. The host-grouped, cross-validated comparison is at stage 18."
+      ]
+    },
+    "06": {
+      "number": 6,
+      "title": "Preprocessing decision",
+      "short_label": "Preprocessing",
+      "badge": "Ch 09",
+      "concepts": [
+        "**Ch 09** standardisation and robust scaling · column scaling vs row normalisation · deciding scale-sensitivity from the method's objective"
+      ],
+      "findings": [
+        "In native units the feature variances span ten orders of magnitude, and the first principal component of the unscaled data reproduces the largest column (61.2% of the variance). Standardising each column, which is equivalent to using the **correlation** matrix, reduces it to 40.9%. The transform is fitted here and refitted inside every cross-validation fold from stage 15 onward."
+      ],
+      "method_notes": [
+        {
+          "kind": "minimises",
+          "text": "**nothing is fitted beyond column means and standard deviations**"
+        }
+      ],
+      "caveats": [
+        "Standard scaling is used rather than robust scaling. The stage-4 log transform already removed the heavy tails, so the two give near-identical results here."
+      ]
+    },
+    "07": {
+      "number": 7,
+      "title": "Linear reduction and intrinsic dimension",
+      "short_label": "Linear reduction",
+      "badge": "Ch 08",
+      "concepts": [
+        "**Ch 08** scree plot · cumulative explained variance · loadings · correlation circle · truncated PCA as a low-rank model of the covariance matrix · choosing L"
+      ],
+      "findings": [
+        "**6 components** carry 90% of the variance, so the eleven features span roughly 6 independent directions. The residual panels show two components already reproduce the main block structure of the covariance matrix. PC1 (41%) orders stars by distance and brightness; PC2 (22%) orders transits by size."
+      ],
+      "method_notes": [
+        {
+          "kind": "minimises",
+          "text": "**squared reconstruction error, by SVD — no iteration, unique up to sign**"
+        },
+        {
+          "kind": "reports",
+          "text": "**explained variance ratio; RMS of the rank-L covariance residual**"
+        }
+      ],
+      "caveats": [
+        "Fitted on all rows, including still-open candidates. Diverging colour maps are symmetric about zero."
+      ]
+    },
+    "08": {
+      "number": 8,
+      "title": "Geometry and neighbourhoods",
+      "short_label": "Geometry",
+      "badge": "Ch 10",
+      "concepts": [
+        "**Ch 10** Euclidean, Manhattan and cosine metrics · the k-nearest-neighbour graph · k-distance curve · local density"
+      ],
+      "findings": [
+        "The $k$-distance curve rises smoothly with **no sharp knee**, and local density is unimodal. The data form one connected cloud with a density gradient. Partitions produced in Act III therefore **divide a continuous distribution**, and their clusters should be read as a quantisation."
+      ],
+      "method_notes": [
+        {
+          "kind": "reports",
+          "text": "**distance to the 10th nearest neighbour; local density as its reciprocal**"
+        }
+      ],
+      "caveats": [
+        "The metric comparison uses a 2,500-row subsample for speed. Euclidean distance on standardised features is carried forward."
+      ]
+    },
+    "09": {
+      "number": 9,
+      "title": "Non-linear cartography",
+      "short_label": "Cartography",
+      "badge": "Ch 11, 12",
+      "concepts": [
+        "**Ch 11** t-SNE · perplexity as neighbourhood size · KL objective · Student-t kernel",
+        "**Ch 12** UMAP · n_neighbors and min_dist · fuzzy cross-entropy"
+      ],
+      "findings": [
+        "All **six settings across two algorithms** produce the same structure: planets and false positives overlap, with offset centres and one region dominated by false positives. The apparent number of clusters changes with perplexity and neighbour count, so the full sweep is reported."
+      ],
+      "method_notes": [
+        {
+          "kind": "minimises",
+          "text": "**t-SNE: symmetrised KL with a Student-t kernel · UMAP: fuzzy cross-entropy — both by gradient descent, both local and seed-dependent**"
+        },
+        {
+          "kind": "reports",
+          "text": "**none at this stage; embeddings are scored at stage 10**"
+        }
+      ],
+      "caveats": [
+        "The sweep uses a 3,000-row random subsample (seed 0) for runtime. The UMAP carried forward uses all 7,364 rows. Colour shows the label, which the embedding did not use."
+      ]
+    },
+    "10": {
+      "number": 10,
+      "title": "Embedding validation",
+      "short_label": "Embedding check",
+      "badge": "Ch 13",
+      "concepts": [
+        "**Ch 13** trustworthiness · continuity · neighbourhood preservation at k · Shepard diagram · Procrustes across seeds · local vs global quality"
+      ],
+      "findings": [
+        "All three methods exceed the **random 2-D projection null (0.65)**. UMAP reaches trustworthiness 0.93 at k=20 with continuity 0.94. PCA shows the opposite balance (0.86 and 0.96): a linear projection preserves most original neighbourhoods but **places distant points close together**. Across seeds the Procrustes disparity between seeds is 0.005, so **positions in the map are not reproducible and Act III does not rely on them.**"
+      ],
+      "method_notes": [
+        {
+          "kind": "reports",
+          "text": "**trustworthiness, continuity, neighbourhood preservation@k, Spearman on pairwise distances, Procrustes disparity — metrics, not objectives**"
+        }
+      ],
+      "caveats": [
+        "Computed on the 3,000-row subsample with 1,500-point sampling inside each metric; seeds 0/1/2 for the stability run."
+      ]
+    },
+    "11": {
+      "number": 11,
+      "title": "Partition",
+      "short_label": "Partition",
+      "badge": "Ch 14, 16, 17",
+      "concepts": [
+        "**Ch 14** k-means · within-cluster sum of squares · Lloyd's algorithm",
+        "**Ch 16** DBSCAN · epsilon from the k-distance curve · noise points",
+        "**Ch 17** HDBSCAN · min_cluster_size · points left unassigned"
+      ],
+      "findings": [
+        "k-means returns four clusters of roughly equal size, the expected result of minimising within-cluster sum of squares on a continuous distribution. **HDBSCAN can leave points unassigned**: at its most generous setting it finds 2 clusters holding 17% of the data, and at min_cluster_size of 50 or more it assigns **none of the 7,364 points**. This matches the density profile measured at stage 8."
+      ],
+      "method_notes": [
+        {
+          "kind": "minimises",
+          "text": "**k-means: within-cluster sum of squares (Lloyd, local; NP-hard globally) · DBSCAN: nothing — a density criterion · HDBSCAN: total cluster stability over the tree**"
+        }
+      ],
+      "caveats": [
+        "Fitted in the 11-D standardised space and drawn on the UMAP. HDBSCAN was swept over min_cluster_size [25, 50, 100, 200] giving [2, 0, 0, 0] clusters respectively; the panel shows the most generous. Unassigned points are the fixed neutral grey used for noise on every dashboard."
+      ]
+    },
+    "12": {
+      "number": 12,
+      "title": "Soft assignment",
+      "short_label": "Soft assignment",
+      "badge": "Ch 18, 19",
+      "concepts": [
+        "**Ch 18** EM as alternating maximisation",
+        "**Ch 19** Gaussian mixture · responsibilities as soft assignments · BIC"
+      ],
+      "findings": [
+        "Only **4%** of TOIs (280) have a maximum responsibility below 0.6, and those lie on component boundaries. The mixture assigns most points confidently. That confidence describes **the fitted density model**: a mixture fitted to a smooth distribution partitions it sharply regardless of whether real groups exist. Stage 13 tests whether they do."
+      ],
+      "method_notes": [
+        {
+          "kind": "minimises",
+          "text": "**mixture negative log-likelihood, by EM — monotone ascent to a local optimum**"
+        },
+        {
+          "kind": "reports",
+          "text": "**BIC = 90,791; fraction with max responsibility below 0.6**"
+        }
+      ],
+      "caveats": [
+        "Full covariance, 4 components, 3 restarts, seed 0. The responsibility matrix is drawn with every 12th column for legibility."
+      ]
+    },
+    "13": {
+      "number": 13,
+      "title": "Partition validation",
+      "short_label": "Partition check",
+      "badge": "Ch 20",
+      "concepts": [
+        "**Ch 20** silhouette · adjusted Rand index · normalised mutual information · stability under resampling · internal, external and relative validation"
+      ],
+      "findings": [
+        "Silhouette peaks at 0.30 against a shuffled-feature null of 0.09, and the clusters reproduce under resampling (ARI 0.88), so k-means finds stable structure. BIC continues to prefer more components at the edge of the search range. Agreement with the dispositions is near zero (ARI 0.054). **The stable structure does not correspond to the planet/false-positive distinction.** **Which space to partition in.** Clustering the t-SNE or UMAP output scores well when scored in those coordinates (0.42 for UMAP) and poorly when scored against the feature space (0.14, below the 0.18 obtained by clustering the features directly). Re-running UMAP with a different seed changes the partition (ARI 0.88) more than re-running k-means does (ARI 0.98). PCA-6 matches the full feature space on every measure. **Act III therefore partitions in the standardised feature space and uses the embedding only to draw.**"
+      ],
+      "method_notes": [
+        {
+          "kind": "minimises",
+          "text": "**k-means minimises WCSS; BIC minimises NLL + complexity penalty over a discrete k**"
+        },
+        {
+          "kind": "reports",
+          "text": "**silhouette, BIC, ARI/NMI, bootstrap stability 0.88±0.05**"
+        }
+      ],
+      "caveats": [
+        "Silhouette and BIC use a 3,000-row subsample for runtime. The dispositions are external labels rather than ground truth. The silhouette comparison across spaces uses the same 3,000-row subsample; the seed-reproducibility test uses all 7,364 rows, the scale at which the shipped UMAP is fitted."
+      ]
+    },
+    "14": {
+      "number": 14,
+      "title": "Vector quantization",
+      "short_label": "Vector quantization",
+      "badge": "Ch 15",
+      "concepts": [
+        "**Ch 15** codebook · distortion against codebook size · quantising in the reduced versus the original space"
+      ],
+      "findings": [
+        "Distortion decreases smoothly and shows **no elbow**, consistent with a continuous distribution. Codewords range from 8% to 78% planets, so they are enriched but not pure. **Act IV does not use these candidate labels**; it uses the curated TFOPWG dispositions. **PCA-6 versus PCA-6 → UMAP-2.** Quantising in the embedding costs **12% more reconstruction error at k=8** and 15% at k=16, and its centroids have no preimage in feature space. It gives tidier cells on the map (silhouette 0.28 against 0.24 at k=8). The two codebooks agree only moderately (ARI 0.45 at k=8), so the choice changes the result. **The shipped codebook uses PCA-6**; use the toggle to compare."
+      ],
+      "method_notes": [
+        {
+          "kind": "minimises",
+          "text": "**expected distortion, by Lloyd/LBG — a local optimum. The objective is minimised in whichever space the codebook is fitted in, which is what the comparison tests**"
+        },
+        {
+          "kind": "reports",
+          "text": "**reconstruction error measured in the 11-D feature space; silhouette on the UMAP map; ARI between the two codebooks; planet fraction per codeword**"
+        }
+      ],
+      "caveats": [
+        "Heatmap shows every 6th row for legibility. Column order is correlation-based hierarchical seriation; row order is codeword then within-codeword PC1. The explorer below plots all 7,364 TOIs at every setting — nothing is sampled — but the qualitative palette has 8 colours, so at k = 10, 12 and 16 colours repeat; read the codeword number, not the colour. Planet fraction is shown only for codewords with at least 5 adjudicated members."
+      ]
+    },
+    "15": {
+      "number": 15,
+      "title": "Task setup and leakage control",
+      "short_label": "Task setup",
+      "badge": "Ch 22, 09",
+      "concepts": [
+        "**Ch 09** fitting every transform on the training split alone",
+        "**Ch 22** stratified splitting · group leakage · preprocessing leakage · pipelines that refit inside each fold"
+      ],
+      "findings": [
+        "A stratified split places **41 host stars** in both the training and test sets. Multi-planet systems share every stellar column, so those test rows come from stars already seen in training. Grouping by TIC ID reduces this to **0** and leaves the class balance unchanged (1567 training, 672 test rows)."
+      ],
+      "method_notes": [
+        {
+          "kind": "minimises",
+          "text": "**nothing is fitted at this stage**"
+        }
+      ],
+      "caveats": [
+        "Imputation and scaling are inside the pipeline and are refitted in every fold. The classes are close to balanced at 46% planets, so no resampling is applied."
+      ]
+    },
+    "16": {
+      "number": 16,
+      "title": "Interpretable models",
+      "short_label": "Interpretable",
+      "badge": "Ch 21, 23",
+      "concepts": [
+        "**Ch 21** logistic regression · convex NLL · non-linear boundaries from transformed features",
+        "**Ch 23** CART · depth as the complexity knob · over-fitting"
+      ],
+      "findings": [
+        "**Planet radius has the largest coefficient**, and transit depth enters with the opposite sign, so the model responds to how large an object is relative to the depth and star it came from. **Degree-2 terms raise AUC from 0.789 to 0.868**, indicating a curved decision boundary. Beyond depth 5 the tree's training accuracy rises while its held-out accuracy does not."
+      ],
+      "method_notes": [
+        {
+          "kind": "minimises",
+          "text": "**logistic: cross-entropy (convex) · CART: node impurity, greedy one split at a time (not globally optimal)**"
+        },
+        {
+          "kind": "reports",
+          "text": "**held-out ROC AUC and accuracy on the host-grouped test split**"
+        }
+      ],
+      "caveats": [
+        "A single split is shown here for readability. Cross-validated scores with error bars are at stage 18."
+      ]
+    },
+    "17": {
+      "number": 17,
+      "title": "Ensembles",
+      "short_label": "Ensembles",
+      "badge": "Ch 24",
+      "concepts": [
+        "**Ch 24** bagging, as a random forest · gradient boosting · accuracy bought against interpretability"
+      ],
+      "findings": [
+        "The random forest raises held-out AUC by **+0.124** over the logistic model (0.789 to 0.913), consistent with the curved boundary found at stage 16, and replaces the readable coefficient vector with 400 trees. Adding the ratio features withheld at stage 4 changes AUC to 0.919, so the trees already represent those combinations. Logistic coefficients and permutation importance both rank radius highest."
+      ],
+      "method_notes": [
+        {
+          "kind": "minimises",
+          "text": "**boosting: stagewise fitting of a differentiable loss (greedy) · random forest: bagged impurity reduction**"
+        },
+        {
+          "kind": "reports",
+          "text": "**held-out AUC; permutation importance as mean AUC drop over 15 shuffles**"
+        }
+      ],
+      "caveats": [
+        "Permutation importance is computed on the held-out split. Correlated features share credit, and radius and depth are correlated."
+      ]
+    },
+    "18": {
+      "number": 18,
+      "title": "Model validation and controls",
+      "short_label": "Validation",
+      "badge": "Ch 22, 20",
+      "concepts": [
+        "**Ch 22** k-fold cross-validation · confusion matrix · learning curve · bias and variance"
+      ],
+      "findings": [
+        "**The stage-0 claim is supported.** The best model, random forest, reaches **0.826 ± 0.006** balanced accuracy against a majority-class rate of 0.539 and a permuted-label null of 0.500. The learning curve is still rising at the full training size, so more adjudicated TOIs would improve accuracy. Adding the dropped `pl_eqt` column back raises the logistic score to 0.720; **that increase comes from the processing-epoch information identified at stage 4.**"
+      ],
+      "method_notes": [
+        {
+          "kind": "minimises",
+          "text": "**each model minimises its own loss: cross-entropy, node impurity, or a stagewise exponential loss. The reported metric is not minimised by any of them**"
+        },
+        {
+          "kind": "reports",
+          "text": "**5-fold host-grouped balanced accuracy ± standard error; 12-repeat permuted-label null**"
+        }
+      ],
+      "caveats": [
+        "Folds are grouped by TIC ID, so no host star spans a fold boundary. Calibration and the confusion matrix use the single held-out split from stage 15."
+      ]
+    },
+    "19": {
+      "number": 19,
+      "title": "Back to the science",
+      "short_label": "Back to science",
+      "badge": "Ch 01",
+      "concepts": [
+        "**Ch 01** returning to the stage-0 claim · what would falsify it"
+      ],
+      "findings": [
+        "Association is measured with **normalised mutual information**, putting numeric and categorical metadata on one scale. Sky position carries almost no information about cluster membership. The strongest association with the label is **eqt_convention (NMI 0.11)** — the stage-4 leak, recovered here by an independent measure. **The finding is a triage rule and its value is telescope time**: keeping false positives out of the follow-up queue frees radial-velocity and JWST hours for real planets. It applies to the adjudicated sample only; the 5,130 open candidates were not selected for follow-up at random."
+      ],
+      "method_notes": [
+        {
+          "kind": "reports",
+          "text": "**normalised mutual information between the labelling and each metadata column; numeric columns binned into quantiles**"
+        }
+      ],
+      "caveats": [
+        "The available metadata covers dates, sky position and brightness. Sector, camera, CCD and the originating pipeline (SPOC or QLP) are absent. Those are the instrument-side confounders most likely to produce artefacts, and they should be obtained before this work is extended."
+      ]
+    }
+  }
+}

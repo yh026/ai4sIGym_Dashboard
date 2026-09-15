@@ -1,0 +1,767 @@
+[
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0,
+    "tpr": 0
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.02,
+    "tpr": 0.35128
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.04,
+    "tpr": 0.42282
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.06,
+    "tpr": 0.47124
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.08,
+    "tpr": 0.50893
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.1,
+    "tpr": 0.54022
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.12,
+    "tpr": 0.56722
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.14,
+    "tpr": 0.59109
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.16,
+    "tpr": 0.61258
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.18,
+    "tpr": 0.63218
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.2,
+    "tpr": 0.65024
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.22,
+    "tpr": 0.66703
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.24,
+    "tpr": 0.68273
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.26,
+    "tpr": 0.69751
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.28,
+    "tpr": 0.71147
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.3,
+    "tpr": 0.72472
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.32,
+    "tpr": 0.73733
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.34,
+    "tpr": 0.74938
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.36,
+    "tpr": 0.76093
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.38,
+    "tpr": 0.77201
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.4,
+    "tpr": 0.78267
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.42,
+    "tpr": 0.79295
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.44,
+    "tpr": 0.80288
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.46,
+    "tpr": 0.81248
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.48,
+    "tpr": 0.82178
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.5,
+    "tpr": 0.8308
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.52,
+    "tpr": 0.83956
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.54,
+    "tpr": 0.84808
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.56,
+    "tpr": 0.85636
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.58,
+    "tpr": 0.86444
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.6,
+    "tpr": 0.87231
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.62,
+    "tpr": 0.87999
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.64,
+    "tpr": 0.8875
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.66,
+    "tpr": 0.89483
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.68,
+    "tpr": 0.902
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.7,
+    "tpr": 0.90902
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.72,
+    "tpr": 0.9159
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.74,
+    "tpr": 0.92263
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.76,
+    "tpr": 0.92924
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.78,
+    "tpr": 0.93571
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.8,
+    "tpr": 0.94207
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.82,
+    "tpr": 0.94831
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.84,
+    "tpr": 0.95444
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.86,
+    "tpr": 0.96047
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.88,
+    "tpr": 0.96639
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.9,
+    "tpr": 0.97222
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.92,
+    "tpr": 0.97795
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.94,
+    "tpr": 0.98359
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.96,
+    "tpr": 0.98914
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 0.98,
+    "tpr": 0.99461
+  },
+  {
+    "model": "Logistic · AUC 0.789",
+    "fpr": 1,
+    "tpr": 1
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0,
+    "tpr": 0
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.02,
+    "tpr": 0.55161
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.04,
+    "tpr": 0.61293
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.06,
+    "tpr": 0.65191
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.08,
+    "tpr": 0.68107
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.1,
+    "tpr": 0.70457
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.12,
+    "tpr": 0.72438
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.14,
+    "tpr": 0.74156
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.16,
+    "tpr": 0.75678
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.18,
+    "tpr": 0.77045
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.2,
+    "tpr": 0.7829
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.22,
+    "tpr": 0.79433
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.24,
+    "tpr": 0.80491
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.26,
+    "tpr": 0.81477
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.28,
+    "tpr": 0.824
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.3,
+    "tpr": 0.83269
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.32,
+    "tpr": 0.8409
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.34,
+    "tpr": 0.84869
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.36,
+    "tpr": 0.8561
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.38,
+    "tpr": 0.86317
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.4,
+    "tpr": 0.86993
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.42,
+    "tpr": 0.87641
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.44,
+    "tpr": 0.88263
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.46,
+    "tpr": 0.88862
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.48,
+    "tpr": 0.89439
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.5,
+    "tpr": 0.89996
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.52,
+    "tpr": 0.90534
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.54,
+    "tpr": 0.91055
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.56,
+    "tpr": 0.9156
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.58,
+    "tpr": 0.9205
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.6,
+    "tpr": 0.92526
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.62,
+    "tpr": 0.92988
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.64,
+    "tpr": 0.93438
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.66,
+    "tpr": 0.93877
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.68,
+    "tpr": 0.94304
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.7,
+    "tpr": 0.9472
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.72,
+    "tpr": 0.95127
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.74,
+    "tpr": 0.95524
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.76,
+    "tpr": 0.95912
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.78,
+    "tpr": 0.96292
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.8,
+    "tpr": 0.96664
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.82,
+    "tpr": 0.97027
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.84,
+    "tpr": 0.97383
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.86,
+    "tpr": 0.97732
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.88,
+    "tpr": 0.98075
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.9,
+    "tpr": 0.98411
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.92,
+    "tpr": 0.9874
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.94,
+    "tpr": 0.99063
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.96,
+    "tpr": 0.99381
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 0.98,
+    "tpr": 0.99693
+  },
+  {
+    "model": "Polynomial logistic · AUC 0.868",
+    "fpr": 1,
+    "tpr": 1
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0,
+    "tpr": 0
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.02,
+    "tpr": 0.36242
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.04,
+    "tpr": 0.43382
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.06,
+    "tpr": 0.48194
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.08,
+    "tpr": 0.51929
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.1,
+    "tpr": 0.55024
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.12,
+    "tpr": 0.5769
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.14,
+    "tpr": 0.60044
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.16,
+    "tpr": 0.6216
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.18,
+    "tpr": 0.64089
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.2,
+    "tpr": 0.65865
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.22,
+    "tpr": 0.67514
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.24,
+    "tpr": 0.69056
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.26,
+    "tpr": 0.70505
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.28,
+    "tpr": 0.71873
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.3,
+    "tpr": 0.73171
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.32,
+    "tpr": 0.74407
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.34,
+    "tpr": 0.75586
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.36,
+    "tpr": 0.76716
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.38,
+    "tpr": 0.77799
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.4,
+    "tpr": 0.78842
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.42,
+    "tpr": 0.79846
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.44,
+    "tpr": 0.80816
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.46,
+    "tpr": 0.81753
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.48,
+    "tpr": 0.82661
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.5,
+    "tpr": 0.83541
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.52,
+    "tpr": 0.84395
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.54,
+    "tpr": 0.85226
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.56,
+    "tpr": 0.86034
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.58,
+    "tpr": 0.86821
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.6,
+    "tpr": 0.87588
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.62,
+    "tpr": 0.88336
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.64,
+    "tpr": 0.89066
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.66,
+    "tpr": 0.8978
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.68,
+    "tpr": 0.90478
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.7,
+    "tpr": 0.91161
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.72,
+    "tpr": 0.9183
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.74,
+    "tpr": 0.92485
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.76,
+    "tpr": 0.93127
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.78,
+    "tpr": 0.93757
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.8,
+    "tpr": 0.94375
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.82,
+    "tpr": 0.94982
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.84,
+    "tpr": 0.95577
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.86,
+    "tpr": 0.96163
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.88,
+    "tpr": 0.96738
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.9,
+    "tpr": 0.97303
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.92,
+    "tpr": 0.9786
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.94,
+    "tpr": 0.98407
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.96,
+    "tpr": 0.98946
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 0.98,
+    "tpr": 0.99477
+  },
+  {
+    "model": "CART depth 5 · AUC 0.794",
+    "fpr": 1,
+    "tpr": 1
+  }
+]

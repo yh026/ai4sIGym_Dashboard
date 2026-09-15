@@ -1,0 +1,9506 @@
+[
+  {
+    "object_id": "C0-000",
+    "feature": "pl_orbper",
+    "z": -0.28,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-000",
+    "feature": "pl_trandurh",
+    "z": 0.76293,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-000",
+    "feature": "pl_trandep",
+    "z": 1.30184,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-000",
+    "feature": "pl_rade",
+    "z": 1.07628,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-000",
+    "feature": "pl_insol",
+    "z": 0.19527,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-000",
+    "feature": "st_tmag",
+    "z": -0.91544,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-000",
+    "feature": "st_dist",
+    "z": -1.71905,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-000",
+    "feature": "st_teff",
+    "z": -1.8272,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-000",
+    "feature": "st_logg",
+    "z": -1.18763,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-000",
+    "feature": "st_rad",
+    "z": -0.10942,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-000",
+    "feature": "pm_total",
+    "z": 0.88635,
+    "codeword": 0
+  },
+  {
+    "object_id": "C1-001",
+    "feature": "pl_orbper",
+    "z": 0.07069,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-001",
+    "feature": "pl_trandurh",
+    "z": 1.03318,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-001",
+    "feature": "pl_trandep",
+    "z": 1.3997,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-001",
+    "feature": "pl_rade",
+    "z": 0.99313,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-001",
+    "feature": "pl_insol",
+    "z": 0.00994,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-001",
+    "feature": "st_tmag",
+    "z": -1.07471,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-001",
+    "feature": "st_dist",
+    "z": -1.73663,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-001",
+    "feature": "st_teff",
+    "z": -1.65593,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-001",
+    "feature": "st_logg",
+    "z": -0.87162,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-001",
+    "feature": "st_rad",
+    "z": 0.23727,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-001",
+    "feature": "pm_total",
+    "z": 1.13484,
+    "codeword": 1
+  },
+  {
+    "object_id": "C2-002",
+    "feature": "pl_orbper",
+    "z": 0.41358,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-002",
+    "feature": "pl_trandurh",
+    "z": 1.26788,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-002",
+    "feature": "pl_trandep",
+    "z": 1.45145,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-002",
+    "feature": "pl_rade",
+    "z": 0.87557,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-002",
+    "feature": "pl_insol",
+    "z": -0.18144,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-002",
+    "feature": "st_tmag",
+    "z": -1.20876,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-002",
+    "feature": "st_dist",
+    "z": -1.70991,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-002",
+    "feature": "st_teff",
+    "z": -1.44269,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-002",
+    "feature": "st_logg",
+    "z": -0.53625,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-002",
+    "feature": "st_rad",
+    "z": 0.57135,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-002",
+    "feature": "pm_total",
+    "z": 1.34484,
+    "codeword": 2
+  },
+  {
+    "object_id": "C3-003",
+    "feature": "pl_orbper",
+    "z": 0.74108,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-003",
+    "feature": "pl_trandurh",
+    "z": 1.46256,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-003",
+    "feature": "pl_trandep",
+    "z": 1.45788,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-003",
+    "feature": "pl_rade",
+    "z": 0.72932,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-003",
+    "feature": "pl_insol",
+    "z": -0.37104,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-003",
+    "feature": "st_tmag",
+    "z": -1.31142,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-003",
+    "feature": "st_dist",
+    "z": -1.63735,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-003",
+    "feature": "st_teff",
+    "z": -1.19131,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-003",
+    "feature": "st_logg",
+    "z": -0.18888,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-003",
+    "feature": "st_rad",
+    "z": 0.8855,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-003",
+    "feature": "pm_total",
+    "z": 1.51261,
+    "codeword": 3
+  },
+  {
+    "object_id": "C4-004",
+    "feature": "pl_orbper",
+    "z": 1.04607,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-004",
+    "feature": "pl_trandurh",
+    "z": 1.61392,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-004",
+    "feature": "pl_trandep",
+    "z": 1.42113,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-004",
+    "feature": "pl_rade",
+    "z": 0.56088,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-004",
+    "feature": "pl_insol",
+    "z": -0.55111,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-004",
+    "feature": "st_tmag",
+    "z": -1.37742,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-004",
+    "feature": "st_dist",
+    "z": -1.51873,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-004",
+    "feature": "st_teff",
+    "z": -0.90674,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-004",
+    "feature": "st_logg",
+    "z": 0.16278,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-004",
+    "feature": "st_rad",
+    "z": 1.17297,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-004",
+    "feature": "pm_total",
+    "z": 1.63562,
+    "codeword": 4
+  },
+  {
+    "object_id": "C5-005",
+    "feature": "pl_orbper",
+    "z": 1.32205,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-005",
+    "feature": "pl_trandurh",
+    "z": 1.71991,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-005",
+    "feature": "pl_trandep",
+    "z": 1.34457,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-005",
+    "feature": "pl_rade",
+    "z": 0.37742,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-005",
+    "feature": "pl_insol",
+    "z": -0.71413,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-005",
+    "feature": "st_tmag",
+    "z": -1.40256,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-005",
+    "feature": "st_dist",
+    "z": -1.35518,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-005",
+    "feature": "st_teff",
+    "z": -0.59488,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-005",
+    "feature": "st_logg",
+    "z": 0.51091,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-005",
+    "feature": "st_rad",
+    "z": 1.42778,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-005",
+    "feature": "pm_total",
+    "z": 1.71263,
+    "codeword": 5
+  },
+  {
+    "object_id": "C6-006",
+    "feature": "pl_orbper",
+    "z": 1.56337,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-006",
+    "feature": "pl_trandurh",
+    "z": 1.77977,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-006",
+    "feature": "pl_trandep",
+    "z": 1.2327,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-006",
+    "feature": "pl_rade",
+    "z": 0.18655,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-006",
+    "feature": "pl_insol",
+    "z": -0.8531,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-006",
+    "feature": "st_tmag",
+    "z": -1.38381,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-006",
+    "feature": "st_dist",
+    "z": -1.1491,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-006",
+    "feature": "st_teff",
+    "z": -0.2624,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-006",
+    "feature": "st_logg",
+    "z": 0.84776,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-006",
+    "feature": "st_rad",
+    "z": 1.64488,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-006",
+    "feature": "pm_total",
+    "z": 1.74372,
+    "codeword": 6
+  },
+  {
+    "object_id": "C7-007",
+    "feature": "pl_orbper",
+    "z": 1.76539,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-007",
+    "feature": "pl_trandurh",
+    "z": 1.79408,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-007",
+    "feature": "pl_trandep",
+    "z": 1.09105,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-007",
+    "feature": "pl_rade",
+    "z": -0.00394,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-007",
+    "feature": "pl_insol",
+    "z": -0.96171,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-007",
+    "feature": "st_tmag",
+    "z": -1.31939,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-007",
+    "feature": "st_dist",
+    "z": -0.90412,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-007",
+    "feature": "st_teff",
+    "z": 0.0834,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-007",
+    "feature": "st_logg",
+    "z": 1.16594,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-007",
+    "feature": "st_rad",
+    "z": 1.82032,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-007",
+    "feature": "pm_total",
+    "z": 1.7303,
+    "codeword": 7
+  },
+  {
+    "object_id": "C0-008",
+    "feature": "pl_orbper",
+    "z": 1.28458,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-008",
+    "feature": "pl_trandurh",
+    "z": 1.12474,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-008",
+    "feature": "pl_trandep",
+    "z": 0.28602,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-008",
+    "feature": "pl_rade",
+    "z": -0.82624,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-008",
+    "feature": "pl_insol",
+    "z": -1.67452,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-008",
+    "feature": "st_tmag",
+    "z": -1.84886,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-008",
+    "feature": "st_dist",
+    "z": -1.26501,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-008",
+    "feature": "st_teff",
+    "z": -0.20512,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-008",
+    "feature": "st_logg",
+    "z": 0.81857,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-008",
+    "feature": "st_rad",
+    "z": 1.31136,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-008",
+    "feature": "pm_total",
+    "z": 1.03508,
+    "codeword": 0
+  },
+  {
+    "object_id": "C1-009",
+    "feature": "pl_orbper",
+    "z": 1.39867,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-009",
+    "feature": "pl_trandurh",
+    "z": 1.05491,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-009",
+    "feature": "pl_trandep",
+    "z": 0.10468,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-009",
+    "feature": "pl_rade",
+    "z": -0.9928,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-009",
+    "feature": "pl_insol",
+    "z": -1.70713,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-009",
+    "feature": "st_tmag",
+    "z": -1.6931,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-009",
+    "feature": "st_dist",
+    "z": -0.95749,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-009",
+    "feature": "st_teff",
+    "z": 0.14419,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-009",
+    "feature": "st_logg",
+    "z": 1.07954,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-009",
+    "feature": "st_rad",
+    "z": 1.39651,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-009",
+    "feature": "pm_total",
+    "z": 0.94193,
+    "codeword": 1
+  },
+  {
+    "object_id": "C2-010",
+    "feature": "pl_orbper",
+    "z": 1.46666,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-010",
+    "feature": "pl_trandurh",
+    "z": 0.94889,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-010",
+    "feature": "pl_trandep",
+    "z": -0.08545,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-010",
+    "feature": "pl_rade",
+    "z": -1.13649,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-010",
+    "feature": "pl_insol",
+    "z": -1.69628,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-010",
+    "feature": "st_tmag",
+    "z": -1.4943,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-010",
+    "feature": "st_dist",
+    "z": -0.62814,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-010",
+    "feature": "st_teff",
+    "z": 0.48358,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-010",
+    "feature": "st_logg",
+    "z": 1.30361,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-010",
+    "feature": "st_rad",
+    "z": 1.43564,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-010",
+    "feature": "pm_total",
+    "z": 0.81587,
+    "codeword": 2
+  },
+  {
+    "object_id": "C3-011",
+    "feature": "pl_orbper",
+    "z": 1.48891,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-011",
+    "feature": "pl_trandurh",
+    "z": 0.81206,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-011",
+    "feature": "pl_trandep",
+    "z": -0.27658,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-011",
+    "feature": "pl_rade",
+    "z": -1.25088,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-011",
+    "feature": "pl_insol",
+    "z": -1.64,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-011",
+    "feature": "st_tmag",
+    "z": -1.25587,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-011",
+    "feature": "st_dist",
+    "z": -0.28414,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-011",
+    "feature": "st_teff",
+    "z": 0.80558,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-011",
+    "feature": "st_logg",
+    "z": 1.48664,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-011",
+    "feature": "st_rad",
+    "z": 1.42992,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-011",
+    "feature": "pm_total",
+    "z": 0.66282,
+    "codeword": 3
+  },
+  {
+    "object_id": "C4-012",
+    "feature": "pl_orbper",
+    "z": 1.46709,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-012",
+    "feature": "pl_trandurh",
+    "z": 0.65066,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-012",
+    "feature": "pl_trandep",
+    "z": -0.46089,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-012",
+    "feature": "pl_rade",
+    "z": -1.33036,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-012",
+    "feature": "pl_insol",
+    "z": -1.53758,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-012",
+    "feature": "st_tmag",
+    "z": -0.98238,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-012",
+    "feature": "st_dist",
+    "z": 0.0669,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-012",
+    "feature": "st_teff",
+    "z": 1.10319,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-012",
+    "feature": "st_logg",
+    "z": 1.62566,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-012",
+    "feature": "st_rad",
+    "z": 1.38182,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-012",
+    "feature": "pm_total",
+    "z": 0.48951,
+    "codeword": 4
+  },
+  {
+    "object_id": "C5-013",
+    "feature": "pl_orbper",
+    "z": 1.40411,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-013",
+    "feature": "pl_trandurh",
+    "z": 0.47165,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-013",
+    "feature": "pl_trandep",
+    "z": -0.63075,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-013",
+    "feature": "pl_rade",
+    "z": -1.37034,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-013",
+    "feature": "pl_insol",
+    "z": -1.38968,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-013",
+    "feature": "st_tmag",
+    "z": -0.67943,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-013",
+    "feature": "st_dist",
+    "z": 0.41717,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-013",
+    "feature": "st_teff",
+    "z": 1.37015,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-013",
+    "feature": "st_logg",
+    "z": 1.71896,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-013",
+    "feature": "st_rad",
+    "z": 1.29504,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-013",
+    "feature": "pm_total",
+    "z": 0.30324,
+    "codeword": 5
+  },
+  {
+    "object_id": "C6-014",
+    "feature": "pl_orbper",
+    "z": 1.30412,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-014",
+    "feature": "pl_trandurh",
+    "z": 0.28251,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-014",
+    "feature": "pl_trandep",
+    "z": -0.77897,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-014",
+    "feature": "pl_rade",
+    "z": -1.36734,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-014",
+    "feature": "pl_insol",
+    "z": -1.19825,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-014",
+    "feature": "st_tmag",
+    "z": -0.35342,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-014",
+    "feature": "st_dist",
+    "z": 0.75887,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-014",
+    "feature": "st_teff",
+    "z": 1.60107,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-014",
+    "feature": "st_logg",
+    "z": 1.76617,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-014",
+    "feature": "st_rad",
+    "z": 1.17437,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-014",
+    "feature": "pm_total",
+    "z": 0.11169,
+    "codeword": 6
+  },
+  {
+    "object_id": "C7-015",
+    "feature": "pl_orbper",
+    "z": 1.17229,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-015",
+    "feature": "pl_trandurh",
+    "z": 0.09099,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-015",
+    "feature": "pl_trandep",
+    "z": -0.89897,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-015",
+    "feature": "pl_rade",
+    "z": -1.31916,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-015",
+    "feature": "pl_insol",
+    "z": -0.96652,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-015",
+    "feature": "st_tmag",
+    "z": -0.01146,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-015",
+    "feature": "st_dist",
+    "z": 1.08445,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-015",
+    "feature": "st_teff",
+    "z": 1.79159,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-015",
+    "feature": "st_logg",
+    "z": 1.76821,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-015",
+    "feature": "st_rad",
+    "z": 1.02562,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-015",
+    "feature": "pm_total",
+    "z": -0.07732,
+    "codeword": 7
+  },
+  {
+    "object_id": "C0-016",
+    "feature": "pl_orbper",
+    "z": 0.37474,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-016",
+    "feature": "pl_trandurh",
+    "z": -0.73508,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-016",
+    "feature": "pl_trandep",
+    "z": -1.62498,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-016",
+    "feature": "pl_rade",
+    "z": -1.86487,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-016",
+    "feature": "pl_insol",
+    "z": -1.33884,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-016",
+    "feature": "st_tmag",
+    "z": -0.3011,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-016",
+    "feature": "st_dist",
+    "z": 0.74685,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-016",
+    "feature": "st_teff",
+    "z": 1.29854,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-016",
+    "feature": "st_logg",
+    "z": 1.08736,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-016",
+    "feature": "st_rad",
+    "z": 0.21537,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-016",
+    "feature": "pm_total",
+    "z": -0.89602,
+    "codeword": 0
+  },
+  {
+    "object_id": "C1-017",
+    "feature": "pl_orbper",
+    "z": 0.19831,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-017",
+    "feature": "pl_trandurh",
+    "z": -0.90803,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-017",
+    "feature": "pl_trandep",
+    "z": -1.6722,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-017",
+    "feature": "pl_rade",
+    "z": -1.7249,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-017",
+    "feature": "pl_insol",
+    "z": -1.04064,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-017",
+    "feature": "st_tmag",
+    "z": 0.04988,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-017",
+    "feature": "st_dist",
+    "z": 1.01963,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-017",
+    "feature": "st_teff",
+    "z": 1.39997,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-017",
+    "feature": "st_logg",
+    "z": 1.00708,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-017",
+    "feature": "st_rad",
+    "z": 0.03084,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-017",
+    "feature": "pm_total",
+    "z": -1.05697,
+    "codeword": 1
+  },
+  {
+    "object_id": "C2-018",
+    "feature": "pl_orbper",
+    "z": 0.0104,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-018",
+    "feature": "pl_trandurh",
+    "z": -1.06057,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-018",
+    "feature": "pl_trandep",
+    "z": -1.67699,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-018",
+    "feature": "pl_rade",
+    "z": -1.54095,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-018",
+    "feature": "pl_insol",
+    "z": -0.7182,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-018",
+    "feature": "st_tmag",
+    "z": 0.39364,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-018",
+    "feature": "st_dist",
+    "z": 1.25726,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-018",
+    "feature": "st_teff",
+    "z": 1.45528,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-018",
+    "feature": "st_logg",
+    "z": 0.892,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-018",
+    "feature": "st_rad",
+    "z": -0.16035,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-018",
+    "feature": "pm_total",
+    "z": -1.1932,
+    "codeword": 2
+  },
+  {
+    "object_id": "C3-019",
+    "feature": "pl_orbper",
+    "z": -0.18127,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-019",
+    "feature": "pl_trandurh",
+    "z": -1.18599,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-019",
+    "feature": "pl_trandep",
+    "z": -1.63689,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-019",
+    "feature": "pl_rade",
+    "z": -1.31604,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-019",
+    "feature": "pl_insol",
+    "z": -0.37852,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-019",
+    "feature": "st_tmag",
+    "z": 0.7226,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-019",
+    "feature": "st_dist",
+    "z": 1.45518,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-019",
+    "feature": "st_teff",
+    "z": 1.46517,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-019",
+    "feature": "st_logg",
+    "z": 0.74775,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-019",
+    "feature": "st_rad",
+    "z": -0.35037,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-019",
+    "feature": "pm_total",
+    "z": -1.2985,
+    "codeword": 3
+  },
+  {
+    "object_id": "C4-020",
+    "feature": "pl_orbper",
+    "z": -0.36887,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-020",
+    "feature": "pl_trandurh",
+    "z": -1.27837,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-020",
+    "feature": "pl_trandep",
+    "z": -1.55074,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-020",
+    "feature": "pl_rade",
+    "z": -1.05435,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-020",
+    "feature": "pl_insol",
+    "z": -0.02908,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-020",
+    "feature": "st_tmag",
+    "z": 1.02958,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-020",
+    "feature": "st_dist",
+    "z": 1.60999,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-020",
+    "feature": "st_teff",
+    "z": 1.43167,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-020",
+    "feature": "st_logg",
+    "z": 0.58078,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-020",
+    "feature": "st_rad",
+    "z": -0.53145,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-020",
+    "feature": "pm_total",
+    "z": -1.36751,
+    "codeword": 4
+  },
+  {
+    "object_id": "C5-021",
+    "feature": "pl_orbper",
+    "z": -0.54468,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-021",
+    "feature": "pl_trandurh",
+    "z": -1.33275,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-021",
+    "feature": "pl_trandep",
+    "z": -1.41874,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-021",
+    "feature": "pl_rade",
+    "z": -0.7611,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-021",
+    "feature": "pl_insol",
+    "z": 0.32236,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-021",
+    "feature": "st_tmag",
+    "z": 1.30802,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-021",
+    "feature": "st_dist",
+    "z": 1.71954,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-021",
+    "feature": "st_teff",
+    "z": 1.35804,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-021",
+    "feature": "st_logg",
+    "z": 0.39822,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-021",
+    "feature": "st_rad",
+    "z": -0.69605,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-021",
+    "feature": "pm_total",
+    "z": -1.39595,
+    "codeword": 5
+  },
+  {
+    "object_id": "C6-022",
+    "feature": "pl_orbper",
+    "z": -0.70132,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-022",
+    "feature": "pl_trandurh",
+    "z": -1.34524,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-022",
+    "feature": "pl_trandep",
+    "z": -1.24237,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-022",
+    "feature": "pl_rade",
+    "z": -0.44245,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-022",
+    "feature": "pl_insol",
+    "z": 0.66796,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-022",
+    "feature": "st_tmag",
+    "z": 1.55221,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-022",
+    "feature": "st_dist",
+    "z": 1.78297,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-022",
+    "feature": "st_teff",
+    "z": 1.24872,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-022",
+    "feature": "st_logg",
+    "z": 0.20764,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-022",
+    "feature": "st_rad",
+    "z": -0.83712,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-022",
+    "feature": "pm_total",
+    "z": -1.38068,
+    "codeword": 6
+  },
+  {
+    "object_id": "C7-023",
+    "feature": "pl_orbper",
+    "z": -0.83199,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-023",
+    "feature": "pl_trandurh",
+    "z": -1.31318,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-023",
+    "feature": "pl_trandep",
+    "z": -1.02442,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-023",
+    "feature": "pl_rade",
+    "z": -0.10527,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-023",
+    "feature": "pl_insol",
+    "z": 1.00007,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-023",
+    "feature": "st_tmag",
+    "z": 1.75742,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-023",
+    "feature": "st_dist",
+    "z": 1.80077,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-023",
+    "feature": "st_teff",
+    "z": 1.10917,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-023",
+    "feature": "st_logg",
+    "z": 0.01685,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-023",
+    "feature": "st_rad",
+    "z": -0.9483,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-023",
+    "feature": "pm_total",
+    "z": -1.31983,
+    "codeword": 7
+  },
+  {
+    "object_id": "C0-024",
+    "feature": "pl_orbper",
+    "z": -1.57059,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-024",
+    "feature": "pl_trandurh",
+    "z": -1.87518,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-024",
+    "feature": "pl_trandep",
+    "z": -1.40886,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-024",
+    "feature": "pl_rade",
+    "z": -0.39699,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-024",
+    "feature": "pl_insol",
+    "z": 0.67142,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-024",
+    "feature": "st_tmag",
+    "z": 1.28003,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-024",
+    "feature": "st_dist",
+    "z": 1.13472,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-024",
+    "feature": "st_teff",
+    "z": 0.30571,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-024",
+    "feature": "st_logg",
+    "z": -0.80637,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-024",
+    "feature": "st_rad",
+    "z": -1.66406,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-024",
+    "feature": "pm_total",
+    "z": -1.85287,
+    "codeword": 0
+  },
+  {
+    "object_id": "C1-025",
+    "feature": "pl_orbper",
+    "z": -1.63198,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-025",
+    "feature": "pl_trandurh",
+    "z": -1.7512,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-025",
+    "feature": "pl_trandep",
+    "z": -1.12076,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-025",
+    "feature": "pl_rade",
+    "z": -0.04534,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-025",
+    "feature": "pl_insol",
+    "z": 0.95534,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-025",
+    "feature": "st_tmag",
+    "z": 1.39767,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-025",
+    "feature": "st_dist",
+    "z": 1.06788,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-025",
+    "feature": "st_teff",
+    "z": 0.12536,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-025",
+    "feature": "st_logg",
+    "z": -0.9744,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-025",
+    "feature": "st_rad",
+    "z": -1.69991,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-025",
+    "feature": "pm_total",
+    "z": -1.70055,
+    "codeword": 1
+  },
+  {
+    "object_id": "C2-026",
+    "feature": "pl_orbper",
+    "z": -1.65209,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-026",
+    "feature": "pl_trandurh",
+    "z": -1.5825,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-026",
+    "feature": "pl_trandep",
+    "z": -0.80611,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-026",
+    "feature": "pl_rade",
+    "z": 0.30186,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-026",
+    "feature": "pl_insol",
+    "z": 1.20595,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-026",
+    "feature": "st_tmag",
+    "z": 1.46924,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-026",
+    "feature": "st_dist",
+    "z": 0.96449,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-026",
+    "feature": "st_teff",
+    "z": -0.06437,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-026",
+    "feature": "st_logg",
+    "z": -1.12011,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-026",
+    "feature": "st_rad",
+    "z": -1.69253,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-026",
+    "feature": "pm_total",
+    "z": -1.50498,
+    "codeword": 2
+  },
+  {
+    "object_id": "C3-027",
+    "feature": "pl_orbper",
+    "z": -1.62803,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-027",
+    "feature": "pl_trandurh",
+    "z": -1.37163,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-027",
+    "feature": "pl_trandep",
+    "z": -0.47168,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-027",
+    "feature": "pl_rade",
+    "z": 0.63689,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-027",
+    "feature": "pl_insol",
+    "z": 1.41833,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-027",
+    "feature": "st_tmag",
+    "z": 1.495,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-027",
+    "feature": "st_dist",
+    "z": 0.82984,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-027",
+    "feature": "st_teff",
+    "z": -0.2557,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-027",
+    "feature": "st_logg",
+    "z": -1.23699,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-027",
+    "feature": "st_rad",
+    "z": -1.63981,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-027",
+    "feature": "pm_total",
+    "z": -1.26947,
+    "codeword": 3
+  },
+  {
+    "object_id": "C4-028",
+    "feature": "pl_orbper",
+    "z": -1.55819,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-028",
+    "feature": "pl_trandurh",
+    "z": -1.12237,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-028",
+    "feature": "pl_trandep",
+    "z": -0.1248,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-028",
+    "feature": "pl_rade",
+    "z": 0.95241,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-028",
+    "feature": "pl_insol",
+    "z": 1.58867,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-028",
+    "feature": "st_tmag",
+    "z": 1.4765,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-028",
+    "feature": "st_dist",
+    "z": 0.6701,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-028",
+    "feature": "st_teff",
+    "z": -0.44081,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-028",
+    "feature": "st_logg",
+    "z": -1.31936,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-028",
+    "feature": "st_rad",
+    "z": -1.54096,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-028",
+    "feature": "pm_total",
+    "z": -0.99852,
+    "codeword": 4
+  },
+  {
+    "object_id": "C5-029",
+    "feature": "pl_orbper",
+    "z": -1.44227,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-029",
+    "feature": "pl_trandurh",
+    "z": -0.8396,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-029",
+    "feature": "pl_trandep",
+    "z": 0.22682,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-029",
+    "feature": "pl_rade",
+    "z": 1.24162,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-029",
+    "feature": "pl_insol",
+    "z": 1.71436,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-029",
+    "feature": "st_tmag",
+    "z": 1.41659,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-029",
+    "feature": "st_dist",
+    "z": 0.4922,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-029",
+    "feature": "st_teff",
+    "z": -0.61206,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-029",
+    "feature": "st_logg",
+    "z": -1.36253,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-029",
+    "feature": "st_rad",
+    "z": -1.39653,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-029",
+    "feature": "pm_total",
+    "z": -0.69763,
+    "codeword": 5
+  },
+  {
+    "object_id": "C6-030",
+    "feature": "pl_orbper",
+    "z": -1.2813,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-030",
+    "feature": "pl_trandurh",
+    "z": -0.52916,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-030",
+    "feature": "pl_trandep",
+    "z": 0.57537,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-030",
+    "feature": "pl_rade",
+    "z": 1.49849,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-030",
+    "feature": "pl_insol",
+    "z": 1.79408,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-030",
+    "feature": "st_tmag",
+    "z": 1.31929,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-030",
+    "feature": "st_dist",
+    "z": 0.30357,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-030",
+    "feature": "st_teff",
+    "z": -0.7622,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-030",
+    "feature": "st_logg",
+    "z": -1.36297,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-030",
+    "feature": "st_rad",
+    "z": -1.20839,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-030",
+    "feature": "pm_total",
+    "z": -0.37317,
+    "codeword": 6
+  },
+  {
+    "object_id": "C7-031",
+    "feature": "pl_orbper",
+    "z": -1.07763,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-031",
+    "feature": "pl_trandurh",
+    "z": -0.1977,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-031",
+    "feature": "pl_trandep",
+    "z": 0.9131,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-031",
+    "feature": "pl_rade",
+    "z": 1.71793,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-031",
+    "feature": "pl_insol",
+    "z": 1.82785,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-031",
+    "feature": "st_tmag",
+    "z": 1.18973,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-031",
+    "feature": "st_dist",
+    "z": 0.11196,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-031",
+    "feature": "st_teff",
+    "z": -0.8846,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-031",
+    "feature": "st_logg",
+    "z": -1.31834,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-031",
+    "feature": "st_rad",
+    "z": -0.97963,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-031",
+    "feature": "pm_total",
+    "z": -0.03218,
+    "codeword": 7
+  },
+  {
+    "object_id": "C0-032",
+    "feature": "pl_orbper",
+    "z": -1.47482,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-032",
+    "feature": "pl_trandurh",
+    "z": -0.49247,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-032",
+    "feature": "pl_trandep",
+    "z": 0.59257,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-032",
+    "feature": "pl_rade",
+    "z": 1.25592,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-032",
+    "feature": "pl_insol",
+    "z": 1.17699,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-032",
+    "feature": "st_tmag",
+    "z": 0.39393,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-032",
+    "feature": "st_dist",
+    "z": -0.71482,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-032",
+    "feature": "st_teff",
+    "z": -1.61343,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-032",
+    "feature": "st_logg",
+    "z": -1.86763,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-032",
+    "feature": "st_rad",
+    "z": -1.35457,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-032",
+    "feature": "pm_total",
+    "z": -0.32219,
+    "codeword": 0
+  },
+  {
+    "object_id": "C1-033",
+    "feature": "pl_orbper",
+    "z": -1.19757,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-033",
+    "feature": "pl_trandurh",
+    "z": -0.14111,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-033",
+    "feature": "pl_trandep",
+    "z": 0.88689,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-033",
+    "feature": "pl_rade",
+    "z": 1.38962,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-033",
+    "feature": "pl_insol",
+    "z": 1.12412,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-033",
+    "feature": "st_tmag",
+    "z": 0.21871,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-033",
+    "feature": "st_dist",
+    "z": -0.88905,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-033",
+    "feature": "st_teff",
+    "z": -1.66382,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-033",
+    "feature": "st_logg",
+    "z": -1.73115,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-033",
+    "feature": "st_rad",
+    "z": -1.05852,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-033",
+    "feature": "pm_total",
+    "z": 0.02902,
+    "codeword": 1
+  },
+  {
+    "object_id": "C2-034",
+    "feature": "pl_orbper",
+    "z": -0.89155,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-034",
+    "feature": "pl_trandurh",
+    "z": 0.20855,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-034",
+    "feature": "pl_trandep",
+    "z": 1.14987,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-034",
+    "feature": "pl_rade",
+    "z": 1.47749,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-034",
+    "feature": "pl_insol",
+    "z": 1.03308,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-034",
+    "feature": "st_tmag",
+    "z": 0.03142,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-034",
+    "feature": "st_dist",
+    "z": -1.04342,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-034",
+    "feature": "st_teff",
+    "z": -1.672,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-034",
+    "feature": "st_logg",
+    "z": -1.55053,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-034",
+    "feature": "st_rad",
+    "z": -0.73772,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-034",
+    "feature": "pm_total",
+    "z": 0.37362,
+    "codeword": 2
+  },
+  {
+    "object_id": "C3-035",
+    "feature": "pl_orbper",
+    "z": -0.56329,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-035",
+    "feature": "pl_trandurh",
+    "z": 0.54874,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-035",
+    "feature": "pl_trandep",
+    "z": 1.37624,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-035",
+    "feature": "pl_rade",
+    "z": 1.51931,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-035",
+    "feature": "pl_insol",
+    "z": 0.9088,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-035",
+    "feature": "st_tmag",
+    "z": -0.16024,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-035",
+    "feature": "st_dist",
+    "z": -1.17117,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-035",
+    "feature": "st_teff",
+    "z": -1.63543,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-035",
+    "feature": "st_logg",
+    "z": -1.32866,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-035",
+    "feature": "st_rad",
+    "z": -0.39911,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-035",
+    "feature": "pm_total",
+    "z": 0.70399,
+    "codeword": 3
+  },
+  {
+    "object_id": "C4-036",
+    "feature": "pl_orbper",
+    "z": -0.21994,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-036",
+    "feature": "pl_trandurh",
+    "z": 0.87195,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-036",
+    "feature": "pl_trandep",
+    "z": 1.56178,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-036",
+    "feature": "pl_rade",
+    "z": 1.51617,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-036",
+    "feature": "pl_insol",
+    "z": 0.75716,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-036",
+    "feature": "st_tmag",
+    "z": -0.34843,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-036",
+    "feature": "st_dist",
+    "z": -1.26631,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-036",
+    "feature": "st_teff",
+    "z": -1.55287,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-036",
+    "feature": "st_logg",
+    "z": -1.06964,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-036",
+    "feature": "st_rad",
+    "z": -0.05015,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-036",
+    "feature": "pm_total",
+    "z": 1.01291,
+    "codeword": 4
+  },
+  {
+    "object_id": "C5-037",
+    "feature": "pl_orbper",
+    "z": 0.1309,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-037",
+    "feature": "pl_trandurh",
+    "z": 1.17118,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-037",
+    "feature": "pl_trandep",
+    "z": 1.70344,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-037",
+    "feature": "pl_rade",
+    "z": 1.47047,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-037",
+    "feature": "pl_insol",
+    "z": 0.58484,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-037",
+    "feature": "st_tmag",
+    "z": -0.52543,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-037",
+    "feature": "st_dist",
+    "z": -1.32378,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-037",
+    "feature": "st_teff",
+    "z": -1.42439,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-037",
+    "feature": "st_logg",
+    "z": -0.77863,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-037",
+    "feature": "st_rad",
+    "z": 0.30142,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-037",
+    "feature": "pm_total",
+    "z": 1.29379,
+    "codeword": 5
+  },
+  {
+    "object_id": "C6-038",
+    "feature": "pl_orbper",
+    "z": 0.48143,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-038",
+    "feature": "pl_trandurh",
+    "z": 1.4401,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-038",
+    "feature": "pl_trandep",
+    "z": 1.79946,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-038",
+    "feature": "pl_rade",
+    "z": 1.38584,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-038",
+    "feature": "pl_insol",
+    "z": 0.39913,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-038",
+    "feature": "st_tmag",
+    "z": -0.68382,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-038",
+    "feature": "st_dist",
+    "z": -1.33963,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-038",
+    "feature": "st_teff",
+    "z": -1.25138,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-038",
+    "feature": "st_logg",
+    "z": -0.46171,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-038",
+    "feature": "st_rad",
+    "z": 0.64775,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-038",
+    "feature": "pm_total",
+    "z": 1.54082,
+    "codeword": 6
+  },
+  {
+    "object_id": "C7-039",
+    "feature": "pl_orbper",
+    "z": 0.82385,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-039",
+    "feature": "pl_trandurh",
+    "z": 1.67327,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-039",
+    "feature": "pl_trandep",
+    "z": 1.84936,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-039",
+    "feature": "pl_rade",
+    "z": 1.26702,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-039",
+    "feature": "pl_insol",
+    "z": 0.20767,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-039",
+    "feature": "st_tmag",
+    "z": -0.81672,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-039",
+    "feature": "st_dist",
+    "z": -1.31109,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-039",
+    "feature": "st_teff",
+    "z": -1.03653,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-039",
+    "feature": "st_logg",
+    "z": -0.12571,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-039",
+    "feature": "st_rad",
+    "z": 0.98117,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-039",
+    "feature": "pm_total",
+    "z": 1.74919,
+    "codeword": 7
+  },
+  {
+    "object_id": "C0-040",
+    "feature": "pl_orbper",
+    "z": 0.51058,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-040",
+    "feature": "pl_trandurh",
+    "z": 1.22627,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-040",
+    "feature": "pl_trandep",
+    "z": 1.21402,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-040",
+    "feature": "pl_rade",
+    "z": 0.47974,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-040",
+    "feature": "pl_insol",
+    "z": -0.6217,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-040",
+    "feature": "st_tmag",
+    "z": -1.55801,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-040",
+    "feature": "st_dist",
+    "z": -1.87668,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-040",
+    "feature": "st_teff",
+    "z": -1.42372,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-040",
+    "feature": "st_logg",
+    "z": -0.41802,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-040",
+    "feature": "st_rad",
+    "z": 0.65438,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-040",
+    "feature": "pm_total",
+    "z": 1.27521,
+    "codeword": 0
+  },
+  {
+    "object_id": "C1-041",
+    "feature": "pl_orbper",
+    "z": 0.81452,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-041",
+    "feature": "pl_trandurh",
+    "z": 1.37585,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-041",
+    "feature": "pl_trandep",
+    "z": 1.1756,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-041",
+    "feature": "pl_rade",
+    "z": 0.31056,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-041",
+    "feature": "pl_insol",
+    "z": -0.80122,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-041",
+    "feature": "st_tmag",
+    "z": -1.62245,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-041",
+    "feature": "st_dist",
+    "z": -1.75624,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-041",
+    "feature": "st_teff",
+    "z": -1.13793,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-041",
+    "feature": "st_logg",
+    "z": -0.06635,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-041",
+    "feature": "st_rad",
+    "z": 0.94064,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-041",
+    "feature": "pm_total",
+    "z": 1.39639,
+    "codeword": 1
+  },
+  {
+    "object_id": "C2-042",
+    "feature": "pl_orbper",
+    "z": 1.08922,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-042",
+    "feature": "pl_trandurh",
+    "z": 1.47999,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-042",
+    "feature": "pl_trandep",
+    "z": 1.09752,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-042",
+    "feature": "pl_rade",
+    "z": 0.12666,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-042",
+    "feature": "pl_insol",
+    "z": -0.96341,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-042",
+    "feature": "st_tmag",
+    "z": -1.64588,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-042",
+    "feature": "st_dist",
+    "z": -1.59093,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-042",
+    "feature": "st_teff",
+    "z": -0.82511,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-042",
+    "feature": "st_logg",
+    "z": 0.28147,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-042",
+    "feature": "st_rad",
+    "z": 1.19403,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-042",
+    "feature": "pm_total",
+    "z": 1.47155,
+    "codeword": 2
+  },
+  {
+    "object_id": "C3-043",
+    "feature": "pl_orbper",
+    "z": 1.32905,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-043",
+    "feature": "pl_trandurh",
+    "z": 1.538,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-043",
+    "feature": "pl_trandep",
+    "z": 0.98434,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-043",
+    "feature": "pl_rade",
+    "z": -0.06435,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-043",
+    "feature": "pl_insol",
+    "z": -1.10128,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-043",
+    "feature": "st_tmag",
+    "z": -1.62532,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-043",
+    "feature": "st_dist",
+    "z": -1.38321,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-043",
+    "feature": "st_teff",
+    "z": -0.49196,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-043",
+    "feature": "st_logg",
+    "z": 0.61771,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-043",
+    "feature": "st_rad",
+    "z": 1.40953,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-043",
+    "feature": "pm_total",
+    "z": 1.50082,
+    "codeword": 3
+  },
+  {
+    "object_id": "C4-044",
+    "feature": "pl_orbper",
+    "z": 1.52941,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-044",
+    "feature": "pl_trandurh",
+    "z": 1.55052,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-044",
+    "feature": "pl_trandep",
+    "z": 0.84163,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-044",
+    "feature": "pl_rade",
+    "z": -0.25466,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-044",
+    "feature": "pl_insol",
+    "z": -1.20856,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-044",
+    "feature": "st_tmag",
+    "z": -1.55905,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-044",
+    "feature": "st_dist",
+    "z": -1.13676,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-044",
+    "feature": "st_teff",
+    "z": -0.14577,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-044",
+    "feature": "st_logg",
+    "z": 0.935,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-044",
+    "feature": "st_rad",
+    "z": 1.58324,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-044",
+    "feature": "pm_total",
+    "z": 1.48567,
+    "codeword": 4
+  },
+  {
+    "object_id": "C5-045",
+    "feature": "pl_orbper",
+    "z": 1.68683,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-045",
+    "feature": "pl_trandurh",
+    "z": 1.51949,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-045",
+    "feature": "pl_trandep",
+    "z": 0.67581,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-045",
+    "feature": "pl_rade",
+    "z": -0.43648,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-045",
+    "feature": "pl_insol",
+    "z": -1.27983,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-045",
+    "feature": "st_tmag",
+    "z": -1.44668,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-045",
+    "feature": "st_dist",
+    "z": -0.85639,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-045",
+    "feature": "st_teff",
+    "z": 0.20577,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-045",
+    "feature": "st_logg",
+    "z": 1.22648,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-045",
+    "feature": "st_rad",
+    "z": 1.71245,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-045",
+    "feature": "pm_total",
+    "z": 1.42883,
+    "codeword": 5
+  },
+  {
+    "object_id": "C6-046",
+    "feature": "pl_orbper",
+    "z": 1.79908,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-046",
+    "feature": "pl_trandurh",
+    "z": 1.44811,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-046",
+    "feature": "pl_trandep",
+    "z": 0.49397,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-046",
+    "feature": "pl_rade",
+    "z": -0.60225,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-046",
+    "feature": "pl_insol",
+    "z": -1.31075,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-046",
+    "feature": "st_tmag",
+    "z": -1.28915,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-046",
+    "feature": "st_dist",
+    "z": -0.54787,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-046",
+    "feature": "st_teff",
+    "z": 0.55483,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-046",
+    "feature": "st_logg",
+    "z": 1.48606,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-046",
+    "feature": "st_rad",
+    "z": 1.79576,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-046",
+    "feature": "pm_total",
+    "z": 1.33427,
+    "codeword": 6
+  },
+  {
+    "object_id": "C7-047",
+    "feature": "pl_orbper",
+    "z": 1.86522,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-047",
+    "feature": "pl_trandurh",
+    "z": 1.34075,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-047",
+    "feature": "pl_trandep",
+    "z": 0.30364,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-047",
+    "feature": "pl_rade",
+    "z": -0.74489,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-047",
+    "feature": "pl_insol",
+    "z": -1.29812,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-047",
+    "feature": "st_tmag",
+    "z": -1.08868,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-047",
+    "feature": "st_dist",
+    "z": -0.21779,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-047",
+    "feature": "st_teff",
+    "z": 0.89367,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-047",
+    "feature": "st_logg",
+    "z": 1.70856,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-047",
+    "feature": "st_rad",
+    "z": 1.83306,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-047",
+    "feature": "pm_total",
+    "z": 1.207,
+    "codeword": 7
+  },
+  {
+    "object_id": "C0-048",
+    "feature": "pl_orbper",
+    "z": 1.24567,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-048",
+    "feature": "pl_trandurh",
+    "z": 0.56281,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-048",
+    "feature": "pl_trandep",
+    "z": -0.52736,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-048",
+    "feature": "pl_rade",
+    "z": -1.49798,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-048",
+    "feature": "pl_insol",
+    "z": -1.87998,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-048",
+    "feature": "st_tmag",
+    "z": -1.48875,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-048",
+    "feature": "st_dist",
+    "z": -0.51336,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-048",
+    "feature": "st_teff",
+    "z": 0.57481,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-048",
+    "feature": "st_logg",
+    "z": 1.24987,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-048",
+    "feature": "st_rad",
+    "z": 1.18558,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-048",
+    "feature": "pm_total",
+    "z": 0.41301,
+    "codeword": 0
+  },
+  {
+    "object_id": "C1-049",
+    "feature": "pl_orbper",
+    "z": 1.22212,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-049",
+    "feature": "pl_trandurh",
+    "z": 0.40057,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-049",
+    "feature": "pl_trandep",
+    "z": -0.71123,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-049",
+    "feature": "pl_rade",
+    "z": -1.57596,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-049",
+    "feature": "pl_insol",
+    "z": -1.77572,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-049",
+    "feature": "st_tmag",
+    "z": -1.21397,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-049",
+    "feature": "st_dist",
+    "z": -0.1622,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-049",
+    "feature": "st_teff",
+    "z": 0.87131,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-049",
+    "feature": "st_logg",
+    "z": 1.38708,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-049",
+    "feature": "st_rad",
+    "z": 1.13585,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-049",
+    "feature": "pm_total",
+    "z": 0.23904,
+    "codeword": 1
+  },
+  {
+    "object_id": "C2-050",
+    "feature": "pl_orbper",
+    "z": 1.15758,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-050",
+    "feature": "pl_trandurh",
+    "z": 0.22101,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-050",
+    "feature": "pl_trandep",
+    "z": -0.88036,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-050",
+    "feature": "pl_rade",
+    "z": -1.61427,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-050",
+    "feature": "pl_insol",
+    "z": -1.62603,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-050",
+    "feature": "st_tmag",
+    "z": -0.90996,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-050",
+    "feature": "st_dist",
+    "z": 0.18787,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-050",
+    "feature": "st_teff",
+    "z": 1.13692,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-050",
+    "feature": "st_logg",
+    "z": 1.47853,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-050",
+    "feature": "st_rad",
+    "z": 1.04761,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-050",
+    "feature": "pm_total",
+    "z": 0.05241,
+    "codeword": 2
+  },
+  {
+    "object_id": "C3-051",
+    "feature": "pl_orbper",
+    "z": 1.0562,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-051",
+    "feature": "pl_trandurh",
+    "z": 0.03162,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-051",
+    "feature": "pl_trandep",
+    "z": -1.02757,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-051",
+    "feature": "pl_rade",
+    "z": -1.6095,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-051",
+    "feature": "pl_insol",
+    "z": -1.43292,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-051",
+    "feature": "st_tmag",
+    "z": -0.58318,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-051",
+    "feature": "st_dist",
+    "z": 0.52907,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-051",
+    "feature": "st_teff",
+    "z": 1.3663,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-051",
+    "feature": "st_logg",
+    "z": 1.5239,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-051",
+    "feature": "st_rad",
+    "z": 0.9257,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-051",
+    "feature": "pm_total",
+    "z": -0.1392,
+    "codeword": 3
+  },
+  {
+    "object_id": "C4-052",
+    "feature": "pl_orbper",
+    "z": 0.92322,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-052",
+    "feature": "pl_trandurh",
+    "z": -0.15983,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-052",
+    "feature": "pl_trandep",
+    "z": -1.14631,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-052",
+    "feature": "pl_rade",
+    "z": -1.55948,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-052",
+    "feature": "pl_insol",
+    "z": -1.19965,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-052",
+    "feature": "st_tmag",
+    "z": -0.24073,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-052",
+    "feature": "st_dist",
+    "z": 0.85386,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-052",
+    "feature": "st_teff",
+    "z": 1.55513,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-052",
+    "feature": "st_logg",
+    "z": 1.52418,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-052",
+    "feature": "st_rad",
+    "z": 0.77595,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-052",
+    "feature": "pm_total",
+    "z": -0.32794,
+    "codeword": 4
+  },
+  {
+    "object_id": "C5-053",
+    "feature": "pl_orbper",
+    "z": 0.76478,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-053",
+    "feature": "pl_trandurh",
+    "z": -0.34552,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-053",
+    "feature": "pl_trandep",
+    "z": -1.23085,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-053",
+    "feature": "pl_rade",
+    "z": -1.46334,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-053",
+    "feature": "pl_insol",
+    "z": -0.93064,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-053",
+    "feature": "st_tmag",
+    "z": 0.10981,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-053",
+    "feature": "st_dist",
+    "z": 1.15518,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-053",
+    "feature": "st_teff",
+    "z": 1.70028,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-053",
+    "feature": "st_logg",
+    "z": 1.48166,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-053",
+    "feature": "st_rad",
+    "z": 0.60499,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-053",
+    "feature": "pm_total",
+    "z": -0.50607,
+    "codeword": 5
+  },
+  {
+    "object_id": "C6-054",
+    "feature": "pl_orbper",
+    "z": 0.58775,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-054",
+    "feature": "pl_trandurh",
+    "z": -0.51779,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-054",
+    "feature": "pl_trandep",
+    "z": -1.27644,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-054",
+    "feature": "pl_rade",
+    "z": -1.32156,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-054",
+    "feature": "pl_insol",
+    "z": -0.63134,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-054",
+    "feature": "st_tmag",
+    "z": 0.46064,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-054",
+    "feature": "st_dist",
+    "z": 1.42666,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-054",
+    "feature": "st_teff",
+    "z": 1.79987,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-054",
+    "feature": "st_logg",
+    "z": 1.3999,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-054",
+    "feature": "st_rad",
+    "z": 0.42004,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-054",
+    "feature": "pm_total",
+    "z": -0.66615,
+    "codeword": 6
+  },
+  {
+    "object_id": "C7-055",
+    "feature": "pl_orbper",
+    "z": 0.39953,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-055",
+    "feature": "pl_trandurh",
+    "z": -0.66937,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-055",
+    "feature": "pl_trandep",
+    "z": -1.27947,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-055",
+    "feature": "pl_rade",
+    "z": -1.13591,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-055",
+    "feature": "pl_insol",
+    "z": -0.30808,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-055",
+    "feature": "st_tmag",
+    "z": 0.80396,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-055",
+    "feature": "st_dist",
+    "z": 1.66278,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-055",
+    "feature": "st_teff",
+    "z": 1.85333,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-055",
+    "feature": "st_logg",
+    "z": 1.28353,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-055",
+    "feature": "st_rad",
+    "z": 0.22875,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-055",
+    "feature": "pm_total",
+    "z": -0.80126,
+    "codeword": 7
+  },
+  {
+    "object_id": "C0-056",
+    "feature": "pl_orbper",
+    "z": -0.43213,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-056",
+    "feature": "pl_trandurh",
+    "z": -1.43358,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-056",
+    "feature": "pl_trandep",
+    "z": -1.87753,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-056",
+    "feature": "pl_rade",
+    "z": -1.54944,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-056",
+    "feature": "pl_insol",
+    "z": -0.60785,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-056",
+    "feature": "st_tmag",
+    "z": 0.49217,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-056",
+    "feature": "st_dist",
+    "z": 1.21903,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-056",
+    "feature": "st_teff",
+    "z": 1.22144,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-056",
+    "feature": "st_logg",
+    "z": 0.49824,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-056",
+    "feature": "st_rad",
+    "z": -0.60106,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-056",
+    "feature": "pm_total",
+    "z": -1.5452,
+    "codeword": 0
+  },
+  {
+    "object_id": "C1-057",
+    "feature": "pl_orbper",
+    "z": -0.6194,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-057",
+    "feature": "pl_trandurh",
+    "z": -1.52452,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-057",
+    "feature": "pl_trandep",
+    "z": -1.78954,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-057",
+    "feature": "pl_rade",
+    "z": -1.28637,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-057",
+    "feature": "pl_insol",
+    "z": -0.25818,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-057",
+    "feature": "st_tmag",
+    "z": 0.79812,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-057",
+    "feature": "st_dist",
+    "z": 1.37206,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-057",
+    "feature": "st_teff",
+    "z": 1.18625,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-057",
+    "feature": "st_logg",
+    "z": 0.33051,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-057",
+    "feature": "st_rad",
+    "z": -0.78162,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-057",
+    "feature": "pm_total",
+    "z": -1.61267,
+    "codeword": 1
+  },
+  {
+    "object_id": "C2-058",
+    "feature": "pl_orbper",
+    "z": -0.79458,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-058",
+    "feature": "pl_trandurh",
+    "z": -1.57728,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-058",
+    "feature": "pl_trandep",
+    "z": -1.65572,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-058",
+    "feature": "pl_rade",
+    "z": -0.99198,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-058",
+    "feature": "pl_insol",
+    "z": 0.09317,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-058",
+    "feature": "st_tmag",
+    "z": 1.0753,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-058",
+    "feature": "st_dist",
+    "z": 1.47976,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-058",
+    "feature": "st_teff",
+    "z": 1.1111,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-058",
+    "feature": "st_logg",
+    "z": 0.14748,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-058",
+    "feature": "st_rad",
+    "z": -0.94541,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-058",
+    "feature": "pm_total",
+    "z": -1.6394,
+    "codeword": 2
+  },
+  {
+    "object_id": "C3-059",
+    "feature": "pl_orbper",
+    "z": -0.95031,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-059",
+    "feature": "pl_trandurh",
+    "z": -1.58803,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-059",
+    "feature": "pl_trandep",
+    "z": -1.47762,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-059",
+    "feature": "pl_rade",
+    "z": -0.67244,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-059",
+    "feature": "pl_insol",
+    "z": 0.43838,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-059",
+    "feature": "st_tmag",
+    "z": 1.31801,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-059",
+    "feature": "st_dist",
+    "z": 1.54135,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-059",
+    "feature": "st_teff",
+    "z": 1.00046,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-059",
+    "feature": "st_logg",
+    "z": -0.04326,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-059",
+    "feature": "st_rad",
+    "z": -1.0854,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-059",
+    "feature": "pm_total",
+    "z": -1.62233,
+    "codeword": 3
+  },
+  {
+    "object_id": "C4-060",
+    "feature": "pl_orbper",
+    "z": -1.0798,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-060",
+    "feature": "pl_trandurh",
+    "z": -1.55415,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-060",
+    "feature": "pl_trandep",
+    "z": -1.25808,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-060",
+    "feature": "pl_rade",
+    "z": -0.33468,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-060",
+    "feature": "pl_insol",
+    "z": 0.76979,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-060",
+    "feature": "st_tmag",
+    "z": 1.52157,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-060",
+    "feature": "st_dist",
+    "z": 1.55734,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-060",
+    "feature": "st_teff",
+    "z": 0.85982,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-060",
+    "feature": "st_logg",
+    "z": -0.2339,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-060",
+    "feature": "st_rad",
+    "z": -1.19526,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-060",
+    "feature": "pm_total",
+    "z": -1.55964,
+    "codeword": 4
+  },
+  {
+    "object_id": "C5-061",
+    "feature": "pl_orbper",
+    "z": -1.177,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-061",
+    "feature": "pl_trandurh",
+    "z": -1.4743,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-061",
+    "feature": "pl_trandep",
+    "z": -1.00111,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-061",
+    "feature": "pl_rade",
+    "z": 0.01388,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-061",
+    "feature": "pl_insol",
+    "z": 1.08016,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-061",
+    "feature": "st_tmag",
+    "z": 1.68242,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-061",
+    "feature": "st_dist",
+    "z": 1.52959,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-061",
+    "feature": "st_teff",
+    "z": 0.69555,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-061",
+    "feature": "st_logg",
+    "z": -0.41665,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-061",
+    "feature": "st_rad",
+    "z": -1.2695,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-061",
+    "feature": "pm_total",
+    "z": -1.45083,
+    "codeword": 5
+  },
+  {
+    "object_id": "C6-062",
+    "feature": "pl_orbper",
+    "z": -1.23681,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-062",
+    "feature": "pl_trandurh",
+    "z": -1.34849,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-062",
+    "feature": "pl_trandep",
+    "z": -0.71182,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-062",
+    "feature": "pl_rade",
+    "z": 0.36551,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-062",
+    "feature": "pl_insol",
+    "z": 1.36286,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-062",
+    "feature": "st_tmag",
+    "z": 1.79822,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-062",
+    "feature": "st_dist",
+    "z": 1.4612,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-062",
+    "feature": "st_teff",
+    "z": 0.51468,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-062",
+    "feature": "st_logg",
+    "z": -0.58393,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-062",
+    "feature": "st_rad",
+    "z": -1.30368,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-062",
+    "feature": "pm_total",
+    "z": -1.29673,
+    "codeword": 6
+  },
+  {
+    "object_id": "C7-063",
+    "feature": "pl_orbper",
+    "z": -1.2552,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-063",
+    "feature": "pl_trandurh",
+    "z": -1.17804,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-063",
+    "feature": "pl_trandep",
+    "z": -0.39624,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-063",
+    "feature": "pl_rade",
+    "z": 0.71236,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-063",
+    "feature": "pl_insol",
+    "z": 1.61202,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-063",
+    "feature": "st_tmag",
+    "z": 1.86794,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-063",
+    "feature": "st_dist",
+    "z": 1.35645,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-063",
+    "feature": "st_teff",
+    "z": 0.32474,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-063",
+    "feature": "st_logg",
+    "z": -0.7286,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-063",
+    "feature": "st_rad",
+    "z": -1.2945,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-063",
+    "feature": "pm_total",
+    "z": -1.09949,
+    "codeword": 7
+  },
+  {
+    "object_id": "C0-064",
+    "feature": "pl_orbper",
+    "z": -1.86933,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-064",
+    "feature": "pl_trandurh",
+    "z": -1.60555,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-064",
+    "feature": "pl_trandep",
+    "z": -0.70117,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-064",
+    "feature": "pl_rade",
+    "z": 0.40675,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-064",
+    "feature": "pl_insol",
+    "z": 1.18278,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-064",
+    "feature": "st_tmag",
+    "z": 1.25189,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-064",
+    "feature": "st_dist",
+    "z": 0.58067,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-064",
+    "feature": "st_teff",
+    "z": -0.5065,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-064",
+    "feature": "st_logg",
+    "z": -1.4842,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-064",
+    "feature": "st_rad",
+    "z": -1.87994,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-064",
+    "feature": "pm_total",
+    "z": -1.50247,
+    "codeword": 0
+  },
+  {
+    "object_id": "C1-065",
+    "feature": "pl_orbper",
+    "z": -1.79763,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-065",
+    "feature": "pl_trandurh",
+    "z": -1.35485,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-065",
+    "feature": "pl_trandep",
+    "z": -0.35395,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-065",
+    "feature": "pl_rade",
+    "z": 0.72134,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-065",
+    "feature": "pl_insol",
+    "z": 1.35138,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-065",
+    "feature": "st_tmag",
+    "z": 1.23167,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-065",
+    "feature": "st_dist",
+    "z": 0.42007,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-065",
+    "feature": "st_teff",
+    "z": -0.6912,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-065",
+    "feature": "st_logg",
+    "z": -1.56508,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-065",
+    "feature": "st_rad",
+    "z": -1.77925,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-065",
+    "feature": "pm_total",
+    "z": -1.2302,
+    "codeword": 1
+  },
+  {
+    "object_id": "C2-066",
+    "feature": "pl_orbper",
+    "z": -1.67988,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-066",
+    "feature": "pl_trandurh",
+    "z": -1.07085,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-066",
+    "feature": "pl_trandep",
+    "z": -0.0023,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-066",
+    "feature": "pl_rade",
+    "z": 1.00937,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-066",
+    "feature": "pl_insol",
+    "z": 1.47524,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-066",
+    "feature": "st_tmag",
+    "z": 1.17017,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-066",
+    "feature": "st_dist",
+    "z": 0.24159,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-066",
+    "feature": "st_teff",
+    "z": -0.86174,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-066",
+    "feature": "st_logg",
+    "z": -1.6066,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-066",
+    "feature": "st_rad",
+    "z": -1.63302,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-066",
+    "feature": "pm_total",
+    "z": -0.92824,
+    "codeword": 2
+  },
+  {
+    "object_id": "C3-067",
+    "feature": "pl_orbper",
+    "z": -1.51715,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-067",
+    "feature": "pl_trandurh",
+    "z": -0.75944,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-067",
+    "feature": "pl_trandep",
+    "z": 0.34596,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-067",
+    "feature": "pl_rade",
+    "z": 1.26483,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-067",
+    "feature": "pl_insol",
+    "z": 1.55311,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-067",
+    "feature": "st_tmag",
+    "z": 1.07147,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-067",
+    "feature": "st_dist",
+    "z": 0.05269,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-067",
+    "feature": "st_teff",
+    "z": -1.01089,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-067",
+    "feature": "st_logg",
+    "z": -1.60526,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-067",
+    "feature": "st_rad",
+    "z": -1.44318,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-067",
+    "feature": "pm_total",
+    "z": -0.60297,
+    "codeword": 3
+  },
+  {
+    "object_id": "C4-068",
+    "feature": "pl_orbper",
+    "z": -1.31183,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-068",
+    "feature": "pl_trandurh",
+    "z": -0.42728,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-068",
+    "feature": "pl_trandep",
+    "z": 0.6831,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-068",
+    "feature": "pl_rade",
+    "z": 1.48268,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-068",
+    "feature": "pl_insol",
+    "z": 1.58505,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-068",
+    "feature": "st_tmag",
+    "z": 0.94074,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-068",
+    "feature": "st_dist",
+    "z": -0.13888,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-068",
+    "feature": "st_teff",
+    "z": -1.13205,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-068",
+    "feature": "st_logg",
+    "z": -1.5588,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-068",
+    "feature": "st_rad",
+    "z": -1.21288,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-068",
+    "feature": "pm_total",
+    "z": -0.26148,
+    "codeword": 4
+  },
+  {
+    "object_id": "C5-069",
+    "feature": "pl_orbper",
+    "z": -1.06755,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-069",
+    "feature": "pl_trandurh",
+    "z": -0.08166,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-069",
+    "feature": "pl_trandep",
+    "z": 1.00169,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-069",
+    "feature": "pl_rade",
+    "z": 1.65894,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-069",
+    "feature": "pl_insol",
+    "z": 1.57245,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-069",
+    "feature": "st_tmag",
+    "z": 0.78403,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-069",
+    "feature": "st_dist",
+    "z": -0.3253,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-069",
+    "feature": "st_teff",
+    "z": -1.21943,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-069",
+    "feature": "st_logg",
+    "z": -1.46624,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-069",
+    "feature": "st_rad",
+    "z": -0.94646,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-069",
+    "feature": "pm_total",
+    "z": 0.08871,
+    "codeword": 5
+  },
+  {
+    "object_id": "C6-070",
+    "feature": "pl_orbper",
+    "z": -0.78902,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-070",
+    "feature": "pl_trandurh",
+    "z": 0.26978,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-070",
+    "feature": "pl_trandep",
+    "z": 1.29486,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-070",
+    "feature": "pl_rade",
+    "z": 1.79082,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-070",
+    "feature": "pl_insol",
+    "z": 1.51797,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-070",
+    "feature": "st_tmag",
+    "z": 0.60818,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-070",
+    "feature": "st_dist",
+    "z": -0.49888,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-070",
+    "feature": "st_teff",
+    "z": -1.26818,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-070",
+    "feature": "st_logg",
+    "z": -1.32795,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-070",
+    "feature": "st_rad",
+    "z": -0.6493,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-070",
+    "feature": "pm_total",
+    "z": 0.4398,
+    "codeword": 6
+  },
+  {
+    "object_id": "C7-071",
+    "feature": "pl_orbper",
+    "z": -0.48198,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-071",
+    "feature": "pl_trandurh",
+    "z": 0.61921,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-071",
+    "feature": "pl_trandep",
+    "z": 1.55647,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-071",
+    "feature": "pl_rade",
+    "z": 1.87684,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-071",
+    "feature": "pl_insol",
+    "z": 1.4255,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-071",
+    "feature": "st_tmag",
+    "z": 0.42056,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-071",
+    "feature": "st_dist",
+    "z": -0.65231,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-071",
+    "feature": "st_teff",
+    "z": -1.27461,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-071",
+    "feature": "st_logg",
+    "z": -1.14561,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-071",
+    "feature": "st_rad",
+    "z": -0.32764,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-071",
+    "feature": "pm_total",
+    "z": 0.78398,
+    "codeword": 7
+  },
+  {
+    "object_id": "C0-072",
+    "feature": "pl_orbper",
+    "z": -0.79297,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-072",
+    "feature": "pl_trandurh",
+    "z": 0.31886,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-072",
+    "feature": "pl_trandep",
+    "z": 1.14128,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-072",
+    "feature": "pl_rade",
+    "z": 1.27683,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-072",
+    "feature": "pl_insol",
+    "z": 0.66,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-072",
+    "feature": "st_tmag",
+    "z": -0.41111,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-072",
+    "feature": "st_dist",
+    "z": -1.41886,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-072",
+    "feature": "st_teff",
+    "z": -1.87622,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-072",
+    "feature": "st_logg",
+    "z": -1.56217,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-072",
+    "feature": "st_rad",
+    "z": -0.62847,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-072",
+    "feature": "pm_total",
+    "z": 0.47363,
+    "codeword": 0
+  },
+  {
+    "object_id": "C1-073",
+    "feature": "pl_orbper",
+    "z": -0.44917,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-073",
+    "feature": "pl_trandurh",
+    "z": 0.64124,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-073",
+    "feature": "pl_trandep",
+    "z": 1.32511,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-073",
+    "feature": "pl_rade",
+    "z": 1.27193,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-073",
+    "feature": "pl_insol",
+    "z": 0.5074,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-073",
+    "feature": "st_tmag",
+    "z": -0.599,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-073",
+    "feature": "st_dist",
+    "z": -1.51257,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-073",
+    "feature": "st_teff",
+    "z": -1.79181,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-073",
+    "feature": "st_logg",
+    "z": -1.30176,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-073",
+    "feature": "st_rad",
+    "z": -0.27926,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-073",
+    "feature": "pm_total",
+    "z": 0.78155,
+    "codeword": 1
+  },
+  {
+    "object_id": "C2-074",
+    "feature": "pl_orbper",
+    "z": -0.09819,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-074",
+    "feature": "pl_trandurh",
+    "z": 0.93937,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-074",
+    "feature": "pl_trandep",
+    "z": 1.46497,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-074",
+    "feature": "pl_rade",
+    "z": 1.22459,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-074",
+    "feature": "pl_insol",
+    "z": 0.3344,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-074",
+    "feature": "st_tmag",
+    "z": -0.77539,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-074",
+    "feature": "st_dist",
+    "z": -1.56845,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-074",
+    "feature": "st_teff",
+    "z": -1.6615,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-074",
+    "feature": "st_logg",
+    "z": -1.00959,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-074",
+    "feature": "st_rad",
+    "z": 0.07224,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-074",
+    "feature": "pm_total",
+    "z": 1.06117,
+    "codeword": 2
+  },
+  {
+    "object_id": "C3-075",
+    "feature": "pl_orbper",
+    "z": 0.25216,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-075",
+    "feature": "pl_trandurh",
+    "z": 1.20696,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-075",
+    "feature": "pl_trandep",
+    "z": 1.55914,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-075",
+    "feature": "pl_rade",
+    "z": 1.13849,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-075",
+    "feature": "pl_insol",
+    "z": 0.1483,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-075",
+    "feature": "st_tmag",
+    "z": -0.93288,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-075",
+    "feature": "st_dist",
+    "z": -1.58256,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-075",
+    "feature": "st_teff",
+    "z": -1.48676,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-075",
+    "feature": "st_logg",
+    "z": -0.69177,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-075",
+    "feature": "st_rad",
+    "z": 0.4182,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-075",
+    "feature": "pm_total",
+    "z": 1.30674,
+    "codeword": 3
+  },
+  {
+    "object_id": "C4-076",
+    "feature": "pl_orbper",
+    "z": 0.59409,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-076",
+    "feature": "pl_trandurh",
+    "z": 1.4386,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-076",
+    "feature": "pl_trandep",
+    "z": 1.6072,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-076",
+    "feature": "pl_rade",
+    "z": 1.01841,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-076",
+    "feature": "pl_insol",
+    "z": -0.04322,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-076",
+    "feature": "st_tmag",
+    "z": -1.06463,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-076",
+    "feature": "st_dist",
+    "z": -1.5522,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-076",
+    "feature": "st_teff",
+    "z": -1.2703,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-076",
+    "feature": "st_logg",
+    "z": -0.35516,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-076",
+    "feature": "st_rad",
+    "z": 0.75095,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-076",
+    "feature": "pm_total",
+    "z": 1.51348,
+    "codeword": 4
+  },
+  {
+    "object_id": "C5-077",
+    "feature": "pl_orbper",
+    "z": 0.92004,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-077",
+    "feature": "pl_trandurh",
+    "z": 1.62991,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-077",
+    "feature": "pl_trandep",
+    "z": 1.61008,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-077",
+    "feature": "pl_rade",
+    "z": 0.87012,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-077",
+    "feature": "pl_insol",
+    "z": -0.23235,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-077",
+    "feature": "st_tmag",
+    "z": -1.16454,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-077",
+    "feature": "st_dist",
+    "z": -1.47594,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-077",
+    "feature": "st_teff",
+    "z": -1.01607,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-077",
+    "feature": "st_logg",
+    "z": -0.00716,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-077",
+    "feature": "st_rad",
+    "z": 1.06321,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-077",
+    "feature": "pm_total",
+    "z": 1.67774,
+    "codeword": 5
+  },
+  {
+    "object_id": "C6-078",
+    "feature": "pl_orbper",
+    "z": 1.22293,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-078",
+    "feature": "pl_trandurh",
+    "z": 1.7777,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-078",
+    "feature": "pl_trandep",
+    "z": 1.57,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-078",
+    "feature": "pl_rade",
+    "z": 0.70021,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-078",
+    "feature": "pl_insol",
+    "z": -0.41131,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-078",
+    "feature": "st_tmag",
+    "z": -1.22741,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-078",
+    "feature": "st_dist",
+    "z": -1.35367,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-078",
+    "feature": "st_teff",
+    "z": -0.72908,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-078",
+    "feature": "st_logg",
+    "z": 0.34451,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-078",
+    "feature": "st_rad",
+    "z": 1.34826,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-078",
+    "feature": "pm_total",
+    "z": 1.79709,
+    "codeword": 6
+  },
+  {
+    "object_id": "C7-079",
+    "feature": "pl_orbper",
+    "z": 1.49633,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-079",
+    "feature": "pl_trandurh",
+    "z": 1.87999,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-079",
+    "feature": "pl_trandep",
+    "z": 1.49042,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-079",
+    "feature": "pl_rade",
+    "z": 0.51588,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-079",
+    "feature": "pl_insol",
+    "z": -0.57266,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-079",
+    "feature": "st_tmag",
+    "z": -1.24912,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-079",
+    "feature": "st_dist",
+    "z": -1.1866,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-079",
+    "feature": "st_teff",
+    "z": -0.4153,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-079",
+    "feature": "st_logg",
+    "z": 0.69202,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-079",
+    "feature": "st_rad",
+    "z": 1.60022,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-079",
+    "feature": "pm_total",
+    "z": 1.87039,
+    "codeword": 7
+  },
+  {
+    "object_id": "C0-080",
+    "feature": "pl_orbper",
+    "z": 1.09466,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-080",
+    "feature": "pl_trandurh",
+    "z": 1.29616,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-080",
+    "feature": "pl_trandep",
+    "z": 0.73594,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-080",
+    "feature": "pl_rade",
+    "z": -0.31526,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-080",
+    "feature": "pl_insol",
+    "z": -1.34942,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-080",
+    "feature": "st_tmag",
+    "z": -1.86676,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-080",
+    "feature": "st_dist",
+    "z": -1.61725,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-080",
+    "feature": "st_teff",
+    "z": -0.72149,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-080",
+    "feature": "st_logg",
+    "z": 0.38764,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-080",
+    "feature": "st_rad",
+    "z": 1.17411,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-080",
+    "feature": "pm_total",
+    "z": 1.25784,
+    "codeword": 0
+  },
+  {
+    "object_id": "C1-081",
+    "feature": "pl_orbper",
+    "z": 1.29336,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-081",
+    "feature": "pl_trandurh",
+    "z": 1.30689,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-081",
+    "feature": "pl_trandep",
+    "z": 0.59218,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-081",
+    "feature": "pl_rade",
+    "z": -0.50537,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-081",
+    "feature": "pl_insol",
+    "z": -1.45535,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-081",
+    "feature": "st_tmag",
+    "z": -1.79864,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-081",
+    "feature": "st_dist",
+    "z": -1.36935,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-081",
+    "feature": "st_teff",
+    "z": -0.37494,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-081",
+    "feature": "st_logg",
+    "z": 0.70401,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-081",
+    "feature": "st_rad",
+    "z": 1.34608,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-081",
+    "feature": "pm_total",
+    "z": 1.24096,
+    "codeword": 1
+  },
+  {
+    "object_id": "C2-082",
+    "feature": "pl_orbper",
+    "z": 1.449,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-082",
+    "feature": "pl_trandurh",
+    "z": 1.27417,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-082",
+    "feature": "pl_trandep",
+    "z": 0.42557,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-082",
+    "feature": "pl_rade",
+    "z": -0.68669,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-082",
+    "feature": "pl_insol",
+    "z": -1.52508,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-082",
+    "feature": "st_tmag",
+    "z": -1.68443,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-082",
+    "feature": "st_dist",
+    "z": -1.08773,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-082",
+    "feature": "st_teff",
+    "z": -0.02335,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-082",
+    "feature": "st_logg",
+    "z": 0.99433,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-082",
+    "feature": "st_rad",
+    "z": 1.47347,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-082",
+    "feature": "pm_total",
+    "z": 1.18253,
+    "codeword": 2
+  },
+  {
+    "object_id": "C3-083",
+    "feature": "pl_orbper",
+    "z": 1.55941,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-083",
+    "feature": "pl_trandurh",
+    "z": 1.20126,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-083",
+    "feature": "pl_trandep",
+    "z": 0.24324,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-083",
+    "feature": "pl_rade",
+    "z": -0.85166,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-083",
+    "feature": "pl_insol",
+    "z": -1.55431,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-083",
+    "feature": "st_tmag",
+    "z": -1.52513,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-083",
+    "feature": "st_dist",
+    "z": -0.77822,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-083",
+    "feature": "st_teff",
+    "z": 0.32546,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-083",
+    "feature": "st_logg",
+    "z": 1.25251,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-083",
+    "feature": "st_rad",
+    "z": 1.55493,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-083",
+    "feature": "pm_total",
+    "z": 1.08655,
+    "codeword": 3
+  },
+  {
+    "object_id": "C4-084",
+    "feature": "pl_orbper",
+    "z": 1.62371,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-084",
+    "feature": "pl_trandurh",
+    "z": 1.09256,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-084",
+    "feature": "pl_trandep",
+    "z": 0.05274,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-084",
+    "feature": "pl_rade",
+    "z": -0.99324,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-084",
+    "feature": "pl_insol",
+    "z": -1.53988,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-084",
+    "feature": "st_tmag",
+    "z": -1.323,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-084",
+    "feature": "st_dist",
+    "z": -0.44742,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-084",
+    "feature": "st_teff",
+    "z": 0.66372,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-084",
+    "feature": "st_logg",
+    "z": 1.47343,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-084",
+    "feature": "st_rad",
+    "z": 1.5904,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-084",
+    "feature": "pm_total",
+    "z": 0.95809,
+    "codeword": 4
+  },
+  {
+    "object_id": "C5-085",
+    "feature": "pl_orbper",
+    "z": 1.64234,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-085",
+    "feature": "pl_trandurh",
+    "z": 0.95352,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-085",
+    "feature": "pl_trandep",
+    "z": -0.13813,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-085",
+    "feature": "pl_rade",
+    "z": -1.10503,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-085",
+    "feature": "pl_insol",
+    "z": -1.4799,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-085",
+    "feature": "st_tmag",
+    "z": -1.08158,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-085",
+    "feature": "st_dist",
+    "z": -0.10257,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-085",
+    "feature": "st_teff",
+    "z": 0.98401,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-085",
+    "feature": "st_logg",
+    "z": 1.65303,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-085",
+    "feature": "st_rad",
+    "z": 1.58117,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-085",
+    "feature": "pm_total",
+    "z": 0.80317,
+    "codeword": 5
+  },
+  {
+    "object_id": "C6-086",
+    "feature": "pl_orbper",
+    "z": 1.61709,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-086",
+    "feature": "pl_trandurh",
+    "z": 0.79045,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-086",
+    "feature": "pl_trandep",
+    "z": -0.32155,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-086",
+    "feature": "pl_rade",
+    "z": -1.18149,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-086",
+    "feature": "pl_insol",
+    "z": -1.37379,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-086",
+    "feature": "st_tmag",
+    "z": -0.80552,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-086",
+    "feature": "st_dist",
+    "z": 0.2487,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-086",
+    "feature": "st_teff",
+    "z": 1.27939,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-086",
+    "feature": "st_logg",
+    "z": 1.78843,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-086",
+    "feature": "st_rad",
+    "z": 1.52982,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-086",
+    "feature": "pm_total",
+    "z": 0.62854,
+    "codeword": 6
+  },
+  {
+    "object_id": "C7-087",
+    "feature": "pl_orbper",
+    "z": 1.55099,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-087",
+    "feature": "pl_trandurh",
+    "z": 0.61035,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-087",
+    "feature": "pl_trandep",
+    "z": -0.48994,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-087",
+    "feature": "pl_rade",
+    "z": -1.21813,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-087",
+    "feature": "pl_insol",
+    "z": -1.22231,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-087",
+    "feature": "st_tmag",
+    "z": -0.50046,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-087",
+    "feature": "st_dist",
+    "z": 0.59857,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-087",
+    "feature": "st_teff",
+    "z": 1.54364,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-087",
+    "feature": "st_logg",
+    "z": 1.87803,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-087",
+    "feature": "st_rad",
+    "z": 1.44013,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-087",
+    "feature": "pm_total",
+    "z": 0.44156,
+    "codeword": 7
+  },
+  {
+    "object_id": "C0-088",
+    "feature": "pl_orbper",
+    "z": 0.80824,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-088",
+    "feature": "pl_trandurh",
+    "z": -0.21927,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-088",
+    "feature": "pl_trandep",
+    "z": -1.27613,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-088",
+    "feature": "pl_rade",
+    "z": -1.85158,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-088",
+    "feature": "pl_insol",
+    "z": -1.66752,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-088",
+    "feature": "st_tmag",
+    "z": -0.81291,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-088",
+    "feature": "st_dist",
+    "z": 0.29925,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-088",
+    "feature": "st_teff",
+    "z": 1.13147,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-088",
+    "feature": "st_logg",
+    "z": 1.28156,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-088",
+    "feature": "st_rad",
+    "z": 0.67699,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-088",
+    "feature": "pm_total",
+    "z": -0.39008,
+    "codeword": 0
+  },
+  {
+    "object_id": "C1-089",
+    "feature": "pl_orbper",
+    "z": 0.67411,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-089",
+    "feature": "pl_trandurh",
+    "z": -0.41065,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-089",
+    "feature": "pl_trandep",
+    "z": -1.3936,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-089",
+    "feature": "pl_rade",
+    "z": -1.79972,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-089",
+    "feature": "pl_insol",
+    "z": -1.43273,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-089",
+    "feature": "st_tmag",
+    "z": -0.46999,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-089",
+    "feature": "st_dist",
+    "z": 0.62323,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-089",
+    "feature": "st_teff",
+    "z": 1.3186,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-089",
+    "feature": "st_logg",
+    "z": 1.28007,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-089",
+    "feature": "st_rad",
+    "z": 0.52626,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-089",
+    "feature": "pm_total",
+    "z": -0.57854,
+    "codeword": 1
+  },
+  {
+    "object_id": "C2-090",
+    "feature": "pl_orbper",
+    "z": 0.51478,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-090",
+    "feature": "pl_trandurh",
+    "z": -0.59594,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-090",
+    "feature": "pl_trandep",
+    "z": -1.47666,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-090",
+    "feature": "pl_rade",
+    "z": -1.70174,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-090",
+    "feature": "pl_insol",
+    "z": -1.1624,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-090",
+    "feature": "st_tmag",
+    "z": -0.11929,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-090",
+    "feature": "st_dist",
+    "z": 0.92347,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-090",
+    "feature": "st_teff",
+    "z": 1.46195,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-090",
+    "feature": "st_logg",
+    "z": 1.23591,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-090",
+    "feature": "st_rad",
+    "z": 0.35459,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-090",
+    "feature": "pm_total",
+    "z": -0.75609,
+    "codeword": 2
+  },
+  {
+    "object_id": "C3-091",
+    "feature": "pl_orbper",
+    "z": 0.33716,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-091",
+    "feature": "pl_trandurh",
+    "z": -0.76752,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-091",
+    "feature": "pl_trandep",
+    "z": -1.52061,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-091",
+    "feature": "pl_rade",
+    "z": -1.55815,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-091",
+    "feature": "pl_insol",
+    "z": -0.86201,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-091",
+    "feature": "st_tmag",
+    "z": 0.23139,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-091",
+    "feature": "st_dist",
+    "z": 1.19363,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-091",
+    "feature": "st_teff",
+    "z": 1.55969,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-091",
+    "feature": "st_logg",
+    "z": 1.15265,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-091",
+    "feature": "st_rad",
+    "z": 0.16924,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-091",
+    "feature": "pm_total",
+    "z": -0.9153,
+    "codeword": 3
+  },
+  {
+    "object_id": "C4-092",
+    "feature": "pl_orbper",
+    "z": 0.14866,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-092",
+    "feature": "pl_trandurh",
+    "z": -0.91812,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-092",
+    "feature": "pl_trandep",
+    "z": -1.52187,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-092",
+    "feature": "pl_rade",
+    "z": -1.3708,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-092",
+    "feature": "pl_insol",
+    "z": -0.53792,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-092",
+    "feature": "st_tmag",
+    "z": 0.57425,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-092",
+    "feature": "st_dist",
+    "z": 1.42823,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-092",
+    "feature": "st_teff",
+    "z": 1.61131,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-092",
+    "feature": "st_logg",
+    "z": 1.03502,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-092",
+    "feature": "st_rad",
+    "z": -0.02215,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-092",
+    "feature": "pm_total",
+    "z": -1.04928,
+    "codeword": 4
+  },
+  {
+    "object_id": "C5-093",
+    "feature": "pl_orbper",
+    "z": -0.04298,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-093",
+    "feature": "pl_trandurh",
+    "z": -1.0411,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-093",
+    "feature": "pl_trandep",
+    "z": -1.4781,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-093",
+    "feature": "pl_rade",
+    "z": -1.14277,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-093",
+    "feature": "pl_insol",
+    "z": -0.19717,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-093",
+    "feature": "st_tmag",
+    "z": 0.9017,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-093",
+    "feature": "st_dist",
+    "z": 1.6228,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-093",
+    "feature": "st_teff",
+    "z": 1.61763,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-093",
+    "feature": "st_logg",
+    "z": 0.88869,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-093",
+    "feature": "st_rad",
+    "z": -0.21174,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-093",
+    "feature": "pm_total",
+    "z": -1.15185,
+    "codeword": 5
+  },
+  {
+    "object_id": "C6-094",
+    "feature": "pl_orbper",
+    "z": -0.22991,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-094",
+    "feature": "pl_trandurh",
+    "z": -1.13061,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-094",
+    "feature": "pl_trandep",
+    "z": -1.38826,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-094",
+    "feature": "pl_rade",
+    "z": -0.87834,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-094",
+    "feature": "pl_insol",
+    "z": 0.15272,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-094",
+    "feature": "st_tmag",
+    "z": 1.20662,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-094",
+    "feature": "st_dist",
+    "z": 1.77405,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-094",
+    "feature": "st_teff",
+    "z": 1.58078,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-094",
+    "feature": "st_logg",
+    "z": 0.72021,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-094",
+    "feature": "st_rad",
+    "z": -0.39177,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-094",
+    "feature": "pm_total",
+    "z": -1.21775,
+    "codeword": 6
+  },
+  {
+    "object_id": "C7-095",
+    "feature": "pl_orbper",
+    "z": -0.40445,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-095",
+    "feature": "pl_trandurh",
+    "z": -1.18175,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-095",
+    "feature": "pl_trandep",
+    "z": -1.25262,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-095",
+    "feature": "pl_rade",
+    "z": -0.58281,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-095",
+    "feature": "pl_insol",
+    "z": 0.50397,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-095",
+    "feature": "st_tmag",
+    "z": 1.48252,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-095",
+    "feature": "st_dist",
+    "z": 1.87991,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-095",
+    "feature": "st_teff",
+    "z": 1.50411,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-095",
+    "feature": "st_logg",
+    "z": 0.53672,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-095",
+    "feature": "st_rad",
+    "z": -0.55473,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-095",
+    "feature": "pm_total",
+    "z": -1.24278,
+    "codeword": 7
+  },
+  {
+    "object_id": "C0-096",
+    "feature": "pl_orbper",
+    "z": -1.19926,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-096",
+    "feature": "pl_trandurh",
+    "z": -1.83075,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-096",
+    "feature": "pl_trandep",
+    "z": -1.7128,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-096",
+    "feature": "pl_rade",
+    "z": -0.90241,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-096",
+    "feature": "pl_insol",
+    "z": 0.20877,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-096",
+    "feature": "st_tmag",
+    "z": 1.08374,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-096",
+    "feature": "st_dist",
+    "z": 1.29965,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-096",
+    "feature": "st_teff",
+    "z": 0.75215,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-096",
+    "feature": "st_logg",
+    "z": -0.29416,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-096",
+    "feature": "st_rad",
+    "z": -1.33363,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-096",
+    "feature": "pm_total",
+    "z": -1.86391,
+    "codeword": 0
+  },
+  {
+    "object_id": "C1-097",
+    "feature": "pl_orbper",
+    "z": -1.32756,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-097",
+    "feature": "pl_trandurh",
+    "z": -1.79504,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-097",
+    "feature": "pl_trandep",
+    "z": -1.49167,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-097",
+    "feature": "pl_rade",
+    "z": -0.56407,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-097",
+    "feature": "pl_insol",
+    "z": 0.53948,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-097",
+    "feature": "st_tmag",
+    "z": 1.28565,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-097",
+    "feature": "st_dist",
+    "z": 1.31385,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-097",
+    "feature": "st_teff",
+    "z": 0.61044,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-097",
+    "feature": "st_logg",
+    "z": -0.48464,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-097",
+    "feature": "st_rad",
+    "z": -1.44216,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-097",
+    "feature": "pm_total",
+    "z": -1.79937,
+    "codeword": 1
+  },
+  {
+    "object_id": "C2-098",
+    "feature": "pl_orbper",
+    "z": -1.42336,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-098",
+    "feature": "pl_trandurh",
+    "z": -1.71334,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-098",
+    "feature": "pl_trandep",
+    "z": -1.23331,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-098",
+    "feature": "pl_rade",
+    "z": -0.21523,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-098",
+    "feature": "pl_insol",
+    "z": 0.84886,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-098",
+    "feature": "st_tmag",
+    "z": 1.44473,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-098",
+    "feature": "st_dist",
+    "z": 1.2844,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-098",
+    "feature": "st_teff",
+    "z": 0.44536,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-098",
+    "feature": "st_logg",
+    "z": -0.66691,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-098",
+    "feature": "st_rad",
+    "z": -1.51487,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-098",
+    "feature": "pm_total",
+    "z": -1.68872,
+    "codeword": 2
+  },
+  {
+    "object_id": "C3-099",
+    "feature": "pl_orbper",
+    "z": -1.48158,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-099",
+    "feature": "pl_trandurh",
+    "z": -1.58571,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-099",
+    "feature": "pl_trandep",
+    "z": -0.94284,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-099",
+    "feature": "pl_rade",
+    "z": 0.13635,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-099",
+    "feature": "pl_insol",
+    "z": 1.13032,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-099",
+    "feature": "st_tmag",
+    "z": 1.5587,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-099",
+    "feature": "st_dist",
+    "z": 1.21446,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-099",
+    "feature": "st_teff",
+    "z": 0.26398,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-099",
+    "feature": "st_logg",
+    "z": -0.83341,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-099",
+    "feature": "st_rad",
+    "z": -1.54737,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-099",
+    "feature": "pm_total",
+    "z": -1.53285,
+    "codeword": 3
+  },
+  {
+    "object_id": "C4-100",
+    "feature": "pl_orbper",
+    "z": -1.49824,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-100",
+    "feature": "pl_trandurh",
+    "z": -1.41352,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-100",
+    "feature": "pl_trandep",
+    "z": -0.62635,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-100",
+    "feature": "pl_rade",
+    "z": 0.48285,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-100",
+    "feature": "pl_insol",
+    "z": 1.37803,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-100",
+    "feature": "st_tmag",
+    "z": 1.62657,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-100",
+    "feature": "st_dist",
+    "z": 1.10836,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-100",
+    "feature": "st_teff",
+    "z": 0.07384,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-100",
+    "feature": "st_logg",
+    "z": -0.97704,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-100",
+    "feature": "st_rad",
+    "z": -1.53641,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-100",
+    "feature": "pm_total",
+    "z": -1.33393,
+    "codeword": 4
+  },
+  {
+    "object_id": "C5-101",
+    "feature": "pl_orbper",
+    "z": -1.47055,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-101",
+    "feature": "pl_trandurh",
+    "z": -1.19942,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-101",
+    "feature": "pl_trandep",
+    "z": -0.29064,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-101",
+    "feature": "pl_rade",
+    "z": 0.81658,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-101",
+    "feature": "pl_insol",
+    "z": 1.58717,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-101",
+    "feature": "st_tmag",
+    "z": 1.6487,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-101",
+    "feature": "st_dist",
+    "z": 0.97145,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-101",
+    "feature": "st_teff",
+    "z": -0.11728,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-101",
+    "feature": "st_logg",
+    "z": -1.09135,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-101",
+    "feature": "st_rad",
+    "z": -1.48,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-101",
+    "feature": "pm_total",
+    "z": -1.09541,
+    "codeword": 5
+  },
+  {
+    "object_id": "C6-102",
+    "feature": "pl_orbper",
+    "z": -1.397,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-102",
+    "feature": "pl_trandurh",
+    "z": -0.94727,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-102",
+    "feature": "pl_trandep",
+    "z": 0.0569,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-102",
+    "feature": "pl_rade",
+    "z": 1.13023,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-102",
+    "feature": "pl_insol",
+    "z": 1.75401,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-102",
+    "feature": "st_tmag",
+    "z": 1.62676,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-102",
+    "feature": "st_dist",
+    "z": 0.81,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-102",
+    "feature": "st_teff",
+    "z": -0.30156,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-102",
+    "feature": "st_logg",
+    "z": -1.17073,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-102",
+    "feature": "st_rad",
+    "z": -1.37746,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-102",
+    "feature": "pm_total",
+    "z": -0.82184,
+    "codeword": 6
+  },
+  {
+    "object_id": "C7-103",
+    "feature": "pl_orbper",
+    "z": -1.27741,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-103",
+    "feature": "pl_trandurh",
+    "z": -0.66206,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-103",
+    "feature": "pl_trandep",
+    "z": 0.40857,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-103",
+    "feature": "pl_rade",
+    "z": 1.41707,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-103",
+    "feature": "pl_insol",
+    "z": 1.87604,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-103",
+    "feature": "st_tmag",
+    "z": 1.56369,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-103",
+    "feature": "st_dist",
+    "z": 0.63096,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-103",
+    "feature": "st_teff",
+    "z": -0.47138,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-103",
+    "feature": "st_logg",
+    "z": -1.2106,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-103",
+    "feature": "st_rad",
+    "z": -1.22944,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-103",
+    "feature": "pm_total",
+    "z": -0.51881,
+    "codeword": 7
+  },
+  {
+    "object_id": "C0-104",
+    "feature": "pl_orbper",
+    "z": -1.75292,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-104",
+    "feature": "pl_trandurh",
+    "z": -0.98968,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-104",
+    "feature": "pl_trandep",
+    "z": 0.11653,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-104",
+    "feature": "pl_rade",
+    "z": 1.03111,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-104",
+    "feature": "pl_insol",
+    "z": 1.31206,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-104",
+    "feature": "st_tmag",
+    "z": 0.82361,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-104",
+    "feature": "st_dist",
+    "z": -0.1982,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-104",
+    "feature": "st_teff",
+    "z": -1.25953,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-104",
+    "feature": "st_logg",
+    "z": -1.84749,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-104",
+    "feature": "st_rad",
+    "z": -1.67791,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-104",
+    "feature": "pm_total",
+    "z": -0.83275,
+    "codeword": 0
+  },
+  {
+    "object_id": "C1-105",
+    "feature": "pl_orbper",
+    "z": -1.54597,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-105",
+    "feature": "pl_trandurh",
+    "z": -0.65684,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-105",
+    "feature": "pl_trandep",
+    "z": 0.45307,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-105",
+    "feature": "pl_rade",
+    "z": 1.24736,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-105",
+    "feature": "pl_insol",
+    "z": 1.34218,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-105",
+    "feature": "st_tmag",
+    "z": 0.6917,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-105",
+    "feature": "st_dist",
+    "z": -0.38971,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-105",
+    "feature": "st_teff",
+    "z": -1.37945,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-105",
+    "feature": "st_logg",
+    "z": -1.79918,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-105",
+    "feature": "st_rad",
+    "z": -1.44607,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-105",
+    "feature": "pm_total",
+    "z": -0.49076,
+    "codeword": 1
+  },
+  {
+    "object_id": "C2-106",
+    "feature": "pl_orbper",
+    "z": -1.30021,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-106",
+    "feature": "pl_trandurh",
+    "z": -0.31083,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-106",
+    "feature": "pl_trandep",
+    "z": 0.77077,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-106",
+    "feature": "pl_rade",
+    "z": 1.42188,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-106",
+    "feature": "pl_insol",
+    "z": 1.32784,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-106",
+    "feature": "st_tmag",
+    "z": 0.53409,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-106",
+    "feature": "st_dist",
+    "z": -0.57576,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-106",
+    "feature": "st_teff",
+    "z": -1.46536,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-106",
+    "feature": "st_logg",
+    "z": -1.70478,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-106",
+    "feature": "st_rad",
+    "z": -1.17831,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-106",
+    "feature": "pm_total",
+    "z": -0.14039,
+    "codeword": 2
+  },
+  {
+    "object_id": "C3-107",
+    "feature": "pl_orbper",
+    "z": -1.02043,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-107",
+    "feature": "pl_trandurh",
+    "z": 0.04068,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-107",
+    "feature": "pl_trandep",
+    "z": 1.06279,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-107",
+    "feature": "pl_rade",
+    "z": 1.55195,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-107",
+    "feature": "pl_insol",
+    "z": 1.27176,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-107",
+    "feature": "st_tmag",
+    "z": 0.35763,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-107",
+    "feature": "st_dist",
+    "z": -0.74867,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-107",
+    "feature": "st_teff",
+    "z": -1.51248,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-107",
+    "feature": "st_logg",
+    "z": -1.56468,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-107",
+    "feature": "st_rad",
+    "z": -0.88004,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-107",
+    "feature": "pm_total",
+    "z": 0.21058,
+    "codeword": 3
+  },
+  {
+    "object_id": "C4-108",
+    "feature": "pl_orbper",
+    "z": -0.71237,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-108",
+    "feature": "pl_trandurh",
+    "z": 0.38986,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-108",
+    "feature": "pl_trandep",
+    "z": 1.32302,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-108",
+    "feature": "pl_rade",
+    "z": 1.63612,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-108",
+    "feature": "pl_insol",
+    "z": 1.17786,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-108",
+    "feature": "st_tmag",
+    "z": 0.1697,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-108",
+    "feature": "st_dist",
+    "z": -0.90115,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-108",
+    "feature": "st_teff",
+    "z": -1.51715,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-108",
+    "feature": "st_logg",
+    "z": -1.38063,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-108",
+    "feature": "st_rad",
+    "z": -0.55754,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-108",
+    "feature": "pm_total",
+    "z": 0.55432,
+    "codeword": 4
+  },
+  {
+    "object_id": "C5-109",
+    "feature": "pl_orbper",
+    "z": -0.38263,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-109",
+    "feature": "pl_trandurh",
+    "z": 0.72896,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-109",
+    "feature": "pl_trandep",
+    "z": 1.54625,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-109",
+    "feature": "pl_rade",
+    "z": 1.67427,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-109",
+    "feature": "pl_insol",
+    "z": 1.05115,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-109",
+    "feature": "st_tmag",
+    "z": -0.02198,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-109",
+    "feature": "st_dist",
+    "z": -1.02649,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-109",
+    "feature": "st_teff",
+    "z": -1.47693,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-109",
+    "feature": "st_logg",
+    "z": -1.15561,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-109",
+    "feature": "st_rad",
+    "z": -0.21782,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-109",
+    "feature": "pm_total",
+    "z": 0.88323,
+    "codeword": 5
+  },
+  {
+    "object_id": "C6-110",
+    "feature": "pl_orbper",
+    "z": -0.0384,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-110",
+    "feature": "pl_trandurh",
+    "z": 1.0505,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-110",
+    "feature": "pl_trandep",
+    "z": 1.72837,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-110",
+    "feature": "pl_rade",
+    "z": 1.66762,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-110",
+    "feature": "pl_insol",
+    "z": 0.8976,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-110",
+    "feature": "st_tmag",
+    "z": -0.20955,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-110",
+    "feature": "st_dist",
+    "z": -1.11878,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-110",
+    "feature": "st_teff",
+    "z": -1.39067,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-110",
+    "feature": "st_logg",
+    "z": -0.89383,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-110",
+    "feature": "st_rad",
+    "z": 0.13163,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-110",
+    "feature": "pm_total",
+    "z": 1.19014,
+    "codeword": 6
+  },
+  {
+    "object_id": "C7-111",
+    "feature": "pl_orbper",
+    "z": 0.31271,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-111",
+    "feature": "pl_trandurh",
+    "z": 1.34752,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-111",
+    "feature": "pl_trandep",
+    "z": 1.86643,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-111",
+    "feature": "pl_rade",
+    "z": 1.61865,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-111",
+    "feature": "pl_insol",
+    "z": 0.72393,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-111",
+    "feature": "st_tmag",
+    "z": -0.38532,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-111",
+    "feature": "st_dist",
+    "z": -1.17305,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-111",
+    "feature": "st_teff",
+    "z": -1.25855,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-111",
+    "feature": "st_logg",
+    "z": -0.6005,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-111",
+    "feature": "st_rad",
+    "z": 0.48306,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-111",
+    "feature": "pm_total",
+    "z": 1.4685,
+    "codeword": 7
+  },
+  {
+    "object_id": "C0-112",
+    "feature": "pl_orbper",
+    "z": 0.02287,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-112",
+    "feature": "pl_trandurh",
+    "z": 0.97376,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-112",
+    "feature": "pl_trandep",
+    "z": 1.31874,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-112",
+    "feature": "pl_rade",
+    "z": 0.89109,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-112",
+    "feature": "pl_insol",
+    "z": -0.10253,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-112",
+    "feature": "st_tmag",
+    "z": -1.18191,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-112",
+    "feature": "st_dist",
+    "z": -1.82542,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-112",
+    "feature": "st_teff",
+    "z": -1.72207,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-112",
+    "feature": "st_logg",
+    "z": -0.92179,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-112",
+    "feature": "st_rad",
+    "z": 0.18864,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-112",
+    "feature": "pm_total",
+    "z": 1.07259,
+    "codeword": 0
+  },
+  {
+    "object_id": "C1-113",
+    "feature": "pl_orbper",
+    "z": 0.3643,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-113",
+    "feature": "pl_trandurh",
+    "z": 1.20386,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-113",
+    "feature": "pl_trandep",
+    "z": 1.36497,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-113",
+    "feature": "pl_rade",
+    "z": 0.76976,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-113",
+    "feature": "pl_insol",
+    "z": -0.29411,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-113",
+    "feature": "st_tmag",
+    "z": -1.3125,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-113",
+    "feature": "st_dist",
+    "z": -1.79324,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-113",
+    "feature": "st_teff",
+    "z": -1.50401,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-113",
+    "feature": "st_logg",
+    "z": -0.58458,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-113",
+    "feature": "st_rad",
+    "z": 0.5207,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-113",
+    "feature": "pm_total",
+    "z": 1.27769,
+    "codeword": 1
+  },
+  {
+    "object_id": "C2-114",
+    "feature": "pl_orbper",
+    "z": 0.68947,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-114",
+    "feature": "pl_trandurh",
+    "z": 1.39349,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-114",
+    "feature": "pl_trandep",
+    "z": 1.36607,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-114",
+    "feature": "pl_rade",
+    "z": 0.62048,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-114",
+    "feature": "pl_insol",
+    "z": -0.48297,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-114",
+    "feature": "st_tmag",
+    "z": -1.41101,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-114",
+    "feature": "st_dist",
+    "z": -1.71513,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-114",
+    "feature": "st_teff",
+    "z": -1.24836,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-114",
+    "feature": "st_logg",
+    "z": -0.23628,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-114",
+    "feature": "st_rad",
+    "z": 0.83199,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-114",
+    "feature": "pm_total",
+    "z": 1.44019,
+    "codeword": 2
+  },
+  {
+    "object_id": "C3-115",
+    "feature": "pl_orbper",
+    "z": 0.99129,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-115",
+    "feature": "pl_trandurh",
+    "z": 1.53947,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-115",
+    "feature": "pl_trandep",
+    "z": 1.32433,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-115",
+    "feature": "pl_rade",
+    "z": 0.44984,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-115",
+    "feature": "pl_insol",
+    "z": -0.66138,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-115",
+    "feature": "st_tmag",
+    "z": -1.4723,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-115",
+    "feature": "st_dist",
+    "z": -1.59103,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-115",
+    "feature": "st_teff",
+    "z": -0.96018,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-115",
+    "feature": "st_logg",
+    "z": 0.11537,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-115",
+    "feature": "st_rad",
+    "z": 1.11583,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-115",
+    "feature": "pm_total",
+    "z": 1.55771,
+    "codeword": 3
+  },
+  {
+    "object_id": "C4-116",
+    "feature": "pl_orbper",
+    "z": 1.26338,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-116",
+    "feature": "pl_trandurh",
+    "z": 1.63993,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-116",
+    "feature": "pl_trandep",
+    "z": 1.24326,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-116",
+    "feature": "pl_rade",
+    "z": 0.26509,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-116",
+    "feature": "pl_insol",
+    "z": -0.82186,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-116",
+    "feature": "st_tmag",
+    "z": -1.4923,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-116",
+    "feature": "st_dist",
+    "z": -1.42221,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-116",
+    "feature": "st_teff",
+    "z": -0.64547,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-116",
+    "feature": "st_logg",
+    "z": 0.46254,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-116",
+    "feature": "st_rad",
+    "z": 1.36635,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-116",
+    "feature": "pm_total",
+    "z": 1.62916,
+    "codeword": 4
+  },
+  {
+    "object_id": "C5-117",
+    "feature": "pl_orbper",
+    "z": 1.50021,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-117",
+    "feature": "pl_trandurh",
+    "z": 1.69425,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-117",
+    "feature": "pl_trandep",
+    "z": 1.1275,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-117",
+    "feature": "pl_rade",
+    "z": 0.07384,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-117",
+    "feature": "pl_insol",
+    "z": -0.9575,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-117",
+    "feature": "st_tmag",
+    "z": -1.46812,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-117",
+    "feature": "st_dist",
+    "z": -1.21123,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-117",
+    "feature": "st_teff",
+    "z": -0.311,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-117",
+    "feature": "st_logg",
+    "z": 0.79753,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-117",
+    "feature": "st_rad",
+    "z": 1.57863,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-117",
+    "feature": "pm_total",
+    "z": 1.6548,
+    "codeword": 5
+  },
+  {
+    "object_id": "C6-118",
+    "feature": "pl_orbper",
+    "z": 1.69724,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-118",
+    "feature": "pl_trandurh",
+    "z": 1.70319,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-118",
+    "feature": "pl_trandep",
+    "z": 0.98269,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-118",
+    "feature": "pl_rade",
+    "z": -0.11607,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-118",
+    "feature": "pl_insol",
+    "z": -1.06208,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-118",
+    "feature": "st_tmag",
+    "z": -1.39815,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-118",
+    "feature": "st_dist",
+    "z": -0.96188,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-118",
+    "feature": "st_teff",
+    "z": 0.0359,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-118",
+    "feature": "st_logg",
+    "z": 1.11299,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-118",
+    "feature": "st_rad",
+    "z": 1.74885,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-118",
+    "feature": "pm_total",
+    "z": 1.63619,
+    "codeword": 6
+  },
+  {
+    "object_id": "C7-119",
+    "feature": "pl_orbper",
+    "z": 1.8511,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-119",
+    "feature": "pl_trandurh",
+    "z": 1.66879,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-119",
+    "feature": "pl_trandep",
+    "z": 0.81531,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-119",
+    "feature": "pl_rade",
+    "z": -0.29687,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-119",
+    "feature": "pl_insol",
+    "z": -1.13027,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-119",
+    "feature": "st_tmag",
+    "z": -1.28211,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-119",
+    "feature": "st_dist",
+    "z": -0.67903,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-119",
+    "feature": "st_teff",
+    "z": 0.38753,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-119",
+    "feature": "st_logg",
+    "z": 1.40212,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-119",
+    "feature": "st_rad",
+    "z": 1.87442,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-119",
+    "feature": "pm_total",
+    "z": 1.57617,
+    "codeword": 7
+  },
+  {
+    "object_id": "C0-120",
+    "feature": "pl_orbper",
+    "z": 1.31967,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-120",
+    "feature": "pl_trandurh",
+    "z": 0.95435,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-120",
+    "feature": "pl_trandep",
+    "z": -0.0075,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-120",
+    "feature": "pl_rade",
+    "z": -1.10104,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-120",
+    "feature": "pl_insol",
+    "z": -1.79779,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-120",
+    "feature": "st_tmag",
+    "z": -1.76103,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-120",
+    "feature": "st_dist",
+    "z": -1.00853,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-120",
+    "feature": "st_teff",
+    "z": 0.09606,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-120",
+    "feature": "st_logg",
+    "z": 1.01891,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-120",
+    "feature": "st_rad",
+    "z": 1.31402,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-120",
+    "feature": "pm_total",
+    "z": 0.83878,
+    "codeword": 0
+  },
+  {
+    "object_id": "C1-121",
+    "feature": "pl_orbper",
+    "z": 1.38212,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-121",
+    "feature": "pl_trandurh",
+    "z": 0.84433,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-121",
+    "feature": "pl_trandep",
+    "z": -0.19816,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-121",
+    "feature": "pl_rade",
+    "z": -1.24154,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-121",
+    "feature": "pl_insol",
+    "z": -1.78157,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-121",
+    "feature": "st_tmag",
+    "z": -1.55726,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-121",
+    "feature": "st_dist",
+    "z": -0.67702,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-121",
+    "feature": "st_teff",
+    "z": 0.43375,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-121",
+    "feature": "st_logg",
+    "z": 1.23824,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-121",
+    "feature": "st_rad",
+    "z": 1.34767,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-121",
+    "feature": "pm_total",
+    "z": 0.70914,
+    "codeword": 1
+  },
+  {
+    "object_id": "C2-122",
+    "feature": "pl_orbper",
+    "z": 1.39895,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-122",
+    "feature": "pl_trandurh",
+    "z": 0.70419,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-122",
+    "feature": "pl_trandep",
+    "z": -0.38888,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-122",
+    "feature": "pl_rade",
+    "z": -1.35201,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-122",
+    "feature": "pl_insol",
+    "z": -1.71974,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-122",
+    "feature": "st_tmag",
+    "z": -1.31435,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-122",
+    "feature": "st_dist",
+    "z": -0.33176,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-122",
+    "feature": "st_teff",
+    "z": 0.75317,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-122",
+    "feature": "st_logg",
+    "z": 1.41611,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-122",
+    "feature": "st_rad",
+    "z": 1.3367,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-122",
+    "feature": "pm_total",
+    "z": 0.55329,
+    "codeword": 2
+  },
+  {
+    "object_id": "C3-123",
+    "feature": "pl_orbper",
+    "z": 1.372,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-123",
+    "feature": "pl_trandurh",
+    "z": 0.5403,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-123",
+    "feature": "pl_trandep",
+    "z": -0.57185,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-123",
+    "feature": "pl_rade",
+    "z": -1.42696,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-123",
+    "feature": "pl_insol",
+    "z": -1.61179,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-123",
+    "feature": "st_tmag",
+    "z": -1.03701,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-123",
+    "feature": "st_dist",
+    "z": 0.0196,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-123",
+    "feature": "st_teff",
+    "z": 1.04741,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-123",
+    "feature": "st_logg",
+    "z": 1.5497,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-123",
+    "feature": "st_rad",
+    "z": 1.28372,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-123",
+    "feature": "pm_total",
+    "z": 0.37803,
+    "codeword": 3
+  },
+  {
+    "object_id": "C4-124",
+    "feature": "pl_orbper",
+    "z": 1.30433,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-124",
+    "feature": "pl_trandurh",
+    "z": 0.35967,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-124",
+    "feature": "pl_trandep",
+    "z": -0.73948,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-124",
+    "feature": "pl_rade",
+    "z": -1.46193,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-124",
+    "feature": "pl_insol",
+    "z": -1.45853,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-124",
+    "feature": "st_tmag",
+    "z": -0.73093,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-124",
+    "feature": "st_dist",
+    "z": 0.36924,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-124",
+    "feature": "st_teff",
+    "z": 1.3103,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-124",
+    "feature": "st_logg",
+    "z": 1.63745,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-124",
+    "feature": "st_rad",
+    "z": 1.19259,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-124",
+    "feature": "pm_total",
+    "z": 0.19071,
+    "codeword": 4
+  },
+  {
+    "object_id": "C5-125",
+    "feature": "pl_orbper",
+    "z": 1.20022,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-125",
+    "feature": "pl_trandurh",
+    "z": 0.16983,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-125",
+    "feature": "pl_trandep",
+    "z": -0.88464,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-125",
+    "feature": "pl_rade",
+    "z": -1.45359,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-125",
+    "feature": "pl_insol",
+    "z": -1.26206,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-125",
+    "feature": "st_tmag",
+    "z": -0.40262,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-125",
+    "feature": "st_dist",
+    "z": 0.7094,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-125",
+    "feature": "st_teff",
+    "z": 1.53657,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-125",
+    "feature": "st_logg",
+    "z": 1.67915,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-125",
+    "feature": "st_rad",
+    "z": 1.06823,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-125",
+    "feature": "pm_total",
+    "z": -0.00095,
+    "codeword": 5
+  },
+  {
+    "object_id": "C6-126",
+    "feature": "pl_orbper",
+    "z": 1.06496,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-126",
+    "feature": "pl_trandurh",
+    "z": -0.02145,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-126",
+    "feature": "pl_trandep",
+    "z": -1.00083,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-126",
+    "feature": "pl_rade",
+    "z": -1.39989,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-126",
+    "feature": "pl_insol",
+    "z": -1.02575,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-126",
+    "feature": "st_tmag",
+    "z": -0.05924,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-126",
+    "feature": "st_dist",
+    "z": 1.03256,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-126",
+    "feature": "st_teff",
+    "z": 1.722,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-126",
+    "feature": "st_logg",
+    "z": 1.67589,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-126",
+    "feature": "st_rad",
+    "z": 0.91652,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-126",
+    "feature": "pm_total",
+    "z": -0.18912,
+    "codeword": 6
+  },
+  {
+    "object_id": "C7-127",
+    "feature": "pl_orbper",
+    "z": 0.90476,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-127",
+    "feature": "pl_trandurh",
+    "z": -0.20634,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-127",
+    "feature": "pl_trandep",
+    "z": -1.08241,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-127",
+    "feature": "pl_rade",
+    "z": -1.30006,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-127",
+    "feature": "pl_insol",
+    "z": -0.7541,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-127",
+    "feature": "st_tmag",
+    "z": 0.29161,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-127",
+    "feature": "st_dist",
+    "z": 1.33171,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-127",
+    "feature": "st_teff",
+    "z": 1.86355,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-127",
+    "feature": "st_logg",
+    "z": 1.63009,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-127",
+    "feature": "st_rad",
+    "z": 0.74416,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-127",
+    "feature": "pm_total",
+    "z": -0.36608,
+    "codeword": 7
+  },
+  {
+    "object_id": "C0-128",
+    "feature": "pl_orbper",
+    "z": 0.08655,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-128",
+    "feature": "pl_trandurh",
+    "z": -1.01722,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-128",
+    "feature": "pl_trandep",
+    "z": -1.76471,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-128",
+    "feature": "pl_rade",
+    "z": -1.79467,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-128",
+    "feature": "pl_insol",
+    "z": -1.09263,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-128",
+    "feature": "st_tmag",
+    "z": 0.00213,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-128",
+    "feature": "st_dist",
+    "z": 0.96055,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-128",
+    "feature": "st_teff",
+    "z": 1.31944,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-128",
+    "feature": "st_logg",
+    "z": 0.90536,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-128",
+    "feature": "st_rad",
+    "z": -0.08158,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-128",
+    "feature": "pm_total",
+    "z": -1.16441,
+    "codeword": 0
+  },
+  {
+    "object_id": "C1-129",
+    "feature": "pl_orbper",
+    "z": -0.10222,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-129",
+    "feature": "pl_trandurh",
+    "z": -1.16683,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-129",
+    "feature": "pl_trandep",
+    "z": -1.7642,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-129",
+    "feature": "pl_rade",
+    "z": -1.60562,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-129",
+    "feature": "pl_insol",
+    "z": -0.76774,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-129",
+    "feature": "st_tmag",
+    "z": 0.34451,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-129",
+    "feature": "st_dist",
+    "z": 1.19362,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-129",
+    "feature": "st_teff",
+    "z": 1.36922,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-129",
+    "feature": "st_logg",
+    "z": 0.78646,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-129",
+    "feature": "st_rad",
+    "z": -0.27304,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-129",
+    "feature": "pm_total",
+    "z": -1.29724,
+    "codeword": 1
+  },
+  {
+    "object_id": "C2-130",
+    "feature": "pl_orbper",
+    "z": -0.29382,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-130",
+    "feature": "pl_trandurh",
+    "z": -1.28858,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-130",
+    "feature": "pl_trandep",
+    "z": -1.71859,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-130",
+    "feature": "pl_rade",
+    "z": -1.37604,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-130",
+    "feature": "pl_insol",
+    "z": -0.42648,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-130",
+    "feature": "st_tmag",
+    "z": 0.6712,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-130",
+    "feature": "st_dist",
+    "z": 1.38651,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-130",
+    "feature": "st_teff",
+    "z": 1.37376,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-130",
+    "feature": "st_logg",
+    "z": 0.63911,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-130",
+    "feature": "st_rad",
+    "z": -0.4624,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-130",
+    "feature": "pm_total",
+    "z": -1.39843,
+    "codeword": 2
+  },
+  {
+    "object_id": "C3-131",
+    "feature": "pl_orbper",
+    "z": -0.4804,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-131",
+    "feature": "pl_trandurh",
+    "z": -1.37663,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-131",
+    "feature": "pl_trandep",
+    "z": -1.6269,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-131",
+    "feature": "pl_rade",
+    "z": -1.11026,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-131",
+    "feature": "pl_insol",
+    "z": -0.07638,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-131",
+    "feature": "st_tmag",
+    "z": 0.97507,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-131",
+    "feature": "st_dist",
+    "z": 1.53597,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-131",
+    "feature": "st_teff",
+    "z": 1.33524,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-131",
+    "feature": "st_logg",
+    "z": 0.46988,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-131",
+    "feature": "st_rad",
+    "z": -0.64188,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-131",
+    "feature": "pm_total",
+    "z": -1.46277,
+    "codeword": 3
+  },
+  {
+    "object_id": "C4-132",
+    "feature": "pl_orbper",
+    "z": -0.65429,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-132",
+    "feature": "pl_trandurh",
+    "z": -1.42615,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-132",
+    "feature": "pl_trandep",
+    "z": -1.48946,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-132",
+    "feature": "pl_rade",
+    "z": -0.81361,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-132",
+    "feature": "pl_insol",
+    "z": 0.27476,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-132",
+    "feature": "st_tmag",
+    "z": 1.24968,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-132",
+    "feature": "st_dist",
+    "z": 1.63999,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-132",
+    "feature": "st_teff",
+    "z": 1.25706,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-132",
+    "feature": "st_logg",
+    "z": 0.28596,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-132",
+    "feature": "st_rad",
+    "z": -0.80401,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-132",
+    "feature": "pm_total",
+    "z": -1.48609,
+    "codeword": 4
+  },
+  {
+    "object_id": "C5-133",
+    "feature": "pl_orbper",
+    "z": -0.80816,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-133",
+    "feature": "pl_trandurh",
+    "z": -1.4334,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-133",
+    "feature": "pl_trandep",
+    "z": -1.30792,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-133",
+    "feature": "pl_rade",
+    "z": -0.49236,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-133",
+    "feature": "pl_insol",
+    "z": 0.61914,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-133",
+    "feature": "st_tmag",
+    "z": 1.48942,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-133",
+    "feature": "st_dist",
+    "z": 1.69788,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-133",
+    "feature": "st_teff",
+    "z": 1.1438,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-133",
+    "feature": "st_logg",
+    "z": 0.09494,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-133",
+    "feature": "st_rad",
+    "z": -0.94181,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-133",
+    "feature": "pm_total",
+    "z": -1.46541,
+    "codeword": 5
+  },
+  {
+    "object_id": "C6-134",
+    "feature": "pl_orbper",
+    "z": -0.93527,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-134",
+    "feature": "pl_trandurh",
+    "z": -1.39586,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-134",
+    "feature": "pl_trandep",
+    "z": -1.08521,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-134",
+    "feature": "pl_rade",
+    "z": -0.15345,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-134",
+    "feature": "pl_insol",
+    "z": 0.94913,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-134",
+    "feature": "st_tmag",
+    "z": 1.68967,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-134",
+    "feature": "st_dist",
+    "z": 1.71029,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-134",
+    "feature": "st_teff",
+    "z": 1.00102,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-134",
+    "feature": "st_logg",
+    "z": -0.09536,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-134",
+    "feature": "st_rad",
+    "z": -1.049,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-134",
+    "feature": "pm_total",
+    "z": -1.39903,
+    "codeword": 6
+  },
+  {
+    "object_id": "C7-135",
+    "feature": "pl_orbper",
+    "z": -1.02965,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-135",
+    "feature": "pl_trandurh",
+    "z": -1.31231,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-135",
+    "feature": "pl_trandep",
+    "z": -0.82545,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-135",
+    "feature": "pl_rade",
+    "z": 0.19565,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-135",
+    "feature": "pl_insol",
+    "z": 1.25752,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-135",
+    "feature": "st_tmag",
+    "z": 1.84697,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-135",
+    "feature": "st_dist",
+    "z": 1.67915,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-135",
+    "feature": "st_teff",
+    "z": 0.83515,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-135",
+    "feature": "st_logg",
+    "z": -0.27714,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-135",
+    "feature": "st_rad",
+    "z": -1.12018,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-135",
+    "feature": "pm_total",
+    "z": -1.28654,
+    "codeword": 7
+  },
+  {
+    "object_id": "C0-136",
+    "feature": "pl_orbper",
+    "z": -1.72627,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-136",
+    "feature": "pl_trandurh",
+    "z": -1.82286,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-136",
+    "feature": "pl_trandep",
+    "z": -1.17382,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-136",
+    "feature": "pl_rade",
+    "z": -0.09282,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-136",
+    "feature": "pl_insol",
+    "z": 0.89773,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-136",
+    "feature": "st_tmag",
+    "z": 1.3191,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-136",
+    "feature": "st_dist",
+    "z": 0.96767,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-136",
+    "feature": "st_teff",
+    "z": 0.01327,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-136",
+    "feature": "st_logg",
+    "z": -1.08286,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-136",
+    "feature": "st_rad",
+    "z": -1.79099,
+    "codeword": 0
+  },
+  {
+    "object_id": "C0-136",
+    "feature": "pm_total",
+    "z": -1.76889,
+    "codeword": 0
+  },
+  {
+    "object_id": "C1-137",
+    "feature": "pl_orbper",
+    "z": -1.7412,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-137",
+    "feature": "pl_trandurh",
+    "z": -1.64893,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-137",
+    "feature": "pl_trandep",
+    "z": -0.85642,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-137",
+    "feature": "pl_rade",
+    "z": 0.25332,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-137",
+    "feature": "pl_insol",
+    "z": 1.14398,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-137",
+    "feature": "st_tmag",
+    "z": 1.38513,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-137",
+    "feature": "st_dist",
+    "z": 0.86022,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-137",
+    "feature": "st_teff",
+    "z": -0.17707,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-137",
+    "feature": "st_logg",
+    "z": -1.22544,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-137",
+    "feature": "st_rad",
+    "z": -1.77824,
+    "codeword": 1
+  },
+  {
+    "object_id": "C1-137",
+    "feature": "pm_total",
+    "z": -1.56831,
+    "codeword": 1
+  },
+  {
+    "object_id": "C2-138",
+    "feature": "pl_orbper",
+    "z": -1.71169,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-138",
+    "feature": "pl_trandurh",
+    "z": -1.43322,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-138",
+    "feature": "pl_trandep",
+    "z": -0.52009,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-138",
+    "feature": "pl_rade",
+    "z": 0.58638,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-138",
+    "feature": "pl_insol",
+    "z": 1.35148,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-138",
+    "feature": "st_tmag",
+    "z": 1.40545,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-138",
+    "feature": "st_dist",
+    "z": 0.7222,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-138",
+    "feature": "st_teff",
+    "z": -0.36806,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-138",
+    "feature": "st_logg",
+    "z": -1.33844,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-138",
+    "feature": "st_rad",
+    "z": -1.71998,
+    "codeword": 2
+  },
+  {
+    "object_id": "C2-138",
+    "feature": "pm_total",
+    "z": -1.32829,
+    "codeword": 2
+  },
+  {
+    "object_id": "C3-139",
+    "feature": "pl_orbper",
+    "z": -1.6363,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-139",
+    "feature": "pl_trandurh",
+    "z": -1.17965,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-139",
+    "feature": "pl_trandep",
+    "z": -0.17223,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-139",
+    "feature": "pl_rade",
+    "z": 0.89908,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-139",
+    "feature": "pl_insol",
+    "z": 1.51657,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-139",
+    "feature": "st_tmag",
+    "z": 1.3818,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-139",
+    "feature": "st_dist",
+    "z": 0.55991,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-139",
+    "feature": "st_teff",
+    "z": -0.5519,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-139",
+    "feature": "st_logg",
+    "z": -1.41632,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-139",
+    "feature": "st_rad",
+    "z": -1.6156,
+    "codeword": 3
+  },
+  {
+    "object_id": "C3-139",
+    "feature": "pm_total",
+    "z": -1.05342,
+    "codeword": 3
+  },
+  {
+    "object_id": "C4-140",
+    "feature": "pl_orbper",
+    "z": -1.51488,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-140",
+    "feature": "pl_trandurh",
+    "z": -0.89322,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-140",
+    "feature": "pl_trandep",
+    "z": 0.17944,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-140",
+    "feature": "pl_rade",
+    "z": 1.18471,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-140",
+    "feature": "pl_insol",
+    "z": 1.63677,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-140",
+    "feature": "st_tmag",
+    "z": 1.31715,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-140",
+    "feature": "st_dist",
+    "z": 0.38031,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-140",
+    "feature": "st_teff",
+    "z": -0.72099,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-140",
+    "feature": "st_logg",
+    "z": -1.45452,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-140",
+    "feature": "st_rad",
+    "z": -1.46579,
+    "codeword": 4
+  },
+  {
+    "object_id": "C4-140",
+    "feature": "pm_total",
+    "z": -0.74935,
+    "codeword": 4
+  },
+  {
+    "object_id": "C5-141",
+    "feature": "pl_orbper",
+    "z": -1.34863,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-141",
+    "feature": "pl_trandurh",
+    "z": -0.57989,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-141",
+    "feature": "pl_trandep",
+    "z": 0.52709,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-141",
+    "feature": "pl_rade",
+    "z": 1.43733,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-141",
+    "feature": "pl_insol",
+    "z": 1.71094,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-141",
+    "feature": "st_tmag",
+    "z": 1.21569,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-141",
+    "feature": "st_dist",
+    "z": 0.19091,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-141",
+    "feature": "st_teff",
+    "z": -0.86813,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-141",
+    "feature": "st_logg",
+    "z": -1.44964,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-141",
+    "feature": "st_rad",
+    "z": -1.27257,
+    "codeword": 5
+  },
+  {
+    "object_id": "C5-141",
+    "feature": "pm_total",
+    "z": -0.42251,
+    "codeword": 5
+  },
+  {
+    "object_id": "C6-142",
+    "feature": "pl_orbper",
+    "z": -1.14004,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-142",
+    "feature": "pl_trandurh",
+    "z": -0.24638,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-142",
+    "feature": "pl_trandep",
+    "z": 0.863,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-142",
+    "feature": "pl_rade",
+    "z": 1.65198,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-142",
+    "feature": "pl_insol",
+    "z": 1.73924,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-142",
+    "feature": "st_tmag",
+    "z": 1.08263,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-142",
+    "feature": "st_dist",
+    "z": -0.00054,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-142",
+    "feature": "st_teff",
+    "z": -0.98679,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-142",
+    "feature": "st_logg",
+    "z": -1.39949,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-142",
+    "feature": "st_rad",
+    "z": -1.0392,
+    "codeword": 6
+  },
+  {
+    "object_id": "C6-142",
+    "feature": "pm_total",
+    "z": -0.08003,
+    "codeword": 6
+  },
+  {
+    "object_id": "C7-143",
+    "feature": "pl_orbper",
+    "z": -0.89282,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-143",
+    "feature": "pl_trandurh",
+    "z": 0.1,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-143",
+    "feature": "pl_trandep",
+    "z": 1.1798,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-143",
+    "feature": "pl_rade",
+    "z": 1.82476,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-143",
+    "feature": "pl_insol",
+    "z": 1.72317,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-143",
+    "feature": "st_tmag",
+    "z": 0.92413,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-143",
+    "feature": "st_dist",
+    "z": -0.1862,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-143",
+    "feature": "st_teff",
+    "z": -1.07123,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-143",
+    "feature": "st_logg",
+    "z": -1.30324,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-143",
+    "feature": "st_rad",
+    "z": -0.77011,
+    "codeword": 7
+  },
+  {
+    "object_id": "C7-143",
+    "feature": "pm_total",
+    "z": 0.27052,
+    "codeword": 7
+  }
+]

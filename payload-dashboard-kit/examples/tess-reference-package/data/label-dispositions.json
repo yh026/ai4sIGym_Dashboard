@@ -1,0 +1,26 @@
+[
+  {
+    "disposition": "PC",
+    "count": 4690
+  },
+  {
+    "disposition": "FP",
+    "count": 1113
+  },
+  {
+    "disposition": "KP",
+    "count": 548
+  },
+  {
+    "disposition": "CP",
+    "count": 485
+  },
+  {
+    "disposition": "APC",
+    "count": 438
+  },
+  {
+    "disposition": "FA",
+    "count": 96
+  }
+]

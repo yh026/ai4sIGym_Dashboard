@@ -1,0 +1,82 @@
+[
+  {
+    "error": 8.0097468,
+    "k": 2,
+    "space": "PCA-6"
+  },
+  {
+    "error": 8.45977304,
+    "k": 2,
+    "space": "PCA-6-to-UMAP-2"
+  },
+  {
+    "error": 6.24664606,
+    "k": 4,
+    "space": "PCA-6"
+  },
+  {
+    "error": 6.65341191,
+    "k": 4,
+    "space": "PCA-6-to-UMAP-2"
+  },
+  {
+    "error": 5.36326548,
+    "k": 6,
+    "space": "PCA-6"
+  },
+  {
+    "error": 6.04960442,
+    "k": 6,
+    "space": "PCA-6-to-UMAP-2"
+  },
+  {
+    "error": 4.82975375,
+    "k": 8,
+    "space": "PCA-6"
+  },
+  {
+    "error": 5.36322498,
+    "k": 8,
+    "space": "PCA-6-to-UMAP-2"
+  },
+  {
+    "error": 4.41209651,
+    "k": 10,
+    "space": "PCA-6"
+  },
+  {
+    "error": 5.02865326,
+    "k": 10,
+    "space": "PCA-6-to-UMAP-2"
+  },
+  {
+    "error": 4.11356387,
+    "k": 12,
+    "space": "PCA-6"
+  },
+  {
+    "error": 4.7172168,
+    "k": 12,
+    "space": "PCA-6-to-UMAP-2"
+  },
+  {
+    "error": 3.88817595,
+    "k": 14,
+    "space": "PCA-6"
+  },
+  {
+    "error": 4.5835798,
+    "k": 14,
+    "space": "PCA-6-to-UMAP-2"
+  },
+  {
+    "error": 3.70605021,
+    "k": 16,
+    "space": "PCA-6"
+  },
+  {
+    "error": 4.28274001,
+    "k": 16,
+    "space": "PCA-6-to-UMAP-2"
+  }
+]

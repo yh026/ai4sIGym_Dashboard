@@ -1,0 +1,3602 @@
+[
+  {
+    "object_id": "row-0-000",
+    "component": "G1",
+    "responsibility": 0.58
+  },
+  {
+    "object_id": "row-0-000",
+    "component": "G2",
+    "responsibility": 0.14
+  },
+  {
+    "object_id": "row-0-000",
+    "component": "G3",
+    "responsibility": 0.14
+  },
+  {
+    "object_id": "row-0-000",
+    "component": "G4",
+    "responsibility": 0.14
+  },
+  {
+    "object_id": "row-1-001",
+    "component": "G1",
+    "responsibility": 0.13667
+  },
+  {
+    "object_id": "row-1-001",
+    "component": "G2",
+    "responsibility": 0.59
+  },
+  {
+    "object_id": "row-1-001",
+    "component": "G3",
+    "responsibility": 0.13667
+  },
+  {
+    "object_id": "row-1-001",
+    "component": "G4",
+    "responsibility": 0.13667
+  },
+  {
+    "object_id": "row-2-002",
+    "component": "G1",
+    "responsibility": 0.13333
+  },
+  {
+    "object_id": "row-2-002",
+    "component": "G2",
+    "responsibility": 0.13333
+  },
+  {
+    "object_id": "row-2-002",
+    "component": "G3",
+    "responsibility": 0.6
+  },
+  {
+    "object_id": "row-2-002",
+    "component": "G4",
+    "responsibility": 0.13333
+  },
+  {
+    "object_id": "row-3-003",
+    "component": "G1",
+    "responsibility": 0.13
+  },
+  {
+    "object_id": "row-3-003",
+    "component": "G2",
+    "responsibility": 0.13
+  },
+  {
+    "object_id": "row-3-003",
+    "component": "G3",
+    "responsibility": 0.13
+  },
+  {
+    "object_id": "row-3-003",
+    "component": "G4",
+    "responsibility": 0.61
+  },
+  {
+    "object_id": "row-0-004",
+    "component": "G1",
+    "responsibility": 0.62
+  },
+  {
+    "object_id": "row-0-004",
+    "component": "G2",
+    "responsibility": 0.12667
+  },
+  {
+    "object_id": "row-0-004",
+    "component": "G3",
+    "responsibility": 0.12667
+  },
+  {
+    "object_id": "row-0-004",
+    "component": "G4",
+    "responsibility": 0.12667
+  },
+  {
+    "object_id": "row-1-005",
+    "component": "G1",
+    "responsibility": 0.12333
+  },
+  {
+    "object_id": "row-1-005",
+    "component": "G2",
+    "responsibility": 0.63
+  },
+  {
+    "object_id": "row-1-005",
+    "component": "G3",
+    "responsibility": 0.12333
+  },
+  {
+    "object_id": "row-1-005",
+    "component": "G4",
+    "responsibility": 0.12333
+  },
+  {
+    "object_id": "row-2-006",
+    "component": "G1",
+    "responsibility": 0.12
+  },
+  {
+    "object_id": "row-2-006",
+    "component": "G2",
+    "responsibility": 0.12
+  },
+  {
+    "object_id": "row-2-006",
+    "component": "G3",
+    "responsibility": 0.64
+  },
+  {
+    "object_id": "row-2-006",
+    "component": "G4",
+    "responsibility": 0.12
+  },
+  {
+    "object_id": "row-3-007",
+    "component": "G1",
+    "responsibility": 0.11667
+  },
+  {
+    "object_id": "row-3-007",
+    "component": "G2",
+    "responsibility": 0.11667
+  },
+  {
+    "object_id": "row-3-007",
+    "component": "G3",
+    "responsibility": 0.11667
+  },
+  {
+    "object_id": "row-3-007",
+    "component": "G4",
+    "responsibility": 0.65
+  },
+  {
+    "object_id": "row-0-008",
+    "component": "G1",
+    "responsibility": 0.66
+  },
+  {
+    "object_id": "row-0-008",
+    "component": "G2",
+    "responsibility": 0.11333
+  },
+  {
+    "object_id": "row-0-008",
+    "component": "G3",
+    "responsibility": 0.11333
+  },
+  {
+    "object_id": "row-0-008",
+    "component": "G4",
+    "responsibility": 0.11333
+  },
+  {
+    "object_id": "row-1-009",
+    "component": "G1",
+    "responsibility": 0.11
+  },
+  {
+    "object_id": "row-1-009",
+    "component": "G2",
+    "responsibility": 0.67
+  },
+  {
+    "object_id": "row-1-009",
+    "component": "G3",
+    "responsibility": 0.11
+  },
+  {
+    "object_id": "row-1-009",
+    "component": "G4",
+    "responsibility": 0.11
+  },
+  {
+    "object_id": "row-2-010",
+    "component": "G1",
+    "responsibility": 0.10667
+  },
+  {
+    "object_id": "row-2-010",
+    "component": "G2",
+    "responsibility": 0.10667
+  },
+  {
+    "object_id": "row-2-010",
+    "component": "G3",
+    "responsibility": 0.68
+  },
+  {
+    "object_id": "row-2-010",
+    "component": "G4",
+    "responsibility": 0.10667
+  },
+  {
+    "object_id": "row-3-011",
+    "component": "G1",
+    "responsibility": 0.10333
+  },
+  {
+    "object_id": "row-3-011",
+    "component": "G2",
+    "responsibility": 0.10333
+  },
+  {
+    "object_id": "row-3-011",
+    "component": "G3",
+    "responsibility": 0.10333
+  },
+  {
+    "object_id": "row-3-011",
+    "component": "G4",
+    "responsibility": 0.69
+  },
+  {
+    "object_id": "row-0-012",
+    "component": "G1",
+    "responsibility": 0.7
+  },
+  {
+    "object_id": "row-0-012",
+    "component": "G2",
+    "responsibility": 0.1
+  },
+  {
+    "object_id": "row-0-012",
+    "component": "G3",
+    "responsibility": 0.1
+  },
+  {
+    "object_id": "row-0-012",
+    "component": "G4",
+    "responsibility": 0.1
+  },
+  {
+    "object_id": "row-1-013",
+    "component": "G1",
+    "responsibility": 0.09667
+  },
+  {
+    "object_id": "row-1-013",
+    "component": "G2",
+    "responsibility": 0.71
+  },
+  {
+    "object_id": "row-1-013",
+    "component": "G3",
+    "responsibility": 0.09667
+  },
+  {
+    "object_id": "row-1-013",
+    "component": "G4",
+    "responsibility": 0.09667
+  },
+  {
+    "object_id": "row-2-014",
+    "component": "G1",
+    "responsibility": 0.09333
+  },
+  {
+    "object_id": "row-2-014",
+    "component": "G2",
+    "responsibility": 0.09333
+  },
+  {
+    "object_id": "row-2-014",
+    "component": "G3",
+    "responsibility": 0.72
+  },
+  {
+    "object_id": "row-2-014",
+    "component": "G4",
+    "responsibility": 0.09333
+  },
+  {
+    "object_id": "row-3-015",
+    "component": "G1",
+    "responsibility": 0.09
+  },
+  {
+    "object_id": "row-3-015",
+    "component": "G2",
+    "responsibility": 0.09
+  },
+  {
+    "object_id": "row-3-015",
+    "component": "G3",
+    "responsibility": 0.09
+  },
+  {
+    "object_id": "row-3-015",
+    "component": "G4",
+    "responsibility": 0.73
+  },
+  {
+    "object_id": "row-0-016",
+    "component": "G1",
+    "responsibility": 0.74
+  },
+  {
+    "object_id": "row-0-016",
+    "component": "G2",
+    "responsibility": 0.08667
+  },
+  {
+    "object_id": "row-0-016",
+    "component": "G3",
+    "responsibility": 0.08667
+  },
+  {
+    "object_id": "row-0-016",
+    "component": "G4",
+    "responsibility": 0.08667
+  },
+  {
+    "object_id": "row-1-017",
+    "component": "G1",
+    "responsibility": 0.08333
+  },
+  {
+    "object_id": "row-1-017",
+    "component": "G2",
+    "responsibility": 0.75
+  },
+  {
+    "object_id": "row-1-017",
+    "component": "G3",
+    "responsibility": 0.08333
+  },
+  {
+    "object_id": "row-1-017",
+    "component": "G4",
+    "responsibility": 0.08333
+  },
+  {
+    "object_id": "row-2-018",
+    "component": "G1",
+    "responsibility": 0.08
+  },
+  {
+    "object_id": "row-2-018",
+    "component": "G2",
+    "responsibility": 0.08
+  },
+  {
+    "object_id": "row-2-018",
+    "component": "G3",
+    "responsibility": 0.76
+  },
+  {
+    "object_id": "row-2-018",
+    "component": "G4",
+    "responsibility": 0.08
+  },
+  {
+    "object_id": "row-3-019",
+    "component": "G1",
+    "responsibility": 0.07667
+  },
+  {
+    "object_id": "row-3-019",
+    "component": "G2",
+    "responsibility": 0.07667
+  },
+  {
+    "object_id": "row-3-019",
+    "component": "G3",
+    "responsibility": 0.07667
+  },
+  {
+    "object_id": "row-3-019",
+    "component": "G4",
+    "responsibility": 0.77
+  },
+  {
+    "object_id": "row-0-020",
+    "component": "G1",
+    "responsibility": 0.78
+  },
+  {
+    "object_id": "row-0-020",
+    "component": "G2",
+    "responsibility": 0.07333
+  },
+  {
+    "object_id": "row-0-020",
+    "component": "G3",
+    "responsibility": 0.07333
+  },
+  {
+    "object_id": "row-0-020",
+    "component": "G4",
+    "responsibility": 0.07333
+  },
+  {
+    "object_id": "row-1-021",
+    "component": "G1",
+    "responsibility": 0.07
+  },
+  {
+    "object_id": "row-1-021",
+    "component": "G2",
+    "responsibility": 0.79
+  },
+  {
+    "object_id": "row-1-021",
+    "component": "G3",
+    "responsibility": 0.07
+  },
+  {
+    "object_id": "row-1-021",
+    "component": "G4",
+    "responsibility": 0.07
+  },
+  {
+    "object_id": "row-2-022",
+    "component": "G1",
+    "responsibility": 0.06667
+  },
+  {
+    "object_id": "row-2-022",
+    "component": "G2",
+    "responsibility": 0.06667
+  },
+  {
+    "object_id": "row-2-022",
+    "component": "G3",
+    "responsibility": 0.8
+  },
+  {
+    "object_id": "row-2-022",
+    "component": "G4",
+    "responsibility": 0.06667
+  },
+  {
+    "object_id": "row-3-023",
+    "component": "G1",
+    "responsibility": 0.06333
+  },
+  {
+    "object_id": "row-3-023",
+    "component": "G2",
+    "responsibility": 0.06333
+  },
+  {
+    "object_id": "row-3-023",
+    "component": "G3",
+    "responsibility": 0.06333
+  },
+  {
+    "object_id": "row-3-023",
+    "component": "G4",
+    "responsibility": 0.81
+  },
+  {
+    "object_id": "row-0-024",
+    "component": "G1",
+    "responsibility": 0.82
+  },
+  {
+    "object_id": "row-0-024",
+    "component": "G2",
+    "responsibility": 0.06
+  },
+  {
+    "object_id": "row-0-024",
+    "component": "G3",
+    "responsibility": 0.06
+  },
+  {
+    "object_id": "row-0-024",
+    "component": "G4",
+    "responsibility": 0.06
+  },
+  {
+    "object_id": "row-1-025",
+    "component": "G1",
+    "responsibility": 0.05667
+  },
+  {
+    "object_id": "row-1-025",
+    "component": "G2",
+    "responsibility": 0.83
+  },
+  {
+    "object_id": "row-1-025",
+    "component": "G3",
+    "responsibility": 0.05667
+  },
+  {
+    "object_id": "row-1-025",
+    "component": "G4",
+    "responsibility": 0.05667
+  },
+  {
+    "object_id": "row-2-026",
+    "component": "G1",
+    "responsibility": 0.05333
+  },
+  {
+    "object_id": "row-2-026",
+    "component": "G2",
+    "responsibility": 0.05333
+  },
+  {
+    "object_id": "row-2-026",
+    "component": "G3",
+    "responsibility": 0.84
+  },
+  {
+    "object_id": "row-2-026",
+    "component": "G4",
+    "responsibility": 0.05333
+  },
+  {
+    "object_id": "row-3-027",
+    "component": "G1",
+    "responsibility": 0.05
+  },
+  {
+    "object_id": "row-3-027",
+    "component": "G2",
+    "responsibility": 0.05
+  },
+  {
+    "object_id": "row-3-027",
+    "component": "G3",
+    "responsibility": 0.05
+  },
+  {
+    "object_id": "row-3-027",
+    "component": "G4",
+    "responsibility": 0.85
+  },
+  {
+    "object_id": "row-0-028",
+    "component": "G1",
+    "responsibility": 0.86
+  },
+  {
+    "object_id": "row-0-028",
+    "component": "G2",
+    "responsibility": 0.04667
+  },
+  {
+    "object_id": "row-0-028",
+    "component": "G3",
+    "responsibility": 0.04667
+  },
+  {
+    "object_id": "row-0-028",
+    "component": "G4",
+    "responsibility": 0.04667
+  },
+  {
+    "object_id": "row-1-029",
+    "component": "G1",
+    "responsibility": 0.04333
+  },
+  {
+    "object_id": "row-1-029",
+    "component": "G2",
+    "responsibility": 0.87
+  },
+  {
+    "object_id": "row-1-029",
+    "component": "G3",
+    "responsibility": 0.04333
+  },
+  {
+    "object_id": "row-1-029",
+    "component": "G4",
+    "responsibility": 0.04333
+  },
+  {
+    "object_id": "row-2-030",
+    "component": "G1",
+    "responsibility": 0.04
+  },
+  {
+    "object_id": "row-2-030",
+    "component": "G2",
+    "responsibility": 0.04
+  },
+  {
+    "object_id": "row-2-030",
+    "component": "G3",
+    "responsibility": 0.88
+  },
+  {
+    "object_id": "row-2-030",
+    "component": "G4",
+    "responsibility": 0.04
+  },
+  {
+    "object_id": "row-3-031",
+    "component": "G1",
+    "responsibility": 0.03667
+  },
+  {
+    "object_id": "row-3-031",
+    "component": "G2",
+    "responsibility": 0.03667
+  },
+  {
+    "object_id": "row-3-031",
+    "component": "G3",
+    "responsibility": 0.03667
+  },
+  {
+    "object_id": "row-3-031",
+    "component": "G4",
+    "responsibility": 0.89
+  },
+  {
+    "object_id": "row-0-032",
+    "component": "G1",
+    "responsibility": 0.9
+  },
+  {
+    "object_id": "row-0-032",
+    "component": "G2",
+    "responsibility": 0.03333
+  },
+  {
+    "object_id": "row-0-032",
+    "component": "G3",
+    "responsibility": 0.03333
+  },
+  {
+    "object_id": "row-0-032",
+    "component": "G4",
+    "responsibility": 0.03333
+  },
+  {
+    "object_id": "row-1-033",
+    "component": "G1",
+    "responsibility": 0.03
+  },
+  {
+    "object_id": "row-1-033",
+    "component": "G2",
+    "responsibility": 0.91
+  },
+  {
+    "object_id": "row-1-033",
+    "component": "G3",
+    "responsibility": 0.03
+  },
+  {
+    "object_id": "row-1-033",
+    "component": "G4",
+    "responsibility": 0.03
+  },
+  {
+    "object_id": "row-2-034",
+    "component": "G1",
+    "responsibility": 0.02667
+  },
+  {
+    "object_id": "row-2-034",
+    "component": "G2",
+    "responsibility": 0.02667
+  },
+  {
+    "object_id": "row-2-034",
+    "component": "G3",
+    "responsibility": 0.92
+  },
+  {
+    "object_id": "row-2-034",
+    "component": "G4",
+    "responsibility": 0.02667
+  },
+  {
+    "object_id": "row-3-035",
+    "component": "G1",
+    "responsibility": 0.02333
+  },
+  {
+    "object_id": "row-3-035",
+    "component": "G2",
+    "responsibility": 0.02333
+  },
+  {
+    "object_id": "row-3-035",
+    "component": "G3",
+    "responsibility": 0.02333
+  },
+  {
+    "object_id": "row-3-035",
+    "component": "G4",
+    "responsibility": 0.93
+  },
+  {
+    "object_id": "row-0-036",
+    "component": "G1",
+    "responsibility": 0.94
+  },
+  {
+    "object_id": "row-0-036",
+    "component": "G2",
+    "responsibility": 0.02
+  },
+  {
+    "object_id": "row-0-036",
+    "component": "G3",
+    "responsibility": 0.02
+  },
+  {
+    "object_id": "row-0-036",
+    "component": "G4",
+    "responsibility": 0.02
+  },
+  {
+    "object_id": "row-1-037",
+    "component": "G1",
+    "responsibility": 0.14
+  },
+  {
+    "object_id": "row-1-037",
+    "component": "G2",
+    "responsibility": 0.58
+  },
+  {
+    "object_id": "row-1-037",
+    "component": "G3",
+    "responsibility": 0.14
+  },
+  {
+    "object_id": "row-1-037",
+    "component": "G4",
+    "responsibility": 0.14
+  },
+  {
+    "object_id": "row-2-038",
+    "component": "G1",
+    "responsibility": 0.13667
+  },
+  {
+    "object_id": "row-2-038",
+    "component": "G2",
+    "responsibility": 0.13667
+  },
+  {
+    "object_id": "row-2-038",
+    "component": "G3",
+    "responsibility": 0.59
+  },
+  {
+    "object_id": "row-2-038",
+    "component": "G4",
+    "responsibility": 0.13667
+  },
+  {
+    "object_id": "row-3-039",
+    "component": "G1",
+    "responsibility": 0.13333
+  },
+  {
+    "object_id": "row-3-039",
+    "component": "G2",
+    "responsibility": 0.13333
+  },
+  {
+    "object_id": "row-3-039",
+    "component": "G3",
+    "responsibility": 0.13333
+  },
+  {
+    "object_id": "row-3-039",
+    "component": "G4",
+    "responsibility": 0.6
+  },
+  {
+    "object_id": "row-0-040",
+    "component": "G1",
+    "responsibility": 0.61
+  },
+  {
+    "object_id": "row-0-040",
+    "component": "G2",
+    "responsibility": 0.13
+  },
+  {
+    "object_id": "row-0-040",
+    "component": "G3",
+    "responsibility": 0.13
+  },
+  {
+    "object_id": "row-0-040",
+    "component": "G4",
+    "responsibility": 0.13
+  },
+  {
+    "object_id": "row-1-041",
+    "component": "G1",
+    "responsibility": 0.12667
+  },
+  {
+    "object_id": "row-1-041",
+    "component": "G2",
+    "responsibility": 0.62
+  },
+  {
+    "object_id": "row-1-041",
+    "component": "G3",
+    "responsibility": 0.12667
+  },
+  {
+    "object_id": "row-1-041",
+    "component": "G4",
+    "responsibility": 0.12667
+  },
+  {
+    "object_id": "row-2-042",
+    "component": "G1",
+    "responsibility": 0.12333
+  },
+  {
+    "object_id": "row-2-042",
+    "component": "G2",
+    "responsibility": 0.12333
+  },
+  {
+    "object_id": "row-2-042",
+    "component": "G3",
+    "responsibility": 0.63
+  },
+  {
+    "object_id": "row-2-042",
+    "component": "G4",
+    "responsibility": 0.12333
+  },
+  {
+    "object_id": "row-3-043",
+    "component": "G1",
+    "responsibility": 0.12
+  },
+  {
+    "object_id": "row-3-043",
+    "component": "G2",
+    "responsibility": 0.12
+  },
+  {
+    "object_id": "row-3-043",
+    "component": "G3",
+    "responsibility": 0.12
+  },
+  {
+    "object_id": "row-3-043",
+    "component": "G4",
+    "responsibility": 0.64
+  },
+  {
+    "object_id": "row-0-044",
+    "component": "G1",
+    "responsibility": 0.65
+  },
+  {
+    "object_id": "row-0-044",
+    "component": "G2",
+    "responsibility": 0.11667
+  },
+  {
+    "object_id": "row-0-044",
+    "component": "G3",
+    "responsibility": 0.11667
+  },
+  {
+    "object_id": "row-0-044",
+    "component": "G4",
+    "responsibility": 0.11667
+  },
+  {
+    "object_id": "row-1-045",
+    "component": "G1",
+    "responsibility": 0.11333
+  },
+  {
+    "object_id": "row-1-045",
+    "component": "G2",
+    "responsibility": 0.66
+  },
+  {
+    "object_id": "row-1-045",
+    "component": "G3",
+    "responsibility": 0.11333
+  },
+  {
+    "object_id": "row-1-045",
+    "component": "G4",
+    "responsibility": 0.11333
+  },
+  {
+    "object_id": "row-2-046",
+    "component": "G1",
+    "responsibility": 0.11
+  },
+  {
+    "object_id": "row-2-046",
+    "component": "G2",
+    "responsibility": 0.11
+  },
+  {
+    "object_id": "row-2-046",
+    "component": "G3",
+    "responsibility": 0.67
+  },
+  {
+    "object_id": "row-2-046",
+    "component": "G4",
+    "responsibility": 0.11
+  },
+  {
+    "object_id": "row-3-047",
+    "component": "G1",
+    "responsibility": 0.10667
+  },
+  {
+    "object_id": "row-3-047",
+    "component": "G2",
+    "responsibility": 0.10667
+  },
+  {
+    "object_id": "row-3-047",
+    "component": "G3",
+    "responsibility": 0.10667
+  },
+  {
+    "object_id": "row-3-047",
+    "component": "G4",
+    "responsibility": 0.68
+  },
+  {
+    "object_id": "row-0-048",
+    "component": "G1",
+    "responsibility": 0.69
+  },
+  {
+    "object_id": "row-0-048",
+    "component": "G2",
+    "responsibility": 0.10333
+  },
+  {
+    "object_id": "row-0-048",
+    "component": "G3",
+    "responsibility": 0.10333
+  },
+  {
+    "object_id": "row-0-048",
+    "component": "G4",
+    "responsibility": 0.10333
+  },
+  {
+    "object_id": "row-1-049",
+    "component": "G1",
+    "responsibility": 0.1
+  },
+  {
+    "object_id": "row-1-049",
+    "component": "G2",
+    "responsibility": 0.7
+  },
+  {
+    "object_id": "row-1-049",
+    "component": "G3",
+    "responsibility": 0.1
+  },
+  {
+    "object_id": "row-1-049",
+    "component": "G4",
+    "responsibility": 0.1
+  },
+  {
+    "object_id": "row-2-050",
+    "component": "G1",
+    "responsibility": 0.09667
+  },
+  {
+    "object_id": "row-2-050",
+    "component": "G2",
+    "responsibility": 0.09667
+  },
+  {
+    "object_id": "row-2-050",
+    "component": "G3",
+    "responsibility": 0.71
+  },
+  {
+    "object_id": "row-2-050",
+    "component": "G4",
+    "responsibility": 0.09667
+  },
+  {
+    "object_id": "row-3-051",
+    "component": "G1",
+    "responsibility": 0.09333
+  },
+  {
+    "object_id": "row-3-051",
+    "component": "G2",
+    "responsibility": 0.09333
+  },
+  {
+    "object_id": "row-3-051",
+    "component": "G3",
+    "responsibility": 0.09333
+  },
+  {
+    "object_id": "row-3-051",
+    "component": "G4",
+    "responsibility": 0.72
+  },
+  {
+    "object_id": "row-0-052",
+    "component": "G1",
+    "responsibility": 0.73
+  },
+  {
+    "object_id": "row-0-052",
+    "component": "G2",
+    "responsibility": 0.09
+  },
+  {
+    "object_id": "row-0-052",
+    "component": "G3",
+    "responsibility": 0.09
+  },
+  {
+    "object_id": "row-0-052",
+    "component": "G4",
+    "responsibility": 0.09
+  },
+  {
+    "object_id": "row-1-053",
+    "component": "G1",
+    "responsibility": 0.08667
+  },
+  {
+    "object_id": "row-1-053",
+    "component": "G2",
+    "responsibility": 0.74
+  },
+  {
+    "object_id": "row-1-053",
+    "component": "G3",
+    "responsibility": 0.08667
+  },
+  {
+    "object_id": "row-1-053",
+    "component": "G4",
+    "responsibility": 0.08667
+  },
+  {
+    "object_id": "row-2-054",
+    "component": "G1",
+    "responsibility": 0.08333
+  },
+  {
+    "object_id": "row-2-054",
+    "component": "G2",
+    "responsibility": 0.08333
+  },
+  {
+    "object_id": "row-2-054",
+    "component": "G3",
+    "responsibility": 0.75
+  },
+  {
+    "object_id": "row-2-054",
+    "component": "G4",
+    "responsibility": 0.08333
+  },
+  {
+    "object_id": "row-3-055",
+    "component": "G1",
+    "responsibility": 0.08
+  },
+  {
+    "object_id": "row-3-055",
+    "component": "G2",
+    "responsibility": 0.08
+  },
+  {
+    "object_id": "row-3-055",
+    "component": "G3",
+    "responsibility": 0.08
+  },
+  {
+    "object_id": "row-3-055",
+    "component": "G4",
+    "responsibility": 0.76
+  },
+  {
+    "object_id": "row-0-056",
+    "component": "G1",
+    "responsibility": 0.77
+  },
+  {
+    "object_id": "row-0-056",
+    "component": "G2",
+    "responsibility": 0.07667
+  },
+  {
+    "object_id": "row-0-056",
+    "component": "G3",
+    "responsibility": 0.07667
+  },
+  {
+    "object_id": "row-0-056",
+    "component": "G4",
+    "responsibility": 0.07667
+  },
+  {
+    "object_id": "row-1-057",
+    "component": "G1",
+    "responsibility": 0.07333
+  },
+  {
+    "object_id": "row-1-057",
+    "component": "G2",
+    "responsibility": 0.78
+  },
+  {
+    "object_id": "row-1-057",
+    "component": "G3",
+    "responsibility": 0.07333
+  },
+  {
+    "object_id": "row-1-057",
+    "component": "G4",
+    "responsibility": 0.07333
+  },
+  {
+    "object_id": "row-2-058",
+    "component": "G1",
+    "responsibility": 0.07
+  },
+  {
+    "object_id": "row-2-058",
+    "component": "G2",
+    "responsibility": 0.07
+  },
+  {
+    "object_id": "row-2-058",
+    "component": "G3",
+    "responsibility": 0.79
+  },
+  {
+    "object_id": "row-2-058",
+    "component": "G4",
+    "responsibility": 0.07
+  },
+  {
+    "object_id": "row-3-059",
+    "component": "G1",
+    "responsibility": 0.06667
+  },
+  {
+    "object_id": "row-3-059",
+    "component": "G2",
+    "responsibility": 0.06667
+  },
+  {
+    "object_id": "row-3-059",
+    "component": "G3",
+    "responsibility": 0.06667
+  },
+  {
+    "object_id": "row-3-059",
+    "component": "G4",
+    "responsibility": 0.8
+  },
+  {
+    "object_id": "row-0-060",
+    "component": "G1",
+    "responsibility": 0.81
+  },
+  {
+    "object_id": "row-0-060",
+    "component": "G2",
+    "responsibility": 0.06333
+  },
+  {
+    "object_id": "row-0-060",
+    "component": "G3",
+    "responsibility": 0.06333
+  },
+  {
+    "object_id": "row-0-060",
+    "component": "G4",
+    "responsibility": 0.06333
+  },
+  {
+    "object_id": "row-1-061",
+    "component": "G1",
+    "responsibility": 0.06
+  },
+  {
+    "object_id": "row-1-061",
+    "component": "G2",
+    "responsibility": 0.82
+  },
+  {
+    "object_id": "row-1-061",
+    "component": "G3",
+    "responsibility": 0.06
+  },
+  {
+    "object_id": "row-1-061",
+    "component": "G4",
+    "responsibility": 0.06
+  },
+  {
+    "object_id": "row-2-062",
+    "component": "G1",
+    "responsibility": 0.05667
+  },
+  {
+    "object_id": "row-2-062",
+    "component": "G2",
+    "responsibility": 0.05667
+  },
+  {
+    "object_id": "row-2-062",
+    "component": "G3",
+    "responsibility": 0.83
+  },
+  {
+    "object_id": "row-2-062",
+    "component": "G4",
+    "responsibility": 0.05667
+  },
+  {
+    "object_id": "row-3-063",
+    "component": "G1",
+    "responsibility": 0.05333
+  },
+  {
+    "object_id": "row-3-063",
+    "component": "G2",
+    "responsibility": 0.05333
+  },
+  {
+    "object_id": "row-3-063",
+    "component": "G3",
+    "responsibility": 0.05333
+  },
+  {
+    "object_id": "row-3-063",
+    "component": "G4",
+    "responsibility": 0.84
+  },
+  {
+    "object_id": "row-0-064",
+    "component": "G1",
+    "responsibility": 0.85
+  },
+  {
+    "object_id": "row-0-064",
+    "component": "G2",
+    "responsibility": 0.05
+  },
+  {
+    "object_id": "row-0-064",
+    "component": "G3",
+    "responsibility": 0.05
+  },
+  {
+    "object_id": "row-0-064",
+    "component": "G4",
+    "responsibility": 0.05
+  },
+  {
+    "object_id": "row-1-065",
+    "component": "G1",
+    "responsibility": 0.04667
+  },
+  {
+    "object_id": "row-1-065",
+    "component": "G2",
+    "responsibility": 0.86
+  },
+  {
+    "object_id": "row-1-065",
+    "component": "G3",
+    "responsibility": 0.04667
+  },
+  {
+    "object_id": "row-1-065",
+    "component": "G4",
+    "responsibility": 0.04667
+  },
+  {
+    "object_id": "row-2-066",
+    "component": "G1",
+    "responsibility": 0.04333
+  },
+  {
+    "object_id": "row-2-066",
+    "component": "G2",
+    "responsibility": 0.04333
+  },
+  {
+    "object_id": "row-2-066",
+    "component": "G3",
+    "responsibility": 0.87
+  },
+  {
+    "object_id": "row-2-066",
+    "component": "G4",
+    "responsibility": 0.04333
+  },
+  {
+    "object_id": "row-3-067",
+    "component": "G1",
+    "responsibility": 0.04
+  },
+  {
+    "object_id": "row-3-067",
+    "component": "G2",
+    "responsibility": 0.04
+  },
+  {
+    "object_id": "row-3-067",
+    "component": "G3",
+    "responsibility": 0.04
+  },
+  {
+    "object_id": "row-3-067",
+    "component": "G4",
+    "responsibility": 0.88
+  },
+  {
+    "object_id": "row-0-068",
+    "component": "G1",
+    "responsibility": 0.89
+  },
+  {
+    "object_id": "row-0-068",
+    "component": "G2",
+    "responsibility": 0.03667
+  },
+  {
+    "object_id": "row-0-068",
+    "component": "G3",
+    "responsibility": 0.03667
+  },
+  {
+    "object_id": "row-0-068",
+    "component": "G4",
+    "responsibility": 0.03667
+  },
+  {
+    "object_id": "row-1-069",
+    "component": "G1",
+    "responsibility": 0.03333
+  },
+  {
+    "object_id": "row-1-069",
+    "component": "G2",
+    "responsibility": 0.9
+  },
+  {
+    "object_id": "row-1-069",
+    "component": "G3",
+    "responsibility": 0.03333
+  },
+  {
+    "object_id": "row-1-069",
+    "component": "G4",
+    "responsibility": 0.03333
+  },
+  {
+    "object_id": "row-2-070",
+    "component": "G1",
+    "responsibility": 0.03
+  },
+  {
+    "object_id": "row-2-070",
+    "component": "G2",
+    "responsibility": 0.03
+  },
+  {
+    "object_id": "row-2-070",
+    "component": "G3",
+    "responsibility": 0.91
+  },
+  {
+    "object_id": "row-2-070",
+    "component": "G4",
+    "responsibility": 0.03
+  },
+  {
+    "object_id": "row-3-071",
+    "component": "G1",
+    "responsibility": 0.02667
+  },
+  {
+    "object_id": "row-3-071",
+    "component": "G2",
+    "responsibility": 0.02667
+  },
+  {
+    "object_id": "row-3-071",
+    "component": "G3",
+    "responsibility": 0.02667
+  },
+  {
+    "object_id": "row-3-071",
+    "component": "G4",
+    "responsibility": 0.92
+  },
+  {
+    "object_id": "row-0-072",
+    "component": "G1",
+    "responsibility": 0.93
+  },
+  {
+    "object_id": "row-0-072",
+    "component": "G2",
+    "responsibility": 0.02333
+  },
+  {
+    "object_id": "row-0-072",
+    "component": "G3",
+    "responsibility": 0.02333
+  },
+  {
+    "object_id": "row-0-072",
+    "component": "G4",
+    "responsibility": 0.02333
+  },
+  {
+    "object_id": "row-1-073",
+    "component": "G1",
+    "responsibility": 0.02
+  },
+  {
+    "object_id": "row-1-073",
+    "component": "G2",
+    "responsibility": 0.94
+  },
+  {
+    "object_id": "row-1-073",
+    "component": "G3",
+    "responsibility": 0.02
+  },
+  {
+    "object_id": "row-1-073",
+    "component": "G4",
+    "responsibility": 0.02
+  },
+  {
+    "object_id": "row-2-074",
+    "component": "G1",
+    "responsibility": 0.14
+  },
+  {
+    "object_id": "row-2-074",
+    "component": "G2",
+    "responsibility": 0.14
+  },
+  {
+    "object_id": "row-2-074",
+    "component": "G3",
+    "responsibility": 0.58
+  },
+  {
+    "object_id": "row-2-074",
+    "component": "G4",
+    "responsibility": 0.14
+  },
+  {
+    "object_id": "row-3-075",
+    "component": "G1",
+    "responsibility": 0.13667
+  },
+  {
+    "object_id": "row-3-075",
+    "component": "G2",
+    "responsibility": 0.13667
+  },
+  {
+    "object_id": "row-3-075",
+    "component": "G3",
+    "responsibility": 0.13667
+  },
+  {
+    "object_id": "row-3-075",
+    "component": "G4",
+    "responsibility": 0.59
+  },
+  {
+    "object_id": "row-0-076",
+    "component": "G1",
+    "responsibility": 0.6
+  },
+  {
+    "object_id": "row-0-076",
+    "component": "G2",
+    "responsibility": 0.13333
+  },
+  {
+    "object_id": "row-0-076",
+    "component": "G3",
+    "responsibility": 0.13333
+  },
+  {
+    "object_id": "row-0-076",
+    "component": "G4",
+    "responsibility": 0.13333
+  },
+  {
+    "object_id": "row-1-077",
+    "component": "G1",
+    "responsibility": 0.13
+  },
+  {
+    "object_id": "row-1-077",
+    "component": "G2",
+    "responsibility": 0.61
+  },
+  {
+    "object_id": "row-1-077",
+    "component": "G3",
+    "responsibility": 0.13
+  },
+  {
+    "object_id": "row-1-077",
+    "component": "G4",
+    "responsibility": 0.13
+  },
+  {
+    "object_id": "row-2-078",
+    "component": "G1",
+    "responsibility": 0.12667
+  },
+  {
+    "object_id": "row-2-078",
+    "component": "G2",
+    "responsibility": 0.12667
+  },
+  {
+    "object_id": "row-2-078",
+    "component": "G3",
+    "responsibility": 0.62
+  },
+  {
+    "object_id": "row-2-078",
+    "component": "G4",
+    "responsibility": 0.12667
+  },
+  {
+    "object_id": "row-3-079",
+    "component": "G1",
+    "responsibility": 0.12333
+  },
+  {
+    "object_id": "row-3-079",
+    "component": "G2",
+    "responsibility": 0.12333
+  },
+  {
+    "object_id": "row-3-079",
+    "component": "G3",
+    "responsibility": 0.12333
+  },
+  {
+    "object_id": "row-3-079",
+    "component": "G4",
+    "responsibility": 0.63
+  },
+  {
+    "object_id": "row-0-080",
+    "component": "G1",
+    "responsibility": 0.64
+  },
+  {
+    "object_id": "row-0-080",
+    "component": "G2",
+    "responsibility": 0.12
+  },
+  {
+    "object_id": "row-0-080",
+    "component": "G3",
+    "responsibility": 0.12
+  },
+  {
+    "object_id": "row-0-080",
+    "component": "G4",
+    "responsibility": 0.12
+  },
+  {
+    "object_id": "row-1-081",
+    "component": "G1",
+    "responsibility": 0.11667
+  },
+  {
+    "object_id": "row-1-081",
+    "component": "G2",
+    "responsibility": 0.65
+  },
+  {
+    "object_id": "row-1-081",
+    "component": "G3",
+    "responsibility": 0.11667
+  },
+  {
+    "object_id": "row-1-081",
+    "component": "G4",
+    "responsibility": 0.11667
+  },
+  {
+    "object_id": "row-2-082",
+    "component": "G1",
+    "responsibility": 0.11333
+  },
+  {
+    "object_id": "row-2-082",
+    "component": "G2",
+    "responsibility": 0.11333
+  },
+  {
+    "object_id": "row-2-082",
+    "component": "G3",
+    "responsibility": 0.66
+  },
+  {
+    "object_id": "row-2-082",
+    "component": "G4",
+    "responsibility": 0.11333
+  },
+  {
+    "object_id": "row-3-083",
+    "component": "G1",
+    "responsibility": 0.11
+  },
+  {
+    "object_id": "row-3-083",
+    "component": "G2",
+    "responsibility": 0.11
+  },
+  {
+    "object_id": "row-3-083",
+    "component": "G3",
+    "responsibility": 0.11
+  },
+  {
+    "object_id": "row-3-083",
+    "component": "G4",
+    "responsibility": 0.67
+  },
+  {
+    "object_id": "row-0-084",
+    "component": "G1",
+    "responsibility": 0.68
+  },
+  {
+    "object_id": "row-0-084",
+    "component": "G2",
+    "responsibility": 0.10667
+  },
+  {
+    "object_id": "row-0-084",
+    "component": "G3",
+    "responsibility": 0.10667
+  },
+  {
+    "object_id": "row-0-084",
+    "component": "G4",
+    "responsibility": 0.10667
+  },
+  {
+    "object_id": "row-1-085",
+    "component": "G1",
+    "responsibility": 0.10333
+  },
+  {
+    "object_id": "row-1-085",
+    "component": "G2",
+    "responsibility": 0.69
+  },
+  {
+    "object_id": "row-1-085",
+    "component": "G3",
+    "responsibility": 0.10333
+  },
+  {
+    "object_id": "row-1-085",
+    "component": "G4",
+    "responsibility": 0.10333
+  },
+  {
+    "object_id": "row-2-086",
+    "component": "G1",
+    "responsibility": 0.1
+  },
+  {
+    "object_id": "row-2-086",
+    "component": "G2",
+    "responsibility": 0.1
+  },
+  {
+    "object_id": "row-2-086",
+    "component": "G3",
+    "responsibility": 0.7
+  },
+  {
+    "object_id": "row-2-086",
+    "component": "G4",
+    "responsibility": 0.1
+  },
+  {
+    "object_id": "row-3-087",
+    "component": "G1",
+    "responsibility": 0.09667
+  },
+  {
+    "object_id": "row-3-087",
+    "component": "G2",
+    "responsibility": 0.09667
+  },
+  {
+    "object_id": "row-3-087",
+    "component": "G3",
+    "responsibility": 0.09667
+  },
+  {
+    "object_id": "row-3-087",
+    "component": "G4",
+    "responsibility": 0.71
+  },
+  {
+    "object_id": "row-0-088",
+    "component": "G1",
+    "responsibility": 0.72
+  },
+  {
+    "object_id": "row-0-088",
+    "component": "G2",
+    "responsibility": 0.09333
+  },
+  {
+    "object_id": "row-0-088",
+    "component": "G3",
+    "responsibility": 0.09333
+  },
+  {
+    "object_id": "row-0-088",
+    "component": "G4",
+    "responsibility": 0.09333
+  },
+  {
+    "object_id": "row-1-089",
+    "component": "G1",
+    "responsibility": 0.09
+  },
+  {
+    "object_id": "row-1-089",
+    "component": "G2",
+    "responsibility": 0.73
+  },
+  {
+    "object_id": "row-1-089",
+    "component": "G3",
+    "responsibility": 0.09
+  },
+  {
+    "object_id": "row-1-089",
+    "component": "G4",
+    "responsibility": 0.09
+  },
+  {
+    "object_id": "row-2-090",
+    "component": "G1",
+    "responsibility": 0.08667
+  },
+  {
+    "object_id": "row-2-090",
+    "component": "G2",
+    "responsibility": 0.08667
+  },
+  {
+    "object_id": "row-2-090",
+    "component": "G3",
+    "responsibility": 0.74
+  },
+  {
+    "object_id": "row-2-090",
+    "component": "G4",
+    "responsibility": 0.08667
+  },
+  {
+    "object_id": "row-3-091",
+    "component": "G1",
+    "responsibility": 0.08333
+  },
+  {
+    "object_id": "row-3-091",
+    "component": "G2",
+    "responsibility": 0.08333
+  },
+  {
+    "object_id": "row-3-091",
+    "component": "G3",
+    "responsibility": 0.08333
+  },
+  {
+    "object_id": "row-3-091",
+    "component": "G4",
+    "responsibility": 0.75
+  },
+  {
+    "object_id": "row-0-092",
+    "component": "G1",
+    "responsibility": 0.76
+  },
+  {
+    "object_id": "row-0-092",
+    "component": "G2",
+    "responsibility": 0.08
+  },
+  {
+    "object_id": "row-0-092",
+    "component": "G3",
+    "responsibility": 0.08
+  },
+  {
+    "object_id": "row-0-092",
+    "component": "G4",
+    "responsibility": 0.08
+  },
+  {
+    "object_id": "row-1-093",
+    "component": "G1",
+    "responsibility": 0.07667
+  },
+  {
+    "object_id": "row-1-093",
+    "component": "G2",
+    "responsibility": 0.77
+  },
+  {
+    "object_id": "row-1-093",
+    "component": "G3",
+    "responsibility": 0.07667
+  },
+  {
+    "object_id": "row-1-093",
+    "component": "G4",
+    "responsibility": 0.07667
+  },
+  {
+    "object_id": "row-2-094",
+    "component": "G1",
+    "responsibility": 0.07333
+  },
+  {
+    "object_id": "row-2-094",
+    "component": "G2",
+    "responsibility": 0.07333
+  },
+  {
+    "object_id": "row-2-094",
+    "component": "G3",
+    "responsibility": 0.78
+  },
+  {
+    "object_id": "row-2-094",
+    "component": "G4",
+    "responsibility": 0.07333
+  },
+  {
+    "object_id": "row-3-095",
+    "component": "G1",
+    "responsibility": 0.07
+  },
+  {
+    "object_id": "row-3-095",
+    "component": "G2",
+    "responsibility": 0.07
+  },
+  {
+    "object_id": "row-3-095",
+    "component": "G3",
+    "responsibility": 0.07
+  },
+  {
+    "object_id": "row-3-095",
+    "component": "G4",
+    "responsibility": 0.79
+  },
+  {
+    "object_id": "row-0-096",
+    "component": "G1",
+    "responsibility": 0.8
+  },
+  {
+    "object_id": "row-0-096",
+    "component": "G2",
+    "responsibility": 0.06667
+  },
+  {
+    "object_id": "row-0-096",
+    "component": "G3",
+    "responsibility": 0.06667
+  },
+  {
+    "object_id": "row-0-096",
+    "component": "G4",
+    "responsibility": 0.06667
+  },
+  {
+    "object_id": "row-1-097",
+    "component": "G1",
+    "responsibility": 0.06333
+  },
+  {
+    "object_id": "row-1-097",
+    "component": "G2",
+    "responsibility": 0.81
+  },
+  {
+    "object_id": "row-1-097",
+    "component": "G3",
+    "responsibility": 0.06333
+  },
+  {
+    "object_id": "row-1-097",
+    "component": "G4",
+    "responsibility": 0.06333
+  },
+  {
+    "object_id": "row-2-098",
+    "component": "G1",
+    "responsibility": 0.06
+  },
+  {
+    "object_id": "row-2-098",
+    "component": "G2",
+    "responsibility": 0.06
+  },
+  {
+    "object_id": "row-2-098",
+    "component": "G3",
+    "responsibility": 0.82
+  },
+  {
+    "object_id": "row-2-098",
+    "component": "G4",
+    "responsibility": 0.06
+  },
+  {
+    "object_id": "row-3-099",
+    "component": "G1",
+    "responsibility": 0.05667
+  },
+  {
+    "object_id": "row-3-099",
+    "component": "G2",
+    "responsibility": 0.05667
+  },
+  {
+    "object_id": "row-3-099",
+    "component": "G3",
+    "responsibility": 0.05667
+  },
+  {
+    "object_id": "row-3-099",
+    "component": "G4",
+    "responsibility": 0.83
+  },
+  {
+    "object_id": "row-0-100",
+    "component": "G1",
+    "responsibility": 0.84
+  },
+  {
+    "object_id": "row-0-100",
+    "component": "G2",
+    "responsibility": 0.05333
+  },
+  {
+    "object_id": "row-0-100",
+    "component": "G3",
+    "responsibility": 0.05333
+  },
+  {
+    "object_id": "row-0-100",
+    "component": "G4",
+    "responsibility": 0.05333
+  },
+  {
+    "object_id": "row-1-101",
+    "component": "G1",
+    "responsibility": 0.05
+  },
+  {
+    "object_id": "row-1-101",
+    "component": "G2",
+    "responsibility": 0.85
+  },
+  {
+    "object_id": "row-1-101",
+    "component": "G3",
+    "responsibility": 0.05
+  },
+  {
+    "object_id": "row-1-101",
+    "component": "G4",
+    "responsibility": 0.05
+  },
+  {
+    "object_id": "row-2-102",
+    "component": "G1",
+    "responsibility": 0.04667
+  },
+  {
+    "object_id": "row-2-102",
+    "component": "G2",
+    "responsibility": 0.04667
+  },
+  {
+    "object_id": "row-2-102",
+    "component": "G3",
+    "responsibility": 0.86
+  },
+  {
+    "object_id": "row-2-102",
+    "component": "G4",
+    "responsibility": 0.04667
+  },
+  {
+    "object_id": "row-3-103",
+    "component": "G1",
+    "responsibility": 0.04333
+  },
+  {
+    "object_id": "row-3-103",
+    "component": "G2",
+    "responsibility": 0.04333
+  },
+  {
+    "object_id": "row-3-103",
+    "component": "G3",
+    "responsibility": 0.04333
+  },
+  {
+    "object_id": "row-3-103",
+    "component": "G4",
+    "responsibility": 0.87
+  },
+  {
+    "object_id": "row-0-104",
+    "component": "G1",
+    "responsibility": 0.88
+  },
+  {
+    "object_id": "row-0-104",
+    "component": "G2",
+    "responsibility": 0.04
+  },
+  {
+    "object_id": "row-0-104",
+    "component": "G3",
+    "responsibility": 0.04
+  },
+  {
+    "object_id": "row-0-104",
+    "component": "G4",
+    "responsibility": 0.04
+  },
+  {
+    "object_id": "row-1-105",
+    "component": "G1",
+    "responsibility": 0.03667
+  },
+  {
+    "object_id": "row-1-105",
+    "component": "G2",
+    "responsibility": 0.89
+  },
+  {
+    "object_id": "row-1-105",
+    "component": "G3",
+    "responsibility": 0.03667
+  },
+  {
+    "object_id": "row-1-105",
+    "component": "G4",
+    "responsibility": 0.03667
+  },
+  {
+    "object_id": "row-2-106",
+    "component": "G1",
+    "responsibility": 0.03333
+  },
+  {
+    "object_id": "row-2-106",
+    "component": "G2",
+    "responsibility": 0.03333
+  },
+  {
+    "object_id": "row-2-106",
+    "component": "G3",
+    "responsibility": 0.9
+  },
+  {
+    "object_id": "row-2-106",
+    "component": "G4",
+    "responsibility": 0.03333
+  },
+  {
+    "object_id": "row-3-107",
+    "component": "G1",
+    "responsibility": 0.03
+  },
+  {
+    "object_id": "row-3-107",
+    "component": "G2",
+    "responsibility": 0.03
+  },
+  {
+    "object_id": "row-3-107",
+    "component": "G3",
+    "responsibility": 0.03
+  },
+  {
+    "object_id": "row-3-107",
+    "component": "G4",
+    "responsibility": 0.91
+  },
+  {
+    "object_id": "row-0-108",
+    "component": "G1",
+    "responsibility": 0.92
+  },
+  {
+    "object_id": "row-0-108",
+    "component": "G2",
+    "responsibility": 0.02667
+  },
+  {
+    "object_id": "row-0-108",
+    "component": "G3",
+    "responsibility": 0.02667
+  },
+  {
+    "object_id": "row-0-108",
+    "component": "G4",
+    "responsibility": 0.02667
+  },
+  {
+    "object_id": "row-1-109",
+    "component": "G1",
+    "responsibility": 0.02333
+  },
+  {
+    "object_id": "row-1-109",
+    "component": "G2",
+    "responsibility": 0.93
+  },
+  {
+    "object_id": "row-1-109",
+    "component": "G3",
+    "responsibility": 0.02333
+  },
+  {
+    "object_id": "row-1-109",
+    "component": "G4",
+    "responsibility": 0.02333
+  },
+  {
+    "object_id": "row-2-110",
+    "component": "G1",
+    "responsibility": 0.02
+  },
+  {
+    "object_id": "row-2-110",
+    "component": "G2",
+    "responsibility": 0.02
+  },
+  {
+    "object_id": "row-2-110",
+    "component": "G3",
+    "responsibility": 0.94
+  },
+  {
+    "object_id": "row-2-110",
+    "component": "G4",
+    "responsibility": 0.02
+  },
+  {
+    "object_id": "row-3-111",
+    "component": "G1",
+    "responsibility": 0.14
+  },
+  {
+    "object_id": "row-3-111",
+    "component": "G2",
+    "responsibility": 0.14
+  },
+  {
+    "object_id": "row-3-111",
+    "component": "G3",
+    "responsibility": 0.14
+  },
+  {
+    "object_id": "row-3-111",
+    "component": "G4",
+    "responsibility": 0.58
+  },
+  {
+    "object_id": "row-0-112",
+    "component": "G1",
+    "responsibility": 0.59
+  },
+  {
+    "object_id": "row-0-112",
+    "component": "G2",
+    "responsibility": 0.13667
+  },
+  {
+    "object_id": "row-0-112",
+    "component": "G3",
+    "responsibility": 0.13667
+  },
+  {
+    "object_id": "row-0-112",
+    "component": "G4",
+    "responsibility": 0.13667
+  },
+  {
+    "object_id": "row-1-113",
+    "component": "G1",
+    "responsibility": 0.13333
+  },
+  {
+    "object_id": "row-1-113",
+    "component": "G2",
+    "responsibility": 0.6
+  },
+  {
+    "object_id": "row-1-113",
+    "component": "G3",
+    "responsibility": 0.13333
+  },
+  {
+    "object_id": "row-1-113",
+    "component": "G4",
+    "responsibility": 0.13333
+  },
+  {
+    "object_id": "row-2-114",
+    "component": "G1",
+    "responsibility": 0.13
+  },
+  {
+    "object_id": "row-2-114",
+    "component": "G2",
+    "responsibility": 0.13
+  },
+  {
+    "object_id": "row-2-114",
+    "component": "G3",
+    "responsibility": 0.61
+  },
+  {
+    "object_id": "row-2-114",
+    "component": "G4",
+    "responsibility": 0.13
+  },
+  {
+    "object_id": "row-3-115",
+    "component": "G1",
+    "responsibility": 0.12667
+  },
+  {
+    "object_id": "row-3-115",
+    "component": "G2",
+    "responsibility": 0.12667
+  },
+  {
+    "object_id": "row-3-115",
+    "component": "G3",
+    "responsibility": 0.12667
+  },
+  {
+    "object_id": "row-3-115",
+    "component": "G4",
+    "responsibility": 0.62
+  },
+  {
+    "object_id": "row-0-116",
+    "component": "G1",
+    "responsibility": 0.63
+  },
+  {
+    "object_id": "row-0-116",
+    "component": "G2",
+    "responsibility": 0.12333
+  },
+  {
+    "object_id": "row-0-116",
+    "component": "G3",
+    "responsibility": 0.12333
+  },
+  {
+    "object_id": "row-0-116",
+    "component": "G4",
+    "responsibility": 0.12333
+  },
+  {
+    "object_id": "row-1-117",
+    "component": "G1",
+    "responsibility": 0.12
+  },
+  {
+    "object_id": "row-1-117",
+    "component": "G2",
+    "responsibility": 0.64
+  },
+  {
+    "object_id": "row-1-117",
+    "component": "G3",
+    "responsibility": 0.12
+  },
+  {
+    "object_id": "row-1-117",
+    "component": "G4",
+    "responsibility": 0.12
+  },
+  {
+    "object_id": "row-2-118",
+    "component": "G1",
+    "responsibility": 0.11667
+  },
+  {
+    "object_id": "row-2-118",
+    "component": "G2",
+    "responsibility": 0.11667
+  },
+  {
+    "object_id": "row-2-118",
+    "component": "G3",
+    "responsibility": 0.65
+  },
+  {
+    "object_id": "row-2-118",
+    "component": "G4",
+    "responsibility": 0.11667
+  },
+  {
+    "object_id": "row-3-119",
+    "component": "G1",
+    "responsibility": 0.11333
+  },
+  {
+    "object_id": "row-3-119",
+    "component": "G2",
+    "responsibility": 0.11333
+  },
+  {
+    "object_id": "row-3-119",
+    "component": "G3",
+    "responsibility": 0.11333
+  },
+  {
+    "object_id": "row-3-119",
+    "component": "G4",
+    "responsibility": 0.66
+  },
+  {
+    "object_id": "row-0-120",
+    "component": "G1",
+    "responsibility": 0.67
+  },
+  {
+    "object_id": "row-0-120",
+    "component": "G2",
+    "responsibility": 0.11
+  },
+  {
+    "object_id": "row-0-120",
+    "component": "G3",
+    "responsibility": 0.11
+  },
+  {
+    "object_id": "row-0-120",
+    "component": "G4",
+    "responsibility": 0.11
+  },
+  {
+    "object_id": "row-1-121",
+    "component": "G1",
+    "responsibility": 0.10667
+  },
+  {
+    "object_id": "row-1-121",
+    "component": "G2",
+    "responsibility": 0.68
+  },
+  {
+    "object_id": "row-1-121",
+    "component": "G3",
+    "responsibility": 0.10667
+  },
+  {
+    "object_id": "row-1-121",
+    "component": "G4",
+    "responsibility": 0.10667
+  },
+  {
+    "object_id": "row-2-122",
+    "component": "G1",
+    "responsibility": 0.10333
+  },
+  {
+    "object_id": "row-2-122",
+    "component": "G2",
+    "responsibility": 0.10333
+  },
+  {
+    "object_id": "row-2-122",
+    "component": "G3",
+    "responsibility": 0.69
+  },
+  {
+    "object_id": "row-2-122",
+    "component": "G4",
+    "responsibility": 0.10333
+  },
+  {
+    "object_id": "row-3-123",
+    "component": "G1",
+    "responsibility": 0.1
+  },
+  {
+    "object_id": "row-3-123",
+    "component": "G2",
+    "responsibility": 0.1
+  },
+  {
+    "object_id": "row-3-123",
+    "component": "G3",
+    "responsibility": 0.1
+  },
+  {
+    "object_id": "row-3-123",
+    "component": "G4",
+    "responsibility": 0.7
+  },
+  {
+    "object_id": "row-0-124",
+    "component": "G1",
+    "responsibility": 0.71
+  },
+  {
+    "object_id": "row-0-124",
+    "component": "G2",
+    "responsibility": 0.09667
+  },
+  {
+    "object_id": "row-0-124",
+    "component": "G3",
+    "responsibility": 0.09667
+  },
+  {
+    "object_id": "row-0-124",
+    "component": "G4",
+    "responsibility": 0.09667
+  },
+  {
+    "object_id": "row-1-125",
+    "component": "G1",
+    "responsibility": 0.09333
+  },
+  {
+    "object_id": "row-1-125",
+    "component": "G2",
+    "responsibility": 0.72
+  },
+  {
+    "object_id": "row-1-125",
+    "component": "G3",
+    "responsibility": 0.09333
+  },
+  {
+    "object_id": "row-1-125",
+    "component": "G4",
+    "responsibility": 0.09333
+  },
+  {
+    "object_id": "row-2-126",
+    "component": "G1",
+    "responsibility": 0.09
+  },
+  {
+    "object_id": "row-2-126",
+    "component": "G2",
+    "responsibility": 0.09
+  },
+  {
+    "object_id": "row-2-126",
+    "component": "G3",
+    "responsibility": 0.73
+  },
+  {
+    "object_id": "row-2-126",
+    "component": "G4",
+    "responsibility": 0.09
+  },
+  {
+    "object_id": "row-3-127",
+    "component": "G1",
+    "responsibility": 0.08667
+  },
+  {
+    "object_id": "row-3-127",
+    "component": "G2",
+    "responsibility": 0.08667
+  },
+  {
+    "object_id": "row-3-127",
+    "component": "G3",
+    "responsibility": 0.08667
+  },
+  {
+    "object_id": "row-3-127",
+    "component": "G4",
+    "responsibility": 0.74
+  },
+  {
+    "object_id": "row-0-128",
+    "component": "G1",
+    "responsibility": 0.75
+  },
+  {
+    "object_id": "row-0-128",
+    "component": "G2",
+    "responsibility": 0.08333
+  },
+  {
+    "object_id": "row-0-128",
+    "component": "G3",
+    "responsibility": 0.08333
+  },
+  {
+    "object_id": "row-0-128",
+    "component": "G4",
+    "responsibility": 0.08333
+  },
+  {
+    "object_id": "row-1-129",
+    "component": "G1",
+    "responsibility": 0.08
+  },
+  {
+    "object_id": "row-1-129",
+    "component": "G2",
+    "responsibility": 0.76
+  },
+  {
+    "object_id": "row-1-129",
+    "component": "G3",
+    "responsibility": 0.08
+  },
+  {
+    "object_id": "row-1-129",
+    "component": "G4",
+    "responsibility": 0.08
+  },
+  {
+    "object_id": "row-2-130",
+    "component": "G1",
+    "responsibility": 0.07667
+  },
+  {
+    "object_id": "row-2-130",
+    "component": "G2",
+    "responsibility": 0.07667
+  },
+  {
+    "object_id": "row-2-130",
+    "component": "G3",
+    "responsibility": 0.77
+  },
+  {
+    "object_id": "row-2-130",
+    "component": "G4",
+    "responsibility": 0.07667
+  },
+  {
+    "object_id": "row-3-131",
+    "component": "G1",
+    "responsibility": 0.07333
+  },
+  {
+    "object_id": "row-3-131",
+    "component": "G2",
+    "responsibility": 0.07333
+  },
+  {
+    "object_id": "row-3-131",
+    "component": "G3",
+    "responsibility": 0.07333
+  },
+  {
+    "object_id": "row-3-131",
+    "component": "G4",
+    "responsibility": 0.78
+  },
+  {
+    "object_id": "row-0-132",
+    "component": "G1",
+    "responsibility": 0.79
+  },
+  {
+    "object_id": "row-0-132",
+    "component": "G2",
+    "responsibility": 0.07
+  },
+  {
+    "object_id": "row-0-132",
+    "component": "G3",
+    "responsibility": 0.07
+  },
+  {
+    "object_id": "row-0-132",
+    "component": "G4",
+    "responsibility": 0.07
+  },
+  {
+    "object_id": "row-1-133",
+    "component": "G1",
+    "responsibility": 0.06667
+  },
+  {
+    "object_id": "row-1-133",
+    "component": "G2",
+    "responsibility": 0.8
+  },
+  {
+    "object_id": "row-1-133",
+    "component": "G3",
+    "responsibility": 0.06667
+  },
+  {
+    "object_id": "row-1-133",
+    "component": "G4",
+    "responsibility": 0.06667
+  },
+  {
+    "object_id": "row-2-134",
+    "component": "G1",
+    "responsibility": 0.06333
+  },
+  {
+    "object_id": "row-2-134",
+    "component": "G2",
+    "responsibility": 0.06333
+  },
+  {
+    "object_id": "row-2-134",
+    "component": "G3",
+    "responsibility": 0.81
+  },
+  {
+    "object_id": "row-2-134",
+    "component": "G4",
+    "responsibility": 0.06333
+  },
+  {
+    "object_id": "row-3-135",
+    "component": "G1",
+    "responsibility": 0.06
+  },
+  {
+    "object_id": "row-3-135",
+    "component": "G2",
+    "responsibility": 0.06
+  },
+  {
+    "object_id": "row-3-135",
+    "component": "G3",
+    "responsibility": 0.06
+  },
+  {
+    "object_id": "row-3-135",
+    "component": "G4",
+    "responsibility": 0.82
+  },
+  {
+    "object_id": "row-0-136",
+    "component": "G1",
+    "responsibility": 0.83
+  },
+  {
+    "object_id": "row-0-136",
+    "component": "G2",
+    "responsibility": 0.05667
+  },
+  {
+    "object_id": "row-0-136",
+    "component": "G3",
+    "responsibility": 0.05667
+  },
+  {
+    "object_id": "row-0-136",
+    "component": "G4",
+    "responsibility": 0.05667
+  },
+  {
+    "object_id": "row-1-137",
+    "component": "G1",
+    "responsibility": 0.05333
+  },
+  {
+    "object_id": "row-1-137",
+    "component": "G2",
+    "responsibility": 0.84
+  },
+  {
+    "object_id": "row-1-137",
+    "component": "G3",
+    "responsibility": 0.05333
+  },
+  {
+    "object_id": "row-1-137",
+    "component": "G4",
+    "responsibility": 0.05333
+  },
+  {
+    "object_id": "row-2-138",
+    "component": "G1",
+    "responsibility": 0.05
+  },
+  {
+    "object_id": "row-2-138",
+    "component": "G2",
+    "responsibility": 0.05
+  },
+  {
+    "object_id": "row-2-138",
+    "component": "G3",
+    "responsibility": 0.85
+  },
+  {
+    "object_id": "row-2-138",
+    "component": "G4",
+    "responsibility": 0.05
+  },
+  {
+    "object_id": "row-3-139",
+    "component": "G1",
+    "responsibility": 0.04667
+  },
+  {
+    "object_id": "row-3-139",
+    "component": "G2",
+    "responsibility": 0.04667
+  },
+  {
+    "object_id": "row-3-139",
+    "component": "G3",
+    "responsibility": 0.04667
+  },
+  {
+    "object_id": "row-3-139",
+    "component": "G4",
+    "responsibility": 0.86
+  },
+  {
+    "object_id": "row-0-140",
+    "component": "G1",
+    "responsibility": 0.87
+  },
+  {
+    "object_id": "row-0-140",
+    "component": "G2",
+    "responsibility": 0.04333
+  },
+  {
+    "object_id": "row-0-140",
+    "component": "G3",
+    "responsibility": 0.04333
+  },
+  {
+    "object_id": "row-0-140",
+    "component": "G4",
+    "responsibility": 0.04333
+  },
+  {
+    "object_id": "row-1-141",
+    "component": "G1",
+    "responsibility": 0.04
+  },
+  {
+    "object_id": "row-1-141",
+    "component": "G2",
+    "responsibility": 0.88
+  },
+  {
+    "object_id": "row-1-141",
+    "component": "G3",
+    "responsibility": 0.04
+  },
+  {
+    "object_id": "row-1-141",
+    "component": "G4",
+    "responsibility": 0.04
+  },
+  {
+    "object_id": "row-2-142",
+    "component": "G1",
+    "responsibility": 0.03667
+  },
+  {
+    "object_id": "row-2-142",
+    "component": "G2",
+    "responsibility": 0.03667
+  },
+  {
+    "object_id": "row-2-142",
+    "component": "G3",
+    "responsibility": 0.89
+  },
+  {
+    "object_id": "row-2-142",
+    "component": "G4",
+    "responsibility": 0.03667
+  },
+  {
+    "object_id": "row-3-143",
+    "component": "G1",
+    "responsibility": 0.03333
+  },
+  {
+    "object_id": "row-3-143",
+    "component": "G2",
+    "responsibility": 0.03333
+  },
+  {
+    "object_id": "row-3-143",
+    "component": "G3",
+    "responsibility": 0.03333
+  },
+  {
+    "object_id": "row-3-143",
+    "component": "G4",
+    "responsibility": 0.9
+  },
+  {
+    "object_id": "row-0-144",
+    "component": "G1",
+    "responsibility": 0.91
+  },
+  {
+    "object_id": "row-0-144",
+    "component": "G2",
+    "responsibility": 0.03
+  },
+  {
+    "object_id": "row-0-144",
+    "component": "G3",
+    "responsibility": 0.03
+  },
+  {
+    "object_id": "row-0-144",
+    "component": "G4",
+    "responsibility": 0.03
+  },
+  {
+    "object_id": "row-1-145",
+    "component": "G1",
+    "responsibility": 0.02667
+  },
+  {
+    "object_id": "row-1-145",
+    "component": "G2",
+    "responsibility": 0.92
+  },
+  {
+    "object_id": "row-1-145",
+    "component": "G3",
+    "responsibility": 0.02667
+  },
+  {
+    "object_id": "row-1-145",
+    "component": "G4",
+    "responsibility": 0.02667
+  },
+  {
+    "object_id": "row-2-146",
+    "component": "G1",
+    "responsibility": 0.02333
+  },
+  {
+    "object_id": "row-2-146",
+    "component": "G2",
+    "responsibility": 0.02333
+  },
+  {
+    "object_id": "row-2-146",
+    "component": "G3",
+    "responsibility": 0.93
+  },
+  {
+    "object_id": "row-2-146",
+    "component": "G4",
+    "responsibility": 0.02333
+  },
+  {
+    "object_id": "row-3-147",
+    "component": "G1",
+    "responsibility": 0.02
+  },
+  {
+    "object_id": "row-3-147",
+    "component": "G2",
+    "responsibility": 0.02
+  },
+  {
+    "object_id": "row-3-147",
+    "component": "G3",
+    "responsibility": 0.02
+  },
+  {
+    "object_id": "row-3-147",
+    "component": "G4",
+    "responsibility": 0.94
+  },
+  {
+    "object_id": "row-0-148",
+    "component": "G1",
+    "responsibility": 0.58
+  },
+  {
+    "object_id": "row-0-148",
+    "component": "G2",
+    "responsibility": 0.14
+  },
+  {
+    "object_id": "row-0-148",
+    "component": "G3",
+    "responsibility": 0.14
+  },
+  {
+    "object_id": "row-0-148",
+    "component": "G4",
+    "responsibility": 0.14
+  },
+  {
+    "object_id": "row-1-149",
+    "component": "G1",
+    "responsibility": 0.13667
+  },
+  {
+    "object_id": "row-1-149",
+    "component": "G2",
+    "responsibility": 0.59
+  },
+  {
+    "object_id": "row-1-149",
+    "component": "G3",
+    "responsibility": 0.13667
+  },
+  {
+    "object_id": "row-1-149",
+    "component": "G4",
+    "responsibility": 0.13667
+  },
+  {
+    "object_id": "row-2-150",
+    "component": "G1",
+    "responsibility": 0.13333
+  },
+  {
+    "object_id": "row-2-150",
+    "component": "G2",
+    "responsibility": 0.13333
+  },
+  {
+    "object_id": "row-2-150",
+    "component": "G3",
+    "responsibility": 0.6
+  },
+  {
+    "object_id": "row-2-150",
+    "component": "G4",
+    "responsibility": 0.13333
+  },
+  {
+    "object_id": "row-3-151",
+    "component": "G1",
+    "responsibility": 0.13
+  },
+  {
+    "object_id": "row-3-151",
+    "component": "G2",
+    "responsibility": 0.13
+  },
+  {
+    "object_id": "row-3-151",
+    "component": "G3",
+    "responsibility": 0.13
+  },
+  {
+    "object_id": "row-3-151",
+    "component": "G4",
+    "responsibility": 0.61
+  },
+  {
+    "object_id": "row-0-152",
+    "component": "G1",
+    "responsibility": 0.62
+  },
+  {
+    "object_id": "row-0-152",
+    "component": "G2",
+    "responsibility": 0.12667
+  },
+  {
+    "object_id": "row-0-152",
+    "component": "G3",
+    "responsibility": 0.12667
+  },
+  {
+    "object_id": "row-0-152",
+    "component": "G4",
+    "responsibility": 0.12667
+  },
+  {
+    "object_id": "row-1-153",
+    "component": "G1",
+    "responsibility": 0.12333
+  },
+  {
+    "object_id": "row-1-153",
+    "component": "G2",
+    "responsibility": 0.63
+  },
+  {
+    "object_id": "row-1-153",
+    "component": "G3",
+    "responsibility": 0.12333
+  },
+  {
+    "object_id": "row-1-153",
+    "component": "G4",
+    "responsibility": 0.12333
+  },
+  {
+    "object_id": "row-2-154",
+    "component": "G1",
+    "responsibility": 0.12
+  },
+  {
+    "object_id": "row-2-154",
+    "component": "G2",
+    "responsibility": 0.12
+  },
+  {
+    "object_id": "row-2-154",
+    "component": "G3",
+    "responsibility": 0.64
+  },
+  {
+    "object_id": "row-2-154",
+    "component": "G4",
+    "responsibility": 0.12
+  },
+  {
+    "object_id": "row-3-155",
+    "component": "G1",
+    "responsibility": 0.11667
+  },
+  {
+    "object_id": "row-3-155",
+    "component": "G2",
+    "responsibility": 0.11667
+  },
+  {
+    "object_id": "row-3-155",
+    "component": "G3",
+    "responsibility": 0.11667
+  },
+  {
+    "object_id": "row-3-155",
+    "component": "G4",
+    "responsibility": 0.65
+  },
+  {
+    "object_id": "row-0-156",
+    "component": "G1",
+    "responsibility": 0.66
+  },
+  {
+    "object_id": "row-0-156",
+    "component": "G2",
+    "responsibility": 0.11333
+  },
+  {
+    "object_id": "row-0-156",
+    "component": "G3",
+    "responsibility": 0.11333
+  },
+  {
+    "object_id": "row-0-156",
+    "component": "G4",
+    "responsibility": 0.11333
+  },
+  {
+    "object_id": "row-1-157",
+    "component": "G1",
+    "responsibility": 0.11
+  },
+  {
+    "object_id": "row-1-157",
+    "component": "G2",
+    "responsibility": 0.67
+  },
+  {
+    "object_id": "row-1-157",
+    "component": "G3",
+    "responsibility": 0.11
+  },
+  {
+    "object_id": "row-1-157",
+    "component": "G4",
+    "responsibility": 0.11
+  },
+  {
+    "object_id": "row-2-158",
+    "component": "G1",
+    "responsibility": 0.10667
+  },
+  {
+    "object_id": "row-2-158",
+    "component": "G2",
+    "responsibility": 0.10667
+  },
+  {
+    "object_id": "row-2-158",
+    "component": "G3",
+    "responsibility": 0.68
+  },
+  {
+    "object_id": "row-2-158",
+    "component": "G4",
+    "responsibility": 0.10667
+  },
+  {
+    "object_id": "row-3-159",
+    "component": "G1",
+    "responsibility": 0.10333
+  },
+  {
+    "object_id": "row-3-159",
+    "component": "G2",
+    "responsibility": 0.10333
+  },
+  {
+    "object_id": "row-3-159",
+    "component": "G3",
+    "responsibility": 0.10333
+  },
+  {
+    "object_id": "row-3-159",
+    "component": "G4",
+    "responsibility": 0.69
+  },
+  {
+    "object_id": "row-0-160",
+    "component": "G1",
+    "responsibility": 0.7
+  },
+  {
+    "object_id": "row-0-160",
+    "component": "G2",
+    "responsibility": 0.1
+  },
+  {
+    "object_id": "row-0-160",
+    "component": "G3",
+    "responsibility": 0.1
+  },
+  {
+    "object_id": "row-0-160",
+    "component": "G4",
+    "responsibility": 0.1
+  },
+  {
+    "object_id": "row-1-161",
+    "component": "G1",
+    "responsibility": 0.09667
+  },
+  {
+    "object_id": "row-1-161",
+    "component": "G2",
+    "responsibility": 0.71
+  },
+  {
+    "object_id": "row-1-161",
+    "component": "G3",
+    "responsibility": 0.09667
+  },
+  {
+    "object_id": "row-1-161",
+    "component": "G4",
+    "responsibility": 0.09667
+  },
+  {
+    "object_id": "row-2-162",
+    "component": "G1",
+    "responsibility": 0.09333
+  },
+  {
+    "object_id": "row-2-162",
+    "component": "G2",
+    "responsibility": 0.09333
+  },
+  {
+    "object_id": "row-2-162",
+    "component": "G3",
+    "responsibility": 0.72
+  },
+  {
+    "object_id": "row-2-162",
+    "component": "G4",
+    "responsibility": 0.09333
+  },
+  {
+    "object_id": "row-3-163",
+    "component": "G1",
+    "responsibility": 0.09
+  },
+  {
+    "object_id": "row-3-163",
+    "component": "G2",
+    "responsibility": 0.09
+  },
+  {
+    "object_id": "row-3-163",
+    "component": "G3",
+    "responsibility": 0.09
+  },
+  {
+    "object_id": "row-3-163",
+    "component": "G4",
+    "responsibility": 0.73
+  },
+  {
+    "object_id": "row-0-164",
+    "component": "G1",
+    "responsibility": 0.74
+  },
+  {
+    "object_id": "row-0-164",
+    "component": "G2",
+    "responsibility": 0.08667
+  },
+  {
+    "object_id": "row-0-164",
+    "component": "G3",
+    "responsibility": 0.08667
+  },
+  {
+    "object_id": "row-0-164",
+    "component": "G4",
+    "responsibility": 0.08667
+  },
+  {
+    "object_id": "row-1-165",
+    "component": "G1",
+    "responsibility": 0.08333
+  },
+  {
+    "object_id": "row-1-165",
+    "component": "G2",
+    "responsibility": 0.75
+  },
+  {
+    "object_id": "row-1-165",
+    "component": "G3",
+    "responsibility": 0.08333
+  },
+  {
+    "object_id": "row-1-165",
+    "component": "G4",
+    "responsibility": 0.08333
+  },
+  {
+    "object_id": "row-2-166",
+    "component": "G1",
+    "responsibility": 0.08
+  },
+  {
+    "object_id": "row-2-166",
+    "component": "G2",
+    "responsibility": 0.08
+  },
+  {
+    "object_id": "row-2-166",
+    "component": "G3",
+    "responsibility": 0.76
+  },
+  {
+    "object_id": "row-2-166",
+    "component": "G4",
+    "responsibility": 0.08
+  },
+  {
+    "object_id": "row-3-167",
+    "component": "G1",
+    "responsibility": 0.07667
+  },
+  {
+    "object_id": "row-3-167",
+    "component": "G2",
+    "responsibility": 0.07667
+  },
+  {
+    "object_id": "row-3-167",
+    "component": "G3",
+    "responsibility": 0.07667
+  },
+  {
+    "object_id": "row-3-167",
+    "component": "G4",
+    "responsibility": 0.77
+  },
+  {
+    "object_id": "row-0-168",
+    "component": "G1",
+    "responsibility": 0.78
+  },
+  {
+    "object_id": "row-0-168",
+    "component": "G2",
+    "responsibility": 0.07333
+  },
+  {
+    "object_id": "row-0-168",
+    "component": "G3",
+    "responsibility": 0.07333
+  },
+  {
+    "object_id": "row-0-168",
+    "component": "G4",
+    "responsibility": 0.07333
+  },
+  {
+    "object_id": "row-1-169",
+    "component": "G1",
+    "responsibility": 0.07
+  },
+  {
+    "object_id": "row-1-169",
+    "component": "G2",
+    "responsibility": 0.79
+  },
+  {
+    "object_id": "row-1-169",
+    "component": "G3",
+    "responsibility": 0.07
+  },
+  {
+    "object_id": "row-1-169",
+    "component": "G4",
+    "responsibility": 0.07
+  },
+  {
+    "object_id": "row-2-170",
+    "component": "G1",
+    "responsibility": 0.06667
+  },
+  {
+    "object_id": "row-2-170",
+    "component": "G2",
+    "responsibility": 0.06667
+  },
+  {
+    "object_id": "row-2-170",
+    "component": "G3",
+    "responsibility": 0.8
+  },
+  {
+    "object_id": "row-2-170",
+    "component": "G4",
+    "responsibility": 0.06667
+  },
+  {
+    "object_id": "row-3-171",
+    "component": "G1",
+    "responsibility": 0.06333
+  },
+  {
+    "object_id": "row-3-171",
+    "component": "G2",
+    "responsibility": 0.06333
+  },
+  {
+    "object_id": "row-3-171",
+    "component": "G3",
+    "responsibility": 0.06333
+  },
+  {
+    "object_id": "row-3-171",
+    "component": "G4",
+    "responsibility": 0.81
+  },
+  {
+    "object_id": "row-0-172",
+    "component": "G1",
+    "responsibility": 0.82
+  },
+  {
+    "object_id": "row-0-172",
+    "component": "G2",
+    "responsibility": 0.06
+  },
+  {
+    "object_id": "row-0-172",
+    "component": "G3",
+    "responsibility": 0.06
+  },
+  {
+    "object_id": "row-0-172",
+    "component": "G4",
+    "responsibility": 0.06
+  },
+  {
+    "object_id": "row-1-173",
+    "component": "G1",
+    "responsibility": 0.05667
+  },
+  {
+    "object_id": "row-1-173",
+    "component": "G2",
+    "responsibility": 0.83
+  },
+  {
+    "object_id": "row-1-173",
+    "component": "G3",
+    "responsibility": 0.05667
+  },
+  {
+    "object_id": "row-1-173",
+    "component": "G4",
+    "responsibility": 0.05667
+  },
+  {
+    "object_id": "row-2-174",
+    "component": "G1",
+    "responsibility": 0.05333
+  },
+  {
+    "object_id": "row-2-174",
+    "component": "G2",
+    "responsibility": 0.05333
+  },
+  {
+    "object_id": "row-2-174",
+    "component": "G3",
+    "responsibility": 0.84
+  },
+  {
+    "object_id": "row-2-174",
+    "component": "G4",
+    "responsibility": 0.05333
+  },
+  {
+    "object_id": "row-3-175",
+    "component": "G1",
+    "responsibility": 0.05
+  },
+  {
+    "object_id": "row-3-175",
+    "component": "G2",
+    "responsibility": 0.05
+  },
+  {
+    "object_id": "row-3-175",
+    "component": "G3",
+    "responsibility": 0.05
+  },
+  {
+    "object_id": "row-3-175",
+    "component": "G4",
+    "responsibility": 0.85
+  },
+  {
+    "object_id": "row-0-176",
+    "component": "G1",
+    "responsibility": 0.86
+  },
+  {
+    "object_id": "row-0-176",
+    "component": "G2",
+    "responsibility": 0.04667
+  },
+  {
+    "object_id": "row-0-176",
+    "component": "G3",
+    "responsibility": 0.04667
+  },
+  {
+    "object_id": "row-0-176",
+    "component": "G4",
+    "responsibility": 0.04667
+  },
+  {
+    "object_id": "row-1-177",
+    "component": "G1",
+    "responsibility": 0.04333
+  },
+  {
+    "object_id": "row-1-177",
+    "component": "G2",
+    "responsibility": 0.87
+  },
+  {
+    "object_id": "row-1-177",
+    "component": "G3",
+    "responsibility": 0.04333
+  },
+  {
+    "object_id": "row-1-177",
+    "component": "G4",
+    "responsibility": 0.04333
+  },
+  {
+    "object_id": "row-2-178",
+    "component": "G1",
+    "responsibility": 0.04
+  },
+  {
+    "object_id": "row-2-178",
+    "component": "G2",
+    "responsibility": 0.04
+  },
+  {
+    "object_id": "row-2-178",
+    "component": "G3",
+    "responsibility": 0.88
+  },
+  {
+    "object_id": "row-2-178",
+    "component": "G4",
+    "responsibility": 0.04
+  },
+  {
+    "object_id": "row-3-179",
+    "component": "G1",
+    "responsibility": 0.03667
+  },
+  {
+    "object_id": "row-3-179",
+    "component": "G2",
+    "responsibility": 0.03667
+  },
+  {
+    "object_id": "row-3-179",
+    "component": "G3",
+    "responsibility": 0.03667
+  },
+  {
+    "object_id": "row-3-179",
+    "component": "G4",
+    "responsibility": 0.89
+  }
+]

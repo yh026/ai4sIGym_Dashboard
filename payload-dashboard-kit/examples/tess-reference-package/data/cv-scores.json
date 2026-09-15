@@ -1,0 +1,20 @@
+[
+  {
+    "model": "Logistic",
+    "mean": 0.703,
+    "lower": 0.695,
+    "upper": 0.711
+  },
+  {
+    "model": "CART depth 5",
+    "mean": 0.75,
+    "lower": 0.743,
+    "upper": 0.757
+  },
+  {
+    "model": "Random forest",
+    "mean": 0.826,
+    "lower": 0.82,
+    "upper": 0.832
+  }
+]

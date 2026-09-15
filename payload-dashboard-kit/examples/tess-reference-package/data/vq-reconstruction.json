@@ -1,0 +1,82 @@
+[
+  {
+    "k": 2,
+    "space": "PCA-6",
+    "error": 5.99558
+  },
+  {
+    "k": 4,
+    "space": "PCA-6",
+    "error": 5.25
+  },
+  {
+    "k": 6,
+    "space": "PCA-6",
+    "error": 4.91969
+  },
+  {
+    "k": 8,
+    "space": "PCA-6",
+    "error": 4.723
+  },
+  {
+    "k": 10,
+    "space": "PCA-6",
+    "error": 4.58842
+  },
+  {
+    "k": 12,
+    "space": "PCA-6",
+    "error": 4.48923
+  },
+  {
+    "k": 14,
+    "space": "PCA-6",
+    "error": 4.41214
+  },
+  {
+    "k": 16,
+    "space": "PCA-6",
+    "error": 4.35
+  },
+  {
+    "k": 2,
+    "space": "PCA-6-to-UMAP-2",
+    "error": 6.27138
+  },
+  {
+    "k": 4,
+    "space": "PCA-6-to-UMAP-2",
+    "error": 5.5755
+  },
+  {
+    "k": 6,
+    "space": "PCA-6-to-UMAP-2",
+    "error": 5.30343
+  },
+  {
+    "k": 8,
+    "space": "PCA-6-to-UMAP-2",
+    "error": 5.16696
+  },
+  {
+    "k": 10,
+    "space": "PCA-6-to-UMAP-2",
+    "error": 5.09315
+  },
+  {
+    "k": 12,
+    "space": "PCA-6-to-UMAP-2",
+    "error": 5.05487
+  },
+  {
+    "k": 14,
+    "space": "PCA-6-to-UMAP-2",
+    "error": 5.03866
+  },
+  {
+    "k": 16,
+    "space": "PCA-6-to-UMAP-2",
+    "error": 5.0373
+  }
+]

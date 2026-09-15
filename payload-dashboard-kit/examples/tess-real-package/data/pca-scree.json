@@ -1,0 +1,57 @@
+[
+  {
+    "component": 1,
+    "cumulative": 0.40288927230108834,
+    "variance": 0.40288927230108834
+  },
+  {
+    "component": 2,
+    "cumulative": 0.6249000579524289,
+    "variance": 0.22201078565134053
+  },
+  {
+    "component": 3,
+    "cumulative": 0.7889021133014691,
+    "variance": 0.16400205534904025
+  },
+  {
+    "component": 4,
+    "cumulative": 0.8434136669890689,
+    "variance": 0.05451155368759982
+  },
+  {
+    "component": 5,
+    "cumulative": 0.8933979952857022,
+    "variance": 0.04998432829663319
+  },
+  {
+    "component": 6,
+    "cumulative": 0.9393159195657731,
+    "variance": 0.045917924280070875
+  },
+  {
+    "component": 7,
+    "cumulative": 0.9643467679277252,
+    "variance": 0.02503084836195217
+  },
+  {
+    "component": 8,
+    "cumulative": 0.982067158792922,
+    "variance": 0.017720390865196695
+  },
+  {
+    "component": 9,
+    "cumulative": 0.9906272612604063,
+    "variance": 0.00856010246748435
+  },
+  {
+    "component": 10,
+    "cumulative": 0.9970721489199388,
+    "variance": 0.00644488765953247
+  },
+  {
+    "component": 11,
+    "cumulative": 1.0000000000000002,
+    "variance": 0.00292785108006141
+  }
+]

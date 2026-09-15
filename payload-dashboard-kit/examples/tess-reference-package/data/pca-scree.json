@@ -1,0 +1,57 @@
+[
+  {
+    "component": 1,
+    "variance": 0.41,
+    "cumulative": 0.41
+  },
+  {
+    "component": 2,
+    "variance": 0.22,
+    "cumulative": 0.63
+  },
+  {
+    "component": 3,
+    "variance": 0.12,
+    "cumulative": 0.75
+  },
+  {
+    "component": 4,
+    "variance": 0.075,
+    "cumulative": 0.825
+  },
+  {
+    "component": 5,
+    "variance": 0.052,
+    "cumulative": 0.877
+  },
+  {
+    "component": 6,
+    "variance": 0.034,
+    "cumulative": 0.911
+  },
+  {
+    "component": 7,
+    "variance": 0.027,
+    "cumulative": 0.938
+  },
+  {
+    "component": 8,
+    "variance": 0.021,
+    "cumulative": 0.959
+  },
+  {
+    "component": 9,
+    "variance": 0.017,
+    "cumulative": 0.976
+  },
+  {
+    "component": 10,
+    "variance": 0.013,
+    "cumulative": 0.989
+  },
+  {
+    "component": 11,
+    "variance": 0.011,
+    "cumulative": 1
+  }
+]

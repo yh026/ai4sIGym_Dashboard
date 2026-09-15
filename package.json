@@ -5,6 +5,7 @@
   "scripts": {
     "build": "node build.js",
     "mock": "node build.js --mock",
-    "test": "node --test --test-concurrency=1"
+    "test": "node --test --test-concurrency=1",
+    "render:payload": "node payload-dashboard-kit/render.mjs"
   }
 }

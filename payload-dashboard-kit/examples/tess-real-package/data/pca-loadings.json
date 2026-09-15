@@ -1,0 +1,277 @@
+[
+  {
+    "component": 1,
+    "feature": "pl_orbper",
+    "value": -0.1202069998257475
+  },
+  {
+    "component": 1,
+    "feature": "pl_trandurh",
+    "value": 0.10482395189177633
+  },
+  {
+    "component": 1,
+    "feature": "pl_trandep",
+    "value": 0.13682625996223727
+  },
+  {
+    "component": 1,
+    "feature": "pl_rade",
+    "value": 0.3664688423865029
+  },
+  {
+    "component": 1,
+    "feature": "pl_insol",
+    "value": 0.32409719764418765
+  },
+  {
+    "component": 1,
+    "feature": "st_tmag",
+    "value": 0.11060849387331184
+  },
+  {
+    "component": 1,
+    "feature": "st_dist",
+    "value": 0.41794336060938075
+  },
+  {
+    "component": 1,
+    "feature": "st_teff",
+    "value": 0.33434483760464506
+  },
+  {
+    "component": 1,
+    "feature": "st_logg",
+    "value": -0.3468776613179868
+  },
+  {
+    "component": 1,
+    "feature": "st_rad",
+    "value": 0.3863465521696813
+  },
+  {
+    "component": 1,
+    "feature": "pm_total",
+    "value": -0.38498993831581096
+  },
+  {
+    "component": 2,
+    "feature": "pl_orbper",
+    "value": -0.1148141310943216
+  },
+  {
+    "component": 2,
+    "feature": "pl_trandurh",
+    "value": -0.17453112927747233
+  },
+  {
+    "component": 2,
+    "feature": "pl_trandep",
+    "value": 0.536575301809637
+  },
+  {
+    "component": 2,
+    "feature": "pl_rade",
+    "value": 0.26498426488156496
+  },
+  {
+    "component": 2,
+    "feature": "pl_insol",
+    "value": -0.13735361013385658
+  },
+  {
+    "component": 2,
+    "feature": "st_tmag",
+    "value": 0.5595281289765631
+  },
+  {
+    "component": 2,
+    "feature": "st_dist",
+    "value": 0.17570635880042237
+  },
+  {
+    "component": 2,
+    "feature": "st_teff",
+    "value": -0.2758719815220553
+  },
+  {
+    "component": 2,
+    "feature": "st_logg",
+    "value": 0.25490507920417327
+  },
+  {
+    "component": 2,
+    "feature": "st_rad",
+    "value": -0.29202300640726403
+  },
+  {
+    "component": 2,
+    "feature": "pm_total",
+    "value": -0.09516844722602039
+  },
+  {
+    "component": 3,
+    "feature": "pl_orbper",
+    "value": 0.6696448003088568
+  },
+  {
+    "component": 3,
+    "feature": "pl_trandurh",
+    "value": 0.5634222564800735
+  },
+  {
+    "component": 3,
+    "feature": "pl_trandep",
+    "value": 0.16823240957629487
+  },
+  {
+    "component": 3,
+    "feature": "pl_rade",
+    "value": 0.1434281505596898
+  },
+  {
+    "component": 3,
+    "feature": "pl_insol",
+    "value": -0.41782477782974076
+  },
+  {
+    "component": 3,
+    "feature": "st_tmag",
+    "value": 0.011316159322071853
+  },
+  {
+    "component": 3,
+    "feature": "st_dist",
+    "value": 0.053308706645144685
+  },
+  {
+    "component": 3,
+    "feature": "st_teff",
+    "value": 0.005022818865469024
+  },
+  {
+    "component": 3,
+    "feature": "st_logg",
+    "value": -0.05689978167647933
+  },
+  {
+    "component": 3,
+    "feature": "st_rad",
+    "value": 0.04963136325188362
+  },
+  {
+    "component": 3,
+    "feature": "pm_total",
+    "value": -0.04454121238262333
+  },
+  {
+    "component": 4,
+    "feature": "pl_orbper",
+    "value": -0.0784850852649209
+  },
+  {
+    "component": 4,
+    "feature": "pl_trandurh",
+    "value": -0.04243431639810651
+  },
+  {
+    "component": 4,
+    "feature": "pl_trandep",
+    "value": 0.4300586921172092
+  },
+  {
+    "component": 4,
+    "feature": "pl_rade",
+    "value": 0.5091419315811819
+  },
+  {
+    "component": 4,
+    "feature": "pl_insol",
+    "value": 0.099918260633633
+  },
+  {
+    "component": 4,
+    "feature": "st_tmag",
+    "value": -0.3743456482496213
+  },
+  {
+    "component": 4,
+    "feature": "st_dist",
+    "value": -0.31159018537593264
+  },
+  {
+    "component": 4,
+    "feature": "st_teff",
+    "value": -0.08512624766362832
+  },
+  {
+    "component": 4,
+    "feature": "st_logg",
+    "value": -0.18635186469787585
+  },
+  {
+    "component": 4,
+    "feature": "st_rad",
+    "value": 0.1128183068120132
+  },
+  {
+    "component": 4,
+    "feature": "pm_total",
+    "value": 0.49593870826879466
+  },
+  {
+    "component": 5,
+    "feature": "pl_orbper",
+    "value": -0.09295679792791821
+  },
+  {
+    "component": 5,
+    "feature": "pl_trandurh",
+    "value": 0.43391377187102165
+  },
+  {
+    "component": 5,
+    "feature": "pl_trandep",
+    "value": 0.2005497013606974
+  },
+  {
+    "component": 5,
+    "feature": "pl_rade",
+    "value": -0.028038505994029427
+  },
+  {
+    "component": 5,
+    "feature": "pl_insol",
+    "value": 0.38925446098374816
+  },
+  {
+    "component": 5,
+    "feature": "st_tmag",
+    "value": -0.11213565487718716
+  },
+  {
+    "component": 5,
+    "feature": "st_dist",
+    "value": -0.08677115409549183
+  },
+  {
+    "component": 5,
+    "feature": "st_teff",
+    "value": 0.4505362015773522
+  },
+  {
+    "component": 5,
+    "feature": "st_logg",
+    "value": 0.5616482477571191
+  },
+  {
+    "component": 5,
+    "feature": "st_rad",
+    "value": -0.2682060368249847
+  },
+  {
+    "component": 5,
+    "feature": "pm_total",
+    "value": 0.009097074370712228
+  }
+]

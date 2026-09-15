@@ -1,0 +1,110 @@
+[
+  {
+    "convention": "255 K",
+    "feature": "PC",
+    "interval_end": 0.26834470989761094,
+    "interval_start": 0.0
+  },
+  {
+    "convention": "278.5 K",
+    "feature": "PC",
+    "interval_end": 0.9658703071672355,
+    "interval_start": 0.26834470989761094
+  },
+  {
+    "convention": "missing",
+    "feature": "PC",
+    "interval_end": 1.0,
+    "interval_start": 0.9658703071672355
+  },
+  {
+    "convention": "255 K",
+    "feature": "FP",
+    "interval_end": 0.19099099099099098,
+    "interval_start": 0.0
+  },
+  {
+    "convention": "278.5 K",
+    "feature": "FP",
+    "interval_end": 0.9324324324324325,
+    "interval_start": 0.19099099099099098
+  },
+  {
+    "convention": "missing",
+    "feature": "FP",
+    "interval_end": 1.0,
+    "interval_start": 0.9324324324324325
+  },
+  {
+    "convention": "255 K",
+    "feature": "KP",
+    "interval_end": 0.6551094890510949,
+    "interval_start": 0.0
+  },
+  {
+    "convention": "278.5 K",
+    "feature": "KP",
+    "interval_end": 0.9890510948905109,
+    "interval_start": 0.6551094890510949
+  },
+  {
+    "convention": "missing",
+    "feature": "KP",
+    "interval_end": 1.0,
+    "interval_start": 0.9890510948905109
+  },
+  {
+    "convention": "255 K",
+    "feature": "CP",
+    "interval_end": 0.5278350515463918,
+    "interval_start": 0.0
+  },
+  {
+    "convention": "278.5 K",
+    "feature": "CP",
+    "interval_end": 0.9979381443298969,
+    "interval_start": 0.5278350515463918
+  },
+  {
+    "convention": "missing",
+    "feature": "CP",
+    "interval_end": 1.0,
+    "interval_start": 0.9979381443298969
+  },
+  {
+    "convention": "255 K",
+    "feature": "APC",
+    "interval_end": 0.28604118993135014,
+    "interval_start": 0.0
+  },
+  {
+    "convention": "278.5 K",
+    "feature": "APC",
+    "interval_end": 0.9176201372997712,
+    "interval_start": 0.28604118993135014
+  },
+  {
+    "convention": "missing",
+    "feature": "APC",
+    "interval_end": 1.0,
+    "interval_start": 0.9176201372997712
+  },
+  {
+    "convention": "255 K",
+    "feature": "FA",
+    "interval_end": 0.5208333333333334,
+    "interval_start": 0.0
+  },
+  {
+    "convention": "278.5 K",
+    "feature": "FA",
+    "interval_end": 0.9166666666666667,
+    "interval_start": 0.5208333333333334
+  },
+  {
+    "convention": "missing",
+    "feature": "FA",
+    "interval_end": 1.0,
+    "interval_start": 0.9166666666666667
+  }
+]

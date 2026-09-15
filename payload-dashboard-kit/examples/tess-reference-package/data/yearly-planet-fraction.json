@@ -1,0 +1,30 @@
+[
+  {
+    "year": 2018,
+    "planet_fraction": 0.51
+  },
+  {
+    "year": 2019,
+    "planet_fraction": 0.49
+  },
+  {
+    "year": 2020,
+    "planet_fraction": 0.47
+  },
+  {
+    "year": 2021,
+    "planet_fraction": 0.45
+  },
+  {
+    "year": 2022,
+    "planet_fraction": 0.44
+  },
+  {
+    "year": 2023,
+    "planet_fraction": 0.43
+  },
+  {
+    "year": 2024,
+    "planet_fraction": 0.42
+  }
+]

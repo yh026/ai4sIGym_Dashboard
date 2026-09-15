@@ -1,0 +1,77 @@
+[
+  {
+    "id": "node-0",
+    "kind": "split",
+    "label": "pl_insol <= 3.36 · 100.0% rows · FP 50% / Planet 50%"
+  },
+  {
+    "id": "node-1",
+    "kind": "split",
+    "label": "st_logg <= 4.331 · 78.7% rows · FP 41% / Planet 59%"
+  },
+  {
+    "id": "node-2",
+    "kind": "split",
+    "label": "pl_trandep <= 3.78 · 38.2% rows · FP 55% / Planet 45%"
+  },
+  {
+    "id": "node-3",
+    "kind": "leaf",
+    "label": "False positive · 22.6% rows · FP 70% / Planet 30%"
+  },
+  {
+    "id": "node-4",
+    "kind": "leaf",
+    "label": "Planet · 15.6% rows · FP 35% / Planet 65%"
+  },
+  {
+    "id": "node-5",
+    "kind": "split",
+    "label": "pl_rade <= 1.215 · 40.6% rows · FP 29% / Planet 71%"
+  },
+  {
+    "id": "node-6",
+    "kind": "leaf",
+    "label": "Planet · 38.9% rows · FP 26% / Planet 74%"
+  },
+  {
+    "id": "node-7",
+    "kind": "leaf",
+    "label": "False positive · 1.7% rows · FP 83% / Planet 17%"
+  },
+  {
+    "id": "node-8",
+    "kind": "split",
+    "label": "pl_trandep <= 3.814 · 21.3% rows · FP 84% / Planet 16%"
+  },
+  {
+    "id": "node-9",
+    "kind": "split",
+    "label": "pl_trandurh <= 0.6973 · 16.7% rows · FP 94% / Planet 6%"
+  },
+  {
+    "id": "node-10",
+    "kind": "leaf",
+    "label": "False positive · 15.6% rows · FP 97% / Planet 3%"
+  },
+  {
+    "id": "node-11",
+    "kind": "leaf",
+    "label": "False positive · 1.1% rows · FP 55% / Planet 45%"
+  },
+  {
+    "id": "node-12",
+    "kind": "split",
+    "label": "st_tmag <= 10.58 · 4.5% rows · FP 51% / Planet 49%"
+  },
+  {
+    "id": "node-13",
+    "kind": "leaf",
+    "label": "Planet · 1.7% rows · FP 23% / Planet 77%"
+  },
+  {
+    "id": "node-14",
+    "kind": "leaf",
+    "label": "False positive · 2.8% rows · FP 70% / Planet 30%"
+  }
+]

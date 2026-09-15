@@ -1,0 +1,46 @@
+[
+  {
+    "feature": "pl_orbper",
+    "coefficient": 0.18
+  },
+  {
+    "feature": "pl_trandurh",
+    "coefficient": -0.12
+  },
+  {
+    "feature": "pl_trandep",
+    "coefficient": 0.71
+  },
+  {
+    "feature": "pl_rade",
+    "coefficient": -0.86
+  },
+  {
+    "feature": "pl_insol",
+    "coefficient": 0.24
+  },
+  {
+    "feature": "st_tmag",
+    "coefficient": -0.09
+  },
+  {
+    "feature": "st_dist",
+    "coefficient": 0.16
+  },
+  {
+    "feature": "st_teff",
+    "coefficient": 0.08
+  },
+  {
+    "feature": "st_logg",
+    "coefficient": -0.31
+  },
+  {
+    "feature": "st_rad",
+    "coefficient": -0.44
+  },
+  {
+    "feature": "pm_total",
+    "coefficient": 0.21
+  }
+]

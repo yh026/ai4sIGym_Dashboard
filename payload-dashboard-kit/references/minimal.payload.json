@@ -1,0 +1,33 @@
+{
+  "schema_version": "2.2.0",
+  "run": {"run_id": "minimal-example", "seed": 0},
+  "dataset": {"name": "Example experiment", "source": "Synthetic example", "n_rows": 20, "n_features": 2},
+  "header": {
+    "title": "Example experiment — payload dashboard",
+    "subtitle": "One stage · one payload-backed chart",
+    "facts": [{"label": "N × D", "value": "20 × 2", "detail": "one row per observation"}],
+    "claim": {"text": "The two groups have different observed counts."},
+    "final_verdict": {"stage_ref": 0, "status": "supported", "statement": "**Supported** in this example payload."}
+  },
+  "acts": [{"id": "act1", "numeral": "I", "name": "Inspect", "stage_ids": [0]}],
+  "stages": [
+    {
+      "id": 0,
+      "act": "act1",
+      "short_label": "Counts",
+      "title": "Compare the groups",
+      "summary": "Group A contains **12** observations and group B contains **8**.",
+      "concepts": ["categorical distribution"],
+      "narrative": ["The chart is generated entirely from the artifact arrays."],
+      "metrics": [{"name": "total rows", "value": 20}],
+      "objective": {"minimises": "nothing", "reports": "counts by group"},
+      "checks": [{"id": "sum-check", "kind": "sanity", "description": "Counts sum to the stated row total.", "result": "pass"}],
+      "caveats": [],
+      "artifacts": [
+        {"id": "group-counts", "kind": "distribution", "description": "Observed rows per group.", "variable": "rows", "categories": ["Group A", "Group B"], "counts": [12, 8]}
+      ]
+    }
+  ],
+  "glossary_intro": "Terms used by the example.",
+  "glossary": [{"id": "observation", "term": "Observation", "qualifier": "one row", "definition": "A single measured item in the example dataset."}]
+}

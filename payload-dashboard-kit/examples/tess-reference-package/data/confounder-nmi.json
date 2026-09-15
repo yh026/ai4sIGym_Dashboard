@@ -1,0 +1,74 @@
+[
+  {
+    "metadata": "eqt_convention",
+    "target": "Disposition",
+    "bar_label": "eqt_convention · Disposition",
+    "nmi": 0.11
+  },
+  {
+    "metadata": "eqt_convention",
+    "target": "k-means cluster",
+    "bar_label": "eqt_convention · k-means cluster",
+    "nmi": 0.08
+  },
+  {
+    "metadata": "tess_magnitude",
+    "target": "Disposition",
+    "bar_label": "tess_magnitude · Disposition",
+    "nmi": 0.05
+  },
+  {
+    "metadata": "tess_magnitude",
+    "target": "k-means cluster",
+    "bar_label": "tess_magnitude · k-means cluster",
+    "nmi": 0.16
+  },
+  {
+    "metadata": "dec_deg",
+    "target": "Disposition",
+    "bar_label": "dec_deg · Disposition",
+    "nmi": 0.02
+  },
+  {
+    "metadata": "dec_deg",
+    "target": "k-means cluster",
+    "bar_label": "dec_deg · k-means cluster",
+    "nmi": 0.04
+  },
+  {
+    "metadata": "ra_deg",
+    "target": "Disposition",
+    "bar_label": "ra_deg · Disposition",
+    "nmi": 0.018
+  },
+  {
+    "metadata": "ra_deg",
+    "target": "k-means cluster",
+    "bar_label": "ra_deg · k-means cluster",
+    "nmi": 0.035
+  },
+  {
+    "metadata": "row_updated_year",
+    "target": "Disposition",
+    "bar_label": "row_updated_year · Disposition",
+    "nmi": 0.044
+  },
+  {
+    "metadata": "row_updated_year",
+    "target": "k-means cluster",
+    "bar_label": "row_updated_year · k-means cluster",
+    "nmi": 0.052
+  },
+  {
+    "metadata": "created_year",
+    "target": "Disposition",
+    "bar_label": "created_year · Disposition",
+    "nmi": 0.038
+  },
+  {
+    "metadata": "created_year",
+    "target": "k-means cluster",
+    "bar_label": "created_year · k-means cluster",
+    "nmi": 0.049
+  }
+]

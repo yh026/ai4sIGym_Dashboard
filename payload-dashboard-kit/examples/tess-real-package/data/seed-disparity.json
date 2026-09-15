@@ -1,0 +1,14 @@
+[
+  {
+    "disparity": 0.00973939,
+    "seed_pair": "0 vs 1"
+  },
+  {
+    "disparity": 0.0068739,
+    "seed_pair": "0 vs 2"
+  },
+  {
+    "disparity": 0.00935559,
+    "seed_pair": "1 vs 2"
+  }
+]

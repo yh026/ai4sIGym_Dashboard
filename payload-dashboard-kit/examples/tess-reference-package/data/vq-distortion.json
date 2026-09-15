@@ -1,0 +1,26 @@
+[
+  {
+    "k": 2,
+    "distortion": 6.86543
+  },
+  {
+    "k": 4,
+    "distortion": 5.25
+  },
+  {
+    "k": 8,
+    "distortion": 4.10772
+  },
+  {
+    "k": 16,
+    "distortion": 3.3
+  },
+  {
+    "k": 32,
+    "distortion": 2.72886
+  },
+  {
+    "k": 64,
+    "distortion": 2.325
+  }
+]

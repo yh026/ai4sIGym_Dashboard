@@ -1,0 +1,46 @@
+[
+  {
+    "feature": "pl_orbper",
+    "missing_fraction": 0.001
+  },
+  {
+    "feature": "pl_trandurh",
+    "missing_fraction": 0
+  },
+  {
+    "feature": "pl_trandep",
+    "missing_fraction": 0
+  },
+  {
+    "feature": "pl_rade",
+    "missing_fraction": 0.008
+  },
+  {
+    "feature": "pl_insol",
+    "missing_fraction": 0.047
+  },
+  {
+    "feature": "st_tmag",
+    "missing_fraction": 0
+  },
+  {
+    "feature": "st_dist",
+    "missing_fraction": 0.029
+  },
+  {
+    "feature": "st_teff",
+    "missing_fraction": 0.018
+  },
+  {
+    "feature": "st_logg",
+    "missing_fraction": 0.111
+  },
+  {
+    "feature": "st_rad",
+    "missing_fraction": 0.026
+  },
+  {
+    "feature": "pm_total",
+    "missing_fraction": 0.014
+  }
+]

@@ -1,0 +1,277 @@
+[
+  {
+    "component": 1,
+    "feature": "pl_orbper",
+    "value": 0.80807
+  },
+  {
+    "component": 1,
+    "feature": "pl_trandurh",
+    "value": 0.55388
+  },
+  {
+    "component": 1,
+    "feature": "pl_trandep",
+    "value": -0.20954
+  },
+  {
+    "component": 1,
+    "feature": "pl_rade",
+    "value": -0.78031
+  },
+  {
+    "component": 1,
+    "feature": "pl_insol",
+    "value": -0.63367
+  },
+  {
+    "component": 1,
+    "feature": "st_tmag",
+    "value": 0.09557
+  },
+  {
+    "component": 1,
+    "feature": "st_dist",
+    "value": 0.73694
+  },
+  {
+    "component": 1,
+    "feature": "st_teff",
+    "value": 0.70077
+  },
+  {
+    "component": 1,
+    "feature": "st_logg",
+    "value": 0.02032
+  },
+  {
+    "component": 1,
+    "feature": "st_rad",
+    "value": -0.67882
+  },
+  {
+    "component": 1,
+    "feature": "pm_total",
+    "value": -0.75385
+  },
+  {
+    "component": 2,
+    "feature": "pl_orbper",
+    "value": 0.27469
+  },
+  {
+    "component": 2,
+    "feature": "pl_trandurh",
+    "value": -0.81685
+  },
+  {
+    "component": 2,
+    "feature": "pl_trandep",
+    "value": 0.40517
+  },
+  {
+    "component": 2,
+    "feature": "pl_rade",
+    "value": 0.47963
+  },
+  {
+    "component": 2,
+    "feature": "pl_insol",
+    "value": -0.80437
+  },
+  {
+    "component": 2,
+    "feature": "st_tmag",
+    "value": 0.18984
+  },
+  {
+    "component": 2,
+    "feature": "st_dist",
+    "value": 0.64637
+  },
+  {
+    "component": 2,
+    "feature": "st_teff",
+    "value": -0.7278
+  },
+  {
+    "component": 2,
+    "feature": "st_logg",
+    "value": -0.04062
+  },
+  {
+    "component": 2,
+    "feature": "st_rad",
+    "value": 0.76161
+  },
+  {
+    "component": 2,
+    "feature": "pm_total",
+    "value": -0.59327
+  },
+  {
+    "component": 3,
+    "feature": "pl_orbper",
+    "value": -0.71469
+  },
+  {
+    "component": 3,
+    "feature": "pl_trandurh",
+    "value": 0.65081
+  },
+  {
+    "component": 3,
+    "feature": "pl_trandep",
+    "value": -0.5739
+  },
+  {
+    "component": 3,
+    "feature": "pl_rade",
+    "value": 0.4855
+  },
+  {
+    "component": 3,
+    "feature": "pl_insol",
+    "value": -0.38739
+  },
+  {
+    "component": 3,
+    "feature": "st_tmag",
+    "value": 0.28152
+  },
+  {
+    "component": 3,
+    "feature": "st_dist",
+    "value": -0.17002
+  },
+  {
+    "component": 3,
+    "feature": "st_teff",
+    "value": 0.05511
+  },
+  {
+    "component": 3,
+    "feature": "st_logg",
+    "value": 0.0609
+  },
+  {
+    "component": 3,
+    "feature": "st_rad",
+    "value": -0.17569
+  },
+  {
+    "component": 3,
+    "feature": "pm_total",
+    "value": 0.28696
+  },
+  {
+    "component": 4,
+    "feature": "pl_orbper",
+    "value": -0.51764
+  },
+  {
+    "component": 4,
+    "feature": "pl_trandurh",
+    "value": -0.14295
+  },
+  {
+    "component": 4,
+    "feature": "pl_trandep",
+    "value": 0.70451
+  },
+  {
+    "component": 4,
+    "feature": "pl_rade",
+    "value": -0.77805
+  },
+  {
+    "component": 4,
+    "feature": "pl_insol",
+    "value": 0.31263
+  },
+  {
+    "component": 4,
+    "feature": "st_tmag",
+    "value": 0.36936
+  },
+  {
+    "component": 4,
+    "feature": "st_dist",
+    "value": -0.79549
+  },
+  {
+    "component": 4,
+    "feature": "st_teff",
+    "value": 0.67057
+  },
+  {
+    "component": 4,
+    "feature": "st_logg",
+    "value": -0.08114
+  },
+  {
+    "component": 4,
+    "feature": "st_rad",
+    "value": -0.5645
+  },
+  {
+    "component": 4,
+    "feature": "pm_total",
+    "value": 0.8191
+  },
+  {
+    "component": 5,
+    "feature": "pl_orbper",
+    "value": 0.53873
+  },
+  {
+    "component": 5,
+    "feature": "pl_trandurh",
+    "value": -0.43999
+  },
+  {
+    "component": 5,
+    "feature": "pl_trandep",
+    "value": -0.78835
+  },
+  {
+    "component": 5,
+    "feature": "pl_rade",
+    "value": -0.00726
+  },
+  {
+    "component": 5,
+    "feature": "pl_insol",
+    "value": 0.78423
+  },
+  {
+    "component": 5,
+    "feature": "st_tmag",
+    "value": 0.45217
+  },
+  {
+    "component": 5,
+    "feature": "st_dist",
+    "value": -0.5277
+  },
+  {
+    "component": 5,
+    "feature": "st_teff",
+    "value": -0.75155
+  },
+  {
+    "component": 5,
+    "feature": "st_logg",
+    "value": 0.10133
+  },
+  {
+    "component": 5,
+    "feature": "st_rad",
+    "value": 0.80903
+  },
+  {
+    "component": 5,
+    "feature": "pm_total",
+    "value": 0.35766
+  }
+]

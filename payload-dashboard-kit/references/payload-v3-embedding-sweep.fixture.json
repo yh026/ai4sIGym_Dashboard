@@ -1,0 +1,212 @@
+{
+  "schema_version": "3.0.0",
+  "renderer_contract": {
+    "name": "render-payload-dashboard",
+    "version": "3.0.0",
+    "strict": true
+  },
+  "report": {
+    "title": "Embedding parameter sweep",
+    "subtitle": "Payload v3 golden fixture",
+    "summary": "A deterministic 2 × 3 comparison of t-SNE and UMAP configurations."
+  },
+  "run": {
+    "id": "golden-embedding-sweep",
+    "label": "Payload v3 embedding sweep golden fixture",
+    "status": "complete",
+    "seed": 42
+  },
+  "dataset": {
+    "id": "toy-embedding-cohort",
+    "title": "Toy labelled embedding cohort",
+    "description": "Five representative objects projected under six deterministic embedding configurations.",
+    "row_count": 5,
+    "feature_count": 6,
+    "target": "disposition"
+  },
+  "provenance": {
+    "generator": {
+      "name": "payload-v3-fixture-author",
+      "version": "1.0.0"
+    },
+    "inputs": [
+      {
+        "id": "toy-embedding-cohort",
+        "kind": "dataset",
+        "description": "Synthetic values committed with the fixture."
+      },
+      {
+        "id": "fixed-embedding-configs",
+        "kind": "configuration",
+        "description": "t-SNE perplexities 10, 30, 80 and UMAP neighborhood sizes 5, 15, 50."
+      }
+    ]
+  },
+  "theme": {
+    "name": "tess",
+    "mode": "light",
+    "palette": "colorblind-safe",
+    "density": "comfortable",
+    "semantic_colors": {
+      "planet_candidate": "#2E8B57",
+      "false_positive": "#D97941",
+      "unclassified": "#8A8F98"
+    }
+  },
+  "data": [
+    {
+      "id": "embedding-sweep-points",
+      "semantic_type": "embedding.parameter-sweep",
+      "title": "Coordinates for six embedding views",
+      "fields": [
+        {"name": "object_id", "type": "string", "role": "id", "label": "Object"},
+        {"name": "view_key", "type": "string", "role": "dimension", "label": "View"},
+        {"name": "method", "type": "string", "role": "dimension", "label": "Method"},
+        {"name": "parameter", "type": "integer", "role": "metadata", "label": "Parameter value"},
+        {"name": "embedding_x", "type": "number", "role": "measure", "label": "Embedding 1"},
+        {"name": "embedding_y", "type": "number", "role": "measure", "label": "Embedding 2"},
+        {"name": "disposition", "type": "string", "role": "label", "label": "Disposition"}
+      ],
+      "storage": {
+        "kind": "inline",
+        "format": "rows",
+        "rows": [
+          {"object_id": "toi-101", "view_key": "tsne-10", "method": "t-SNE", "parameter": 10, "embedding_x": -2.4, "embedding_y": 1.3, "disposition": "planet_candidate"},
+          {"object_id": "toi-102", "view_key": "tsne-10", "method": "t-SNE", "parameter": 10, "embedding_x": -1.8, "embedding_y": 0.8, "disposition": "planet_candidate"},
+          {"object_id": "toi-103", "view_key": "tsne-10", "method": "t-SNE", "parameter": 10, "embedding_x": 1.7, "embedding_y": -0.5, "disposition": "false_positive"},
+          {"object_id": "toi-104", "view_key": "tsne-10", "method": "t-SNE", "parameter": 10, "embedding_x": 2.2, "embedding_y": -1.2, "disposition": "false_positive"},
+          {"object_id": "toi-105", "view_key": "tsne-10", "method": "t-SNE", "parameter": 10, "embedding_x": 0.2, "embedding_y": 2.1, "disposition": "unclassified"},
+          {"object_id": "toi-101", "view_key": "tsne-30", "method": "t-SNE", "parameter": 30, "embedding_x": -2.0, "embedding_y": 1.0, "disposition": "planet_candidate"},
+          {"object_id": "toi-102", "view_key": "tsne-30", "method": "t-SNE", "parameter": 30, "embedding_x": -1.5, "embedding_y": 0.6, "disposition": "planet_candidate"},
+          {"object_id": "toi-103", "view_key": "tsne-30", "method": "t-SNE", "parameter": 30, "embedding_x": 1.3, "embedding_y": -0.4, "disposition": "false_positive"},
+          {"object_id": "toi-104", "view_key": "tsne-30", "method": "t-SNE", "parameter": 30, "embedding_x": 1.8, "embedding_y": -0.9, "disposition": "false_positive"},
+          {"object_id": "toi-105", "view_key": "tsne-30", "method": "t-SNE", "parameter": 30, "embedding_x": 0.0, "embedding_y": 1.6, "disposition": "unclassified"},
+          {"object_id": "toi-101", "view_key": "tsne-80", "method": "t-SNE", "parameter": 80, "embedding_x": -1.5, "embedding_y": 0.7, "disposition": "planet_candidate"},
+          {"object_id": "toi-102", "view_key": "tsne-80", "method": "t-SNE", "parameter": 80, "embedding_x": -1.1, "embedding_y": 0.4, "disposition": "planet_candidate"},
+          {"object_id": "toi-103", "view_key": "tsne-80", "method": "t-SNE", "parameter": 80, "embedding_x": 0.9, "embedding_y": -0.2, "disposition": "false_positive"},
+          {"object_id": "toi-104", "view_key": "tsne-80", "method": "t-SNE", "parameter": 80, "embedding_x": 1.3, "embedding_y": -0.6, "disposition": "false_positive"},
+          {"object_id": "toi-105", "view_key": "tsne-80", "method": "t-SNE", "parameter": 80, "embedding_x": 0.1, "embedding_y": 1.2, "disposition": "unclassified"},
+          {"object_id": "toi-101", "view_key": "umap-5", "method": "UMAP", "parameter": 5, "embedding_x": -2.7, "embedding_y": -0.8, "disposition": "planet_candidate"},
+          {"object_id": "toi-102", "view_key": "umap-5", "method": "UMAP", "parameter": 5, "embedding_x": -2.1, "embedding_y": -0.4, "disposition": "planet_candidate"},
+          {"object_id": "toi-103", "view_key": "umap-5", "method": "UMAP", "parameter": 5, "embedding_x": 1.5, "embedding_y": 1.4, "disposition": "false_positive"},
+          {"object_id": "toi-104", "view_key": "umap-5", "method": "UMAP", "parameter": 5, "embedding_x": 2.3, "embedding_y": 0.9, "disposition": "false_positive"},
+          {"object_id": "toi-105", "view_key": "umap-5", "method": "UMAP", "parameter": 5, "embedding_x": 0.0, "embedding_y": -2.0, "disposition": "unclassified"},
+          {"object_id": "toi-101", "view_key": "umap-15", "method": "UMAP", "parameter": 15, "embedding_x": -2.2, "embedding_y": -0.5, "disposition": "planet_candidate"},
+          {"object_id": "toi-102", "view_key": "umap-15", "method": "UMAP", "parameter": 15, "embedding_x": -1.7, "embedding_y": -0.2, "disposition": "planet_candidate"},
+          {"object_id": "toi-103", "view_key": "umap-15", "method": "UMAP", "parameter": 15, "embedding_x": 1.2, "embedding_y": 1.1, "disposition": "false_positive"},
+          {"object_id": "toi-104", "view_key": "umap-15", "method": "UMAP", "parameter": 15, "embedding_x": 1.8, "embedding_y": 0.7, "disposition": "false_positive"},
+          {"object_id": "toi-105", "view_key": "umap-15", "method": "UMAP", "parameter": 15, "embedding_x": 0.0, "embedding_y": -1.5, "disposition": "unclassified"},
+          {"object_id": "toi-101", "view_key": "umap-50", "method": "UMAP", "parameter": 50, "embedding_x": -1.8, "embedding_y": -0.3, "disposition": "planet_candidate"},
+          {"object_id": "toi-102", "view_key": "umap-50", "method": "UMAP", "parameter": 50, "embedding_x": -1.4, "embedding_y": -0.1, "disposition": "planet_candidate"},
+          {"object_id": "toi-103", "view_key": "umap-50", "method": "UMAP", "parameter": 50, "embedding_x": 1.0, "embedding_y": 0.8, "disposition": "false_positive"},
+          {"object_id": "toi-104", "view_key": "umap-50", "method": "UMAP", "parameter": 50, "embedding_x": 1.4, "embedding_y": 0.5, "disposition": "false_positive"},
+          {"object_id": "toi-105", "view_key": "umap-50", "method": "UMAP", "parameter": 50, "embedding_x": 0.1, "embedding_y": -1.1, "disposition": "unclassified"}
+        ]
+      }
+    }
+  ],
+  "sections": [
+    {
+      "id": "embedding-section",
+      "title": "Nonlinear embedding sweep",
+      "short_label": "Embedding",
+      "summary": "A fixed 2 × 3 small-multiple layout prevents the renderer from guessing which parameter results should be compared.",
+      "narrative": ["The same object identifiers and semantic class colors are preserved across all six panels."],
+      "metrics": [
+        {"name": "embedding configurations", "value": 6},
+        {"name": "objects per configuration", "value": 5}
+      ],
+      "checks": [
+        {"id": "aligned-object-ids", "label": "Object identifiers align across views", "result": "pass"}
+      ],
+      "caveats": ["The five inline points are intentionally small; production coordinates belong in an Arrow or Parquet sidecar."],
+      "figure_ids": ["embedding-sweep"],
+      "initial_state": "open"
+    }
+  ],
+  "figures": [
+    {
+      "id": "embedding-sweep",
+      "title": "t-SNE and UMAP parameter sweep",
+      "caption": "Rows distinguish methods; columns compare parameter settings. All panels share semantic class colors.",
+      "recipe": "embedding.small-multiples@1",
+      "recipe_config": {
+        "bindings": {
+          "points": {"data": "embedding-sweep-points", "facet": "view_key", "x": "embedding_x", "y": "embedding_y", "color": "disposition", "tooltip": "object_id"}
+        },
+        "params": {
+          "columns": 3,
+          "variants": [
+            {"id": "tsne-10-panel", "label": "t-SNE · perplexity 10", "value": "tsne-10"},
+            {"id": "tsne-30-panel", "label": "t-SNE · perplexity 30", "value": "tsne-30"},
+            {"id": "tsne-80-panel", "label": "t-SNE · perplexity 80", "value": "tsne-80"},
+            {"id": "umap-5-panel", "label": "UMAP · n_neighbors 5", "value": "umap-5"},
+            {"id": "umap-15-panel", "label": "UMAP · n_neighbors 15", "value": "umap-15"},
+            {"id": "umap-50-panel", "label": "UMAP · n_neighbors 50", "value": "umap-50"}
+          ]
+        }
+      },
+      "layout": {
+        "type": "grid",
+        "columns": 3,
+        "rows": 2,
+        "gap": 16
+      },
+      "panels": [
+        {
+          "id": "tsne-10-panel",
+          "title": "t-SNE · perplexity 10",
+          "data_ref": "embedding-sweep-points",
+          "coordinate": {"type": "cartesian"},
+          "transform": [{"op": "filter", "field": "view_key", "predicate": {"eq": "tsne-10"}}],
+          "layers": [{"id": "tsne-10-points", "mark": {"type": "point", "point_size": 42, "opacity": 0.86}, "encoding": {"x": {"field": "embedding_x", "type": "quantitative", "axis": {"title": "t-SNE 1", "format": "number", "grid": true}}, "y": {"field": "embedding_y", "type": "quantitative", "axis": {"title": "t-SNE 2", "format": "number", "grid": true}}, "color": {"field": "disposition", "type": "nominal", "scale_role": "semantic", "legend": {"title": "Disposition"}}}}]
+        },
+        {
+          "id": "tsne-30-panel",
+          "title": "t-SNE · perplexity 30",
+          "data_ref": "embedding-sweep-points",
+          "coordinate": {"type": "cartesian"},
+          "transform": [{"op": "filter", "field": "view_key", "predicate": {"eq": "tsne-30"}}],
+          "layers": [{"id": "tsne-30-points", "mark": {"type": "point", "point_size": 42, "opacity": 0.86}, "encoding": {"x": {"field": "embedding_x", "type": "quantitative", "axis": {"title": "t-SNE 1", "format": "number", "grid": true}}, "y": {"field": "embedding_y", "type": "quantitative", "axis": {"title": "t-SNE 2", "format": "number", "grid": true}}, "color": {"field": "disposition", "type": "nominal", "scale_role": "semantic", "legend": false}}}]
+        },
+        {
+          "id": "tsne-80-panel",
+          "title": "t-SNE · perplexity 80",
+          "data_ref": "embedding-sweep-points",
+          "coordinate": {"type": "cartesian"},
+          "transform": [{"op": "filter", "field": "view_key", "predicate": {"eq": "tsne-80"}}],
+          "layers": [{"id": "tsne-80-points", "mark": {"type": "point", "point_size": 42, "opacity": 0.86}, "encoding": {"x": {"field": "embedding_x", "type": "quantitative", "axis": {"title": "t-SNE 1", "format": "number", "grid": true}}, "y": {"field": "embedding_y", "type": "quantitative", "axis": {"title": "t-SNE 2", "format": "number", "grid": true}}, "color": {"field": "disposition", "type": "nominal", "scale_role": "semantic", "legend": false}}}]
+        },
+        {
+          "id": "umap-5-panel",
+          "title": "UMAP · n_neighbors 5",
+          "data_ref": "embedding-sweep-points",
+          "coordinate": {"type": "cartesian"},
+          "transform": [{"op": "filter", "field": "view_key", "predicate": {"eq": "umap-5"}}],
+          "layers": [{"id": "umap-5-points", "mark": {"type": "point", "point_size": 42, "opacity": 0.86}, "encoding": {"x": {"field": "embedding_x", "type": "quantitative", "axis": {"title": "UMAP 1", "format": "number", "grid": true}}, "y": {"field": "embedding_y", "type": "quantitative", "axis": {"title": "UMAP 2", "format": "number", "grid": true}}, "color": {"field": "disposition", "type": "nominal", "scale_role": "semantic", "legend": false}}}]
+        },
+        {
+          "id": "umap-15-panel",
+          "title": "UMAP · n_neighbors 15",
+          "data_ref": "embedding-sweep-points",
+          "coordinate": {"type": "cartesian"},
+          "transform": [{"op": "filter", "field": "view_key", "predicate": {"eq": "umap-15"}}],
+          "layers": [{"id": "umap-15-points", "mark": {"type": "point", "point_size": 42, "opacity": 0.86}, "encoding": {"x": {"field": "embedding_x", "type": "quantitative", "axis": {"title": "UMAP 1", "format": "number", "grid": true}}, "y": {"field": "embedding_y", "type": "quantitative", "axis": {"title": "UMAP 2", "format": "number", "grid": true}}, "color": {"field": "disposition", "type": "nominal", "scale_role": "semantic", "legend": false}}}]
+        },
+        {
+          "id": "umap-50-panel",
+          "title": "UMAP · n_neighbors 50",
+          "data_ref": "embedding-sweep-points",
+          "coordinate": {"type": "cartesian"},
+          "transform": [{"op": "filter", "field": "view_key", "predicate": {"eq": "umap-50"}}],
+          "layers": [{"id": "umap-50-points", "mark": {"type": "point", "point_size": 42, "opacity": 0.86}, "encoding": {"x": {"field": "embedding_x", "type": "quantitative", "axis": {"title": "UMAP 1", "format": "number", "grid": true}}, "y": {"field": "embedding_y", "type": "quantitative", "axis": {"title": "UMAP 2", "format": "number", "grid": true}}, "color": {"field": "disposition", "type": "nominal", "scale_role": "semantic", "legend": false}}}]
+        }
+      ],
+      "interactions": [
+        {"id": "embedding-tooltip", "type": "tooltip", "targets": ["tsne-10-panel/tsne-10-points", "tsne-30-panel/tsne-30-points", "tsne-80-panel/tsne-80-points", "umap-5-panel/umap-5-points", "umap-15-panel/umap-15-points", "umap-50-panel/umap-50-points"], "fields": ["object_id", "method", "parameter", "disposition"], "mode": "nearest"},
+        {"id": "embedding-class-filter", "type": "legend_filter", "field": "disposition", "targets": ["tsne-10-panel/tsne-10-points", "tsne-30-panel/tsne-30-points", "tsne-80-panel/tsne-80-points", "umap-5-panel/umap-5-points", "umap-15-panel/umap-15-points", "umap-50-panel/umap-50-points"], "multi": true},
+        {"id": "embedding-pan-zoom", "type": "zoom", "targets": ["tsne-10-panel", "tsne-30-panel", "tsne-80-panel", "umap-5-panel", "umap-15-panel", "umap-50-panel"], "axes": "both"}
+      ]
+    }
+  ]
+}

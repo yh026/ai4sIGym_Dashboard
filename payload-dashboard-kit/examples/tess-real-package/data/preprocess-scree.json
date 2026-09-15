@@ -1,0 +1,112 @@
+[
+  {
+    "component": 1,
+    "series": "Native",
+    "variance": 0.6963295772622978
+  },
+  {
+    "component": 2,
+    "series": "Native",
+    "variance": 0.29914868686945706
+  },
+  {
+    "component": 3,
+    "series": "Native",
+    "variance": 0.0036605840020305144
+  },
+  {
+    "component": 4,
+    "series": "Native",
+    "variance": 0.0008112987577954281
+  },
+  {
+    "component": 5,
+    "series": "Native",
+    "variance": 2.7656316606782493e-05
+  },
+  {
+    "component": 6,
+    "series": "Native",
+    "variance": 2.2039816725311012e-05
+  },
+  {
+    "component": 7,
+    "series": "Native",
+    "variance": 1.4124775109238625e-07
+  },
+  {
+    "component": 8,
+    "series": "Native",
+    "variance": 9.45486152037258e-09
+  },
+  {
+    "component": 9,
+    "series": "Native",
+    "variance": 4.788670290853443e-09
+  },
+  {
+    "component": 10,
+    "series": "Native",
+    "variance": 1.3488217683829505e-09
+  },
+  {
+    "component": 11,
+    "series": "Native",
+    "variance": 1.349824594106677e-10
+  },
+  {
+    "component": 1,
+    "series": "Standardised",
+    "variance": 0.40288927230108834
+  },
+  {
+    "component": 2,
+    "series": "Standardised",
+    "variance": 0.22201078565134053
+  },
+  {
+    "component": 3,
+    "series": "Standardised",
+    "variance": 0.16400205534904025
+  },
+  {
+    "component": 4,
+    "series": "Standardised",
+    "variance": 0.05451155368759982
+  },
+  {
+    "component": 5,
+    "series": "Standardised",
+    "variance": 0.04998432829663319
+  },
+  {
+    "component": 6,
+    "series": "Standardised",
+    "variance": 0.045917924280070875
+  },
+  {
+    "component": 7,
+    "series": "Standardised",
+    "variance": 0.02503084836195217
+  },
+  {
+    "component": 8,
+    "series": "Standardised",
+    "variance": 0.017720390865196695
+  },
+  {
+    "component": 9,
+    "series": "Standardised",
+    "variance": 0.00856010246748435
+  },
+  {
+    "component": 10,
+    "series": "Standardised",
+    "variance": 0.00644488765953247
+  },
+  {
+    "component": 11,
+    "series": "Standardised",
+    "variance": 0.00292785108006141
+  }
+]

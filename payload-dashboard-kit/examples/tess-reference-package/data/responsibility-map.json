@@ -1,0 +1,8402 @@
+[
+  {
+    "object_id": "TOI-00001",
+    "x": 0.5,
+    "y": 0,
+    "max_responsibility": 0.44
+  },
+  {
+    "object_id": "TOI-00002",
+    "x": 0.52268,
+    "y": 0.10052,
+    "max_responsibility": 0.6435
+  },
+  {
+    "object_id": "TOI-00003",
+    "x": 0.52425,
+    "y": 0.20939,
+    "max_responsibility": 0.847
+  },
+  {
+    "object_id": "TOI-00004",
+    "x": 0.50242,
+    "y": 0.32204,
+    "max_responsibility": 0.495
+  },
+  {
+    "object_id": "TOI-00005",
+    "x": 0.45595,
+    "y": 0.43335,
+    "max_responsibility": 0.6985
+  },
+  {
+    "object_id": "TOI-00006",
+    "x": 0.38466,
+    "y": 0.5379,
+    "max_responsibility": 0.902
+  },
+  {
+    "object_id": "TOI-00007",
+    "x": 0.28962,
+    "y": 0.63018,
+    "max_responsibility": 0.55
+  },
+  {
+    "object_id": "TOI-00008",
+    "x": 0.17309,
+    "y": 0.70487,
+    "max_responsibility": 0.7535
+  },
+  {
+    "object_id": "TOI-00009",
+    "x": 0.03849,
+    "y": 0.75709,
+    "max_responsibility": 0.957
+  },
+  {
+    "object_id": "TOI-00010",
+    "x": -0.10966,
+    "y": 0.78268,
+    "max_responsibility": 0.605
+  },
+  {
+    "object_id": "TOI-00011",
+    "x": -0.26593,
+    "y": 0.77841,
+    "max_responsibility": 0.8085
+  },
+  {
+    "object_id": "TOI-00012",
+    "x": -0.42416,
+    "y": 0.74218,
+    "max_responsibility": 0.4565
+  },
+  {
+    "object_id": "TOI-00013",
+    "x": -0.5777,
+    "y": 0.6732,
+    "max_responsibility": 0.66
+  },
+  {
+    "object_id": "TOI-00014",
+    "x": -0.7197,
+    "y": 0.57205,
+    "max_responsibility": 0.8635
+  },
+  {
+    "object_id": "TOI-00015",
+    "x": -0.84337,
+    "y": 0.44078,
+    "max_responsibility": 0.5115
+  },
+  {
+    "object_id": "TOI-00016",
+    "x": -0.94234,
+    "y": 0.28284,
+    "max_responsibility": 0.715
+  },
+  {
+    "object_id": "TOI-00017",
+    "x": -1.01089,
+    "y": 0.10305,
+    "max_responsibility": 0.9185
+  },
+  {
+    "object_id": "TOI-00018",
+    "x": -1.04429,
+    "y": -0.09256,
+    "max_responsibility": 0.5665
+  },
+  {
+    "object_id": "TOI-00019",
+    "x": -1.03903,
+    "y": -0.29699,
+    "max_responsibility": 0.77
+  },
+  {
+    "object_id": "TOI-00020",
+    "x": -0.99303,
+    "y": -0.50244,
+    "max_responsibility": 0.9735
+  },
+  {
+    "object_id": "TOI-00021",
+    "x": -0.90579,
+    "y": -0.70068,
+    "max_responsibility": 0.6215
+  },
+  {
+    "object_id": "TOI-00022",
+    "x": -0.77848,
+    "y": -0.88333,
+    "max_responsibility": 0.825
+  },
+  {
+    "object_id": "TOI-00023",
+    "x": -0.61402,
+    "y": -1.04225,
+    "max_responsibility": 0.473
+  },
+  {
+    "object_id": "TOI-00024",
+    "x": -0.41697,
+    "y": -1.16985,
+    "max_responsibility": 0.6765
+  },
+  {
+    "object_id": "TOI-00025",
+    "x": -0.19342,
+    "y": -1.25943,
+    "max_responsibility": 0.88
+  },
+  {
+    "object_id": "TOI-00026",
+    "x": 0.04913,
+    "y": -1.30553,
+    "max_responsibility": 0.528
+  },
+  {
+    "object_id": "TOI-00027",
+    "x": 0.30208,
+    "y": -1.30418,
+    "max_responsibility": 0.7315
+  },
+  {
+    "object_id": "TOI-00028",
+    "x": 0.55603,
+    "y": -1.25315,
+    "max_responsibility": 0.935
+  },
+  {
+    "object_id": "TOI-00029",
+    "x": 0.80111,
+    "y": -1.15207,
+    "max_responsibility": 0.583
+  },
+  {
+    "object_id": "TOI-00030",
+    "x": 1.02736,
+    "y": -1.00257,
+    "max_responsibility": 0.7865
+  },
+  {
+    "object_id": "TOI-00031",
+    "x": 1.22514,
+    "y": -0.80826,
+    "max_responsibility": 0.99
+  },
+  {
+    "object_id": "TOI-00032",
+    "x": 1.38554,
+    "y": -0.5747,
+    "max_responsibility": 0.638
+  },
+  {
+    "object_id": "TOI-00033",
+    "x": 1.50074,
+    "y": -0.30919,
+    "max_responsibility": 0.8415
+  },
+  {
+    "object_id": "TOI-00034",
+    "x": 1.56438,
+    "y": -0.02063,
+    "max_responsibility": 0.4895
+  },
+  {
+    "object_id": "TOI-00035",
+    "x": 1.57188,
+    "y": 0.28086,
+    "max_responsibility": 0.693
+  },
+  {
+    "object_id": "TOI-00036",
+    "x": 1.52066,
+    "y": 0.58424,
+    "max_responsibility": 0.8965
+  },
+  {
+    "object_id": "TOI-00037",
+    "x": 1.41034,
+    "y": 0.87797,
+    "max_responsibility": 0.5445
+  },
+  {
+    "object_id": "TOI-00038",
+    "x": 1.24282,
+    "y": 1.15044,
+    "max_responsibility": 0.748
+  },
+  {
+    "object_id": "TOI-00039",
+    "x": 1.02229,
+    "y": 1.39044,
+    "max_responsibility": 0.9515
+  },
+  {
+    "object_id": "TOI-00040",
+    "x": 0.75516,
+    "y": 1.58762,
+    "max_responsibility": 0.5995
+  },
+  {
+    "object_id": "TOI-00041",
+    "x": 0.44984,
+    "y": 1.73289,
+    "max_responsibility": 0.803
+  },
+  {
+    "object_id": "TOI-00042",
+    "x": 0.11653,
+    "y": 1.81885,
+    "max_responsibility": 0.451
+  },
+  {
+    "object_id": "TOI-00043",
+    "x": -0.23313,
+    "y": 1.84013,
+    "max_responsibility": 0.6545
+  },
+  {
+    "object_id": "TOI-00044",
+    "x": -0.15539,
+    "y": 0.47524,
+    "max_responsibility": 0.858
+  },
+  {
+    "object_id": "TOI-00045",
+    "x": -0.25798,
+    "y": 0.46556,
+    "max_responsibility": 0.506
+  },
+  {
+    "object_id": "TOI-00046",
+    "x": -0.36195,
+    "y": 0.43321,
+    "max_responsibility": 0.7095
+  },
+  {
+    "object_id": "TOI-00047",
+    "x": -0.46224,
+    "y": 0.37746,
+    "max_responsibility": 0.913
+  },
+  {
+    "object_id": "TOI-00048",
+    "x": -0.5536,
+    "y": 0.29869,
+    "max_responsibility": 0.561
+  },
+  {
+    "object_id": "TOI-00049",
+    "x": -0.63081,
+    "y": 0.19844,
+    "max_responsibility": 0.7645
+  },
+  {
+    "object_id": "TOI-00050",
+    "x": -0.68899,
+    "y": 0.07943,
+    "max_responsibility": 0.968
+  },
+  {
+    "object_id": "TOI-00051",
+    "x": -0.72375,
+    "y": -0.05455,
+    "max_responsibility": 0.616
+  },
+  {
+    "object_id": "TOI-00052",
+    "x": -0.73156,
+    "y": -0.19871,
+    "max_responsibility": 0.8195
+  },
+  {
+    "object_id": "TOI-00053",
+    "x": -0.70984,
+    "y": -0.34747,
+    "max_responsibility": 0.4675
+  },
+  {
+    "object_id": "TOI-00054",
+    "x": -0.65721,
+    "y": -0.49468,
+    "max_responsibility": 0.671
+  },
+  {
+    "object_id": "TOI-00055",
+    "x": -0.57361,
+    "y": -0.63382,
+    "max_responsibility": 0.8745
+  },
+  {
+    "object_id": "TOI-00056",
+    "x": -0.46032,
+    "y": -0.75832,
+    "max_responsibility": 0.5225
+  },
+  {
+    "object_id": "TOI-00057",
+    "x": -0.32005,
+    "y": -0.86185,
+    "max_responsibility": 0.726
+  },
+  {
+    "object_id": "TOI-00058",
+    "x": -0.15684,
+    "y": -0.9386,
+    "max_responsibility": 0.9295
+  },
+  {
+    "object_id": "TOI-00059",
+    "x": 0.02403,
+    "y": -0.98358,
+    "max_responsibility": 0.5775
+  },
+  {
+    "object_id": "TOI-00060",
+    "x": 0.21622,
+    "y": -0.99286,
+    "max_responsibility": 0.781
+  },
+  {
+    "object_id": "TOI-00061",
+    "x": 0.41253,
+    "y": -0.96381,
+    "max_responsibility": 0.9845
+  },
+  {
+    "object_id": "TOI-00062",
+    "x": 0.6052,
+    "y": -0.89528,
+    "max_responsibility": 0.6325
+  },
+  {
+    "object_id": "TOI-00063",
+    "x": 0.78618,
+    "y": -0.78771,
+    "max_responsibility": 0.836
+  },
+  {
+    "object_id": "TOI-00064",
+    "x": 0.94748,
+    "y": -0.64317,
+    "max_responsibility": 0.484
+  },
+  {
+    "object_id": "TOI-00065",
+    "x": 1.08153,
+    "y": -0.46541,
+    "max_responsibility": 0.6875
+  },
+  {
+    "object_id": "TOI-00066",
+    "x": 1.18147,
+    "y": -0.2597,
+    "max_responsibility": 0.891
+  },
+  {
+    "object_id": "TOI-00067",
+    "x": 1.2415,
+    "y": -0.03275,
+    "max_responsibility": 0.539
+  },
+  {
+    "object_id": "TOI-00068",
+    "x": 1.25717,
+    "y": 0.20757,
+    "max_responsibility": 0.7425
+  },
+  {
+    "object_id": "TOI-00069",
+    "x": 1.22561,
+    "y": 0.45243,
+    "max_responsibility": 0.946
+  },
+  {
+    "object_id": "TOI-00070",
+    "x": 1.14572,
+    "y": 0.69244,
+    "max_responsibility": 0.594
+  },
+  {
+    "object_id": "TOI-00071",
+    "x": 1.01829,
+    "y": 0.91796,
+    "max_responsibility": 0.7975
+  },
+  {
+    "object_id": "TOI-00072",
+    "x": 0.84605,
+    "y": 1.11949,
+    "max_responsibility": 0.4455
+  },
+  {
+    "object_id": "TOI-00073",
+    "x": 0.63363,
+    "y": 1.28807,
+    "max_responsibility": 0.649
+  },
+  {
+    "object_id": "TOI-00074",
+    "x": 0.38748,
+    "y": 1.41567,
+    "max_responsibility": 0.8525
+  },
+  {
+    "object_id": "TOI-00075",
+    "x": 0.11564,
+    "y": 1.49554,
+    "max_responsibility": 0.5005
+  },
+  {
+    "object_id": "TOI-00076",
+    "x": -0.17252,
+    "y": 1.52251,
+    "max_responsibility": 0.704
+  },
+  {
+    "object_id": "TOI-00077",
+    "x": -0.46658,
+    "y": 1.49332,
+    "max_responsibility": 0.9075
+  },
+  {
+    "object_id": "TOI-00078",
+    "x": -0.75547,
+    "y": 1.40675,
+    "max_responsibility": 0.5555
+  },
+  {
+    "object_id": "TOI-00079",
+    "x": -1.02791,
+    "y": 1.26378,
+    "max_responsibility": 0.759
+  },
+  {
+    "object_id": "TOI-00080",
+    "x": -1.2728,
+    "y": 1.06764,
+    "max_responsibility": 0.9625
+  },
+  {
+    "object_id": "TOI-00081",
+    "x": -1.47972,
+    "y": 0.82374,
+    "max_responsibility": 0.6105
+  },
+  {
+    "object_id": "TOI-00082",
+    "x": -1.6393,
+    "y": 0.53954,
+    "max_responsibility": 0.814
+  },
+  {
+    "object_id": "TOI-00083",
+    "x": -1.74369,
+    "y": 0.22435,
+    "max_responsibility": 0.462
+  },
+  {
+    "object_id": "TOI-00084",
+    "x": -1.78688,
+    "y": -0.11099,
+    "max_responsibility": 0.6655
+  },
+  {
+    "object_id": "TOI-00085",
+    "x": -1.765,
+    "y": -0.45451,
+    "max_responsibility": 0.869
+  },
+  {
+    "object_id": "TOI-00086",
+    "x": -1.67656,
+    "y": -0.79347,
+    "max_responsibility": 0.517
+  },
+  {
+    "object_id": "TOI-00087",
+    "x": -0.40341,
+    "y": -0.29539,
+    "max_responsibility": 0.7205
+  },
+  {
+    "object_id": "TOI-00088",
+    "x": -0.36232,
+    "y": -0.3899,
+    "max_responsibility": 0.924
+  },
+  {
+    "object_id": "TOI-00089",
+    "x": -0.29927,
+    "y": -0.47866,
+    "max_responsibility": 0.572
+  },
+  {
+    "object_id": "TOI-00090",
+    "x": -0.21511,
+    "y": -0.55666,
+    "max_responsibility": 0.7755
+  },
+  {
+    "object_id": "TOI-00091",
+    "x": -0.11185,
+    "y": -0.61901,
+    "max_responsibility": 0.979
+  },
+  {
+    "object_id": "TOI-00092",
+    "x": 0.00743,
+    "y": -0.66125,
+    "max_responsibility": 0.627
+  },
+  {
+    "object_id": "TOI-00093",
+    "x": 0.13863,
+    "y": -0.67955,
+    "max_responsibility": 0.8305
+  },
+  {
+    "object_id": "TOI-00094",
+    "x": 0.27678,
+    "y": -0.67096,
+    "max_responsibility": 0.4785
+  },
+  {
+    "object_id": "TOI-00095",
+    "x": 0.41622,
+    "y": -0.63358,
+    "max_responsibility": 0.682
+  },
+  {
+    "object_id": "TOI-00096",
+    "x": 0.55087,
+    "y": -0.5667,
+    "max_responsibility": 0.8855
+  },
+  {
+    "object_id": "TOI-00097",
+    "x": 0.67444,
+    "y": -0.47093,
+    "max_responsibility": 0.5335
+  },
+  {
+    "object_id": "TOI-00098",
+    "x": 0.7807,
+    "y": -0.34822,
+    "max_responsibility": 0.737
+  },
+  {
+    "object_id": "TOI-00099",
+    "x": 0.86383,
+    "y": -0.20185,
+    "max_responsibility": 0.9405
+  },
+  {
+    "object_id": "TOI-00100",
+    "x": 0.91864,
+    "y": -0.03636,
+    "max_responsibility": 0.5885
+  },
+  {
+    "object_id": "TOI-00101",
+    "x": 0.94086,
+    "y": 0.14263,
+    "max_responsibility": 0.792
+  },
+  {
+    "object_id": "TOI-00102",
+    "x": 0.9274,
+    "y": 0.32852,
+    "max_responsibility": 0.44
+  },
+  {
+    "object_id": "TOI-00103",
+    "x": 0.8765,
+    "y": 0.51408,
+    "max_responsibility": 0.6435
+  },
+  {
+    "object_id": "TOI-00104",
+    "x": 0.78788,
+    "y": 0.69164,
+    "max_responsibility": 0.847
+  },
+  {
+    "object_id": "TOI-00105",
+    "x": 0.66286,
+    "y": 0.85347,
+    "max_responsibility": 0.495
+  },
+  {
+    "object_id": "TOI-00106",
+    "x": 0.50437,
+    "y": 0.99205,
+    "max_responsibility": 0.6985
+  },
+  {
+    "object_id": "TOI-00107",
+    "x": 0.31686,
+    "y": 1.10045,
+    "max_responsibility": 0.902
+  },
+  {
+    "object_id": "TOI-00108",
+    "x": 0.10624,
+    "y": 1.17262,
+    "max_responsibility": 0.55
+  },
+  {
+    "object_id": "TOI-00109",
+    "x": -0.12034,
+    "y": 1.20368,
+    "max_responsibility": 0.7535
+  },
+  {
+    "object_id": "TOI-00110",
+    "x": -0.35471,
+    "y": 1.1902,
+    "max_responsibility": 0.957
+  },
+  {
+    "object_id": "TOI-00111",
+    "x": -0.588,
+    "y": 1.13041,
+    "max_responsibility": 0.605
+  },
+  {
+    "object_id": "TOI-00112",
+    "x": -0.81093,
+    "y": 1.02431,
+    "max_responsibility": 0.8085
+  },
+  {
+    "object_id": "TOI-00113",
+    "x": -1.01422,
+    "y": 0.87378,
+    "max_responsibility": 0.4565
+  },
+  {
+    "object_id": "TOI-00114",
+    "x": -1.18897,
+    "y": 0.68257,
+    "max_responsibility": 0.66
+  },
+  {
+    "object_id": "TOI-00115",
+    "x": -1.32699,
+    "y": 0.45623,
+    "max_responsibility": 0.8635
+  },
+  {
+    "object_id": "TOI-00116",
+    "x": -1.42121,
+    "y": 0.20194,
+    "max_responsibility": 0.5115
+  },
+  {
+    "object_id": "TOI-00117",
+    "x": -1.46599,
+    "y": -0.07167,
+    "max_responsibility": 0.715
+  },
+  {
+    "object_id": "TOI-00118",
+    "x": -1.45742,
+    "y": -0.35488,
+    "max_responsibility": 0.9185
+  },
+  {
+    "object_id": "TOI-00119",
+    "x": -1.3935,
+    "y": -0.63715,
+    "max_responsibility": 0.5665
+  },
+  {
+    "object_id": "TOI-00120",
+    "x": -1.27437,
+    "y": -0.90758,
+    "max_responsibility": 0.77
+  },
+  {
+    "object_id": "TOI-00121",
+    "x": -1.1023,
+    "y": -1.15526,
+    "max_responsibility": 0.9735
+  },
+  {
+    "object_id": "TOI-00122",
+    "x": -0.88174,
+    "y": -1.36977,
+    "max_responsibility": 0.6215
+  },
+  {
+    "object_id": "TOI-00123",
+    "x": -0.61921,
+    "y": -1.54158,
+    "max_responsibility": 0.825
+  },
+  {
+    "object_id": "TOI-00124",
+    "x": -0.32308,
+    "y": -1.66245,
+    "max_responsibility": 0.473
+  },
+  {
+    "object_id": "TOI-00125",
+    "x": -0.00336,
+    "y": -1.7258,
+    "max_responsibility": 0.6765
+  },
+  {
+    "object_id": "TOI-00126",
+    "x": 0.32867,
+    "y": -1.72707,
+    "max_responsibility": 0.88
+  },
+  {
+    "object_id": "TOI-00127",
+    "x": 0.66083,
+    "y": -1.6639,
+    "max_responsibility": 0.528
+  },
+  {
+    "object_id": "TOI-00128",
+    "x": 0.98054,
+    "y": -1.53634,
+    "max_responsibility": 0.7315
+  },
+  {
+    "object_id": "TOI-00129",
+    "x": 1.27522,
+    "y": -1.34694,
+    "max_responsibility": 0.935
+  },
+  {
+    "object_id": "TOI-00130",
+    "x": 0.40614,
+    "y": -0.29163,
+    "max_responsibility": 0.583
+  },
+  {
+    "object_id": "TOI-00131",
+    "x": 0.48319,
+    "y": -0.22321,
+    "max_responsibility": 0.7865
+  },
+  {
+    "object_id": "TOI-00132",
+    "x": 0.54797,
+    "y": -0.13569,
+    "max_responsibility": 0.99
+  },
+  {
+    "object_id": "TOI-00133",
+    "x": 0.59594,
+    "y": -0.03146,
+    "max_responsibility": 0.638
+  },
+  {
+    "object_id": "TOI-00134",
+    "x": 0.62312,
+    "y": 0.08607,
+    "max_responsibility": 0.8415
+  },
+  {
+    "object_id": "TOI-00135",
+    "x": 0.62619,
+    "y": 0.21257,
+    "max_responsibility": 0.4895
+  },
+  {
+    "object_id": "TOI-00136",
+    "x": 0.60282,
+    "y": 0.34296,
+    "max_responsibility": 0.693
+  },
+  {
+    "object_id": "TOI-00137",
+    "x": 0.55172,
+    "y": 0.47159,
+    "max_responsibility": 0.8965
+  },
+  {
+    "object_id": "TOI-00138",
+    "x": 0.47285,
+    "y": 0.59252,
+    "max_responsibility": 0.5445
+  },
+  {
+    "object_id": "TOI-00139",
+    "x": 0.36743,
+    "y": 0.69972,
+    "max_responsibility": 0.748
+  },
+  {
+    "object_id": "TOI-00140",
+    "x": 0.23801,
+    "y": 0.7874,
+    "max_responsibility": 0.9515
+  },
+  {
+    "object_id": "TOI-00141",
+    "x": 0.08835,
+    "y": 0.85026,
+    "max_responsibility": 0.5995
+  },
+  {
+    "object_id": "TOI-00142",
+    "x": -0.07661,
+    "y": 0.88378,
+    "max_responsibility": 0.803
+  },
+  {
+    "object_id": "TOI-00143",
+    "x": -0.25094,
+    "y": 0.88444,
+    "max_responsibility": 0.451
+  },
+  {
+    "object_id": "TOI-00144",
+    "x": -0.42797,
+    "y": 0.84995,
+    "max_responsibility": 0.6545
+  },
+  {
+    "object_id": "TOI-00145",
+    "x": -0.60047,
+    "y": 0.77938,
+    "max_responsibility": 0.858
+  },
+  {
+    "object_id": "TOI-00146",
+    "x": -0.76102,
+    "y": 0.67332,
+    "max_responsibility": 0.506
+  },
+  {
+    "object_id": "TOI-00147",
+    "x": -0.90225,
+    "y": 0.53391,
+    "max_responsibility": 0.7095
+  },
+  {
+    "object_id": "TOI-00148",
+    "x": -1.01721,
+    "y": 0.36479,
+    "max_responsibility": 0.913
+  },
+  {
+    "object_id": "TOI-00149",
+    "x": -1.09968,
+    "y": 0.17108,
+    "max_responsibility": 0.561
+  },
+  {
+    "object_id": "TOI-00150",
+    "x": -1.14443,
+    "y": -0.04083,
+    "max_responsibility": 0.7645
+  },
+  {
+    "object_id": "TOI-00151",
+    "x": -1.14757,
+    "y": -0.26345,
+    "max_responsibility": 0.968
+  },
+  {
+    "object_id": "TOI-00152",
+    "x": -1.10667,
+    "y": -0.48847,
+    "max_responsibility": 0.616
+  },
+  {
+    "object_id": "TOI-00153",
+    "x": -1.02102,
+    "y": -0.70705,
+    "max_responsibility": 0.8195
+  },
+  {
+    "object_id": "TOI-00154",
+    "x": -0.89169,
+    "y": -0.91019,
+    "max_responsibility": 0.4675
+  },
+  {
+    "object_id": "TOI-00155",
+    "x": -0.72156,
+    "y": -1.08911,
+    "max_responsibility": 0.671
+  },
+  {
+    "object_id": "TOI-00156",
+    "x": -0.51531,
+    "y": -1.23556,
+    "max_responsibility": 0.8745
+  },
+  {
+    "object_id": "TOI-00157",
+    "x": -0.27926,
+    "y": -1.34222,
+    "max_responsibility": 0.5225
+  },
+  {
+    "object_id": "TOI-00158",
+    "x": -0.02123,
+    "y": -1.40307,
+    "max_responsibility": 0.726
+  },
+  {
+    "object_id": "TOI-00159",
+    "x": 0.24975,
+    "y": -1.41359,
+    "max_responsibility": 0.9295
+  },
+  {
+    "object_id": "TOI-00160",
+    "x": 0.52373,
+    "y": -1.37112,
+    "max_responsibility": 0.5775
+  },
+  {
+    "object_id": "TOI-00161",
+    "x": 0.79025,
+    "y": -1.27495,
+    "max_responsibility": 0.781
+  },
+  {
+    "object_id": "TOI-00162",
+    "x": 1.03868,
+    "y": -1.12648,
+    "max_responsibility": 0.9845
+  },
+  {
+    "object_id": "TOI-00163",
+    "x": 1.25869,
+    "y": -0.9292,
+    "max_responsibility": 0.6325
+  },
+  {
+    "object_id": "TOI-00164",
+    "x": 1.44063,
+    "y": -0.68868,
+    "max_responsibility": 0.836
+  },
+  {
+    "object_id": "TOI-00165",
+    "x": 1.57597,
+    "y": -0.41238,
+    "max_responsibility": 0.484
+  },
+  {
+    "object_id": "TOI-00166",
+    "x": 1.65768,
+    "y": -0.10944,
+    "max_responsibility": 0.6875
+  },
+  {
+    "object_id": "TOI-00167",
+    "x": 1.68053,
+    "y": 0.20959,
+    "max_responsibility": 0.891
+  },
+  {
+    "object_id": "TOI-00168",
+    "x": 1.64139,
+    "y": 0.53316,
+    "max_responsibility": 0.539
+  },
+  {
+    "object_id": "TOI-00169",
+    "x": 1.5394,
+    "y": 0.84914,
+    "max_responsibility": 0.7425
+  },
+  {
+    "object_id": "TOI-00170",
+    "x": 1.37613,
+    "y": 1.14522,
+    "max_responsibility": 0.946
+  },
+  {
+    "object_id": "TOI-00171",
+    "x": 1.15553,
+    "y": 1.40945,
+    "max_responsibility": 0.594
+  },
+  {
+    "object_id": "TOI-00172",
+    "x": 0.88392,
+    "y": 1.63068,
+    "max_responsibility": 0.7975
+  },
+  {
+    "object_id": "TOI-00173",
+    "x": 0.15097,
+    "y": 0.47666,
+    "max_responsibility": 0.4455
+  },
+  {
+    "object_id": "TOI-00174",
+    "x": 0.06199,
+    "y": 0.52864,
+    "max_responsibility": 0.649
+  },
+  {
+    "object_id": "TOI-00175",
+    "x": -0.04133,
+    "y": 0.563,
+    "max_responsibility": 0.8525
+  },
+  {
+    "object_id": "TOI-00176",
+    "x": -0.15531,
+    "y": 0.57621,
+    "max_responsibility": 0.5005
+  },
+  {
+    "object_id": "TOI-00177",
+    "x": -0.27546,
+    "y": 0.56551,
+    "max_responsibility": 0.704
+  },
+  {
+    "object_id": "TOI-00178",
+    "x": -0.39666,
+    "y": 0.52912,
+    "max_responsibility": 0.9075
+  },
+  {
+    "object_id": "TOI-00179",
+    "x": -0.51332,
+    "y": 0.46638,
+    "max_responsibility": 0.5555
+  },
+  {
+    "object_id": "TOI-00180",
+    "x": -0.61971,
+    "y": 0.37783,
+    "max_responsibility": 0.759
+  },
+  {
+    "object_id": "TOI-00181",
+    "x": -0.71013,
+    "y": 0.26529,
+    "max_responsibility": 0.9625
+  },
+  {
+    "object_id": "TOI-00182",
+    "x": -0.77926,
+    "y": 0.13178,
+    "max_responsibility": 0.6105
+  },
+  {
+    "object_id": "TOI-00183",
+    "x": -0.82237,
+    "y": -0.01849,
+    "max_responsibility": 0.814
+  },
+  {
+    "object_id": "TOI-00184",
+    "x": -0.83561,
+    "y": -0.18027,
+    "max_responsibility": 0.462
+  },
+  {
+    "object_id": "TOI-00185",
+    "x": -0.81621,
+    "y": -0.34748,
+    "max_responsibility": 0.6655
+  },
+  {
+    "object_id": "TOI-00186",
+    "x": -0.76266,
+    "y": -0.51339,
+    "max_responsibility": 0.869
+  },
+  {
+    "object_id": "TOI-00187",
+    "x": -0.67485,
+    "y": -0.67093,
+    "max_responsibility": 0.517
+  },
+  {
+    "object_id": "TOI-00188",
+    "x": -0.55417,
+    "y": -0.81296,
+    "max_responsibility": 0.7205
+  },
+  {
+    "object_id": "TOI-00189",
+    "x": -0.40347,
+    "y": -0.93259,
+    "max_responsibility": 0.924
+  },
+  {
+    "object_id": "TOI-00190",
+    "x": -0.22707,
+    "y": -1.0235,
+    "max_responsibility": 0.572
+  },
+  {
+    "object_id": "TOI-00191",
+    "x": -0.03059,
+    "y": -1.08021,
+    "max_responsibility": 0.7755
+  },
+  {
+    "object_id": "TOI-00192",
+    "x": 0.17916,
+    "y": -1.09839,
+    "max_responsibility": 0.979
+  },
+  {
+    "object_id": "TOI-00193",
+    "x": 0.39448,
+    "y": -1.07507,
+    "max_responsibility": 0.627
+  },
+  {
+    "object_id": "TOI-00194",
+    "x": 0.60705,
+    "y": -1.00886,
+    "max_responsibility": 0.8305
+  },
+  {
+    "object_id": "TOI-00195",
+    "x": 0.80821,
+    "y": -0.90006,
+    "max_responsibility": 0.4785
+  },
+  {
+    "object_id": "TOI-00196",
+    "x": 0.98935,
+    "y": -0.75072,
+    "max_responsibility": 0.682
+  },
+  {
+    "object_id": "TOI-00197",
+    "x": 1.14225,
+    "y": -0.56466,
+    "max_responsibility": 0.8855
+  },
+  {
+    "object_id": "TOI-00198",
+    "x": 1.25943,
+    "y": -0.34735,
+    "max_responsibility": 0.5335
+  },
+  {
+    "object_id": "TOI-00199",
+    "x": 1.33452,
+    "y": -0.1058,
+    "max_responsibility": 0.737
+  },
+  {
+    "object_id": "TOI-00200",
+    "x": 1.36255,
+    "y": 0.15171,
+    "max_responsibility": 0.9405
+  },
+  {
+    "object_id": "TOI-00201",
+    "x": 1.34018,
+    "y": 0.41587,
+    "max_responsibility": 0.5885
+  },
+  {
+    "object_id": "TOI-00202",
+    "x": 1.26597,
+    "y": 0.6767,
+    "max_responsibility": 0.792
+  },
+  {
+    "object_id": "TOI-00203",
+    "x": 1.14046,
+    "y": 0.92392,
+    "max_responsibility": 0.44
+  },
+  {
+    "object_id": "TOI-00204",
+    "x": 0.96622,
+    "y": 1.14735,
+    "max_responsibility": 0.6435
+  },
+  {
+    "object_id": "TOI-00205",
+    "x": 0.74789,
+    "y": 1.33734,
+    "max_responsibility": 0.847
+  },
+  {
+    "object_id": "TOI-00206",
+    "x": 0.49201,
+    "y": 1.48514,
+    "max_responsibility": 0.495
+  },
+  {
+    "object_id": "TOI-00207",
+    "x": 0.20685,
+    "y": 1.58332,
+    "max_responsibility": 0.6985
+  },
+  {
+    "object_id": "TOI-00208",
+    "x": -0.09783,
+    "y": 1.62609,
+    "max_responsibility": 0.902
+  },
+  {
+    "object_id": "TOI-00209",
+    "x": -0.41116,
+    "y": 1.60961,
+    "max_responsibility": 0.55
+  },
+  {
+    "object_id": "TOI-00210",
+    "x": -0.72149,
+    "y": 1.53217,
+    "max_responsibility": 0.7535
+  },
+  {
+    "object_id": "TOI-00211",
+    "x": -1.01688,
+    "y": 1.39441,
+    "max_responsibility": 0.957
+  },
+  {
+    "object_id": "TOI-00212",
+    "x": -1.28551,
+    "y": 1.19927,
+    "max_responsibility": 0.605
+  },
+  {
+    "object_id": "TOI-00213",
+    "x": -1.51619,
+    "y": 0.95206,
+    "max_responsibility": 0.8085
+  },
+  {
+    "object_id": "TOI-00214",
+    "x": -1.69878,
+    "y": 0.66027,
+    "max_responsibility": 0.4565
+  },
+  {
+    "object_id": "TOI-00215",
+    "x": -1.82464,
+    "y": 0.33336,
+    "max_responsibility": 0.66
+  },
+  {
+    "object_id": "TOI-00216",
+    "x": -0.49998,
+    "y": -0.00465,
+    "max_responsibility": 0.8635
+  },
+  {
+    "object_id": "TOI-00217",
+    "x": -0.52172,
+    "y": -0.10538,
+    "max_responsibility": 0.5115
+  },
+  {
+    "object_id": "TOI-00218",
+    "x": -0.52228,
+    "y": -0.21425,
+    "max_responsibility": 0.715
+  },
+  {
+    "object_id": "TOI-00219",
+    "x": -0.49941,
+    "y": -0.32669,
+    "max_responsibility": 0.9185
+  },
+  {
+    "object_id": "TOI-00220",
+    "x": -0.4519,
+    "y": -0.43757,
+    "max_responsibility": 0.5665
+  },
+  {
+    "object_id": "TOI-00221",
+    "x": -0.37964,
+    "y": -0.54146,
+    "max_responsibility": 0.77
+  },
+  {
+    "object_id": "TOI-00222",
+    "x": -0.28375,
+    "y": -0.63285,
+    "max_responsibility": 0.9735
+  },
+  {
+    "object_id": "TOI-00223",
+    "x": -0.16653,
+    "y": -0.70644,
+    "max_responsibility": 0.6215
+  },
+  {
+    "object_id": "TOI-00224",
+    "x": -0.03145,
+    "y": -0.75741,
+    "max_responsibility": 0.825
+  },
+  {
+    "object_id": "TOI-00225",
+    "x": 0.11693,
+    "y": -0.78162,
+    "max_responsibility": 0.473
+  },
+  {
+    "object_id": "TOI-00226",
+    "x": 0.27316,
+    "y": -0.7759,
+    "max_responsibility": 0.6765
+  },
+  {
+    "object_id": "TOI-00227",
+    "x": 0.43104,
+    "y": -0.73821,
+    "max_responsibility": 0.88
+  },
+  {
+    "object_id": "TOI-00228",
+    "x": 0.58394,
+    "y": -0.6678,
+    "max_responsibility": 0.528
+  },
+  {
+    "object_id": "TOI-00229",
+    "x": 0.72499,
+    "y": -0.56534,
+    "max_responsibility": 0.7315
+  },
+  {
+    "object_id": "TOI-00230",
+    "x": 0.84744,
+    "y": -0.43292,
+    "max_responsibility": 0.935
+  },
+  {
+    "object_id": "TOI-00231",
+    "x": 0.94493,
+    "y": -0.27407,
+    "max_responsibility": 0.583
+  },
+  {
+    "object_id": "TOI-00232",
+    "x": 1.0118,
+    "y": -0.09365,
+    "max_responsibility": 0.7865
+  },
+  {
+    "object_id": "TOI-00233",
+    "x": 1.04339,
+    "y": 0.10227,
+    "max_responsibility": 0.99
+  },
+  {
+    "object_id": "TOI-00234",
+    "x": 1.03623,
+    "y": 0.30663,
+    "max_responsibility": 0.638
+  },
+  {
+    "object_id": "TOI-00235",
+    "x": 0.98832,
+    "y": 0.51165,
+    "max_responsibility": 0.8415
+  },
+  {
+    "object_id": "TOI-00236",
+    "x": 0.89923,
+    "y": 0.70907,
+    "max_responsibility": 0.4895
+  },
+  {
+    "object_id": "TOI-00237",
+    "x": 0.77024,
+    "y": 0.89053,
+    "max_responsibility": 0.693
+  },
+  {
+    "object_id": "TOI-00238",
+    "x": 0.60431,
+    "y": 1.04792,
+    "max_responsibility": 0.8965
+  },
+  {
+    "object_id": "TOI-00239",
+    "x": 0.40607,
+    "y": 1.17367,
+    "max_responsibility": 0.5445
+  },
+  {
+    "object_id": "TOI-00240",
+    "x": 0.18171,
+    "y": 1.26117,
+    "max_responsibility": 0.748
+  },
+  {
+    "object_id": "TOI-00241",
+    "x": -0.06126,
+    "y": 1.30501,
+    "max_responsibility": 0.9515
+  },
+  {
+    "object_id": "TOI-00242",
+    "x": -0.31419,
+    "y": 1.30132,
+    "max_responsibility": 0.5995
+  },
+  {
+    "object_id": "TOI-00243",
+    "x": -0.56766,
+    "y": 1.24792,
+    "max_responsibility": 0.803
+  },
+  {
+    "object_id": "TOI-00244",
+    "x": -0.81179,
+    "y": 1.14457,
+    "max_responsibility": 0.451
+  },
+  {
+    "object_id": "TOI-00245",
+    "x": -1.03664,
+    "y": 0.99298,
+    "max_responsibility": 0.6545
+  },
+  {
+    "object_id": "TOI-00246",
+    "x": -1.2326,
+    "y": 0.79684,
+    "max_responsibility": 0.858
+  },
+  {
+    "object_id": "TOI-00247",
+    "x": -1.39082,
+    "y": 0.56179,
+    "max_responsibility": 0.506
+  },
+  {
+    "object_id": "TOI-00248",
+    "x": -1.50355,
+    "y": 0.29523,
+    "max_responsibility": 0.7095
+  },
+  {
+    "object_id": "TOI-00249",
+    "x": -1.5645,
+    "y": 0.00609,
+    "max_responsibility": 0.913
+  },
+  {
+    "object_id": "TOI-00250",
+    "x": -1.5692,
+    "y": -0.29546,
+    "max_responsibility": 0.561
+  },
+  {
+    "object_id": "TOI-00251",
+    "x": -1.51516,
+    "y": -0.59835,
+    "max_responsibility": 0.7645
+  },
+  {
+    "object_id": "TOI-00252",
+    "x": -1.40212,
+    "y": -0.89104,
+    "max_responsibility": 0.968
+  },
+  {
+    "object_id": "TOI-00253",
+    "x": -1.23207,
+    "y": -1.16194,
+    "max_responsibility": 0.616
+  },
+  {
+    "object_id": "TOI-00254",
+    "x": -1.00933,
+    "y": -1.39988,
+    "max_responsibility": 0.8195
+  },
+  {
+    "object_id": "TOI-00255",
+    "x": -0.74037,
+    "y": -1.59457,
+    "max_responsibility": 0.4675
+  },
+  {
+    "object_id": "TOI-00256",
+    "x": -0.43371,
+    "y": -1.73699,
+    "max_responsibility": 0.671
+  },
+  {
+    "object_id": "TOI-00257",
+    "x": -0.09962,
+    "y": -1.81986,
+    "max_responsibility": 0.8745
+  },
+  {
+    "object_id": "TOI-00258",
+    "x": 0.25022,
+    "y": -1.83788,
+    "max_responsibility": 0.5225
+  },
+  {
+    "object_id": "TOI-00259",
+    "x": 0.1598,
+    "y": -0.47378,
+    "max_responsibility": 0.726
+  },
+  {
+    "object_id": "TOI-00260",
+    "x": 0.2623,
+    "y": -0.46314,
+    "max_responsibility": 0.9295
+  },
+  {
+    "object_id": "TOI-00261",
+    "x": 0.36596,
+    "y": -0.42983,
+    "max_responsibility": 0.5775
+  },
+  {
+    "object_id": "TOI-00262",
+    "x": 0.46573,
+    "y": -0.37315,
+    "max_responsibility": 0.781
+  },
+  {
+    "object_id": "TOI-00263",
+    "x": 0.55635,
+    "y": -0.29353,
+    "max_responsibility": 0.9845
+  },
+  {
+    "object_id": "TOI-00264",
+    "x": 0.63263,
+    "y": -0.19257,
+    "max_responsibility": 0.6325
+  },
+  {
+    "object_id": "TOI-00265",
+    "x": 0.68969,
+    "y": -0.07302,
+    "max_responsibility": 0.836
+  },
+  {
+    "object_id": "TOI-00266",
+    "x": 0.72322,
+    "y": 0.06127,
+    "max_responsibility": 0.484
+  },
+  {
+    "object_id": "TOI-00267",
+    "x": 0.72968,
+    "y": 0.2055,
+    "max_responsibility": 0.6875
+  },
+  {
+    "object_id": "TOI-00268",
+    "x": 0.70658,
+    "y": 0.35406,
+    "max_responsibility": 0.891
+  },
+  {
+    "object_id": "TOI-00269",
+    "x": 0.65259,
+    "y": 0.50077,
+    "max_responsibility": 0.539
+  },
+  {
+    "object_id": "TOI-00270",
+    "x": 0.56769,
+    "y": 0.63912,
+    "max_responsibility": 0.7425
+  },
+  {
+    "object_id": "TOI-00271",
+    "x": 0.45325,
+    "y": 0.76256,
+    "max_responsibility": 0.946
+  },
+  {
+    "object_id": "TOI-00272",
+    "x": 0.31203,
+    "y": 0.86478,
+    "max_responsibility": 0.594
+  },
+  {
+    "object_id": "TOI-00273",
+    "x": 0.14811,
+    "y": 0.94002,
+    "max_responsibility": 0.7975
+  },
+  {
+    "object_id": "TOI-00274",
+    "x": -0.03317,
+    "y": 0.98331,
+    "max_responsibility": 0.4455
+  },
+  {
+    "object_id": "TOI-00275",
+    "x": -0.22544,
+    "y": 0.99081,
+    "max_responsibility": 0.649
+  },
+  {
+    "object_id": "TOI-00276",
+    "x": -0.42147,
+    "y": 0.95994,
+    "max_responsibility": 0.8525
+  },
+  {
+    "object_id": "TOI-00277",
+    "x": -0.61349,
+    "y": 0.88962,
+    "max_responsibility": 0.5005
+  },
+  {
+    "object_id": "TOI-00278",
+    "x": -0.79346,
+    "y": 0.78036,
+    "max_responsibility": 0.704
+  },
+  {
+    "object_id": "TOI-00279",
+    "x": -0.95342,
+    "y": 0.63434,
+    "max_responsibility": 0.9075
+  },
+  {
+    "object_id": "TOI-00280",
+    "x": -1.08581,
+    "y": 0.45533,
+    "max_responsibility": 0.5555
+  },
+  {
+    "object_id": "TOI-00281",
+    "x": -1.18383,
+    "y": 0.24871,
+    "max_responsibility": 0.759
+  },
+  {
+    "object_id": "TOI-00282",
+    "x": -1.24175,
+    "y": 0.02121,
+    "max_responsibility": 0.9625
+  },
+  {
+    "object_id": "TOI-00283",
+    "x": -1.25519,
+    "y": -0.21924,
+    "max_responsibility": 0.6105
+  },
+  {
+    "object_id": "TOI-00284",
+    "x": -1.22135,
+    "y": -0.4638,
+    "max_responsibility": 0.814
+  },
+  {
+    "object_id": "TOI-00285",
+    "x": -1.13923,
+    "y": -0.70306,
+    "max_responsibility": 0.462
+  },
+  {
+    "object_id": "TOI-00286",
+    "x": -1.00971,
+    "y": -0.92738,
+    "max_responsibility": 0.6655
+  },
+  {
+    "object_id": "TOI-00287",
+    "x": -0.8356,
+    "y": -1.1273,
+    "max_responsibility": 0.869
+  },
+  {
+    "object_id": "TOI-00288",
+    "x": -0.62163,
+    "y": -1.2939,
+    "max_responsibility": 0.517
+  },
+  {
+    "object_id": "TOI-00289",
+    "x": -0.37431,
+    "y": -1.41921,
+    "max_responsibility": 0.7205
+  },
+  {
+    "object_id": "TOI-00290",
+    "x": -0.10173,
+    "y": -1.49655,
+    "max_responsibility": 0.924
+  },
+  {
+    "object_id": "TOI-00291",
+    "x": 0.18667,
+    "y": -1.52085,
+    "max_responsibility": 0.572
+  },
+  {
+    "object_id": "TOI-00292",
+    "x": 0.48044,
+    "y": -1.48892,
+    "max_responsibility": 0.7755
+  },
+  {
+    "object_id": "TOI-00293",
+    "x": 0.76852,
+    "y": -1.39967,
+    "max_responsibility": 0.979
+  },
+  {
+    "object_id": "TOI-00294",
+    "x": 1.03961,
+    "y": -1.25417,
+    "max_responsibility": 0.627
+  },
+  {
+    "object_id": "TOI-00295",
+    "x": 1.28267,
+    "y": -1.05577,
+    "max_responsibility": 0.8305
+  },
+  {
+    "object_id": "TOI-00296",
+    "x": 1.48731,
+    "y": -0.80995,
+    "max_responsibility": 0.4785
+  },
+  {
+    "object_id": "TOI-00297",
+    "x": 1.64424,
+    "y": -0.52428,
+    "max_responsibility": 0.682
+  },
+  {
+    "object_id": "TOI-00298",
+    "x": 1.7457,
+    "y": -0.20814,
+    "max_responsibility": 0.8855
+  },
+  {
+    "object_id": "TOI-00299",
+    "x": 1.78577,
+    "y": 0.1276,
+    "max_responsibility": 0.5335
+  },
+  {
+    "object_id": "TOI-00300",
+    "x": 1.7607,
+    "y": 0.4709,
+    "max_responsibility": 0.737
+  },
+  {
+    "object_id": "TOI-00301",
+    "x": 1.66911,
+    "y": 0.80902,
+    "max_responsibility": 0.9405
+  },
+  {
+    "object_id": "TOI-00302",
+    "x": 0.40065,
+    "y": 0.29913,
+    "max_responsibility": 0.5885
+  },
+  {
+    "object_id": "TOI-00303",
+    "x": 0.35868,
+    "y": 0.39325,
+    "max_responsibility": 0.792
+  },
+  {
+    "object_id": "TOI-00304",
+    "x": 0.29481,
+    "y": 0.48142,
+    "max_responsibility": 0.44
+  },
+  {
+    "object_id": "TOI-00305",
+    "x": 0.20993,
+    "y": 0.55863,
+    "max_responsibility": 0.6435
+  },
+  {
+    "object_id": "TOI-00306",
+    "x": 0.10609,
+    "y": 0.62002,
+    "max_responsibility": 0.847
+  },
+  {
+    "object_id": "TOI-00307",
+    "x": -0.01358,
+    "y": 0.66115,
+    "max_responsibility": 0.495
+  },
+  {
+    "object_id": "TOI-00308",
+    "x": -0.14494,
+    "y": 0.67823,
+    "max_responsibility": 0.6985
+  },
+  {
+    "object_id": "TOI-00309",
+    "x": -0.283,
+    "y": 0.66836,
+    "max_responsibility": 0.902
+  },
+  {
+    "object_id": "TOI-00310",
+    "x": -0.4221,
+    "y": 0.62968,
+    "max_responsibility": 0.55
+  },
+  {
+    "object_id": "TOI-00311",
+    "x": -0.55612,
+    "y": 0.56155,
+    "max_responsibility": 0.7535
+  },
+  {
+    "object_id": "TOI-00312",
+    "x": -0.67878,
+    "y": 0.46464,
+    "max_responsibility": 0.957
+  },
+  {
+    "object_id": "TOI-00313",
+    "x": -0.7839,
+    "y": 0.34095,
+    "max_responsibility": 0.605
+  },
+  {
+    "object_id": "TOI-00314",
+    "x": -0.86567,
+    "y": 0.19382,
+    "max_responsibility": 0.8085
+  },
+  {
+    "object_id": "TOI-00315",
+    "x": -0.91893,
+    "y": 0.02782,
+    "max_responsibility": 0.4565
+  },
+  {
+    "object_id": "TOI-00316",
+    "x": -0.9395,
+    "y": -0.15136,
+    "max_responsibility": 0.66
+  },
+  {
+    "object_id": "TOI-00317",
+    "x": -0.92431,
+    "y": -0.33713,
+    "max_responsibility": 0.8635
+  },
+  {
+    "object_id": "TOI-00318",
+    "x": -0.87168,
+    "y": -0.5222,
+    "max_responsibility": 0.5115
+  },
+  {
+    "object_id": "TOI-00319",
+    "x": -0.78141,
+    "y": -0.69893,
+    "max_responsibility": 0.715
+  },
+  {
+    "object_id": "TOI-00320",
+    "x": -0.6549,
+    "y": -0.85959,
+    "max_responsibility": 0.9185
+  },
+  {
+    "object_id": "TOI-00321",
+    "x": -0.49512,
+    "y": -0.9967,
+    "max_responsibility": 0.5665
+  },
+  {
+    "object_id": "TOI-00322",
+    "x": -0.30662,
+    "y": -1.10335,
+    "max_responsibility": 0.77
+  },
+  {
+    "object_id": "TOI-00323",
+    "x": -0.09533,
+    "y": -1.17355,
+    "max_responsibility": 0.9735
+  },
+  {
+    "object_id": "TOI-00324",
+    "x": 0.13153,
+    "y": -1.20251,
+    "max_responsibility": 0.6215
+  },
+  {
+    "object_id": "TOI-00325",
+    "x": 0.36576,
+    "y": -1.18685,
+    "max_responsibility": 0.825
+  },
+  {
+    "object_id": "TOI-00326",
+    "x": 0.59848,
+    "y": -1.1249,
+    "max_responsibility": 0.473
+  },
+  {
+    "object_id": "TOI-00327",
+    "x": 0.82041,
+    "y": -1.01673,
+    "max_responsibility": 0.6765
+  },
+  {
+    "object_id": "TOI-00328",
+    "x": 1.0223,
+    "y": -0.86432,
+    "max_responsibility": 0.88
+  },
+  {
+    "object_id": "TOI-00329",
+    "x": 1.19526,
+    "y": -0.67149,
+    "max_responsibility": 0.528
+  },
+  {
+    "object_id": "TOI-00330",
+    "x": 1.33117,
+    "y": -0.44388,
+    "max_responsibility": 0.7315
+  },
+  {
+    "object_id": "TOI-00331",
+    "x": 1.42302,
+    "y": -0.18873,
+    "max_responsibility": 0.935
+  },
+  {
+    "object_id": "TOI-00332",
+    "x": 1.46526,
+    "y": 0.0853,
+    "max_responsibility": 0.583
+  },
+  {
+    "object_id": "TOI-00333",
+    "x": 1.45405,
+    "y": 0.36841,
+    "max_responsibility": 0.7865
+  },
+  {
+    "object_id": "TOI-00334",
+    "x": 1.38752,
+    "y": 0.65008,
+    "max_responsibility": 0.99
+  },
+  {
+    "object_id": "TOI-00335",
+    "x": 1.26588,
+    "y": 0.91938,
+    "max_responsibility": 0.638
+  },
+  {
+    "object_id": "TOI-00336",
+    "x": 1.09151,
+    "y": 1.16545,
+    "max_responsibility": 0.8415
+  },
+  {
+    "object_id": "TOI-00337",
+    "x": 0.86897,
+    "y": 1.37791,
+    "max_responsibility": 0.4895
+  },
+  {
+    "object_id": "TOI-00338",
+    "x": 0.60485,
+    "y": 1.54727,
+    "max_responsibility": 0.693
+  },
+  {
+    "object_id": "TOI-00339",
+    "x": 0.30761,
+    "y": 1.66538,
+    "max_responsibility": 0.8965
+  },
+  {
+    "object_id": "TOI-00340",
+    "x": -0.01269,
+    "y": 1.72576,
+    "max_responsibility": 0.5445
+  },
+  {
+    "object_id": "TOI-00341",
+    "x": -0.34471,
+    "y": 1.72394,
+    "max_responsibility": 0.748
+  },
+  {
+    "object_id": "TOI-00342",
+    "x": -0.67627,
+    "y": 1.65768,
+    "max_responsibility": 0.9515
+  },
+  {
+    "object_id": "TOI-00343",
+    "x": -0.99478,
+    "y": 1.52716,
+    "max_responsibility": 0.5995
+  },
+  {
+    "object_id": "TOI-00344",
+    "x": -1.28769,
+    "y": 1.33502,
+    "max_responsibility": 0.803
+  },
+  {
+    "object_id": "TOI-00345",
+    "x": -0.40883,
+    "y": 0.28784,
+    "max_responsibility": 0.451
+  },
+  {
+    "object_id": "TOI-00346",
+    "x": -0.48525,
+    "y": 0.21871,
+    "max_responsibility": 0.6545
+  },
+  {
+    "object_id": "TOI-00347",
+    "x": -0.5492,
+    "y": 0.13059,
+    "max_responsibility": 0.858
+  },
+  {
+    "object_id": "TOI-00348",
+    "x": -0.59621,
+    "y": 0.02592,
+    "max_responsibility": 0.506
+  },
+  {
+    "object_id": "TOI-00349",
+    "x": -0.62229,
+    "y": -0.09186,
+    "max_responsibility": 0.7095
+  },
+  {
+    "object_id": "TOI-00350",
+    "x": -0.62419,
+    "y": -0.21838,
+    "max_responsibility": 0.913
+  },
+  {
+    "object_id": "TOI-00351",
+    "x": -0.5996,
+    "y": -0.34855,
+    "max_responsibility": 0.561
+  },
+  {
+    "object_id": "TOI-00352",
+    "x": -0.54731,
+    "y": -0.4767,
+    "max_responsibility": 0.7645
+  },
+  {
+    "object_id": "TOI-00353",
+    "x": -0.46732,
+    "y": -0.59689,
+    "max_responsibility": 0.968
+  },
+  {
+    "object_id": "TOI-00354",
+    "x": -0.36091,
+    "y": -0.7031,
+    "max_responsibility": 0.616
+  },
+  {
+    "object_id": "TOI-00355",
+    "x": -0.23068,
+    "y": -0.78957,
+    "max_responsibility": 0.8195
+  },
+  {
+    "object_id": "TOI-00356",
+    "x": -0.08044,
+    "y": -0.85105,
+    "max_responsibility": 0.4675
+  },
+  {
+    "object_id": "TOI-00357",
+    "x": 0.08482,
+    "y": -0.88303,
+    "max_responsibility": 0.671
+  },
+  {
+    "object_id": "TOI-00358",
+    "x": 0.25915,
+    "y": -0.88207,
+    "max_responsibility": 0.8745
+  },
+  {
+    "object_id": "TOI-00359",
+    "x": 0.43585,
+    "y": -0.84593,
+    "max_responsibility": 0.5225
+  },
+  {
+    "object_id": "TOI-00360",
+    "x": 0.60769,
+    "y": -0.77376,
+    "max_responsibility": 0.726
+  },
+  {
+    "object_id": "TOI-00361",
+    "x": 0.76725,
+    "y": -0.66622,
+    "max_responsibility": 0.9295
+  },
+  {
+    "object_id": "TOI-00362",
+    "x": 0.90717,
+    "y": -0.5255,
+    "max_responsibility": 0.5775
+  },
+  {
+    "object_id": "TOI-00363",
+    "x": 1.02056,
+    "y": -0.35532,
+    "max_responsibility": 0.781
+  },
+  {
+    "object_id": "TOI-00364",
+    "x": 1.10122,
+    "y": -0.16085,
+    "max_responsibility": 0.9845
+  },
+  {
+    "object_id": "TOI-00365",
+    "x": 1.144,
+    "y": 0.05147,
+    "max_responsibility": 0.6325
+  },
+  {
+    "object_id": "TOI-00366",
+    "x": 1.14507,
+    "y": 0.27411,
+    "max_responsibility": 0.836
+  },
+  {
+    "object_id": "TOI-00367",
+    "x": 1.10208,
+    "y": 0.49873,
+    "max_responsibility": 0.484
+  },
+  {
+    "object_id": "TOI-00368",
+    "x": 1.01441,
+    "y": 0.71651,
+    "max_responsibility": 0.6875
+  },
+  {
+    "object_id": "TOI-00369",
+    "x": 0.88319,
+    "y": 0.91844,
+    "max_responsibility": 0.891
+  },
+  {
+    "object_id": "TOI-00370",
+    "x": 0.71141,
+    "y": 1.09577,
+    "max_responsibility": 0.539
+  },
+  {
+    "object_id": "TOI-00371",
+    "x": 0.5038,
+    "y": 1.24029,
+    "max_responsibility": 0.7425
+  },
+  {
+    "object_id": "TOI-00372",
+    "x": 0.26677,
+    "y": 1.34476,
+    "max_responsibility": 0.946
+  },
+  {
+    "object_id": "TOI-00373",
+    "x": 0.00819,
+    "y": 1.4032,
+    "max_responsibility": 0.594
+  },
+  {
+    "object_id": "TOI-00374",
+    "x": -0.26287,
+    "y": 1.41121,
+    "max_responsibility": 0.7975
+  },
+  {
+    "object_id": "TOI-00375",
+    "x": -0.53645,
+    "y": 1.36619,
+    "max_responsibility": 0.4455
+  },
+  {
+    "object_id": "TOI-00376",
+    "x": -0.80207,
+    "y": 1.26755,
+    "max_responsibility": 0.649
+  },
+  {
+    "object_id": "TOI-00377",
+    "x": -1.04911,
+    "y": 1.11678,
+    "max_responsibility": 0.8525
+  },
+  {
+    "object_id": "TOI-00378",
+    "x": -1.26727,
+    "y": 0.91746,
+    "max_responsibility": 0.5005
+  },
+  {
+    "object_id": "TOI-00379",
+    "x": -1.44697,
+    "y": 0.67526,
+    "max_responsibility": 0.704
+  },
+  {
+    "object_id": "TOI-00380",
+    "x": -1.57974,
+    "y": 0.39771,
+    "max_responsibility": 0.9075
+  },
+  {
+    "object_id": "TOI-00381",
+    "x": -1.65863,
+    "y": 0.09403,
+    "max_responsibility": 0.5555
+  },
+  {
+    "object_id": "TOI-00382",
+    "x": -1.67851,
+    "y": -0.2252,
+    "max_responsibility": 0.759
+  },
+  {
+    "object_id": "TOI-00383",
+    "x": -1.63636,
+    "y": -0.5484,
+    "max_responsibility": 0.9625
+  },
+  {
+    "object_id": "TOI-00384",
+    "x": -1.53144,
+    "y": -0.86341,
+    "max_responsibility": 0.6105
+  },
+  {
+    "object_id": "TOI-00385",
+    "x": -1.36542,
+    "y": -1.15796,
+    "max_responsibility": 0.814
+  },
+  {
+    "object_id": "TOI-00386",
+    "x": -1.14238,
+    "y": -1.42013,
+    "max_responsibility": 0.462
+  },
+  {
+    "object_id": "TOI-00387",
+    "x": -0.86872,
+    "y": -1.63883,
+    "max_responsibility": 0.6655
+  },
+  {
+    "object_id": "TOI-00388",
+    "x": -0.14653,
+    "y": -0.47805,
+    "max_responsibility": 0.869
+  },
+  {
+    "object_id": "TOI-00389",
+    "x": -0.05707,
+    "y": -0.52919,
+    "max_responsibility": 0.517
+  },
+  {
+    "object_id": "TOI-00390",
+    "x": 0.04656,
+    "y": -0.56259,
+    "max_responsibility": 0.7205
+  },
+  {
+    "object_id": "TOI-00391",
+    "x": 0.16066,
+    "y": -0.57474,
+    "max_responsibility": 0.924
+  },
+  {
+    "object_id": "TOI-00392",
+    "x": 0.28071,
+    "y": -0.56293,
+    "max_responsibility": 0.572
+  },
+  {
+    "object_id": "TOI-00393",
+    "x": 0.40156,
+    "y": -0.52541,
+    "max_responsibility": 0.7755
+  },
+  {
+    "object_id": "TOI-00394",
+    "x": 0.51764,
+    "y": -0.46159,
+    "max_responsibility": 0.979
+  },
+  {
+    "object_id": "TOI-00395",
+    "x": 0.62319,
+    "y": -0.37206,
+    "max_responsibility": 0.627
+  },
+  {
+    "object_id": "TOI-00396",
+    "x": 0.71257,
+    "y": -0.25867,
+    "max_responsibility": 0.8305
+  },
+  {
+    "object_id": "TOI-00397",
+    "x": 0.78045,
+    "y": -0.12453,
+    "max_responsibility": 0.4785
+  },
+  {
+    "object_id": "TOI-00398",
+    "x": 0.82217,
+    "y": 0.02613,
+    "max_responsibility": 0.682
+  },
+  {
+    "object_id": "TOI-00399",
+    "x": 0.8339,
+    "y": 0.18803,
+    "max_responsibility": 0.8855
+  },
+  {
+    "object_id": "TOI-00400",
+    "x": 0.81295,
+    "y": 0.35505,
+    "max_responsibility": 0.5335
+  },
+  {
+    "object_id": "TOI-00401",
+    "x": 0.75785,
+    "y": 0.52045,
+    "max_responsibility": 0.737
+  },
+  {
+    "object_id": "TOI-00402",
+    "x": 0.66859,
+    "y": 0.67717,
+    "max_responsibility": 0.9405
+  },
+  {
+    "object_id": "TOI-00403",
+    "x": 0.54659,
+    "y": 0.81807,
+    "max_responsibility": 0.5885
+  },
+  {
+    "object_id": "TOI-00404",
+    "x": 0.39478,
+    "y": 0.9363,
+    "max_responsibility": 0.792
+  },
+  {
+    "object_id": "TOI-00405",
+    "x": 0.21754,
+    "y": 1.02557,
+    "max_responsibility": 0.44
+  },
+  {
+    "object_id": "TOI-00406",
+    "x": 0.02055,
+    "y": 1.08045,
+    "max_responsibility": 0.6435
+  },
+  {
+    "object_id": "TOI-00407",
+    "x": -0.18936,
+    "y": 1.09668,
+    "max_responsibility": 0.847
+  },
+  {
+    "object_id": "TOI-00408",
+    "x": -0.40446,
+    "y": 1.07136,
+    "max_responsibility": 0.495
+  },
+  {
+    "object_id": "TOI-00409",
+    "x": -0.61641,
+    "y": 1.00318,
+    "max_responsibility": 0.6985
+  },
+  {
+    "object_id": "TOI-00410",
+    "x": -0.81655,
+    "y": 0.89251,
+    "max_responsibility": 0.902
+  },
+  {
+    "object_id": "TOI-00411",
+    "x": -0.99629,
+    "y": 0.7415,
+    "max_responsibility": 0.55
+  },
+  {
+    "object_id": "TOI-00412",
+    "x": -1.14745,
+    "y": 0.55402,
+    "max_responsibility": 0.7535
+  },
+  {
+    "object_id": "TOI-00413",
+    "x": -1.2626,
+    "y": 0.33563,
+    "max_responsibility": 0.957
+  },
+  {
+    "object_id": "TOI-00414",
+    "x": -1.33545,
+    "y": 0.09339,
+    "max_responsibility": 0.605
+  },
+  {
+    "object_id": "TOI-00415",
+    "x": -1.36108,
+    "y": -0.16437,
+    "max_responsibility": 0.8085
+  },
+  {
+    "object_id": "TOI-00416",
+    "x": -1.33626,
+    "y": -0.42831,
+    "max_responsibility": 0.4565
+  },
+  {
+    "object_id": "TOI-00417",
+    "x": -1.25963,
+    "y": -0.68844,
+    "max_responsibility": 0.66
+  },
+  {
+    "object_id": "TOI-00418",
+    "x": -1.13182,
+    "y": -0.93448,
+    "max_responsibility": 0.8635
+  },
+  {
+    "object_id": "TOI-00419",
+    "x": -0.95551,
+    "y": -1.15628,
+    "max_responsibility": 0.5115
+  },
+  {
+    "object_id": "TOI-00420",
+    "x": -0.73543,
+    "y": -1.34423,
+    "max_responsibility": 0.715
+  },
+  {
+    "object_id": "TOI-00421",
+    "x": -0.47818,
+    "y": -1.48965,
+    "max_responsibility": 0.9185
+  },
+  {
+    "object_id": "TOI-00422",
+    "x": -0.19212,
+    "y": -1.58517,
+    "max_responsibility": 0.5665
+  },
+  {
+    "object_id": "TOI-00423",
+    "x": 0.11294,
+    "y": -1.62511,
+    "max_responsibility": 0.77
+  },
+  {
+    "object_id": "TOI-00424",
+    "x": 0.4261,
+    "y": -1.60572,
+    "max_responsibility": 0.9735
+  },
+  {
+    "object_id": "TOI-00425",
+    "x": 0.7357,
+    "y": -1.5254,
+    "max_responsibility": 0.6215
+  },
+  {
+    "object_id": "TOI-00426",
+    "x": 1.0298,
+    "y": -1.38489,
+    "max_responsibility": 0.825
+  },
+  {
+    "object_id": "TOI-00427",
+    "x": 1.2966,
+    "y": -1.18727,
+    "max_responsibility": 0.473
+  },
+  {
+    "object_id": "TOI-00428",
+    "x": 1.52497,
+    "y": -0.93793,
+    "max_responsibility": 0.6765
+  },
+  {
+    "object_id": "TOI-00429",
+    "x": 1.70484,
+    "y": -0.64445,
+    "max_responsibility": 0.88
+  },
+  {
+    "object_id": "TOI-00430",
+    "x": 1.82766,
+    "y": -0.31638,
+    "max_responsibility": 0.528
+  },
+  {
+    "object_id": "TOI-00431",
+    "x": 0.49991,
+    "y": 0.00929,
+    "max_responsibility": 0.7315
+  },
+  {
+    "object_id": "TOI-00432",
+    "x": 0.52072,
+    "y": 0.11022,
+    "max_responsibility": 0.935
+  },
+  {
+    "object_id": "TOI-00433",
+    "x": 0.52026,
+    "y": 0.2191,
+    "max_responsibility": 0.583
+  },
+  {
+    "object_id": "TOI-00434",
+    "x": 0.49635,
+    "y": 0.33132,
+    "max_responsibility": 0.7865
+  },
+  {
+    "object_id": "TOI-00435",
+    "x": 0.44781,
+    "y": 0.44175,
+    "max_responsibility": 0.99
+  },
+  {
+    "object_id": "TOI-00436",
+    "x": 0.3746,
+    "y": 0.54496,
+    "max_responsibility": 0.638
+  },
+  {
+    "object_id": "TOI-00437",
+    "x": 0.27786,
+    "y": 0.63546,
+    "max_responsibility": 0.8415
+  },
+  {
+    "object_id": "TOI-00438",
+    "x": 0.15995,
+    "y": 0.70796,
+    "max_responsibility": 0.4895
+  },
+  {
+    "object_id": "TOI-00439",
+    "x": 0.02441,
+    "y": 0.75767,
+    "max_responsibility": 0.693
+  },
+  {
+    "object_id": "TOI-00440",
+    "x": -0.12419,
+    "y": 0.7805,
+    "max_responsibility": 0.8965
+  },
+  {
+    "object_id": "TOI-00441",
+    "x": -0.28036,
+    "y": 0.77333,
+    "max_responsibility": 0.5445
+  },
+  {
+    "object_id": "TOI-00442",
+    "x": -0.43789,
+    "y": 0.73417,
+    "max_responsibility": 0.748
+  },
+  {
+    "object_id": "TOI-00443",
+    "x": -0.59012,
+    "y": 0.66234,
+    "max_responsibility": 0.9515
+  },
+  {
+    "object_id": "TOI-00444",
+    "x": -0.73021,
+    "y": 0.55858,
+    "max_responsibility": 0.5995
+  },
+  {
+    "object_id": "TOI-00445",
+    "x": -0.85142,
+    "y": 0.42502,
+    "max_responsibility": 0.803
+  },
+  {
+    "object_id": "TOI-00446",
+    "x": -0.94743,
+    "y": 0.26527,
+    "max_responsibility": 0.451
+  },
+  {
+    "object_id": "TOI-00447",
+    "x": -1.01263,
+    "y": 0.08424,
+    "max_responsibility": 0.6545
+  },
+  {
+    "object_id": "TOI-00448",
+    "x": -1.04239,
+    "y": -0.11196,
+    "max_responsibility": 0.858
+  },
+  {
+    "object_id": "TOI-00449",
+    "x": -1.03333,
+    "y": -0.31625,
+    "max_responsibility": 0.506
+  },
+  {
+    "object_id": "TOI-00450",
+    "x": -0.98352,
+    "y": -0.52081,
+    "max_responsibility": 0.7095
+  },
+  {
+    "object_id": "TOI-00451",
+    "x": -0.8926,
+    "y": -0.71739,
+    "max_responsibility": 0.913
+  },
+  {
+    "object_id": "TOI-00452",
+    "x": -0.76193,
+    "y": -0.89765,
+    "max_responsibility": 0.561
+  },
+  {
+    "object_id": "TOI-00453",
+    "x": -0.59454,
+    "y": -1.05349,
+    "max_responsibility": 0.7645
+  },
+  {
+    "object_id": "TOI-00454",
+    "x": -0.39515,
+    "y": -1.1774,
+    "max_responsibility": 0.968
+  },
+  {
+    "object_id": "TOI-00455",
+    "x": -0.16998,
+    "y": -1.26281,
+    "max_responsibility": 0.616
+  },
+  {
+    "object_id": "TOI-00456",
+    "x": 0.07339,
+    "y": -1.30439,
+    "max_responsibility": 0.8195
+  },
+  {
+    "object_id": "TOI-00457",
+    "x": 0.32627,
+    "y": -1.29834,
+    "max_responsibility": 0.4675
+  },
+  {
+    "object_id": "TOI-00458",
+    "x": 0.57923,
+    "y": -1.24259,
+    "max_responsibility": 0.671
+  },
+  {
+    "object_id": "TOI-00459",
+    "x": 0.82239,
+    "y": -1.13698,
+    "max_responsibility": 0.8745
+  },
+  {
+    "object_id": "TOI-00460",
+    "x": 1.04582,
+    "y": -0.9833,
+    "max_responsibility": 0.5225
+  },
+  {
+    "object_id": "TOI-00461",
+    "x": 1.23996,
+    "y": -0.78535,
+    "max_responsibility": 0.726
+  },
+  {
+    "object_id": "TOI-00462",
+    "x": 1.39598,
+    "y": -0.54884,
+    "max_responsibility": 0.9295
+  },
+  {
+    "object_id": "TOI-00463",
+    "x": 1.50623,
+    "y": -0.28124,
+    "max_responsibility": 0.5775
+  },
+  {
+    "object_id": "TOI-00464",
+    "x": 1.56449,
+    "y": 0.00846,
+    "max_responsibility": 0.781
+  },
+  {
+    "object_id": "TOI-00465",
+    "x": 1.56639,
+    "y": 0.31004,
+    "max_responsibility": 0.9845
+  },
+  {
+    "object_id": "TOI-00466",
+    "x": 1.50954,
+    "y": 0.61241,
+    "max_responsibility": 0.6325
+  },
+  {
+    "object_id": "TOI-00467",
+    "x": 1.39378,
+    "y": 0.90403,
+    "max_responsibility": 0.836
+  },
+  {
+    "object_id": "TOI-00468",
+    "x": 1.22122,
+    "y": 1.17334,
+    "max_responsibility": 0.484
+  },
+  {
+    "object_id": "TOI-00469",
+    "x": 0.99627,
+    "y": 1.4092,
+    "max_responsibility": 0.6875
+  },
+  {
+    "object_id": "TOI-00470",
+    "x": 0.72551,
+    "y": 1.60138,
+    "max_responsibility": 0.891
+  },
+  {
+    "object_id": "TOI-00471",
+    "x": 0.41754,
+    "y": 1.74095,
+    "max_responsibility": 0.539
+  },
+  {
+    "object_id": "TOI-00472",
+    "x": 0.0827,
+    "y": 1.8207,
+    "max_responsibility": 0.7425
+  },
+  {
+    "object_id": "TOI-00473",
+    "x": -0.26729,
+    "y": 1.83548,
+    "max_responsibility": 0.946
+  },
+  {
+    "object_id": "TOI-00474",
+    "x": -0.1642,
+    "y": 0.47227,
+    "max_responsibility": 0.594
+  },
+  {
+    "object_id": "TOI-00475",
+    "x": -0.26659,
+    "y": 0.46068,
+    "max_responsibility": 0.7975
+  },
+  {
+    "object_id": "TOI-00476",
+    "x": -0.36994,
+    "y": 0.42641,
+    "max_responsibility": 0.4455
+  },
+  {
+    "object_id": "TOI-00477",
+    "x": -0.46917,
+    "y": 0.3688,
+    "max_responsibility": 0.649
+  },
+  {
+    "object_id": "TOI-00478",
+    "x": -0.55905,
+    "y": 0.28834,
+    "max_responsibility": 0.8525
+  },
+  {
+    "object_id": "TOI-00479",
+    "x": -0.63439,
+    "y": 0.18668,
+    "max_responsibility": 0.5005
+  },
+  {
+    "object_id": "TOI-00480",
+    "x": -0.69034,
+    "y": 0.06661,
+    "max_responsibility": 0.704
+  },
+  {
+    "object_id": "TOI-00481",
+    "x": -0.72261,
+    "y": -0.06799,
+    "max_responsibility": 0.9075
+  },
+  {
+    "object_id": "TOI-00482",
+    "x": -0.72774,
+    "y": -0.21227,
+    "max_responsibility": 0.5555
+  },
+  {
+    "object_id": "TOI-00483",
+    "x": -0.70326,
+    "y": -0.36061,
+    "max_responsibility": 0.759
+  },
+  {
+    "object_id": "TOI-00484",
+    "x": -0.6479,
+    "y": -0.50681,
+    "max_responsibility": 0.9625
+  },
+  {
+    "object_id": "TOI-00485",
+    "x": -0.56173,
+    "y": -0.64437,
+    "max_responsibility": 0.6105
+  },
+  {
+    "object_id": "TOI-00486",
+    "x": -0.44615,
+    "y": -0.76674,
+    "max_responsibility": 0.814
+  },
+  {
+    "object_id": "TOI-00487",
+    "x": -0.30398,
+    "y": -0.86765,
+    "max_responsibility": 0.462
+  },
+  {
+    "object_id": "TOI-00488",
+    "x": -0.13937,
+    "y": -0.94135,
+    "max_responsibility": 0.6655
+  },
+  {
+    "object_id": "TOI-00489",
+    "x": 0.04231,
+    "y": -0.98296,
+    "max_responsibility": 0.869
+  },
+  {
+    "object_id": "TOI-00490",
+    "x": 0.23464,
+    "y": -0.98867,
+    "max_responsibility": 0.517
+  },
+  {
+    "object_id": "TOI-00491",
+    "x": 0.43038,
+    "y": -0.95598,
+    "max_responsibility": 0.7205
+  },
+  {
+    "object_id": "TOI-00492",
+    "x": 0.62174,
+    "y": -0.88388,
+    "max_responsibility": 0.924
+  },
+  {
+    "object_id": "TOI-00493",
+    "x": 0.80068,
+    "y": -0.77296,
+    "max_responsibility": 0.572
+  },
+  {
+    "object_id": "TOI-00494",
+    "x": 0.95928,
+    "y": -0.62545,
+    "max_responsibility": 0.7755
+  },
+  {
+    "object_id": "TOI-00495",
+    "x": 1.09,
+    "y": -0.44522,
+    "max_responsibility": 0.979
+  },
+  {
+    "object_id": "TOI-00496",
+    "x": 1.1861,
+    "y": -0.23769,
+    "max_responsibility": 0.627
+  },
+  {
+    "object_id": "TOI-00497",
+    "x": 1.2419,
+    "y": -0.00966,
+    "max_responsibility": 0.8305
+  },
+  {
+    "object_id": "TOI-00498",
+    "x": 1.2531,
+    "y": 0.2309,
+    "max_responsibility": 0.4785
+  },
+  {
+    "object_id": "TOI-00499",
+    "x": 1.21699,
+    "y": 0.47514,
+    "max_responsibility": 0.682
+  },
+  {
+    "object_id": "TOI-00500",
+    "x": 1.13265,
+    "y": 0.71362,
+    "max_responsibility": 0.8855
+  },
+  {
+    "object_id": "TOI-00501",
+    "x": 1.00104,
+    "y": 0.93673,
+    "max_responsibility": 0.5335
+  },
+  {
+    "object_id": "TOI-00502",
+    "x": 0.82509,
+    "y": 1.13502,
+    "max_responsibility": 0.737
+  },
+  {
+    "object_id": "TOI-00503",
+    "x": 0.60958,
+    "y": 1.29963,
+    "max_responsibility": 0.9405
+  },
+  {
+    "object_id": "TOI-00504",
+    "x": 0.3611,
+    "y": 1.42263,
+    "max_responsibility": 0.5885
+  },
+  {
+    "object_id": "TOI-00505",
+    "x": 0.08781,
+    "y": 1.49743,
+    "max_responsibility": 0.792
+  },
+  {
+    "object_id": "TOI-00506",
+    "x": -0.2008,
+    "y": 1.51904,
+    "max_responsibility": 0.44
+  },
+  {
+    "object_id": "TOI-00507",
+    "x": -0.49426,
+    "y": 1.48439,
+    "max_responsibility": 0.6435
+  },
+  {
+    "object_id": "TOI-00508",
+    "x": -0.78149,
+    "y": 1.39246,
+    "max_responsibility": 0.847
+  },
+  {
+    "object_id": "TOI-00509",
+    "x": -1.05122,
+    "y": 1.24446,
+    "max_responsibility": 0.495
+  },
+  {
+    "object_id": "TOI-00510",
+    "x": -1.29243,
+    "y": 1.0438,
+    "max_responsibility": 0.6985
+  },
+  {
+    "object_id": "TOI-00511",
+    "x": -1.49477,
+    "y": 0.79609,
+    "max_responsibility": 0.902
+  },
+  {
+    "object_id": "TOI-00512",
+    "x": -1.64905,
+    "y": 0.50898,
+    "max_responsibility": 0.55
+  },
+  {
+    "object_id": "TOI-00513",
+    "x": -1.74756,
+    "y": 0.1919,
+    "max_responsibility": 0.7535
+  },
+  {
+    "object_id": "TOI-00514",
+    "x": -1.78451,
+    "y": -0.14419,
+    "max_responsibility": 0.957
+  },
+  {
+    "object_id": "TOI-00515",
+    "x": -1.75624,
+    "y": -0.48724,
+    "max_responsibility": 0.605
+  },
+  {
+    "object_id": "TOI-00516",
+    "x": -1.66152,
+    "y": -0.8245,
+    "max_responsibility": 0.8085
+  },
+  {
+    "object_id": "TOI-00517",
+    "x": -0.39785,
+    "y": -0.30284,
+    "max_responsibility": 0.4565
+  },
+  {
+    "object_id": "TOI-00518",
+    "x": -0.35501,
+    "y": -0.39657,
+    "max_responsibility": 0.66
+  },
+  {
+    "object_id": "TOI-00519",
+    "x": -0.29032,
+    "y": -0.48414,
+    "max_responsibility": 0.8635
+  },
+  {
+    "object_id": "TOI-00520",
+    "x": -0.20473,
+    "y": -0.56056,
+    "max_responsibility": 0.5115
+  },
+  {
+    "object_id": "TOI-00521",
+    "x": -0.10032,
+    "y": -0.62098,
+    "max_responsibility": 0.715
+  },
+  {
+    "object_id": "TOI-00522",
+    "x": 0.01972,
+    "y": -0.661,
+    "max_responsibility": 0.9185
+  },
+  {
+    "object_id": "TOI-00523",
+    "x": 0.15124,
+    "y": -0.67686,
+    "max_responsibility": 0.5665
+  },
+  {
+    "object_id": "TOI-00524",
+    "x": 0.2892,
+    "y": -0.6657,
+    "max_responsibility": 0.77
+  },
+  {
+    "object_id": "TOI-00525",
+    "x": 0.42793,
+    "y": -0.62573,
+    "max_responsibility": 0.9735
+  },
+  {
+    "object_id": "TOI-00526",
+    "x": 0.56131,
+    "y": -0.55636,
+    "max_responsibility": 0.6215
+  },
+  {
+    "object_id": "TOI-00527",
+    "x": 0.68307,
+    "y": -0.45831,
+    "max_responsibility": 0.825
+  },
+  {
+    "object_id": "TOI-00528",
+    "x": 0.78704,
+    "y": -0.33365,
+    "max_responsibility": 0.473
+  },
+  {
+    "object_id": "TOI-00529",
+    "x": 0.86743,
+    "y": -0.18576,
+    "max_responsibility": 0.6765
+  },
+  {
+    "object_id": "TOI-00530",
+    "x": 0.91915,
+    "y": -0.01927,
+    "max_responsibility": 0.88
+  },
+  {
+    "object_id": "TOI-00531",
+    "x": 0.93805,
+    "y": 0.16009,
+    "max_responsibility": 0.528
+  },
+  {
+    "object_id": "TOI-00532",
+    "x": 0.92114,
+    "y": 0.3457,
+    "max_responsibility": 0.7315
+  },
+  {
+    "object_id": "TOI-00533",
+    "x": 0.86679,
+    "y": 0.53028,
+    "max_responsibility": 0.935
+  },
+  {
+    "object_id": "TOI-00534",
+    "x": 0.77488,
+    "y": 0.70617,
+    "max_responsibility": 0.583
+  },
+  {
+    "object_id": "TOI-00535",
+    "x": 0.64688,
+    "y": 0.86564,
+    "max_responsibility": 0.7865
+  },
+  {
+    "object_id": "TOI-00536",
+    "x": 0.48584,
+    "y": 1.00126,
+    "max_responsibility": 0.99
+  },
+  {
+    "object_id": "TOI-00537",
+    "x": 0.29635,
+    "y": 1.10615,
+    "max_responsibility": 0.638
+  },
+  {
+    "object_id": "TOI-00538",
+    "x": 0.08442,
+    "y": 1.17439,
+    "max_responsibility": 0.8415
+  },
+  {
+    "object_id": "TOI-00539",
+    "x": -0.1427,
+    "y": 1.20123,
+    "max_responsibility": 0.4895
+  },
+  {
+    "object_id": "TOI-00540",
+    "x": -0.37678,
+    "y": 1.1834,
+    "max_responsibility": 0.693
+  },
+  {
+    "object_id": "TOI-00541",
+    "x": -0.60891,
+    "y": 1.11928,
+    "max_responsibility": 0.8965
+  },
+  {
+    "object_id": "TOI-00542",
+    "x": -0.82983,
+    "y": 1.00906,
+    "max_responsibility": 0.5445
+  },
+  {
+    "object_id": "TOI-00543",
+    "x": -1.03029,
+    "y": 0.85478,
+    "max_responsibility": 0.748
+  },
+  {
+    "object_id": "TOI-00544",
+    "x": -1.20145,
+    "y": 0.66035,
+    "max_responsibility": 0.9515
+  },
+  {
+    "object_id": "TOI-00545",
+    "x": -1.33524,
+    "y": 0.43148,
+    "max_responsibility": 0.5995
+  },
+  {
+    "object_id": "TOI-00546",
+    "x": -1.42472,
+    "y": 0.17549,
+    "max_responsibility": 0.803
+  },
+  {
+    "object_id": "TOI-00547",
+    "x": -1.46441,
+    "y": -0.09891,
+    "max_responsibility": 0.451
+  },
+  {
+    "object_id": "TOI-00548",
+    "x": -1.45057,
+    "y": -0.38191,
+    "max_responsibility": 0.6545
+  },
+  {
+    "object_id": "TOI-00549",
+    "x": -1.38142,
+    "y": -0.66295,
+    "max_responsibility": 0.858
+  },
+  {
+    "object_id": "TOI-00550",
+    "x": -1.25728,
+    "y": -0.93111,
+    "max_responsibility": 0.506
+  },
+  {
+    "object_id": "TOI-00551",
+    "x": -1.08063,
+    "y": -1.17555,
+    "max_responsibility": 0.7095
+  },
+  {
+    "object_id": "TOI-00552",
+    "x": -0.85613,
+    "y": -1.38593,
+    "max_responsibility": 0.913
+  },
+  {
+    "object_id": "TOI-00553",
+    "x": -0.59044,
+    "y": -1.55282,
+    "max_responsibility": 0.561
+  },
+  {
+    "object_id": "TOI-00554",
+    "x": -0.29211,
+    "y": -1.66817,
+    "max_responsibility": 0.7645
+  },
+  {
+    "object_id": "TOI-00555",
+    "x": 0.02873,
+    "y": -1.72557,
+    "max_responsibility": 0.968
+  },
+  {
+    "object_id": "TOI-00556",
+    "x": 0.36072,
+    "y": -1.72066,
+    "max_responsibility": 0.616
+  },
+  {
+    "object_id": "TOI-00557",
+    "x": 0.69165,
+    "y": -1.65133,
+    "max_responsibility": 0.8195
+  },
+  {
+    "object_id": "TOI-00558",
+    "x": 1.00893,
+    "y": -1.51785,
+    "max_responsibility": 0.4675
+  },
+  {
+    "object_id": "TOI-00559",
+    "x": 1.30004,
+    "y": -1.323,
+    "max_responsibility": 0.671
+  },
+  {
+    "object_id": "TOI-00560",
+    "x": 0.41149,
+    "y": -0.28403,
+    "max_responsibility": 0.8745
+  },
+  {
+    "object_id": "TOI-00561",
+    "x": 0.48726,
+    "y": -0.21419,
+    "max_responsibility": 0.5225
+  },
+  {
+    "object_id": "TOI-00562",
+    "x": 0.55039,
+    "y": -0.12548,
+    "max_responsibility": 0.726
+  },
+  {
+    "object_id": "TOI-00563",
+    "x": 0.59643,
+    "y": -0.02038,
+    "max_responsibility": 0.9295
+  },
+  {
+    "object_id": "TOI-00564",
+    "x": 0.62141,
+    "y": 0.09764,
+    "max_responsibility": 0.5775
+  },
+  {
+    "object_id": "TOI-00565",
+    "x": 0.62213,
+    "y": 0.22417,
+    "max_responsibility": 0.781
+  },
+  {
+    "object_id": "TOI-00566",
+    "x": 0.59634,
+    "y": 0.35411,
+    "max_responsibility": 0.9845
+  },
+  {
+    "object_id": "TOI-00567",
+    "x": 0.54286,
+    "y": 0.48177,
+    "max_responsibility": 0.6325
+  },
+  {
+    "object_id": "TOI-00568",
+    "x": 0.46175,
+    "y": 0.60121,
+    "max_responsibility": 0.836
+  },
+  {
+    "object_id": "TOI-00569",
+    "x": 0.35436,
+    "y": 0.70643,
+    "max_responsibility": 0.484
+  },
+  {
+    "object_id": "TOI-00570",
+    "x": 0.22333,
+    "y": 0.79168,
+    "max_responsibility": 0.6875
+  },
+  {
+    "object_id": "TOI-00571",
+    "x": 0.07253,
+    "y": 0.85176,
+    "max_responsibility": 0.891
+  },
+  {
+    "object_id": "TOI-00572",
+    "x": -0.09302,
+    "y": 0.88221,
+    "max_responsibility": 0.539
+  },
+  {
+    "object_id": "TOI-00573",
+    "x": -0.26734,
+    "y": 0.87963,
+    "max_responsibility": 0.7425
+  },
+  {
+    "object_id": "TOI-00574",
+    "x": -0.44369,
+    "y": 0.84184,
+    "max_responsibility": 0.946
+  },
+  {
+    "object_id": "TOI-00575",
+    "x": -0.61486,
+    "y": 0.76808,
+    "max_responsibility": 0.594
+  },
+  {
+    "object_id": "TOI-00576",
+    "x": -0.77341,
+    "y": 0.65906,
+    "max_responsibility": 0.7975
+  },
+  {
+    "object_id": "TOI-00577",
+    "x": -0.91202,
+    "y": 0.51704,
+    "max_responsibility": 0.4455
+  },
+  {
+    "object_id": "TOI-00578",
+    "x": -1.02382,
+    "y": 0.34582,
+    "max_responsibility": 0.649
+  },
+  {
+    "object_id": "TOI-00579",
+    "x": -1.10267,
+    "y": 0.15061,
+    "max_responsibility": 0.8525
+  },
+  {
+    "object_id": "TOI-00580",
+    "x": -1.14348,
+    "y": -0.0621,
+    "max_responsibility": 0.5005
+  },
+  {
+    "object_id": "TOI-00581",
+    "x": -1.14247,
+    "y": -0.28474,
+    "max_responsibility": 0.704
+  },
+  {
+    "object_id": "TOI-00582",
+    "x": -1.0974,
+    "y": -0.50896,
+    "max_responsibility": 0.9075
+  },
+  {
+    "object_id": "TOI-00583",
+    "x": -1.0077,
+    "y": -0.7259,
+    "max_responsibility": 0.5555
+  },
+  {
+    "object_id": "TOI-00584",
+    "x": -0.87462,
+    "y": -0.92661,
+    "max_responsibility": 0.759
+  },
+  {
+    "object_id": "TOI-00585",
+    "x": -0.70119,
+    "y": -1.10234,
+    "max_responsibility": 0.9625
+  },
+  {
+    "object_id": "TOI-00586",
+    "x": -0.49225,
+    "y": -1.24492,
+    "max_responsibility": 0.6105
+  },
+  {
+    "object_id": "TOI-00587",
+    "x": -0.25426,
+    "y": -1.34718,
+    "max_responsibility": 0.814
+  },
+  {
+    "object_id": "TOI-00588",
+    "x": 0.00486,
+    "y": -1.40322,
+    "max_responsibility": 0.462
+  },
+  {
+    "object_id": "TOI-00589",
+    "x": 0.27598,
+    "y": -1.4087,
+    "max_responsibility": 0.6655
+  },
+  {
+    "object_id": "TOI-00590",
+    "x": 0.54913,
+    "y": -1.36115,
+    "max_responsibility": 0.869
+  },
+  {
+    "object_id": "TOI-00591",
+    "x": 0.81381,
+    "y": -1.26004,
+    "max_responsibility": 0.517
+  },
+  {
+    "object_id": "TOI-00592",
+    "x": 1.05944,
+    "y": -1.10698,
+    "max_responsibility": 0.7205
+  },
+  {
+    "object_id": "TOI-00593",
+    "x": 1.27574,
+    "y": -0.90564,
+    "max_responsibility": 0.924
+  },
+  {
+    "object_id": "TOI-00594",
+    "x": 1.45318,
+    "y": -0.66178,
+    "max_responsibility": 0.572
+  },
+  {
+    "object_id": "TOI-00595",
+    "x": 1.58337,
+    "y": -0.38301,
+    "max_responsibility": 0.7755
+  },
+  {
+    "object_id": "TOI-00596",
+    "x": 1.65943,
+    "y": -0.07861,
+    "max_responsibility": 0.979
+  },
+  {
+    "object_id": "TOI-00597",
+    "x": 1.67634,
+    "y": 0.24079,
+    "max_responsibility": 0.627
+  },
+  {
+    "object_id": "TOI-00598",
+    "x": 1.63119,
+    "y": 0.56358,
+    "max_responsibility": 0.8305
+  },
+  {
+    "object_id": "TOI-00599",
+    "x": 1.52335,
+    "y": 0.87761,
+    "max_responsibility": 0.4785
+  },
+  {
+    "object_id": "TOI-00600",
+    "x": 1.3546,
+    "y": 1.17061,
+    "max_responsibility": 0.682
+  },
+  {
+    "object_id": "TOI-00601",
+    "x": 1.12913,
+    "y": 1.43069,
+    "max_responsibility": 0.8855
+  },
+  {
+    "object_id": "TOI-00602",
+    "x": 0.85345,
+    "y": 1.64683,
+    "max_responsibility": 0.5335
+  },
+  {
+    "object_id": "TOI-00603",
+    "x": 0.14208,
+    "y": 0.47939,
+    "max_responsibility": 0.737
+  },
+  {
+    "object_id": "TOI-00604",
+    "x": 0.05215,
+    "y": 0.5297,
+    "max_responsibility": 0.9405
+  },
+  {
+    "object_id": "TOI-00605",
+    "x": -0.05179,
+    "y": 0.56214,
+    "max_responsibility": 0.5885
+  },
+  {
+    "object_id": "TOI-00606",
+    "x": -0.16599,
+    "y": 0.57322,
+    "max_responsibility": 0.792
+  },
+  {
+    "object_id": "TOI-00607",
+    "x": -0.28593,
+    "y": 0.56029,
+    "max_responsibility": 0.44
+  },
+  {
+    "object_id": "TOI-00608",
+    "x": -0.40642,
+    "y": 0.52166,
+    "max_responsibility": 0.6435
+  },
+  {
+    "object_id": "TOI-00609",
+    "x": -0.5219,
+    "y": 0.45676,
+    "max_responsibility": 0.847
+  },
+  {
+    "object_id": "TOI-00610",
+    "x": -0.62662,
+    "y": 0.36625,
+    "max_responsibility": 0.495
+  },
+  {
+    "object_id": "TOI-00611",
+    "x": -0.71494,
+    "y": 0.25204,
+    "max_responsibility": 0.6985
+  },
+  {
+    "object_id": "TOI-00612",
+    "x": -0.78157,
+    "y": 0.11727,
+    "max_responsibility": 0.902
+  },
+  {
+    "object_id": "TOI-00613",
+    "x": -0.82189,
+    "y": -0.03378,
+    "max_responsibility": 0.55
+  },
+  {
+    "object_id": "TOI-00614",
+    "x": -0.83212,
+    "y": -0.19578,
+    "max_responsibility": 0.7535
+  },
+  {
+    "object_id": "TOI-00615",
+    "x": -0.80961,
+    "y": -0.36259,
+    "max_responsibility": 0.957
+  },
+  {
+    "object_id": "TOI-00616",
+    "x": -0.75298,
+    "y": -0.52748,
+    "max_responsibility": 0.605
+  },
+  {
+    "object_id": "TOI-00617",
+    "x": -0.66226,
+    "y": -0.68336,
+    "max_responsibility": 0.8085
+  },
+  {
+    "object_id": "TOI-00618",
+    "x": -0.53896,
+    "y": -0.82312,
+    "max_responsibility": 0.4565
+  },
+  {
+    "object_id": "TOI-00619",
+    "x": -0.38606,
+    "y": -0.93993,
+    "max_responsibility": 0.66
+  },
+  {
+    "object_id": "TOI-00620",
+    "x": -0.208,
+    "y": -1.02755,
+    "max_responsibility": 0.8635
+  },
+  {
+    "object_id": "TOI-00621",
+    "x": -0.01051,
+    "y": -1.08059,
+    "max_responsibility": 0.5115
+  },
+  {
+    "object_id": "TOI-00622",
+    "x": 0.19954,
+    "y": -1.09487,
+    "max_responsibility": 0.715
+  },
+  {
+    "object_id": "TOI-00623",
+    "x": 0.4144,
+    "y": -1.06755,
+    "max_responsibility": 0.9185
+  },
+  {
+    "object_id": "TOI-00624",
+    "x": 0.6257,
+    "y": -0.9974,
+    "max_responsibility": 0.5665
+  },
+  {
+    "object_id": "TOI-00625",
+    "x": 0.82481,
+    "y": -0.88488,
+    "max_responsibility": 0.77
+  },
+  {
+    "object_id": "TOI-00626",
+    "x": 1.00314,
+    "y": -0.7322,
+    "max_responsibility": 0.9735
+  },
+  {
+    "object_id": "TOI-00627",
+    "x": 1.15255,
+    "y": -0.54333,
+    "max_responsibility": 0.6215
+  },
+  {
+    "object_id": "TOI-00628",
+    "x": 1.26567,
+    "y": -0.32388,
+    "max_responsibility": 0.825
+  },
+  {
+    "object_id": "TOI-00629",
+    "x": 1.33626,
+    "y": -0.08097,
+    "max_responsibility": 0.473
+  },
+  {
+    "object_id": "TOI-00630",
+    "x": 1.35949,
+    "y": 0.17702,
+    "max_responsibility": 0.6765
+  },
+  {
+    "object_id": "TOI-00631",
+    "x": 1.33222,
+    "y": 0.44071,
+    "max_responsibility": 0.88
+  },
+  {
+    "object_id": "TOI-00632",
+    "x": 1.25318,
+    "y": 0.70012,
+    "max_responsibility": 0.528
+  },
+  {
+    "object_id": "TOI-00633",
+    "x": 1.12308,
+    "y": 0.94496,
+    "max_responsibility": 0.7315
+  },
+  {
+    "object_id": "TOI-00634",
+    "x": 0.94473,
+    "y": 1.16512,
+    "max_responsibility": 0.935
+  },
+  {
+    "object_id": "TOI-00635",
+    "x": 0.7229,
+    "y": 1.35101,
+    "max_responsibility": 0.583
+  },
+  {
+    "object_id": "TOI-00636",
+    "x": 0.46431,
+    "y": 1.49403,
+    "max_responsibility": 0.7865
+  },
+  {
+    "object_id": "TOI-00637",
+    "x": 0.17738,
+    "y": 1.58689,
+    "max_responsibility": 0.99
+  },
+  {
+    "object_id": "TOI-00638",
+    "x": -0.12804,
+    "y": 1.62399,
+    "max_responsibility": 0.638
+  },
+  {
+    "object_id": "TOI-00639",
+    "x": -0.44101,
+    "y": 1.60169,
+    "max_responsibility": 0.8415
+  },
+  {
+    "object_id": "TOI-00640",
+    "x": -0.74985,
+    "y": 1.5185,
+    "max_responsibility": 0.4895
+  },
+  {
+    "object_id": "TOI-00641",
+    "x": -1.04262,
+    "y": 1.37526,
+    "max_responsibility": 0.693
+  },
+  {
+    "object_id": "TOI-00642",
+    "x": -1.30758,
+    "y": 1.17517,
+    "max_responsibility": 0.8965
+  },
+  {
+    "object_id": "TOI-00643",
+    "x": -1.53363,
+    "y": 0.92371,
+    "max_responsibility": 0.5445
+  },
+  {
+    "object_id": "TOI-00644",
+    "x": -1.71076,
+    "y": 0.62858,
+    "max_responsibility": 0.748
+  },
+  {
+    "object_id": "TOI-00645",
+    "x": -1.83052,
+    "y": 0.29938,
+    "max_responsibility": 0.9515
+  },
+  {
+    "object_id": "TOI-00646",
+    "x": -0.49981,
+    "y": -0.01394,
+    "max_responsibility": 0.5995
+  },
+  {
+    "object_id": "TOI-00647",
+    "x": -0.51967,
+    "y": -0.11506,
+    "max_responsibility": 0.803
+  },
+  {
+    "object_id": "TOI-00648",
+    "x": -0.5182,
+    "y": -0.22393,
+    "max_responsibility": 0.451
+  },
+  {
+    "object_id": "TOI-00649",
+    "x": -0.49325,
+    "y": -0.33592,
+    "max_responsibility": 0.6545
+  },
+  {
+    "object_id": "TOI-00650",
+    "x": -0.44368,
+    "y": -0.4459,
+    "max_responsibility": 0.858
+  },
+  {
+    "object_id": "TOI-00651",
+    "x": -0.36951,
+    "y": -0.54842,
+    "max_responsibility": 0.506
+  },
+  {
+    "object_id": "TOI-00652",
+    "x": -0.27194,
+    "y": -0.63801,
+    "max_responsibility": 0.7095
+  },
+  {
+    "object_id": "TOI-00653",
+    "x": -0.15337,
+    "y": -0.70942,
+    "max_responsibility": 0.913
+  },
+  {
+    "object_id": "TOI-00654",
+    "x": -0.01737,
+    "y": -0.75787,
+    "max_responsibility": 0.561
+  },
+  {
+    "object_id": "TOI-00655",
+    "x": 0.13144,
+    "y": -0.77932,
+    "max_responsibility": 0.7645
+  },
+  {
+    "object_id": "TOI-00656",
+    "x": 0.28753,
+    "y": -0.77069,
+    "max_responsibility": 0.968
+  },
+  {
+    "object_id": "TOI-00657",
+    "x": 0.44469,
+    "y": -0.73007,
+    "max_responsibility": 0.616
+  },
+  {
+    "object_id": "TOI-00658",
+    "x": 0.59625,
+    "y": -0.65683,
+    "max_responsibility": 0.8195
+  },
+  {
+    "object_id": "TOI-00659",
+    "x": 0.73537,
+    "y": -0.55176,
+    "max_responsibility": 0.4675
+  },
+  {
+    "object_id": "TOI-00660",
+    "x": 0.85534,
+    "y": -0.41709,
+    "max_responsibility": 0.671
+  },
+  {
+    "object_id": "TOI-00661",
+    "x": 0.94986,
+    "y": -0.25646,
+    "max_responsibility": 0.8745
+  },
+  {
+    "object_id": "TOI-00662",
+    "x": 1.01337,
+    "y": -0.07483,
+    "max_responsibility": 0.5225
+  },
+  {
+    "object_id": "TOI-00663",
+    "x": 1.04131,
+    "y": 0.12165,
+    "max_responsibility": 0.726
+  },
+  {
+    "object_id": "TOI-00664",
+    "x": 1.03035,
+    "y": 0.32584,
+    "max_responsibility": 0.9295
+  },
+  {
+    "object_id": "TOI-00665",
+    "x": 0.97864,
+    "y": 0.52993,
+    "max_responsibility": 0.5775
+  },
+  {
+    "object_id": "TOI-00666",
+    "x": 0.8859,
+    "y": 0.72566,
+    "max_responsibility": 0.781
+  },
+  {
+    "object_id": "TOI-00667",
+    "x": 0.75355,
+    "y": 0.9047,
+    "max_responsibility": 0.9845
+  },
+  {
+    "object_id": "TOI-00668",
+    "x": 0.58472,
+    "y": 1.05897,
+    "max_responsibility": 0.6325
+  },
+  {
+    "object_id": "TOI-00669",
+    "x": 0.38418,
+    "y": 1.18102,
+    "max_responsibility": 0.836
+  },
+  {
+    "object_id": "TOI-00670",
+    "x": 0.15823,
+    "y": 1.26433,
+    "max_responsibility": 0.484
+  },
+  {
+    "object_id": "TOI-00671",
+    "x": -0.08551,
+    "y": 1.30365,
+    "max_responsibility": 0.6875
+  },
+  {
+    "object_id": "TOI-00672",
+    "x": -0.33833,
+    "y": 1.29525,
+    "max_responsibility": 0.891
+  },
+  {
+    "object_id": "TOI-00673",
+    "x": -0.59076,
+    "y": 1.23716,
+    "max_responsibility": 0.539
+  },
+  {
+    "object_id": "TOI-00674",
+    "x": -0.83292,
+    "y": 1.12928,
+    "max_responsibility": 0.7425
+  },
+  {
+    "object_id": "TOI-00675",
+    "x": -1.05492,
+    "y": 0.97353,
+    "max_responsibility": 0.946
+  },
+  {
+    "object_id": "TOI-00676",
+    "x": -1.2472,
+    "y": 0.77379,
+    "max_responsibility": 0.594
+  },
+  {
+    "object_id": "TOI-00677",
+    "x": -1.40103,
+    "y": 0.53584,
+    "max_responsibility": 0.7975
+  },
+  {
+    "object_id": "TOI-00678",
+    "x": -1.50878,
+    "y": 0.26723,
+    "max_responsibility": 0.4455
+  },
+  {
+    "object_id": "TOI-00679",
+    "x": -1.56435,
+    "y": -0.023,
+    "max_responsibility": 0.649
+  },
+  {
+    "object_id": "TOI-00680",
+    "x": -1.56344,
+    "y": -0.32458,
+    "max_responsibility": 0.8525
+  },
+  {
+    "object_id": "TOI-00681",
+    "x": -1.50378,
+    "y": -0.62642,
+    "max_responsibility": 0.5005
+  },
+  {
+    "object_id": "TOI-00682",
+    "x": -1.38531,
+    "y": -0.91695,
+    "max_responsibility": 0.704
+  },
+  {
+    "object_id": "TOI-00683",
+    "x": -1.21026,
+    "y": -1.18464,
+    "max_responsibility": 0.9075
+  },
+  {
+    "object_id": "TOI-00684",
+    "x": -0.98313,
+    "y": -1.4184,
+    "max_responsibility": 0.5555
+  },
+  {
+    "object_id": "TOI-00685",
+    "x": -0.7106,
+    "y": -1.60806,
+    "max_responsibility": 0.759
+  },
+  {
+    "object_id": "TOI-00686",
+    "x": -0.40134,
+    "y": -1.74476,
+    "max_responsibility": 0.9625
+  },
+  {
+    "object_id": "TOI-00687",
+    "x": -0.06577,
+    "y": -1.82139,
+    "max_responsibility": 0.6105
+  },
+  {
+    "object_id": "TOI-00688",
+    "x": 0.28434,
+    "y": -1.83291,
+    "max_responsibility": 0.814
+  },
+  {
+    "object_id": "TOI-00689",
+    "x": 0.16858,
+    "y": -0.47072,
+    "max_responsibility": 0.462
+  },
+  {
+    "object_id": "TOI-00690",
+    "x": 0.27087,
+    "y": -0.45818,
+    "max_responsibility": 0.6655
+  },
+  {
+    "object_id": "TOI-00691",
+    "x": 0.37389,
+    "y": -0.42295,
+    "max_responsibility": 0.869
+  },
+  {
+    "object_id": "TOI-00692",
+    "x": 0.47258,
+    "y": -0.36443,
+    "max_responsibility": 0.517
+  },
+  {
+    "object_id": "TOI-00693",
+    "x": 0.56171,
+    "y": -0.28314,
+    "max_responsibility": 0.7205
+  },
+  {
+    "object_id": "TOI-00694",
+    "x": 0.6361,
+    "y": -0.18077,
+    "max_responsibility": 0.924
+  },
+  {
+    "object_id": "TOI-00695",
+    "x": 0.69093,
+    "y": -0.06019,
+    "max_responsibility": 0.572
+  },
+  {
+    "object_id": "TOI-00696",
+    "x": 0.72195,
+    "y": 0.0747,
+    "max_responsibility": 0.7755
+  },
+  {
+    "object_id": "TOI-00697",
+    "x": 0.72573,
+    "y": 0.21903,
+    "max_responsibility": 0.979
+  },
+  {
+    "object_id": "TOI-00698",
+    "x": 0.69987,
+    "y": 0.36713,
+    "max_responsibility": 0.627
+  },
+  {
+    "object_id": "TOI-00699",
+    "x": 0.64317,
+    "y": 0.51281,
+    "max_responsibility": 0.8305
+  },
+  {
+    "object_id": "TOI-00700",
+    "x": 0.55571,
+    "y": 0.64956,
+    "max_responsibility": 0.4785
+  },
+  {
+    "object_id": "TOI-00701",
+    "x": 0.439,
+    "y": 0.77086,
+    "max_responsibility": 0.682
+  },
+  {
+    "object_id": "TOI-00702",
+    "x": 0.2959,
+    "y": 0.87044,
+    "max_responsibility": 0.8855
+  },
+  {
+    "object_id": "TOI-00703",
+    "x": 0.13061,
+    "y": 0.94261,
+    "max_responsibility": 0.5335
+  },
+  {
+    "object_id": "TOI-00704",
+    "x": -0.05145,
+    "y": 0.98253,
+    "max_responsibility": 0.737
+  },
+  {
+    "object_id": "TOI-00705",
+    "x": -0.24382,
+    "y": 0.98644,
+    "max_responsibility": 0.9405
+  },
+  {
+    "object_id": "TOI-00706",
+    "x": -0.43924,
+    "y": 0.95193,
+    "max_responsibility": 0.5885
+  },
+  {
+    "object_id": "TOI-00707",
+    "x": -0.62992,
+    "y": 0.87806,
+    "max_responsibility": 0.792
+  },
+  {
+    "object_id": "TOI-00708",
+    "x": -0.80783,
+    "y": 0.76548,
+    "max_responsibility": 0.44
+  },
+  {
+    "object_id": "TOI-00709",
+    "x": -0.96505,
+    "y": 0.6165,
+    "max_responsibility": 0.6435
+  },
+  {
+    "object_id": "TOI-00710",
+    "x": -1.09409,
+    "y": 0.43507,
+    "max_responsibility": 0.847
+  },
+  {
+    "object_id": "TOI-00711",
+    "x": -1.18825,
+    "y": 0.22666,
+    "max_responsibility": 0.495
+  },
+  {
+    "object_id": "TOI-00712",
+    "x": -1.24193,
+    "y": -0.00188,
+    "max_responsibility": 0.6985
+  },
+  {
+    "object_id": "TOI-00713",
+    "x": -1.2509,
+    "y": -0.24254,
+    "max_responsibility": 0.902
+  },
+  {
+    "object_id": "TOI-00714",
+    "x": -1.21252,
+    "y": -0.48643,
+    "max_responsibility": 0.55
+  },
+  {
+    "object_id": "TOI-00715",
+    "x": -1.12596,
+    "y": -0.72412,
+    "max_responsibility": 0.7535
+  },
+  {
+    "object_id": "TOI-00716",
+    "x": -0.99229,
+    "y": -0.94599,
+    "max_responsibility": 0.957
+  },
+  {
+    "object_id": "TOI-00717",
+    "x": -0.8145,
+    "y": -1.14264,
+    "max_responsibility": 0.605
+  },
+  {
+    "object_id": "TOI-00718",
+    "x": -0.59747,
+    "y": -1.30524,
+    "max_responsibility": 0.8085
+  },
+  {
+    "object_id": "TOI-00719",
+    "x": -0.34786,
+    "y": -1.42592,
+    "max_responsibility": 0.4565
+  },
+  {
+    "object_id": "TOI-00720",
+    "x": -0.07389,
+    "y": -1.49818,
+    "max_responsibility": 0.66
+  },
+  {
+    "object_id": "TOI-00721",
+    "x": 0.21491,
+    "y": -1.51711,
+    "max_responsibility": 0.8635
+  },
+  {
+    "object_id": "TOI-00722",
+    "x": 0.50804,
+    "y": -1.47973,
+    "max_responsibility": 0.5115
+  },
+  {
+    "object_id": "TOI-00723",
+    "x": 0.7944,
+    "y": -1.38514,
+    "max_responsibility": 0.715
+  },
+  {
+    "object_id": "TOI-00724",
+    "x": 1.06275,
+    "y": -1.23463,
+    "max_responsibility": 0.9185
+  },
+  {
+    "object_id": "TOI-00725",
+    "x": 1.30208,
+    "y": -1.03174,
+    "max_responsibility": 0.5665
+  },
+  {
+    "object_id": "TOI-00726",
+    "x": 1.50211,
+    "y": -0.78216,
+    "max_responsibility": 0.77
+  },
+  {
+    "object_id": "TOI-00727",
+    "x": 1.65371,
+    "y": -0.49363,
+    "max_responsibility": 0.9735
+  },
+  {
+    "object_id": "TOI-00728",
+    "x": 1.74927,
+    "y": -0.17565,
+    "max_responsibility": 0.6215
+  },
+  {
+    "object_id": "TOI-00729",
+    "x": 1.78309,
+    "y": 0.16077,
+    "max_responsibility": 0.825
+  },
+  {
+    "object_id": "TOI-00730",
+    "x": 1.75164,
+    "y": 0.50355,
+    "max_responsibility": 0.473
+  },
+  {
+    "object_id": "TOI-00731",
+    "x": 1.65378,
+    "y": 0.8399,
+    "max_responsibility": 0.6765
+  },
+  {
+    "object_id": "TOI-00732",
+    "x": 0.39502,
+    "y": 0.30653,
+    "max_responsibility": 0.88
+  },
+  {
+    "object_id": "TOI-00733",
+    "x": 0.35131,
+    "y": 0.39985,
+    "max_responsibility": 0.528
+  },
+  {
+    "object_id": "TOI-00734",
+    "x": 0.28581,
+    "y": 0.48682,
+    "max_responsibility": 0.7315
+  },
+  {
+    "object_id": "TOI-00735",
+    "x": 0.19951,
+    "y": 0.56244,
+    "max_responsibility": 0.935
+  },
+  {
+    "object_id": "TOI-00736",
+    "x": 0.09454,
+    "y": 0.62189,
+    "max_responsibility": 0.583
+  },
+  {
+    "object_id": "TOI-00737",
+    "x": -0.02587,
+    "y": 0.66078,
+    "max_responsibility": 0.7865
+  },
+  {
+    "object_id": "TOI-00738",
+    "x": -0.15752,
+    "y": 0.67542,
+    "max_responsibility": 0.99
+  },
+  {
+    "object_id": "TOI-00739",
+    "x": -0.29538,
+    "y": 0.66298,
+    "max_responsibility": 0.638
+  },
+  {
+    "object_id": "TOI-00740",
+    "x": -0.43373,
+    "y": 0.62172,
+    "max_responsibility": 0.8415
+  },
+  {
+    "object_id": "TOI-00741",
+    "x": -0.56646,
+    "y": 0.55112,
+    "max_responsibility": 0.4895
+  },
+  {
+    "object_id": "TOI-00742",
+    "x": -0.6873,
+    "y": 0.45194,
+    "max_responsibility": 0.693
+  },
+  {
+    "object_id": "TOI-00743",
+    "x": -0.7901,
+    "y": 0.32632,
+    "max_responsibility": 0.8965
+  },
+  {
+    "object_id": "TOI-00744",
+    "x": -0.86912,
+    "y": 0.17769,
+    "max_responsibility": 0.5445
+  },
+  {
+    "object_id": "TOI-00745",
+    "x": -0.91929,
+    "y": 0.01073,
+    "max_responsibility": 0.748
+  },
+  {
+    "object_id": "TOI-00746",
+    "x": -0.93652,
+    "y": -0.1688,
+    "max_responsibility": 0.9515
+  },
+  {
+    "object_id": "TOI-00747",
+    "x": -0.91788,
+    "y": -0.35425,
+    "max_responsibility": 0.5995
+  },
+  {
+    "object_id": "TOI-00748",
+    "x": -0.86182,
+    "y": -0.53832,
+    "max_responsibility": 0.803
+  },
+  {
+    "object_id": "TOI-00749",
+    "x": -0.76829,
+    "y": -0.71334,
+    "max_responsibility": 0.451
+  },
+  {
+    "object_id": "TOI-00750",
+    "x": -0.63881,
+    "y": -0.87162,
+    "max_responsibility": 0.6545
+  },
+  {
+    "object_id": "TOI-00751",
+    "x": -0.47651,
+    "y": -1.00573,
+    "max_responsibility": 0.858
+  },
+  {
+    "object_id": "TOI-00752",
+    "x": -0.28605,
+    "y": -1.10886,
+    "max_responsibility": 0.506
+  },
+  {
+    "object_id": "TOI-00753",
+    "x": -0.0735,
+    "y": -1.17512,
+    "max_responsibility": 0.7095
+  },
+  {
+    "object_id": "TOI-00754",
+    "x": 0.15386,
+    "y": -1.19985,
+    "max_responsibility": 0.913
+  },
+  {
+    "object_id": "TOI-00755",
+    "x": 0.38776,
+    "y": -1.17985,
+    "max_responsibility": 0.561
+  },
+  {
+    "object_id": "TOI-00756",
+    "x": 0.61929,
+    "y": -1.11358,
+    "max_responsibility": 0.7645
+  },
+  {
+    "object_id": "TOI-00757",
+    "x": 0.83917,
+    "y": -1.0013,
+    "max_responsibility": 0.968
+  },
+  {
+    "object_id": "TOI-00758",
+    "x": 1.03819,
+    "y": -0.84516,
+    "max_responsibility": 0.616
+  },
+  {
+    "object_id": "TOI-00759",
+    "x": 1.20754,
+    "y": -0.64916,
+    "max_responsibility": 0.8195
+  },
+  {
+    "object_id": "TOI-00760",
+    "x": 1.33919,
+    "y": -0.41905,
+    "max_responsibility": 0.4675
+  },
+  {
+    "object_id": "TOI-00761",
+    "x": 1.42629,
+    "y": -0.16224,
+    "max_responsibility": 0.671
+  },
+  {
+    "object_id": "TOI-00762",
+    "x": 1.46342,
+    "y": 0.11252,
+    "max_responsibility": 0.8745
+  },
+  {
+    "object_id": "TOI-00763",
+    "x": 1.44695,
+    "y": 0.39538,
+    "max_responsibility": 0.5225
+  },
+  {
+    "object_id": "TOI-00764",
+    "x": 1.3752,
+    "y": 0.67576,
+    "max_responsibility": 0.726
+  },
+  {
+    "object_id": "TOI-00765",
+    "x": 1.24857,
+    "y": 0.94276,
+    "max_responsibility": 0.9295
+  },
+  {
+    "object_id": "TOI-00766",
+    "x": 1.06966,
+    "y": 1.18554,
+    "max_responsibility": 0.5775
+  },
+  {
+    "object_id": "TOI-00767",
+    "x": 0.84321,
+    "y": 1.39382,
+    "max_responsibility": 0.781
+  },
+  {
+    "object_id": "TOI-00768",
+    "x": 0.57598,
+    "y": 1.55825,
+    "max_responsibility": 0.9845
+  },
+  {
+    "object_id": "TOI-00769",
+    "x": 0.2766,
+    "y": 1.67081,
+    "max_responsibility": 0.6325
+  },
+  {
+    "object_id": "TOI-00770",
+    "x": -0.04477,
+    "y": 1.72523,
+    "max_responsibility": 0.836
+  },
+  {
+    "object_id": "TOI-00771",
+    "x": -0.3767,
+    "y": 1.71723,
+    "max_responsibility": 0.484
+  },
+  {
+    "object_id": "TOI-00772",
+    "x": -0.70697,
+    "y": 1.64482,
+    "max_responsibility": 0.6875
+  },
+  {
+    "object_id": "TOI-00773",
+    "x": -1.02299,
+    "y": 1.5084,
+    "max_responsibility": 0.891
+  },
+  {
+    "object_id": "TOI-00774",
+    "x": -1.31228,
+    "y": 1.31086,
+    "max_responsibility": 0.539
+  },
+  {
+    "object_id": "TOI-00775",
+    "x": -0.41411,
+    "y": 0.28019,
+    "max_responsibility": 0.7425
+  },
+  {
+    "object_id": "TOI-00776",
+    "x": -0.48923,
+    "y": 0.20965,
+    "max_responsibility": 0.946
+  },
+  {
+    "object_id": "TOI-00777",
+    "x": -0.55154,
+    "y": 0.12036,
+    "max_responsibility": 0.594
+  },
+  {
+    "object_id": "TOI-00778",
+    "x": -0.59659,
+    "y": 0.01483,
+    "max_responsibility": 0.7975
+  },
+  {
+    "object_id": "TOI-00779",
+    "x": -0.62047,
+    "y": -0.10341,
+    "max_responsibility": 0.4455
+  },
+  {
+    "object_id": "TOI-00780",
+    "x": -0.62002,
+    "y": -0.22995,
+    "max_responsibility": 0.649
+  },
+  {
+    "object_id": "TOI-00781",
+    "x": -0.59302,
+    "y": -0.35963,
+    "max_responsibility": 0.8525
+  },
+  {
+    "object_id": "TOI-00782",
+    "x": -0.53835,
+    "y": -0.48679,
+    "max_responsibility": 0.5005
+  },
+  {
+    "object_id": "TOI-00783",
+    "x": -0.45614,
+    "y": -0.60547,
+    "max_responsibility": 0.704
+  },
+  {
+    "object_id": "TOI-00784",
+    "x": -0.34778,
+    "y": -0.70969,
+    "max_responsibility": 0.9075
+  },
+  {
+    "object_id": "TOI-00785",
+    "x": -0.21596,
+    "y": -0.79373,
+    "max_responsibility": 0.5555
+  },
+  {
+    "object_id": "TOI-00786",
+    "x": -0.06461,
+    "y": -0.85239,
+    "max_responsibility": 0.759
+  },
+  {
+    "object_id": "TOI-00787",
+    "x": 0.10122,
+    "y": -0.8813,
+    "max_responsibility": 0.9625
+  },
+  {
+    "object_id": "TOI-00788",
+    "x": 0.27551,
+    "y": -0.8771,
+    "max_responsibility": 0.6105
+  },
+  {
+    "object_id": "TOI-00789",
+    "x": 0.4515,
+    "y": -0.83768,
+    "max_responsibility": 0.814
+  },
+  {
+    "object_id": "TOI-00790",
+    "x": 0.62197,
+    "y": -0.76233,
+    "max_responsibility": 0.462
+  },
+  {
+    "object_id": "TOI-00791",
+    "x": 0.7795,
+    "y": -0.65184,
+    "max_responsibility": 0.6655
+  },
+  {
+    "object_id": "TOI-00792",
+    "x": 0.91679,
+    "y": -0.50854,
+    "max_responsibility": 0.869
+  },
+  {
+    "object_id": "TOI-00793",
+    "x": 1.02699,
+    "y": -0.33629,
+    "max_responsibility": 0.517
+  },
+  {
+    "object_id": "TOI-00794",
+    "x": 1.10402,
+    "y": -0.14035,
+    "max_responsibility": 0.7205
+  },
+  {
+    "object_id": "TOI-00795",
+    "x": 1.14285,
+    "y": 0.07273,
+    "max_responsibility": 0.924
+  },
+  {
+    "object_id": "TOI-00796",
+    "x": 1.13977,
+    "y": 0.29535,
+    "max_responsibility": 0.572
+  },
+  {
+    "object_id": "TOI-00797",
+    "x": 1.09262,
+    "y": 0.51913,
+    "max_responsibility": 0.7755
+  },
+  {
+    "object_id": "TOI-00798",
+    "x": 1.00091,
+    "y": 0.73524,
+    "max_responsibility": 0.979
+  },
+  {
+    "object_id": "TOI-00799",
+    "x": 0.86597,
+    "y": 0.9347,
+    "max_responsibility": 0.627
+  },
+  {
+    "object_id": "TOI-00800",
+    "x": 0.69092,
+    "y": 1.10881,
+    "max_responsibility": 0.8305
+  },
+  {
+    "object_id": "TOI-00801",
+    "x": 0.48066,
+    "y": 1.24945,
+    "max_responsibility": 0.4785
+  },
+  {
+    "object_id": "TOI-00802",
+    "x": 0.24173,
+    "y": 1.34949,
+    "max_responsibility": 0.682
+  },
+  {
+    "object_id": "TOI-00803",
+    "x": -0.0179,
+    "y": 1.40311,
+    "max_responsibility": 0.8855
+  },
+  {
+    "object_id": "TOI-00804",
+    "x": -0.28906,
+    "y": 1.40608,
+    "max_responsibility": 0.5335
+  },
+  {
+    "object_id": "TOI-00805",
+    "x": -0.56176,
+    "y": 1.35598,
+    "max_responsibility": 0.737
+  },
+  {
+    "object_id": "TOI-00806",
+    "x": -0.82549,
+    "y": 1.25242,
+    "max_responsibility": 0.9405
+  },
+  {
+    "object_id": "TOI-00807",
+    "x": -1.06969,
+    "y": 1.09708,
+    "max_responsibility": 0.5885
+  },
+  {
+    "object_id": "TOI-00808",
+    "x": -1.28411,
+    "y": 0.89375,
+    "max_responsibility": 0.792
+  },
+  {
+    "object_id": "TOI-00809",
+    "x": -1.45927,
+    "y": 0.64824,
+    "max_responsibility": 0.44
+  },
+  {
+    "object_id": "TOI-00810",
+    "x": -1.58686,
+    "y": 0.36827,
+    "max_responsibility": 0.6435
+  },
+  {
+    "object_id": "TOI-00811",
+    "x": -1.66009,
+    "y": 0.06318,
+    "max_responsibility": 0.847
+  },
+  {
+    "object_id": "TOI-00812",
+    "x": -1.67403,
+    "y": -0.25636,
+    "max_responsibility": 0.495
+  },
+  {
+    "object_id": "TOI-00813",
+    "x": -1.62588,
+    "y": -0.57872,
+    "max_responsibility": 0.6985
+  },
+  {
+    "object_id": "TOI-00814",
+    "x": -1.51513,
+    "y": -0.89173,
+    "max_responsibility": 0.902
+  },
+  {
+    "object_id": "TOI-00815",
+    "x": -1.34366,
+    "y": -1.18315,
+    "max_responsibility": 0.55
+  },
+  {
+    "object_id": "TOI-00816",
+    "x": -1.11578,
+    "y": -1.44112,
+    "max_responsibility": 0.7535
+  },
+  {
+    "object_id": "TOI-00817",
+    "x": -0.83811,
+    "y": -1.65469,
+    "max_responsibility": 0.957
+  },
+  {
+    "object_id": "TOI-00818",
+    "x": -0.13762,
+    "y": -0.48069,
+    "max_responsibility": 0.605
+  },
+  {
+    "object_id": "TOI-00819",
+    "x": -0.04722,
+    "y": -0.53016,
+    "max_responsibility": 0.8085
+  },
+  {
+    "object_id": "TOI-00820",
+    "x": 0.05701,
+    "y": -0.56163,
+    "max_responsibility": 0.4565
+  },
+  {
+    "object_id": "TOI-00821",
+    "x": 0.17131,
+    "y": -0.57166,
+    "max_responsibility": 0.66
+  },
+  {
+    "object_id": "TOI-00822",
+    "x": 0.29112,
+    "y": -0.55761,
+    "max_responsibility": 0.8635
+  },
+  {
+    "object_id": "TOI-00823",
+    "x": 0.41125,
+    "y": -0.51786,
+    "max_responsibility": 0.5115
+  },
+  {
+    "object_id": "TOI-00824",
+    "x": 0.52613,
+    "y": -0.45189,
+    "max_responsibility": 0.715
+  },
+  {
+    "object_id": "TOI-00825",
+    "x": 0.63,
+    "y": -0.36041,
+    "max_responsibility": 0.9185
+  },
+  {
+    "object_id": "TOI-00826",
+    "x": 0.71725,
+    "y": -0.24538,
+    "max_responsibility": 0.5665
+  },
+  {
+    "object_id": "TOI-00827",
+    "x": 0.78263,
+    "y": -0.11,
+    "max_responsibility": 0.77
+  },
+  {
+    "object_id": "TOI-00828",
+    "x": 0.82154,
+    "y": 0.04141,
+    "max_responsibility": 0.9735
+  },
+  {
+    "object_id": "TOI-00829",
+    "x": 0.83026,
+    "y": 0.2035,
+    "max_responsibility": 0.6215
+  },
+  {
+    "object_id": "TOI-00830",
+    "x": 0.8062,
+    "y": 0.3701,
+    "max_responsibility": 0.825
+  },
+  {
+    "object_id": "TOI-00831",
+    "x": 0.74805,
+    "y": 0.53445,
+    "max_responsibility": 0.473
+  },
+  {
+    "object_id": "TOI-00832",
+    "x": 0.65588,
+    "y": 0.68948,
+    "max_responsibility": 0.6765
+  },
+  {
+    "object_id": "TOI-00833",
+    "x": 0.53128,
+    "y": 0.82809,
+    "max_responsibility": 0.88
+  },
+  {
+    "object_id": "TOI-00834",
+    "x": 0.37731,
+    "y": 0.94348,
+    "max_responsibility": 0.528
+  },
+  {
+    "object_id": "TOI-00835",
+    "x": 0.19844,
+    "y": 1.02944,
+    "max_responsibility": 0.7315
+  },
+  {
+    "object_id": "TOI-00836",
+    "x": 0.00046,
+    "y": 1.08065,
+    "max_responsibility": 0.935
+  },
+  {
+    "object_id": "TOI-00837",
+    "x": -0.20971,
+    "y": 1.09297,
+    "max_responsibility": 0.583
+  },
+  {
+    "object_id": "TOI-00838",
+    "x": -0.42431,
+    "y": 1.06365,
+    "max_responsibility": 0.7865
+  },
+  {
+    "object_id": "TOI-00839",
+    "x": -0.63495,
+    "y": 0.99154,
+    "max_responsibility": 0.99
+  },
+  {
+    "object_id": "TOI-00840",
+    "x": -0.833,
+    "y": 0.87718,
+    "max_responsibility": 0.638
+  },
+  {
+    "object_id": "TOI-00841",
+    "x": -1.0099,
+    "y": 0.72285,
+    "max_responsibility": 0.8415
+  },
+  {
+    "object_id": "TOI-00842",
+    "x": -1.15755,
+    "y": 0.53259,
+    "max_responsibility": 0.4895
+  },
+  {
+    "object_id": "TOI-00843",
+    "x": -1.26862,
+    "y": 0.3121,
+    "max_responsibility": 0.693
+  },
+  {
+    "object_id": "TOI-00844",
+    "x": -1.33695,
+    "y": 0.06855,
+    "max_responsibility": 0.8965
+  },
+  {
+    "object_id": "TOI-00845",
+    "x": -1.35779,
+    "y": -0.18965,
+    "max_responsibility": 0.5445
+  },
+  {
+    "object_id": "TOI-00846",
+    "x": -1.32807,
+    "y": -0.45308,
+    "max_responsibility": 0.748
+  },
+  {
+    "object_id": "TOI-00847",
+    "x": -1.24661,
+    "y": -0.71174,
+    "max_responsibility": 0.9515
+  },
+  {
+    "object_id": "TOI-00848",
+    "x": -1.11425,
+    "y": -0.95536,
+    "max_responsibility": 0.5995
+  },
+  {
+    "object_id": "TOI-00849",
+    "x": -0.93385,
+    "y": -1.17385,
+    "max_responsibility": 0.803
+  },
+  {
+    "object_id": "TOI-00850",
+    "x": -0.71031,
+    "y": -1.35767,
+    "max_responsibility": 0.451
+  },
+  {
+    "object_id": "TOI-00851",
+    "x": -0.45041,
+    "y": -1.49828,
+    "max_responsibility": 0.6545
+  },
+  {
+    "object_id": "TOI-00852",
+    "x": -0.16262,
+    "y": -1.58847,
+    "max_responsibility": 0.858
+  },
+  {
+    "object_id": "TOI-00853",
+    "x": 0.14313,
+    "y": -1.62273,
+    "max_responsibility": 0.506
+  },
+  {
+    "object_id": "TOI-00854",
+    "x": 0.45588,
+    "y": -1.59752,
+    "max_responsibility": 0.7095
+  },
+  {
+    "object_id": "TOI-00855",
+    "x": 0.76393,
+    "y": -1.51146,
+    "max_responsibility": 0.913
+  },
+  {
+    "object_id": "TOI-00856",
+    "x": 1.05536,
+    "y": -1.36551,
+    "max_responsibility": 0.561
+  },
+  {
+    "object_id": "TOI-00857",
+    "x": 1.31845,
+    "y": -1.16296,
+    "max_responsibility": 0.7645
+  },
+  {
+    "object_id": "TOI-00858",
+    "x": 1.54215,
+    "y": -0.90942,
+    "max_responsibility": 0.968
+  },
+  {
+    "object_id": "TOI-00859",
+    "x": 1.71653,
+    "y": -0.61265,
+    "max_responsibility": 0.616
+  },
+  {
+    "object_id": "TOI-00860",
+    "x": 1.83322,
+    "y": -0.28235,
+    "max_responsibility": 0.8195
+  },
+  {
+    "object_id": "TOI-00861",
+    "x": 0.49965,
+    "y": 0.01859,
+    "max_responsibility": 0.4675
+  },
+  {
+    "object_id": "TOI-00862",
+    "x": 0.51858,
+    "y": 0.11988,
+    "max_responsibility": 0.671
+  },
+  {
+    "object_id": "TOI-00863",
+    "x": 0.5161,
+    "y": 0.22873,
+    "max_responsibility": 0.8745
+  },
+  {
+    "object_id": "TOI-00864",
+    "x": 0.49011,
+    "y": 0.34049,
+    "max_responsibility": 0.5225
+  },
+  {
+    "object_id": "TOI-00865",
+    "x": 0.43952,
+    "y": 0.45,
+    "max_responsibility": 0.726
+  },
+  {
+    "object_id": "TOI-00866",
+    "x": 0.3644,
+    "y": 0.55183,
+    "max_responsibility": 0.9295
+  },
+  {
+    "object_id": "TOI-00867",
+    "x": 0.266,
+    "y": 0.64051,
+    "max_responsibility": 0.5775
+  },
+  {
+    "object_id": "TOI-00868",
+    "x": 0.14677,
+    "y": 0.71081,
+    "max_responsibility": 0.781
+  },
+  {
+    "object_id": "TOI-00869",
+    "x": 0.01032,
+    "y": 0.75799,
+    "max_responsibility": 0.9845
+  },
+  {
+    "object_id": "TOI-00870",
+    "x": -0.13868,
+    "y": 0.77806,
+    "max_responsibility": 0.6325
+  },
+  {
+    "object_id": "TOI-00871",
+    "x": -0.29468,
+    "y": 0.76798,
+    "max_responsibility": 0.836
+  },
+  {
+    "object_id": "TOI-00872",
+    "x": -0.45146,
+    "y": 0.7259,
+    "max_responsibility": 0.484
+  },
+  {
+    "object_id": "TOI-00873",
+    "x": -0.60233,
+    "y": 0.65126,
+    "max_responsibility": 0.6875
+  },
+  {
+    "object_id": "TOI-00874",
+    "x": -0.74047,
+    "y": 0.5449,
+    "max_responsibility": 0.891
+  },
+  {
+    "object_id": "TOI-00875",
+    "x": -0.85918,
+    "y": 0.40912,
+    "max_responsibility": 0.539
+  },
+  {
+    "object_id": "TOI-00876",
+    "x": -0.9522,
+    "y": 0.24762,
+    "max_responsibility": 0.7425
+  },
+  {
+    "object_id": "TOI-00877",
+    "x": -1.01402,
+    "y": 0.0654,
+    "max_responsibility": 0.946
+  },
+  {
+    "object_id": "TOI-00878",
+    "x": -1.04013,
+    "y": -0.13132,
+    "max_responsibility": 0.594
+  },
+  {
+    "object_id": "TOI-00879",
+    "x": -1.02728,
+    "y": -0.33541,
+    "max_responsibility": 0.7975
+  },
+  {
+    "object_id": "TOI-00880",
+    "x": -0.97367,
+    "y": -0.539,
+    "max_responsibility": 0.4455
+  },
+  {
+    "object_id": "TOI-00881",
+    "x": -0.87911,
+    "y": -0.73386,
+    "max_responsibility": 0.649
+  },
+  {
+    "object_id": "TOI-00882",
+    "x": -0.74511,
+    "y": -0.91166,
+    "max_responsibility": 0.8525
+  },
+  {
+    "object_id": "TOI-00883",
+    "x": -0.57486,
+    "y": -1.06436,
+    "max_responsibility": 0.5005
+  },
+  {
+    "object_id": "TOI-00884",
+    "x": -0.37319,
+    "y": -1.18454,
+    "max_responsibility": 0.704
+  },
+  {
+    "object_id": "TOI-00885",
+    "x": -0.14647,
+    "y": -1.26575,
+    "max_responsibility": 0.9075
+  },
+  {
+    "object_id": "TOI-00886",
+    "x": 0.09762,
+    "y": -1.3028,
+    "max_responsibility": 0.5555
+  },
+  {
+    "object_id": "TOI-00887",
+    "x": 0.35035,
+    "y": -1.29205,
+    "max_responsibility": 0.759
+  },
+  {
+    "object_id": "TOI-00888",
+    "x": 0.60223,
+    "y": -1.23161,
+    "max_responsibility": 0.9625
+  },
+  {
+    "object_id": "TOI-00889",
+    "x": 0.84339,
+    "y": -1.12149,
+    "max_responsibility": 0.6105
+  },
+  {
+    "object_id": "TOI-00890",
+    "x": 1.06392,
+    "y": -0.96368,
+    "max_responsibility": 0.814
+  },
+  {
+    "object_id": "TOI-00891",
+    "x": 1.25434,
+    "y": -0.76216,
+    "max_responsibility": 0.462
+  },
+  {
+    "object_id": "TOI-00892",
+    "x": 1.40595,
+    "y": -0.5228,
+    "max_responsibility": 0.6655
+  },
+  {
+    "object_id": "TOI-00893",
+    "x": 1.51119,
+    "y": -0.25319,
+    "max_responsibility": 0.869
+  },
+  {
+    "object_id": "TOI-00894",
+    "x": 1.56407,
+    "y": 0.03754,
+    "max_responsibility": 0.517
+  },
+  {
+    "object_id": "TOI-00895",
+    "x": 1.56035,
+    "y": 0.3391,
+    "max_responsibility": 0.7205
+  },
+  {
+    "object_id": "TOI-00896",
+    "x": 1.49789,
+    "y": 0.64037,
+    "max_responsibility": 0.924
+  },
+  {
+    "object_id": "TOI-00897",
+    "x": 1.37673,
+    "y": 0.92979,
+    "max_responsibility": 0.572
+  },
+  {
+    "object_id": "TOI-00898",
+    "x": 1.1992,
+    "y": 1.19584,
+    "max_responsibility": 0.7755
+  },
+  {
+    "object_id": "TOI-00899",
+    "x": 0.9699,
+    "y": 1.42748,
+    "max_responsibility": 0.979
+  },
+  {
+    "object_id": "TOI-00900",
+    "x": 0.69562,
+    "y": 1.61459,
+    "max_responsibility": 0.627
+  },
+  {
+    "object_id": "TOI-00901",
+    "x": 0.38511,
+    "y": 1.74841,
+    "max_responsibility": 0.8305
+  },
+  {
+    "object_id": "TOI-00902",
+    "x": 0.04884,
+    "y": 1.82193,
+    "max_responsibility": 0.4785
+  },
+  {
+    "object_id": "TOI-00903",
+    "x": -0.30137,
+    "y": 1.83019,
+    "max_responsibility": 0.682
+  },
+  {
+    "object_id": "TOI-00904",
+    "x": -0.17295,
+    "y": 0.46914,
+    "max_responsibility": 0.8855
+  },
+  {
+    "object_id": "TOI-00905",
+    "x": -0.27511,
+    "y": 0.45564,
+    "max_responsibility": 0.5335
+  },
+  {
+    "object_id": "TOI-00906",
+    "x": -0.3778,
+    "y": 0.41946,
+    "max_responsibility": 0.737
+  },
+  {
+    "object_id": "TOI-00907",
+    "x": -0.47595,
+    "y": 0.36002,
+    "max_responsibility": 0.9405
+  },
+  {
+    "object_id": "TOI-00908",
+    "x": -0.56432,
+    "y": 0.2779,
+    "max_responsibility": 0.5885
+  },
+  {
+    "object_id": "TOI-00909",
+    "x": -0.63775,
+    "y": 0.17485,
+    "max_responsibility": 0.792
+  },
+  {
+    "object_id": "TOI-00910",
+    "x": -0.69146,
+    "y": 0.05376,
+    "max_responsibility": 0.44
+  },
+  {
+    "object_id": "TOI-00911",
+    "x": -0.72123,
+    "y": -0.08141,
+    "max_responsibility": 0.6435
+  },
+  {
+    "object_id": "TOI-00912",
+    "x": -0.72367,
+    "y": -0.22576,
+    "max_responsibility": 0.847
+  },
+  {
+    "object_id": "TOI-00913",
+    "x": -0.69643,
+    "y": -0.37362,
+    "max_responsibility": 0.495
+  },
+  {
+    "object_id": "TOI-00914",
+    "x": -0.63837,
+    "y": -0.51877,
+    "max_responsibility": 0.6985
+  },
+  {
+    "object_id": "TOI-00915",
+    "x": -0.54965,
+    "y": -0.6547,
+    "max_responsibility": 0.902
+  },
+  {
+    "object_id": "TOI-00916",
+    "x": -0.43182,
+    "y": -0.7749,
+    "max_responsibility": 0.55
+  },
+  {
+    "object_id": "TOI-00917",
+    "x": -0.28779,
+    "y": -0.87315,
+    "max_responsibility": 0.7535
+  },
+  {
+    "object_id": "TOI-00918",
+    "x": -0.12184,
+    "y": -0.94378,
+    "max_responsibility": 0.957
+  },
+  {
+    "object_id": "TOI-00919",
+    "x": 0.06058,
+    "y": -0.982,
+    "max_responsibility": 0.605
+  },
+  {
+    "object_id": "TOI-00920",
+    "x": 0.25298,
+    "y": -0.98413,
+    "max_responsibility": 0.8085
+  },
+  {
+    "object_id": "TOI-00921",
+    "x": 0.44807,
+    "y": -0.94781,
+    "max_responsibility": 0.4565
+  },
+  {
+    "object_id": "TOI-00922",
+    "x": 0.63806,
+    "y": -0.87217,
+    "max_responsibility": 0.66
+  },
+  {
+    "object_id": "TOI-00923",
+    "x": 0.81491,
+    "y": -0.75794,
+    "max_responsibility": 0.8635
+  },
+  {
+    "object_id": "TOI-00924",
+    "x": 0.97074,
+    "y": -0.60751,
+    "max_responsibility": 0.5115
+  },
+  {
+    "object_id": "TOI-00925",
+    "x": 1.09809,
+    "y": -0.42488,
+    "max_responsibility": 0.715
+  },
+  {
+    "object_id": "TOI-00926",
+    "x": 1.19031,
+    "y": -0.2156,
+    "max_responsibility": 0.9185
+  },
+  {
+    "object_id": "TOI-00927",
+    "x": 1.24186,
+    "y": 0.01343,
+    "max_responsibility": 0.5665
+  },
+  {
+    "object_id": "TOI-00928",
+    "x": 1.24859,
+    "y": 0.25416,
+    "max_responsibility": 0.77
+  },
+  {
+    "object_id": "TOI-00929",
+    "x": 1.20795,
+    "y": 0.49768,
+    "max_responsibility": 0.9735
+  },
+  {
+    "object_id": "TOI-00930",
+    "x": 1.11918,
+    "y": 0.73455,
+    "max_responsibility": 0.6215
+  },
+  {
+    "object_id": "TOI-00931",
+    "x": 0.98346,
+    "y": 0.95518,
+    "max_responsibility": 0.825
+  },
+  {
+    "object_id": "TOI-00932",
+    "x": 0.80385,
+    "y": 1.15016,
+    "max_responsibility": 0.473
+  },
+  {
+    "object_id": "TOI-00933",
+    "x": 0.58531,
+    "y": 1.31073,
+    "max_responsibility": 0.6765
+  },
+  {
+    "object_id": "TOI-00934",
+    "x": 0.33459,
+    "y": 1.4291,
+    "max_responsibility": 0.88
+  },
+  {
+    "object_id": "TOI-00935",
+    "x": 0.05996,
+    "y": 1.4988,
+    "max_responsibility": 0.528
+  },
+  {
+    "object_id": "TOI-00936",
+    "x": -0.229,
+    "y": 1.51505,
+    "max_responsibility": 0.7315
+  },
+  {
+    "object_id": "TOI-00937",
+    "x": -0.52177,
+    "y": 1.47495,
+    "max_responsibility": 0.935
+  },
+  {
+    "object_id": "TOI-00938",
+    "x": -0.80724,
+    "y": 1.3777,
+    "max_responsibility": 0.583
+  },
+  {
+    "object_id": "TOI-00939",
+    "x": -1.07418,
+    "y": 1.2247,
+    "max_responsibility": 0.7865
+  },
+  {
+    "object_id": "TOI-00940",
+    "x": -1.31161,
+    "y": 1.01959,
+    "max_responsibility": 0.99
+  },
+  {
+    "object_id": "TOI-00941",
+    "x": -1.50931,
+    "y": 0.76816,
+    "max_responsibility": 0.638
+  },
+  {
+    "object_id": "TOI-00942",
+    "x": -1.65822,
+    "y": 0.47823,
+    "max_responsibility": 0.8415
+  },
+  {
+    "object_id": "TOI-00943",
+    "x": -1.75083,
+    "y": 0.15938,
+    "max_responsibility": 0.4895
+  },
+  {
+    "object_id": "TOI-00944",
+    "x": -1.78152,
+    "y": -0.17734,
+    "max_responsibility": 0.693
+  },
+  {
+    "object_id": "TOI-00945",
+    "x": -1.74688,
+    "y": -0.51981,
+    "max_responsibility": 0.8965
+  },
+  {
+    "object_id": "TOI-00946",
+    "x": -1.6459,
+    "y": -0.85524,
+    "max_responsibility": 0.5445
+  },
+  {
+    "object_id": "TOI-00947",
+    "x": -0.39215,
+    "y": -0.31019,
+    "max_responsibility": 0.748
+  },
+  {
+    "object_id": "TOI-00948",
+    "x": -0.34758,
+    "y": -0.4031,
+    "max_responsibility": 0.9515
+  },
+  {
+    "object_id": "TOI-00949",
+    "x": -0.28127,
+    "y": -0.48945,
+    "max_responsibility": 0.5995
+  },
+  {
+    "object_id": "TOI-00950",
+    "x": -0.19427,
+    "y": -0.56427,
+    "max_responsibility": 0.803
+  },
+  {
+    "object_id": "TOI-00951",
+    "x": -0.08876,
+    "y": -0.62274,
+    "max_responsibility": 0.451
+  },
+  {
+    "object_id": "TOI-00952",
+    "x": 0.03201,
+    "y": -0.66052,
+    "max_responsibility": 0.6545
+  },
+  {
+    "object_id": "TOI-00953",
+    "x": 0.1638,
+    "y": -0.67393,
+    "max_responsibility": 0.858
+  },
+  {
+    "object_id": "TOI-00954",
+    "x": 0.30153,
+    "y": -0.66021,
+    "max_responsibility": 0.506
+  },
+  {
+    "object_id": "TOI-00955",
+    "x": 0.43949,
+    "y": -0.61767,
+    "max_responsibility": 0.7095
+  },
+  {
+    "object_id": "TOI-00956",
+    "x": 0.57156,
+    "y": -0.54583,
+    "max_responsibility": 0.913
+  },
+  {
+    "object_id": "TOI-00957",
+    "x": 0.69148,
+    "y": -0.44553,
+    "max_responsibility": 0.561
+  },
+  {
+    "object_id": "TOI-00958",
+    "x": 0.7931,
+    "y": -0.31896,
+    "max_responsibility": 0.7645
+  },
+  {
+    "object_id": "TOI-00959",
+    "x": 0.87073,
+    "y": -0.1696,
+    "max_responsibility": 0.968
+  },
+  {
+    "object_id": "TOI-00960",
+    "x": 0.91935,
+    "y": -0.00218,
+    "max_responsibility": 0.616
+  },
+  {
+    "object_id": "TOI-00961",
+    "x": 0.93491,
+    "y": 0.1775,
+    "max_responsibility": 0.8195
+  },
+  {
+    "object_id": "TOI-00962",
+    "x": 0.91455,
+    "y": 0.36277,
+    "max_responsibility": 0.4675
+  },
+  {
+    "object_id": "TOI-00963",
+    "x": 0.85678,
+    "y": 0.5463,
+    "max_responsibility": 0.671
+  },
+  {
+    "object_id": "TOI-00964",
+    "x": 0.76162,
+    "y": 0.72045,
+    "max_responsibility": 0.8745
+  },
+  {
+    "object_id": "TOI-00965",
+    "x": 0.63068,
+    "y": 0.87752,
+    "max_responsibility": 0.5225
+  },
+  {
+    "object_id": "TOI-00966",
+    "x": 0.46714,
+    "y": 1.01012,
+    "max_responsibility": 0.726
+  },
+  {
+    "object_id": "TOI-00967",
+    "x": 0.27573,
+    "y": 1.11147,
+    "max_responsibility": 0.9295
+  },
+  {
+    "object_id": "TOI-00968",
+    "x": 0.06257,
+    "y": 1.17576,
+    "max_responsibility": 0.5775
+  },
+  {
+    "object_id": "TOI-00969",
+    "x": -0.165,
+    "y": 1.19837,
+    "max_responsibility": 0.781
+  },
+  {
+    "object_id": "TOI-00970",
+    "x": -0.39871,
+    "y": 1.17619,
+    "max_responsibility": 0.9845
+  },
+  {
+    "object_id": "TOI-00971",
+    "x": -0.62961,
+    "y": 1.10777,
+    "max_responsibility": 0.6325
+  },
+  {
+    "object_id": "TOI-00972",
+    "x": -0.84844,
+    "y": 0.99346,
+    "max_responsibility": 0.836
+  },
+  {
+    "object_id": "TOI-00973",
+    "x": -1.046,
+    "y": 0.83548,
+    "max_responsibility": 0.484
+  },
+  {
+    "object_id": "TOI-00974",
+    "x": -1.21352,
+    "y": 0.6379,
+    "max_responsibility": 0.6875
+  },
+  {
+    "object_id": "TOI-00975",
+    "x": -1.34303,
+    "y": 0.40659,
+    "max_responsibility": 0.891
+  },
+  {
+    "object_id": "TOI-00976",
+    "x": -1.42773,
+    "y": 0.14897,
+    "max_responsibility": 0.539
+  },
+  {
+    "object_id": "TOI-00977",
+    "x": -1.46231,
+    "y": -0.12612,
+    "max_responsibility": 0.7425
+  },
+  {
+    "object_id": "TOI-00978",
+    "x": -1.44322,
+    "y": -0.40881,
+    "max_responsibility": 0.946
+  },
+  {
+    "object_id": "TOI-00979",
+    "x": -1.36885,
+    "y": -0.68851,
+    "max_responsibility": 0.594
+  },
+  {
+    "object_id": "TOI-00980",
+    "x": -1.23975,
+    "y": -0.95432,
+    "max_responsibility": 0.7975
+  },
+  {
+    "object_id": "TOI-00981",
+    "x": -1.05859,
+    "y": -1.19544,
+    "max_responsibility": 0.4455
+  },
+  {
+    "object_id": "TOI-00982",
+    "x": -0.83022,
+    "y": -1.4016,
+    "max_responsibility": 0.649
+  },
+  {
+    "object_id": "TOI-00983",
+    "x": -0.56147,
+    "y": -1.56353,
+    "max_responsibility": 0.8525
+  },
+  {
+    "object_id": "TOI-00984",
+    "x": -0.26105,
+    "y": -1.67331,
+    "max_responsibility": 0.5005
+  },
+  {
+    "object_id": "TOI-00985",
+    "x": 0.0608,
+    "y": -1.72474,
+    "max_responsibility": 0.704
+  },
+  {
+    "object_id": "TOI-00986",
+    "x": 0.39264,
+    "y": -1.71366,
+    "max_responsibility": 0.9075
+  },
+  {
+    "object_id": "TOI-00987",
+    "x": 0.72223,
+    "y": -1.63818,
+    "max_responsibility": 0.5555
+  },
+  {
+    "object_id": "TOI-00988",
+    "x": 1.03697,
+    "y": -1.49883,
+    "max_responsibility": 0.759
+  },
+  {
+    "object_id": "TOI-00989",
+    "x": 1.32441,
+    "y": -1.2986,
+    "max_responsibility": 0.9625
+  },
+  {
+    "object_id": "TOI-00990",
+    "x": 0.4167,
+    "y": -0.27633,
+    "max_responsibility": 0.6105
+  },
+  {
+    "object_id": "TOI-00991",
+    "x": 0.49116,
+    "y": -0.20509,
+    "max_responsibility": 0.814
+  },
+  {
+    "object_id": "TOI-00992",
+    "x": 0.55263,
+    "y": -0.11523,
+    "max_responsibility": 0.462
+  },
+  {
+    "object_id": "TOI-00993",
+    "x": 0.5967,
+    "y": -0.00928,
+    "max_responsibility": 0.6655
+  },
+  {
+    "object_id": "TOI-00994",
+    "x": 0.61949,
+    "y": 0.10917,
+    "max_responsibility": 0.869
+  },
+  {
+    "object_id": "TOI-00995",
+    "x": 0.61786,
+    "y": 0.2357,
+    "max_responsibility": 0.517
+  },
+  {
+    "object_id": "TOI-00996",
+    "x": 0.58965,
+    "y": 0.36513,
+    "max_responsibility": 0.7205
+  },
+  {
+    "object_id": "TOI-00997",
+    "x": 0.53381,
+    "y": 0.49178,
+    "max_responsibility": 0.924
+  },
+  {
+    "object_id": "TOI-00998",
+    "x": 0.45049,
+    "y": 0.60969,
+    "max_responsibility": 0.572
+  },
+  {
+    "object_id": "TOI-00999",
+    "x": 0.34117,
+    "y": 0.71289,
+    "max_responsibility": 0.7755
+  },
+  {
+    "object_id": "TOI-01000",
+    "x": 0.20857,
+    "y": 0.7957,
+    "max_responsibility": 0.979
+  },
+  {
+    "object_id": "TOI-01001",
+    "x": 0.05668,
+    "y": 0.85296,
+    "max_responsibility": 0.627
+  },
+  {
+    "object_id": "TOI-01002",
+    "x": -0.10941,
+    "y": 0.88032,
+    "max_responsibility": 0.8305
+  },
+  {
+    "object_id": "TOI-01003",
+    "x": -0.28365,
+    "y": 0.8745,
+    "max_responsibility": 0.4785
+  },
+  {
+    "object_id": "TOI-01004",
+    "x": -0.45927,
+    "y": 0.83345,
+    "max_responsibility": 0.682
+  },
+  {
+    "object_id": "TOI-01005",
+    "x": -0.62903,
+    "y": 0.75652,
+    "max_responsibility": 0.8855
+  },
+  {
+    "object_id": "TOI-01006",
+    "x": -0.78552,
+    "y": 0.64457,
+    "max_responsibility": 0.5335
+  },
+  {
+    "object_id": "TOI-01007",
+    "x": -0.92147,
+    "y": 0.5,
+    "max_responsibility": 0.737
+  },
+  {
+    "object_id": "TOI-01008",
+    "x": -1.03007,
+    "y": 0.32673,
+    "max_responsibility": 0.9405
+  },
+  {
+    "object_id": "TOI-01009",
+    "x": -1.10527,
+    "y": 0.13008,
+    "max_responsibility": 0.5885
+  },
+  {
+    "object_id": "TOI-01010",
+    "x": -1.14212,
+    "y": -0.08335,
+    "max_responsibility": 0.792
+  },
+  {
+    "object_id": "TOI-01011",
+    "x": -1.13698,
+    "y": -0.30593,
+    "max_responsibility": 0.44
+  },
+  {
+    "object_id": "TOI-01012",
+    "x": -1.08775,
+    "y": -0.52927,
+    "max_responsibility": 0.6435
+  },
+  {
+    "object_id": "TOI-01013",
+    "x": -0.99403,
+    "y": -0.74451,
+    "max_responsibility": 0.847
+  },
+  {
+    "object_id": "TOI-01014",
+    "x": -0.85724,
+    "y": -0.94271,
+    "max_responsibility": 0.495
+  },
+  {
+    "object_id": "TOI-01015",
+    "x": -0.68058,
+    "y": -1.11518,
+    "max_responsibility": 0.6985
+  },
+  {
+    "object_id": "TOI-01016",
+    "x": -0.46902,
+    "y": -1.25386,
+    "max_responsibility": 0.902
+  },
+  {
+    "object_id": "TOI-01017",
+    "x": -0.22917,
+    "y": -1.35168,
+    "max_responsibility": 0.55
+  },
+  {
+    "object_id": "TOI-01018",
+    "x": 0.03094,
+    "y": -1.40288,
+    "max_responsibility": 0.7535
+  },
+  {
+    "object_id": "TOI-01019",
+    "x": 0.30212,
+    "y": -1.40333,
+    "max_responsibility": 0.957
+  },
+  {
+    "object_id": "TOI-01020",
+    "x": 0.57434,
+    "y": -1.3507,
+    "max_responsibility": 0.605
+  },
+  {
+    "object_id": "TOI-01021",
+    "x": 0.8371,
+    "y": -1.2447,
+    "max_responsibility": 0.8085
+  },
+  {
+    "object_id": "TOI-01022",
+    "x": 1.07984,
+    "y": -1.08709,
+    "max_responsibility": 0.4565
+  },
+  {
+    "object_id": "TOI-01023",
+    "x": 1.29236,
+    "y": -0.88177,
+    "max_responsibility": 0.66
+  },
+  {
+    "object_id": "TOI-01024",
+    "x": 1.46523,
+    "y": -0.63465,
+    "max_responsibility": 0.8635
+  },
+  {
+    "object_id": "TOI-01025",
+    "x": 1.59021,
+    "y": -0.35351,
+    "max_responsibility": 0.5115
+  },
+  {
+    "object_id": "TOI-01026",
+    "x": 1.6606,
+    "y": -0.04775,
+    "max_responsibility": 0.715
+  },
+  {
+    "object_id": "TOI-01027",
+    "x": 1.67158,
+    "y": 0.27191,
+    "max_responsibility": 0.9185
+  },
+  {
+    "object_id": "TOI-01028",
+    "x": 1.62043,
+    "y": 0.59381,
+    "max_responsibility": 0.5665
+  },
+  {
+    "object_id": "TOI-01029",
+    "x": 1.50677,
+    "y": 0.90578,
+    "max_responsibility": 0.77
+  },
+  {
+    "object_id": "TOI-01030",
+    "x": 1.3326,
+    "y": 1.19559,
+    "max_responsibility": 0.9735
+  },
+  {
+    "object_id": "TOI-01031",
+    "x": 1.10233,
+    "y": 1.45143,
+    "max_responsibility": 0.6215
+  },
+  {
+    "object_id": "TOI-01032",
+    "x": 0.82269,
+    "y": 1.66241,
+    "max_responsibility": 0.825
+  },
+  {
+    "object_id": "TOI-01033",
+    "x": 0.13314,
+    "y": 0.48195,
+    "max_responsibility": 0.473
+  },
+  {
+    "object_id": "TOI-01034",
+    "x": 0.04229,
+    "y": 0.53058,
+    "max_responsibility": 0.6765
+  },
+  {
+    "object_id": "TOI-01035",
+    "x": -0.06223,
+    "y": 0.56108,
+    "max_responsibility": 0.88
+  },
+  {
+    "object_id": "TOI-01036",
+    "x": -0.17662,
+    "y": 0.57004,
+    "max_responsibility": 0.528
+  },
+  {
+    "object_id": "TOI-01037",
+    "x": -0.29629,
+    "y": 0.55488,
+    "max_responsibility": 0.7315
+  },
+  {
+    "object_id": "TOI-01038",
+    "x": -0.41605,
+    "y": 0.51401,
+    "max_responsibility": 0.935
+  },
+  {
+    "object_id": "TOI-01039",
+    "x": -0.5303,
+    "y": 0.44697,
+    "max_responsibility": 0.583
+  },
+  {
+    "object_id": "TOI-01040",
+    "x": -0.63332,
+    "y": 0.35454,
+    "max_responsibility": 0.7865
+  },
+  {
+    "object_id": "TOI-01041",
+    "x": -0.7195,
+    "y": 0.2387,
+    "max_responsibility": 0.99
+  },
+  {
+    "object_id": "TOI-01042",
+    "x": -0.78362,
+    "y": 0.10272,
+    "max_responsibility": 0.638
+  },
+  {
+    "object_id": "TOI-01043",
+    "x": -0.82112,
+    "y": -0.04905,
+    "max_responsibility": 0.8415
+  },
+  {
+    "object_id": "TOI-01044",
+    "x": -0.82834,
+    "y": -0.21121,
+    "max_responsibility": 0.4895
+  },
+  {
+    "object_id": "TOI-01045",
+    "x": -0.80273,
+    "y": -0.37758,
+    "max_responsibility": 0.693
+  },
+  {
+    "object_id": "TOI-01046",
+    "x": -0.74305,
+    "y": -0.54138,
+    "max_responsibility": 0.8965
+  },
+  {
+    "object_id": "TOI-01047",
+    "x": -0.64945,
+    "y": -0.69555,
+    "max_responsibility": 0.5445
+  },
+  {
+    "object_id": "TOI-01048",
+    "x": -0.52356,
+    "y": -0.833,
+    "max_responsibility": 0.748
+  },
+  {
+    "object_id": "TOI-01049",
+    "x": -0.36852,
+    "y": -0.94695,
+    "max_responsibility": 0.9515
+  },
+  {
+    "object_id": "TOI-01050",
+    "x": -0.18886,
+    "y": -1.03124,
+    "max_responsibility": 0.5995
+  },
+  {
+    "object_id": "TOI-01051",
+    "x": 0.00958,
+    "y": -1.0806,
+    "max_responsibility": 0.803
+  },
+  {
+    "object_id": "TOI-01052",
+    "x": 0.21986,
+    "y": -1.09097,
+    "max_responsibility": 0.451
+  },
+  {
+    "object_id": "TOI-01053",
+    "x": 0.43418,
+    "y": -1.05966,
+    "max_responsibility": 0.6545
+  },
+  {
+    "object_id": "TOI-01054",
+    "x": 0.64414,
+    "y": -0.9856,
+    "max_responsibility": 0.858
+  },
+  {
+    "object_id": "TOI-01055",
+    "x": 0.84111,
+    "y": -0.86939,
+    "max_responsibility": 0.506
+  },
+  {
+    "object_id": "TOI-01056",
+    "x": 1.01658,
+    "y": -0.71343,
+    "max_responsibility": 0.7095
+  },
+  {
+    "object_id": "TOI-01057",
+    "x": 1.16245,
+    "y": -0.52181,
+    "max_responsibility": 0.913
+  },
+  {
+    "object_id": "TOI-01058",
+    "x": 1.27147,
+    "y": -0.3003,
+    "max_responsibility": 0.561
+  },
+  {
+    "object_id": "TOI-01059",
+    "x": 1.33753,
+    "y": -0.05612,
+    "max_responsibility": 0.7645
+  },
+  {
+    "object_id": "TOI-01060",
+    "x": 1.35597,
+    "y": 0.20226,
+    "max_responsibility": 0.968
+  },
+  {
+    "object_id": "TOI-01061",
+    "x": 1.3238,
+    "y": 0.4654,
+    "max_responsibility": 0.616
+  },
+  {
+    "object_id": "TOI-01062",
+    "x": 1.23994,
+    "y": 0.72329,
+    "max_responsibility": 0.8195
+  },
+  {
+    "object_id": "TOI-01063",
+    "x": 1.10532,
+    "y": 0.96568,
+    "max_responsibility": 0.4675
+  },
+  {
+    "object_id": "TOI-01064",
+    "x": 0.9229,
+    "y": 1.18248,
+    "max_responsibility": 0.671
+  },
+  {
+    "object_id": "TOI-01065",
+    "x": 0.69766,
+    "y": 1.36422,
+    "max_responsibility": 0.8745
+  },
+  {
+    "object_id": "TOI-01066",
+    "x": 0.43646,
+    "y": 1.5024,
+    "max_responsibility": 0.5225
+  },
+  {
+    "object_id": "TOI-01067",
+    "x": 0.14785,
+    "y": 1.58991,
+    "max_responsibility": 0.726
+  },
+  {
+    "object_id": "TOI-01068",
+    "x": -0.15821,
+    "y": 1.62133,
+    "max_responsibility": 0.9295
+  },
+  {
+    "object_id": "TOI-01069",
+    "x": -0.47071,
+    "y": 1.59321,
+    "max_responsibility": 0.5775
+  },
+  {
+    "object_id": "TOI-01070",
+    "x": -0.77795,
+    "y": 1.5043,
+    "max_responsibility": 0.781
+  },
+  {
+    "object_id": "TOI-01071",
+    "x": -1.06801,
+    "y": 1.35564,
+    "max_responsibility": 0.9845
+  },
+  {
+    "object_id": "TOI-01072",
+    "x": -1.3292,
+    "y": 1.15066,
+    "max_responsibility": 0.6325
+  },
+  {
+    "object_id": "TOI-01073",
+    "x": -1.55053,
+    "y": 0.89504,
+    "max_responsibility": 0.836
+  },
+  {
+    "object_id": "TOI-01074",
+    "x": -1.72215,
+    "y": 0.59666,
+    "max_responsibility": 0.484
+  },
+  {
+    "object_id": "TOI-01075",
+    "x": -1.83577,
+    "y": 0.2653,
+    "max_responsibility": 0.6875
+  },
+  {
+    "object_id": "TOI-01076",
+    "x": -0.49946,
+    "y": -0.02323,
+    "max_responsibility": 0.891
+  },
+  {
+    "object_id": "TOI-01077",
+    "x": -0.51744,
+    "y": -0.1247,
+    "max_responsibility": 0.539
+  },
+  {
+    "object_id": "TOI-01078",
+    "x": -0.51395,
+    "y": -0.23352,
+    "max_responsibility": 0.7425
+  },
+  {
+    "object_id": "TOI-01079",
+    "x": -0.48692,
+    "y": -0.34503,
+    "max_responsibility": 0.946
+  },
+  {
+    "object_id": "TOI-01080",
+    "x": -0.43532,
+    "y": -0.45407,
+    "max_responsibility": 0.594
+  },
+  {
+    "object_id": "TOI-01081",
+    "x": -0.35925,
+    "y": -0.55519,
+    "max_responsibility": 0.7975
+  },
+  {
+    "object_id": "TOI-01082",
+    "x": -0.26003,
+    "y": -0.64296,
+    "max_responsibility": 0.4455
+  },
+  {
+    "object_id": "TOI-01083",
+    "x": -0.14015,
+    "y": -0.71215,
+    "max_responsibility": 0.649
+  },
+  {
+    "object_id": "TOI-01084",
+    "x": -0.00327,
+    "y": -0.75806,
+    "max_responsibility": 0.8525
+  },
+  {
+    "object_id": "TOI-01085",
+    "x": 0.14591,
+    "y": -0.77674,
+    "max_responsibility": 0.5005
+  },
+  {
+    "object_id": "TOI-01086",
+    "x": 0.30181,
+    "y": -0.76521,
+    "max_responsibility": 0.704
+  },
+  {
+    "object_id": "TOI-01087",
+    "x": 0.45819,
+    "y": -0.72168,
+    "max_responsibility": 0.9075
+  },
+  {
+    "object_id": "TOI-01088",
+    "x": 0.60836,
+    "y": -0.64563,
+    "max_responsibility": 0.5555
+  },
+  {
+    "object_id": "TOI-01089",
+    "x": 0.7455,
+    "y": -0.538,
+    "max_responsibility": 0.759
+  },
+  {
+    "object_id": "TOI-01090",
+    "x": 0.86294,
+    "y": -0.40112,
+    "max_responsibility": 0.9625
+  },
+  {
+    "object_id": "TOI-01091",
+    "x": 0.95446,
+    "y": -0.23875,
+    "max_responsibility": 0.6105
+  },
+  {
+    "object_id": "TOI-01092",
+    "x": 1.01459,
+    "y": -0.05598,
+    "max_responsibility": 0.814
+  },
+  {
+    "object_id": "TOI-01093",
+    "x": 1.03886,
+    "y": 0.14098,
+    "max_responsibility": 0.462
+  },
+  {
+    "object_id": "TOI-01094",
+    "x": 1.02411,
+    "y": 0.34494,
+    "max_responsibility": 0.6655
+  },
+  {
+    "object_id": "TOI-01095",
+    "x": 0.96861,
+    "y": 0.54803,
+    "max_responsibility": 0.869
+  },
+  {
+    "object_id": "TOI-01096",
+    "x": 0.87225,
+    "y": 0.742,
+    "max_responsibility": 0.517
+  },
+  {
+    "object_id": "TOI-01097",
+    "x": 0.7366,
+    "y": 0.91855,
+    "max_responsibility": 0.7205
+  },
+  {
+    "object_id": "TOI-01098",
+    "x": 0.56494,
+    "y": 1.06966,
+    "max_responsibility": 0.924
+  },
+  {
+    "object_id": "TOI-01099",
+    "x": 0.36216,
+    "y": 1.18796,
+    "max_responsibility": 0.572
+  },
+  {
+    "object_id": "TOI-01100",
+    "x": 0.1347,
+    "y": 1.26705,
+    "max_responsibility": 0.7755
+  },
+  {
+    "object_id": "TOI-01101",
+    "x": -0.10973,
+    "y": 1.30184,
+    "max_responsibility": 0.979
+  },
+  {
+    "object_id": "TOI-01102",
+    "x": -0.36235,
+    "y": 1.28874,
+    "max_responsibility": 0.627
+  },
+  {
+    "object_id": "TOI-01103",
+    "x": -0.61366,
+    "y": 1.22596,
+    "max_responsibility": 0.8305
+  },
+  {
+    "object_id": "TOI-01104",
+    "x": -0.85377,
+    "y": 1.1136,
+    "max_responsibility": 0.4785
+  },
+  {
+    "object_id": "TOI-01105",
+    "x": -1.07283,
+    "y": 0.95375,
+    "max_responsibility": 0.682
+  },
+  {
+    "object_id": "TOI-01106",
+    "x": -1.26137,
+    "y": 0.75047,
+    "max_responsibility": 0.8855
+  },
+  {
+    "object_id": "TOI-01107",
+    "x": -1.41074,
+    "y": 0.50971,
+    "max_responsibility": 0.5335
+  },
+  {
+    "object_id": "TOI-01108",
+    "x": -1.51348,
+    "y": 0.23914,
+    "max_responsibility": 0.737
+  },
+  {
+    "object_id": "TOI-01109",
+    "x": -1.56365,
+    "y": -0.05208,
+    "max_responsibility": 0.9405
+  },
+  {
+    "object_id": "TOI-01110",
+    "x": -1.55713,
+    "y": -0.35359,
+    "max_responsibility": 0.5885
+  },
+  {
+    "object_id": "TOI-01111",
+    "x": -1.49187,
+    "y": -0.65426,
+    "max_responsibility": 0.792
+  },
+  {
+    "object_id": "TOI-01112",
+    "x": -1.36803,
+    "y": -0.94254,
+    "max_responsibility": 0.44
+  },
+  {
+    "object_id": "TOI-01113",
+    "x": -1.18803,
+    "y": -1.20694,
+    "max_responsibility": 0.6435
+  },
+  {
+    "object_id": "TOI-01114",
+    "x": -0.95659,
+    "y": -1.43643,
+    "max_responsibility": 0.847
+  },
+  {
+    "object_id": "TOI-01115",
+    "x": -0.68058,
+    "y": -1.62099,
+    "max_responsibility": 0.495
+  },
+  {
+    "object_id": "TOI-01116",
+    "x": -0.36884,
+    "y": -1.75192,
+    "max_responsibility": 0.6985
+  },
+  {
+    "object_id": "TOI-01117",
+    "x": -0.0319,
+    "y": -1.8223,
+    "max_responsibility": 0.902
+  },
+  {
+    "object_id": "TOI-01118",
+    "x": 0.31837,
+    "y": -1.82731,
+    "max_responsibility": 0.55
+  },
+  {
+    "object_id": "TOI-01119",
+    "x": 0.1773,
+    "y": -0.46751,
+    "max_responsibility": 0.7535
+  },
+  {
+    "object_id": "TOI-01120",
+    "x": 0.27934,
+    "y": -0.45307,
+    "max_responsibility": 0.957
+  },
+  {
+    "object_id": "TOI-01121",
+    "x": 0.38169,
+    "y": -0.41593,
+    "max_responsibility": 0.605
+  },
+  {
+    "object_id": "TOI-01122",
+    "x": 0.47928,
+    "y": -0.35558,
+    "max_responsibility": 0.8085
+  },
+  {
+    "object_id": "TOI-01123",
+    "x": 0.56687,
+    "y": -0.27264,
+    "max_responsibility": 0.4565
+  },
+  {
+    "object_id": "TOI-01124",
+    "x": 0.63935,
+    "y": -0.16892,
+    "max_responsibility": 0.66
+  },
+  {
+    "object_id": "TOI-01125",
+    "x": 0.69193,
+    "y": -0.04733,
+    "max_responsibility": 0.8635
+  },
+  {
+    "object_id": "TOI-01126",
+    "x": 0.72044,
+    "y": 0.08811,
+    "max_responsibility": 0.5115
+  },
+  {
+    "object_id": "TOI-01127",
+    "x": 0.72154,
+    "y": 0.23248,
+    "max_responsibility": 0.715
+  },
+  {
+    "object_id": "TOI-01128",
+    "x": 0.69293,
+    "y": 0.38008,
+    "max_responsibility": 0.9185
+  },
+  {
+    "object_id": "TOI-01129",
+    "x": 0.63352,
+    "y": 0.52468,
+    "max_responsibility": 0.5665
+  },
+  {
+    "object_id": "TOI-01130",
+    "x": 0.54354,
+    "y": 0.65978,
+    "max_responsibility": 0.77
+  },
+  {
+    "object_id": "TOI-01131",
+    "x": 0.42459,
+    "y": 0.77888,
+    "max_responsibility": 0.9735
+  },
+  {
+    "object_id": "TOI-01132",
+    "x": 0.27967,
+    "y": 0.87579,
+    "max_responsibility": 0.6215
+  },
+  {
+    "object_id": "TOI-01133",
+    "x": 0.11307,
+    "y": 0.94487,
+    "max_responsibility": 0.825
+  },
+  {
+    "object_id": "TOI-01134",
+    "x": -0.0697,
+    "y": 0.9814,
+    "max_responsibility": 0.473
+  },
+  {
+    "object_id": "TOI-01135",
+    "x": -0.26211,
+    "y": 0.98174,
+    "max_responsibility": 0.6765
+  },
+  {
+    "object_id": "TOI-01136",
+    "x": -0.45686,
+    "y": 0.9436,
+    "max_responsibility": 0.88
+  },
+  {
+    "object_id": "TOI-01137",
+    "x": -0.64614,
+    "y": 0.8662,
+    "max_responsibility": 0.528
+  },
+  {
+    "object_id": "TOI-01138",
+    "x": -0.82192,
+    "y": 0.75033,
+    "max_responsibility": 0.7315
+  },
+  {
+    "object_id": "TOI-01139",
+    "x": -0.97634,
+    "y": 0.59846,
+    "max_responsibility": 0.935
+  },
+  {
+    "object_id": "TOI-01140",
+    "x": -1.10199,
+    "y": 0.41466,
+    "max_responsibility": 0.583
+  },
+  {
+    "object_id": "TOI-01141",
+    "x": -1.19226,
+    "y": 0.20453,
+    "max_responsibility": 0.7865
+  },
+  {
+    "object_id": "TOI-01142",
+    "x": -1.24168,
+    "y": -0.02497,
+    "max_responsibility": 0.99
+  },
+  {
+    "object_id": "TOI-01143",
+    "x": -1.24617,
+    "y": -0.26575,
+    "max_responsibility": 0.638
+  },
+  {
+    "object_id": "TOI-01144",
+    "x": -1.20327,
+    "y": -0.50888,
+    "max_responsibility": 0.8415
+  },
+  {
+    "object_id": "TOI-01145",
+    "x": -1.11231,
+    "y": -0.74492,
+    "max_responsibility": 0.4895
+  },
+  {
+    "object_id": "TOI-01146",
+    "x": -0.97454,
+    "y": -0.96428,
+    "max_responsibility": 0.693
+  },
+  {
+    "object_id": "TOI-01147",
+    "x": -0.79312,
+    "y": -1.15759,
+    "max_responsibility": 0.8965
+  },
+  {
+    "object_id": "TOI-01148",
+    "x": -0.5731,
+    "y": -1.31612,
+    "max_responsibility": 0.5445
+  },
+  {
+    "object_id": "TOI-01149",
+    "x": -0.32129,
+    "y": -1.43214,
+    "max_responsibility": 0.748
+  },
+  {
+    "object_id": "TOI-01150",
+    "x": -0.04603,
+    "y": -1.49929,
+    "max_responsibility": 0.9515
+  },
+  {
+    "object_id": "TOI-01151",
+    "x": 0.24307,
+    "y": -1.51285,
+    "max_responsibility": 0.5995
+  },
+  {
+    "object_id": "TOI-01152",
+    "x": 0.53546,
+    "y": -1.47003,
+    "max_responsibility": 0.803
+  },
+  {
+    "object_id": "TOI-01153",
+    "x": 0.82001,
+    "y": -1.37013,
+    "max_responsibility": 0.451
+  },
+  {
+    "object_id": "TOI-01154",
+    "x": 1.08551,
+    "y": -1.21466,
+    "max_responsibility": 0.6545
+  },
+  {
+    "object_id": "TOI-01155",
+    "x": 1.32103,
+    "y": -1.00735,
+    "max_responsibility": 0.858
+  },
+  {
+    "object_id": "TOI-01156",
+    "x": 1.51639,
+    "y": -0.7541,
+    "max_responsibility": 0.506
+  },
+  {
+    "object_id": "TOI-01157",
+    "x": 1.6626,
+    "y": -0.4628,
+    "max_responsibility": 0.7095
+  },
+  {
+    "object_id": "TOI-01158",
+    "x": 1.75223,
+    "y": -0.1431,
+    "max_responsibility": 0.913
+  },
+  {
+    "object_id": "TOI-01159",
+    "x": 1.77979,
+    "y": 0.19389,
+    "max_responsibility": 0.561
+  },
+  {
+    "object_id": "TOI-01160",
+    "x": 1.74198,
+    "y": 0.53602,
+    "max_responsibility": 0.7645
+  },
+  {
+    "object_id": "TOI-01161",
+    "x": 1.63788,
+    "y": 0.8705,
+    "max_responsibility": 0.968
+  },
+  {
+    "object_id": "TOI-01162",
+    "x": 0.38925,
+    "y": 0.31382,
+    "max_responsibility": 0.616
+  },
+  {
+    "object_id": "TOI-01163",
+    "x": 0.34382,
+    "y": 0.40631,
+    "max_responsibility": 0.8195
+  },
+  {
+    "object_id": "TOI-01164",
+    "x": 0.27671,
+    "y": 0.49205,
+    "max_responsibility": 0.4675
+  },
+  {
+    "object_id": "TOI-01165",
+    "x": 0.18902,
+    "y": 0.56605,
+    "max_responsibility": 0.671
+  },
+  {
+    "object_id": "TOI-01166",
+    "x": 0.08297,
+    "y": 0.62354,
+    "max_responsibility": 0.8745
+  },
+  {
+    "object_id": "TOI-01167",
+    "x": -0.03815,
+    "y": 0.66019,
+    "max_responsibility": 0.5225
+  },
+  {
+    "object_id": "TOI-01168",
+    "x": -0.17005,
+    "y": 0.67238,
+    "max_responsibility": 0.726
+  },
+  {
+    "object_id": "TOI-01169",
+    "x": -0.30765,
+    "y": 0.65738,
+    "max_responsibility": 0.9295
+  },
+  {
+    "object_id": "TOI-01170",
+    "x": -0.44521,
+    "y": 0.61355,
+    "max_responsibility": 0.5775
+  },
+  {
+    "object_id": "TOI-01171",
+    "x": -0.57661,
+    "y": 0.54049,
+    "max_responsibility": 0.781
+  },
+  {
+    "object_id": "TOI-01172",
+    "x": -0.69559,
+    "y": 0.43909,
+    "max_responsibility": 0.9845
+  },
+  {
+    "object_id": "TOI-01173",
+    "x": -0.79603,
+    "y": 0.31157,
+    "max_responsibility": 0.6325
+  },
+  {
+    "object_id": "TOI-01174",
+    "x": -0.87227,
+    "y": 0.1615,
+    "max_responsibility": 0.836
+  },
+  {
+    "object_id": "TOI-01175",
+    "x": -0.91933,
+    "y": -0.00636,
+    "max_responsibility": 0.484
+  },
+  {
+    "object_id": "TOI-01176",
+    "x": -0.93322,
+    "y": -0.18618,
+    "max_responsibility": 0.6875
+  },
+  {
+    "object_id": "TOI-01177",
+    "x": -0.91114,
+    "y": -0.37125,
+    "max_responsibility": 0.891
+  },
+  {
+    "object_id": "TOI-01178",
+    "x": -0.85166,
+    "y": -0.55424,
+    "max_responsibility": 0.539
+  },
+  {
+    "object_id": "TOI-01179",
+    "x": -0.75489,
+    "y": -0.7275,
+    "max_responsibility": 0.7425
+  },
+  {
+    "object_id": "TOI-01180",
+    "x": -0.62249,
+    "y": -0.88334,
+    "max_responsibility": 0.946
+  },
+  {
+    "object_id": "TOI-01181",
+    "x": -0.45773,
+    "y": -1.01441,
+    "max_responsibility": 0.594
+  },
+  {
+    "object_id": "TOI-01182",
+    "x": -0.26539,
+    "y": -1.11399,
+    "max_responsibility": 0.7975
+  },
+  {
+    "object_id": "TOI-01183",
+    "x": -0.05164,
+    "y": -1.17629,
+    "max_responsibility": 0.4455
+  },
+  {
+    "object_id": "TOI-01184",
+    "x": 0.17614,
+    "y": -1.19679,
+    "max_responsibility": 0.649
+  },
+  {
+    "object_id": "TOI-01185",
+    "x": 0.40963,
+    "y": -1.17244,
+    "max_responsibility": 0.8525
+  },
+  {
+    "object_id": "TOI-01186",
+    "x": 0.63988,
+    "y": -1.10187,
+    "max_responsibility": 0.5005
+  },
+  {
+    "object_id": "TOI-01187",
+    "x": 0.85764,
+    "y": -0.98553,
+    "max_responsibility": 0.704
+  },
+  {
+    "object_id": "TOI-01188",
+    "x": 1.05372,
+    "y": -0.82572,
+    "max_responsibility": 0.9075
+  },
+  {
+    "object_id": "TOI-01189",
+    "x": 1.2194,
+    "y": -0.6266,
+    "max_responsibility": 0.5555
+  },
+  {
+    "object_id": "TOI-01190",
+    "x": 1.34675,
+    "y": -0.39408,
+    "max_responsibility": 0.759
+  },
+  {
+    "object_id": "TOI-01191",
+    "x": 1.42906,
+    "y": -0.1357,
+    "max_responsibility": 0.9625
+  },
+  {
+    "object_id": "TOI-01192",
+    "x": 1.46108,
+    "y": 0.13971,
+    "max_responsibility": 0.6105
+  },
+  {
+    "object_id": "TOI-01193",
+    "x": 1.43935,
+    "y": 0.42221,
+    "max_responsibility": 0.814
+  },
+  {
+    "object_id": "TOI-01194",
+    "x": 1.3624,
+    "y": 0.70121,
+    "max_responsibility": 0.462
+  },
+  {
+    "object_id": "TOI-01195",
+    "x": 1.23083,
+    "y": 0.9658,
+    "max_responsibility": 0.6655
+  },
+  {
+    "object_id": "TOI-01196",
+    "x": 1.04744,
+    "y": 1.20522,
+    "max_responsibility": 0.869
+  },
+  {
+    "object_id": "TOI-01197",
+    "x": 0.81715,
+    "y": 1.40926,
+    "max_responsibility": 0.517
+  },
+  {
+    "object_id": "TOI-01198",
+    "x": 0.54691,
+    "y": 1.56868,
+    "max_responsibility": 0.7205
+  },
+  {
+    "object_id": "TOI-01199",
+    "x": 0.24549,
+    "y": 1.67566,
+    "max_responsibility": 0.924
+  },
+  {
+    "object_id": "TOI-01200",
+    "x": -0.07683,
+    "y": 1.7241,
+    "max_responsibility": 0.572
+  },
+  {
+    "object_id": "TOI-01201",
+    "x": -0.40855,
+    "y": 1.70993,
+    "max_responsibility": 0.7755
+  },
+  {
+    "object_id": "TOI-01202",
+    "x": -0.73742,
+    "y": 1.6314,
+    "max_responsibility": 0.979
+  },
+  {
+    "object_id": "TOI-01203",
+    "x": -1.05086,
+    "y": 1.48913,
+    "max_responsibility": 0.627
+  },
+  {
+    "object_id": "TOI-01204",
+    "x": -1.33642,
+    "y": 1.28623,
+    "max_responsibility": 0.8305
+  },
+  {
+    "object_id": "TOI-01205",
+    "x": -0.41925,
+    "y": 0.27245,
+    "max_responsibility": 0.4785
+  },
+  {
+    "object_id": "TOI-01206",
+    "x": -0.49304,
+    "y": 0.20052,
+    "max_responsibility": 0.682
+  },
+  {
+    "object_id": "TOI-01207",
+    "x": -0.55368,
+    "y": 0.11008,
+    "max_responsibility": 0.8855
+  },
+  {
+    "object_id": "TOI-01208",
+    "x": -0.59676,
+    "y": 0.00374,
+    "max_responsibility": 0.5335
+  },
+  {
+    "object_id": "TOI-01209",
+    "x": -0.61844,
+    "y": -0.11493,
+    "max_responsibility": 0.737
+  },
+  {
+    "object_id": "TOI-01210",
+    "x": -0.61564,
+    "y": -0.24143,
+    "max_responsibility": 0.9405
+  },
+  {
+    "object_id": "TOI-01211",
+    "x": -0.58623,
+    "y": -0.3706,
+    "max_responsibility": 0.5885
+  },
+  {
+    "object_id": "TOI-01212",
+    "x": -0.52921,
+    "y": -0.49672,
+    "max_responsibility": 0.792
+  },
+  {
+    "object_id": "TOI-01213",
+    "x": -0.44481,
+    "y": -0.61385,
+    "max_responsibility": 0.44
+  },
+  {
+    "object_id": "TOI-01214",
+    "x": -0.33453,
+    "y": -0.71603,
+    "max_responsibility": 0.6435
+  },
+  {
+    "object_id": "TOI-01215",
+    "x": -0.20117,
+    "y": -0.7976,
+    "max_responsibility": 0.847
+  },
+  {
+    "object_id": "TOI-01216",
+    "x": -0.04875,
+    "y": -0.85345,
+    "max_responsibility": 0.495
+  },
+  {
+    "object_id": "TOI-01217",
+    "x": 0.11758,
+    "y": -0.87927,
+    "max_responsibility": 0.6985
+  },
+  {
+    "object_id": "TOI-01218",
+    "x": 0.29176,
+    "y": -0.87183,
+    "max_responsibility": 0.902
+  },
+  {
+    "object_id": "TOI-01219",
+    "x": 0.467,
+    "y": -0.82915,
+    "max_responsibility": 0.55
+  },
+  {
+    "object_id": "TOI-01220",
+    "x": 0.63604,
+    "y": -0.75064,
+    "max_responsibility": 0.7535
+  },
+  {
+    "object_id": "TOI-01221",
+    "x": 0.79148,
+    "y": -0.63724,
+    "max_responsibility": 0.957
+  },
+  {
+    "object_id": "TOI-01222",
+    "x": 0.92608,
+    "y": -0.49141,
+    "max_responsibility": 0.605
+  },
+  {
+    "object_id": "TOI-01223",
+    "x": 1.03306,
+    "y": -0.31714,
+    "max_responsibility": 0.8085
+  },
+  {
+    "object_id": "TOI-01224",
+    "x": 1.10644,
+    "y": -0.1198,
+    "max_responsibility": 0.4565
+  },
+  {
+    "object_id": "TOI-01225",
+    "x": 1.1413,
+    "y": 0.09396,
+    "max_responsibility": 0.66
+  },
+  {
+    "object_id": "TOI-01226",
+    "x": 1.13409,
+    "y": 0.31649,
+    "max_responsibility": 0.8635
+  },
+  {
+    "object_id": "TOI-01227",
+    "x": 1.08278,
+    "y": 0.53936,
+    "max_responsibility": 0.5115
+  },
+  {
+    "object_id": "TOI-01228",
+    "x": 0.98707,
+    "y": 0.75372,
+    "max_responsibility": 0.715
+  },
+  {
+    "object_id": "TOI-01229",
+    "x": 0.84844,
+    "y": 0.95064,
+    "max_responsibility": 0.9185
+  },
+  {
+    "object_id": "TOI-01230",
+    "x": 0.67018,
+    "y": 1.12146,
+    "max_responsibility": 0.5665
+  },
+  {
+    "object_id": "TOI-01231",
+    "x": 0.45735,
+    "y": 1.25816,
+    "max_responsibility": 0.77
+  },
+  {
+    "object_id": "TOI-01232",
+    "x": 0.2166,
+    "y": 1.35375,
+    "max_responsibility": 0.9735
+  },
+  {
+    "object_id": "TOI-01233",
+    "x": -0.04398,
+    "y": 1.40254,
+    "max_responsibility": 0.6215
+  },
+  {
+    "object_id": "TOI-01234",
+    "x": -0.31515,
+    "y": 1.40046,
+    "max_responsibility": 0.825
+  },
+  {
+    "object_id": "TOI-01235",
+    "x": -0.58687,
+    "y": 1.34531,
+    "max_responsibility": 0.473
+  },
+  {
+    "object_id": "TOI-01236",
+    "x": -0.84863,
+    "y": 1.23686,
+    "max_responsibility": 0.6765
+  },
+  {
+    "object_id": "TOI-01237",
+    "x": -1.0899,
+    "y": 1.07701,
+    "max_responsibility": 0.88
+  },
+  {
+    "object_id": "TOI-01238",
+    "x": -1.3005,
+    "y": 0.86972,
+    "max_responsibility": 0.528
+  },
+  {
+    "object_id": "TOI-01239",
+    "x": -1.47107,
+    "y": 0.621,
+    "max_responsibility": 0.7315
+  },
+  {
+    "object_id": "TOI-01240",
+    "x": -1.59343,
+    "y": 0.33871,
+    "max_responsibility": 0.935
+  },
+  {
+    "object_id": "TOI-01241",
+    "x": -1.66098,
+    "y": 0.03231,
+    "max_responsibility": 0.583
+  },
+  {
+    "object_id": "TOI-01242",
+    "x": -1.66898,
+    "y": -0.28744,
+    "max_responsibility": 0.7865
+  },
+  {
+    "object_id": "TOI-01243",
+    "x": -1.61484,
+    "y": -0.60885,
+    "max_responsibility": 0.99
+  },
+  {
+    "object_id": "TOI-01244",
+    "x": -1.49829,
+    "y": -0.91974,
+    "max_responsibility": 0.638
+  },
+  {
+    "object_id": "TOI-01245",
+    "x": -1.32143,
+    "y": -1.20792,
+    "max_responsibility": 0.8415
+  },
+  {
+    "object_id": "TOI-01246",
+    "x": -1.0888,
+    "y": -1.46162,
+    "max_responsibility": 0.4895
+  },
+  {
+    "object_id": "TOI-01247",
+    "x": -0.8072,
+    "y": -1.66999,
+    "max_responsibility": 0.693
+  },
+  {
+    "object_id": "TOI-01248",
+    "x": -0.12866,
+    "y": -0.48316,
+    "max_responsibility": 0.8965
+  },
+  {
+    "object_id": "TOI-01249",
+    "x": -0.03736,
+    "y": -0.53095,
+    "max_responsibility": 0.5445
+  },
+  {
+    "object_id": "TOI-01250",
+    "x": 0.06744,
+    "y": -0.56047,
+    "max_responsibility": 0.748
+  },
+  {
+    "object_id": "TOI-01251",
+    "x": 0.18191,
+    "y": -0.56837,
+    "max_responsibility": 0.9515
+  },
+  {
+    "object_id": "TOI-01252",
+    "x": 0.30144,
+    "y": -0.5521,
+    "max_responsibility": 0.5995
+  },
+  {
+    "object_id": "TOI-01253",
+    "x": 0.42081,
+    "y": -0.51012,
+    "max_responsibility": 0.803
+  },
+  {
+    "object_id": "TOI-01254",
+    "x": 0.53444,
+    "y": -0.44203,
+    "max_responsibility": 0.451
+  },
+  {
+    "object_id": "TOI-01255",
+    "x": 0.63659,
+    "y": -0.34863,
+    "max_responsibility": 0.6545
+  },
+  {
+    "object_id": "TOI-01256",
+    "x": 0.72169,
+    "y": -0.23201,
+    "max_responsibility": 0.858
+  },
+  {
+    "object_id": "TOI-01257",
+    "x": 0.78454,
+    "y": -0.09543,
+    "max_responsibility": 0.506
+  },
+  {
+    "object_id": "TOI-01258",
+    "x": 0.82063,
+    "y": 0.05668,
+    "max_responsibility": 0.7095
+  },
+  {
+    "object_id": "TOI-01259",
+    "x": 0.82634,
+    "y": 0.2189,
+    "max_responsibility": 0.913
+  },
+  {
+    "object_id": "TOI-01260",
+    "x": 0.79919,
+    "y": 0.38502,
+    "max_responsibility": 0.561
+  },
+  {
+    "object_id": "TOI-01261",
+    "x": 0.73798,
+    "y": 0.54827,
+    "max_responsibility": 0.7645
+  },
+  {
+    "object_id": "TOI-01262",
+    "x": 0.64295,
+    "y": 0.70156,
+    "max_responsibility": 0.968
+  },
+  {
+    "object_id": "TOI-01263",
+    "x": 0.5158,
+    "y": 0.83783,
+    "max_responsibility": 0.616
+  },
+  {
+    "object_id": "TOI-01264",
+    "x": 0.3597,
+    "y": 0.95033,
+    "max_responsibility": 0.8195
+  },
+  {
+    "object_id": "TOI-01265",
+    "x": 0.17927,
+    "y": 1.03295,
+    "max_responsibility": 0.4675
+  },
+  {
+    "object_id": "TOI-01266",
+    "x": -0.01963,
+    "y": 1.08047,
+    "max_responsibility": 0.671
+  },
+  {
+    "object_id": "TOI-01267",
+    "x": -0.22999,
+    "y": 1.08888,
+    "max_responsibility": 0.8745
+  },
+  {
+    "object_id": "TOI-01268",
+    "x": -0.44401,
+    "y": 1.05558,
+    "max_responsibility": 0.5225
+  },
+  {
+    "object_id": "TOI-01269",
+    "x": -0.65327,
+    "y": 0.97957,
+    "max_responsibility": 0.726
+  },
+  {
+    "object_id": "TOI-01270",
+    "x": -0.84916,
+    "y": 0.86154,
+    "max_responsibility": 0.9295
+  },
+  {
+    "object_id": "TOI-01271",
+    "x": -1.02316,
+    "y": 0.70395,
+    "max_responsibility": 0.5775
+  },
+  {
+    "object_id": "TOI-01272",
+    "x": -1.16725,
+    "y": 0.51098,
+    "max_responsibility": 0.781
+  },
+  {
+    "object_id": "TOI-01273",
+    "x": -1.27421,
+    "y": 0.28846,
+    "max_responsibility": 0.9845
+  },
+  {
+    "object_id": "TOI-01274",
+    "x": -1.338,
+    "y": 0.04368,
+    "max_responsibility": 0.6325
+  },
+  {
+    "object_id": "TOI-01275",
+    "x": -1.35403,
+    "y": -0.21485,
+    "max_responsibility": 0.836
+  },
+  {
+    "object_id": "TOI-01276",
+    "x": -1.31941,
+    "y": -0.47769,
+    "max_responsibility": 0.484
+  },
+  {
+    "object_id": "TOI-01277",
+    "x": -1.23317,
+    "y": -0.73479,
+    "max_responsibility": 0.6875
+  },
+  {
+    "object_id": "TOI-01278",
+    "x": -1.0963,
+    "y": -0.97591,
+    "max_responsibility": 0.891
+  },
+  {
+    "object_id": "TOI-01279",
+    "x": -0.91187,
+    "y": -1.191,
+    "max_responsibility": 0.539
+  },
+  {
+    "object_id": "TOI-01280",
+    "x": -0.68495,
+    "y": -1.37064,
+    "max_responsibility": 0.7425
+  },
+  {
+    "object_id": "TOI-01281",
+    "x": -0.42248,
+    "y": -1.50639,
+    "max_responsibility": 0.946
+  },
+  {
+    "object_id": "TOI-01282",
+    "x": -0.13307,
+    "y": -1.59122,
+    "max_responsibility": 0.594
+  },
+  {
+    "object_id": "TOI-01283",
+    "x": 0.17328,
+    "y": -1.61979,
+    "max_responsibility": 0.7975
+  },
+  {
+    "object_id": "TOI-01284",
+    "x": 0.4855,
+    "y": -1.58877,
+    "max_responsibility": 0.4455
+  },
+  {
+    "object_id": "TOI-01285",
+    "x": 0.7919,
+    "y": -1.497,
+    "max_responsibility": 0.649
+  },
+  {
+    "object_id": "TOI-01286",
+    "x": 1.08056,
+    "y": -1.34565,
+    "max_responsibility": 0.8525
+  },
+  {
+    "object_id": "TOI-01287",
+    "x": 1.33984,
+    "y": -1.13825,
+    "max_responsibility": 0.5005
+  },
+  {
+    "object_id": "TOI-01288",
+    "x": 1.55879,
+    "y": -0.88059,
+    "max_responsibility": 0.704
+  },
+  {
+    "object_id": "TOI-01289",
+    "x": 1.72762,
+    "y": -0.58063,
+    "max_responsibility": 0.9075
+  },
+  {
+    "object_id": "TOI-01290",
+    "x": 1.83815,
+    "y": -0.24822,
+    "max_responsibility": 0.5555
+  },
+  {
+    "object_id": "TOI-01291",
+    "x": 0.49922,
+    "y": 0.02787,
+    "max_responsibility": 0.759
+  },
+  {
+    "object_id": "TOI-01292",
+    "x": 0.51626,
+    "y": 0.1295,
+    "max_responsibility": 0.9625
+  },
+  {
+    "object_id": "TOI-01293",
+    "x": 0.51176,
+    "y": 0.23829,
+    "max_responsibility": 0.6105
+  },
+  {
+    "object_id": "TOI-01294",
+    "x": 0.48369,
+    "y": 0.34954,
+    "max_responsibility": 0.814
+  },
+  {
+    "object_id": "TOI-01295",
+    "x": 0.43108,
+    "y": 0.4581,
+    "max_responsibility": 0.462
+  },
+  {
+    "object_id": "TOI-01296",
+    "x": 0.35408,
+    "y": 0.55851,
+    "max_responsibility": 0.6655
+  },
+  {
+    "object_id": "TOI-01297",
+    "x": 0.25404,
+    "y": 0.64535,
+    "max_responsibility": 0.869
+  },
+  {
+    "object_id": "TOI-01298",
+    "x": 0.13353,
+    "y": 0.71342,
+    "max_responsibility": 0.517
+  },
+  {
+    "object_id": "TOI-01299",
+    "x": -0.00377,
+    "y": 0.75806,
+    "max_responsibility": 0.7205
+  },
+  {
+    "object_id": "TOI-01300",
+    "x": -0.15312,
+    "y": 0.77535,
+    "max_responsibility": 0.924
+  },
+  {
+    "object_id": "TOI-01301",
+    "x": -0.30891,
+    "y": 0.76237,
+    "max_responsibility": 0.572
+  },
+  {
+    "object_id": "TOI-01302",
+    "x": -0.46487,
+    "y": 0.71738,
+    "max_responsibility": 0.7755
+  },
+  {
+    "object_id": "TOI-01303",
+    "x": -0.61433,
+    "y": 0.63995,
+    "max_responsibility": 0.979
+  },
+  {
+    "object_id": "TOI-01304",
+    "x": -0.75047,
+    "y": 0.53104,
+    "max_responsibility": 0.627
+  },
+  {
+    "object_id": "TOI-01305",
+    "x": -0.86663,
+    "y": 0.39308,
+    "max_responsibility": 0.8305
+  },
+  {
+    "object_id": "TOI-01306",
+    "x": -0.95664,
+    "y": 0.22987,
+    "max_responsibility": 0.4785
+  },
+  {
+    "object_id": "TOI-01307",
+    "x": -1.01506,
+    "y": 0.04654,
+    "max_responsibility": 0.682
+  },
+  {
+    "object_id": "TOI-01308",
+    "x": -1.03751,
+    "y": -0.15063,
+    "max_responsibility": 0.8855
+  },
+  {
+    "object_id": "TOI-01309",
+    "x": -1.02086,
+    "y": -0.35445,
+    "max_responsibility": 0.5335
+  },
+  {
+    "object_id": "TOI-01310",
+    "x": -0.96348,
+    "y": -0.55701,
+    "max_responsibility": 0.737
+  },
+  {
+    "object_id": "TOI-01311",
+    "x": -0.86532,
+    "y": -0.75008,
+    "max_responsibility": 0.9405
+  },
+  {
+    "object_id": "TOI-01312",
+    "x": -0.72803,
+    "y": -0.92536,
+    "max_responsibility": 0.5885
+  },
+  {
+    "object_id": "TOI-01313",
+    "x": -0.55497,
+    "y": -1.07486,
+    "max_responsibility": 0.792
+  },
+  {
+    "object_id": "TOI-01314",
+    "x": -0.3511,
+    "y": -1.19127,
+    "max_responsibility": 0.44
+  },
+  {
+    "object_id": "TOI-01315",
+    "x": -0.12292,
+    "y": -1.26825,
+    "max_responsibility": 0.6435
+  },
+  {
+    "object_id": "TOI-01316",
+    "x": 0.12182,
+    "y": -1.30076,
+    "max_responsibility": 0.847
+  },
+  {
+    "object_id": "TOI-01317",
+    "x": 0.37431,
+    "y": -1.28531,
+    "max_responsibility": 0.495
+  },
+  {
+    "object_id": "TOI-01318",
+    "x": 0.62503,
+    "y": -1.2202,
+    "max_responsibility": 0.6985
+  },
+  {
+    "object_id": "TOI-01319",
+    "x": 0.86409,
+    "y": -1.10562,
+    "max_responsibility": 0.902
+  },
+  {
+    "object_id": "TOI-01320",
+    "x": 1.08165,
+    "y": -0.94374,
+    "max_responsibility": 0.55
+  },
+  {
+    "object_id": "TOI-01321",
+    "x": 1.26829,
+    "y": -0.73871,
+    "max_responsibility": 0.7535
+  },
+  {
+    "object_id": "TOI-01322",
+    "x": 1.41542,
+    "y": -0.49657,
+    "max_responsibility": 0.957
+  },
+  {
+    "object_id": "TOI-01323",
+    "x": 1.51564,
+    "y": -0.22506,
+    "max_responsibility": 0.605
+  },
+  {
+    "object_id": "TOI-01324",
+    "x": 1.5631,
+    "y": 0.06661,
+    "max_responsibility": 0.8085
+  },
+  {
+    "object_id": "TOI-01325",
+    "x": 1.55378,
+    "y": 0.36805,
+    "max_responsibility": 0.4565
+  },
+  {
+    "object_id": "TOI-01326",
+    "x": 1.48573,
+    "y": 0.6681,
+    "max_responsibility": 0.66
+  },
+  {
+    "object_id": "TOI-01327",
+    "x": 1.35921,
+    "y": 0.95522,
+    "max_responsibility": 0.8635
+  },
+  {
+    "object_id": "TOI-01328",
+    "x": 1.17676,
+    "y": 1.21793,
+    "max_responsibility": 0.5115
+  },
+  {
+    "object_id": "TOI-01329",
+    "x": 0.9432,
+    "y": 1.44526,
+    "max_responsibility": 0.715
+  },
+  {
+    "object_id": "TOI-01330",
+    "x": 0.66548,
+    "y": 1.62724,
+    "max_responsibility": 0.9185
+  },
+  {
+    "object_id": "TOI-01331",
+    "x": 0.35254,
+    "y": 1.75527,
+    "max_responsibility": 0.5665
+  },
+  {
+    "object_id": "TOI-01332",
+    "x": 0.01496,
+    "y": 1.82252,
+    "max_responsibility": 0.77
+  },
+  {
+    "object_id": "TOI-01333",
+    "x": -0.33534,
+    "y": 1.82427,
+    "max_responsibility": 0.9735
+  },
+  {
+    "object_id": "TOI-01334",
+    "x": -0.18164,
+    "y": 0.46584,
+    "max_responsibility": 0.6215
+  },
+  {
+    "object_id": "TOI-01335",
+    "x": -0.28354,
+    "y": 0.45045,
+    "max_responsibility": 0.825
+  },
+  {
+    "object_id": "TOI-01336",
+    "x": -0.38554,
+    "y": 0.41236,
+    "max_responsibility": 0.473
+  },
+  {
+    "object_id": "TOI-01337",
+    "x": -0.48256,
+    "y": 0.35111,
+    "max_responsibility": 0.6765
+  },
+  {
+    "object_id": "TOI-01338",
+    "x": -0.56938,
+    "y": 0.26736,
+    "max_responsibility": 0.88
+  },
+  {
+    "object_id": "TOI-01339",
+    "x": -0.64089,
+    "y": 0.16297,
+    "max_responsibility": 0.528
+  },
+  {
+    "object_id": "TOI-01340",
+    "x": -0.69234,
+    "y": 0.0409,
+    "max_responsibility": 0.7315
+  },
+  {
+    "object_id": "TOI-01341",
+    "x": -0.71959,
+    "y": -0.09481,
+    "max_responsibility": 0.935
+  },
+  {
+    "object_id": "TOI-01342",
+    "x": -0.71934,
+    "y": -0.23918,
+    "max_responsibility": 0.583
+  },
+  {
+    "object_id": "TOI-01343",
+    "x": -0.68937,
+    "y": -0.3865,
+    "max_responsibility": 0.7865
+  },
+  {
+    "object_id": "TOI-01344",
+    "x": -0.62862,
+    "y": -0.53055,
+    "max_responsibility": 0.99
+  },
+  {
+    "object_id": "TOI-01345",
+    "x": -0.53738,
+    "y": -0.66481,
+    "max_responsibility": 0.638
+  },
+  {
+    "object_id": "TOI-01346",
+    "x": -0.41734,
+    "y": -0.7828,
+    "max_responsibility": 0.8415
+  },
+  {
+    "object_id": "TOI-01347",
+    "x": -0.27151,
+    "y": -0.87835,
+    "max_responsibility": 0.4895
+  },
+  {
+    "object_id": "TOI-01348",
+    "x": -0.10428,
+    "y": -0.94588,
+    "max_responsibility": 0.693
+  },
+  {
+    "object_id": "TOI-01349",
+    "x": 0.07882,
+    "y": -0.98071,
+    "max_responsibility": 0.8965
+  },
+  {
+    "object_id": "TOI-01350",
+    "x": 0.27123,
+    "y": -0.97926,
+    "max_responsibility": 0.5445
+  },
+  {
+    "object_id": "TOI-01351",
+    "x": 0.46562,
+    "y": -0.93932,
+    "max_responsibility": 0.748
+  },
+  {
+    "object_id": "TOI-01352",
+    "x": 0.65416,
+    "y": -0.86015,
+    "max_responsibility": 0.9515
+  },
+  {
+    "object_id": "TOI-01353",
+    "x": 0.82886,
+    "y": -0.74266,
+    "max_responsibility": 0.5995
+  },
+  {
+    "object_id": "TOI-01354",
+    "x": 0.98186,
+    "y": -0.58936,
+    "max_responsibility": 0.803
+  },
+  {
+    "object_id": "TOI-01355",
+    "x": 1.10579,
+    "y": -0.4044,
+    "max_responsibility": 0.451
+  },
+  {
+    "object_id": "TOI-01356",
+    "x": 1.19411,
+    "y": -0.19344,
+    "max_responsibility": 0.6545
+  },
+  {
+    "object_id": "TOI-01357",
+    "x": 1.2414,
+    "y": 0.03651,
+    "max_responsibility": 0.858
+  },
+  {
+    "object_id": "TOI-01358",
+    "x": 1.24365,
+    "y": 0.27732,
+    "max_responsibility": 0.506
+  },
+  {
+    "object_id": "TOI-01359",
+    "x": 1.19848,
+    "y": 0.52005,
+    "max_responsibility": 0.7095
+  },
+  {
+    "object_id": "TOI-01360",
+    "x": 1.10534,
+    "y": 0.75523,
+    "max_responsibility": 0.913
+  },
+  {
+    "object_id": "TOI-01361",
+    "x": 0.96553,
+    "y": 0.97329,
+    "max_responsibility": 0.561
+  },
+  {
+    "object_id": "TOI-01362",
+    "x": 0.78232,
+    "y": 1.16491,
+    "max_responsibility": 0.7645
+  },
+  {
+    "object_id": "TOI-01363",
+    "x": 0.56085,
+    "y": 1.32139,
+    "max_responsibility": 0.968
+  },
+  {
+    "object_id": "TOI-01364",
+    "x": 0.30797,
+    "y": 1.43507,
+    "max_responsibility": 0.616
+  },
+  {
+    "object_id": "TOI-01365",
+    "x": 0.03209,
+    "y": 1.49966,
+    "max_responsibility": 0.8195
+  },
+  {
+    "object_id": "TOI-01366",
+    "x": -0.25713,
+    "y": 1.51053,
+    "max_responsibility": 0.4675
+  },
+  {
+    "object_id": "TOI-01367",
+    "x": -0.5491,
+    "y": 1.46499,
+    "max_responsibility": 0.671
+  },
+  {
+    "object_id": "TOI-01368",
+    "x": -0.83272,
+    "y": 1.36245,
+    "max_responsibility": 0.8745
+  },
+  {
+    "object_id": "TOI-01369",
+    "x": -1.09676,
+    "y": 1.20452,
+    "max_responsibility": 0.5225
+  },
+  {
+    "object_id": "TOI-01370",
+    "x": -1.33034,
+    "y": 0.99503,
+    "max_responsibility": 0.726
+  },
+  {
+    "object_id": "TOI-01371",
+    "x": -1.52333,
+    "y": 0.73997,
+    "max_responsibility": 0.9295
+  },
+  {
+    "object_id": "TOI-01372",
+    "x": -1.66683,
+    "y": 0.44732,
+    "max_responsibility": 0.5775
+  },
+  {
+    "object_id": "TOI-01373",
+    "x": -1.75349,
+    "y": 0.1268,
+    "max_responsibility": 0.781
+  },
+  {
+    "object_id": "TOI-01374",
+    "x": -1.77791,
+    "y": -0.21043,
+    "max_responsibility": 0.9845
+  },
+  {
+    "object_id": "TOI-01375",
+    "x": -1.73692,
+    "y": -0.55219,
+    "max_responsibility": 0.6325
+  },
+  {
+    "object_id": "TOI-01376",
+    "x": -1.62972,
+    "y": -0.88569,
+    "max_responsibility": 0.836
+  },
+  {
+    "object_id": "TOI-01377",
+    "x": -0.38632,
+    "y": -0.31742,
+    "max_responsibility": 0.484
+  },
+  {
+    "object_id": "TOI-01378",
+    "x": -0.34003,
+    "y": -0.40949,
+    "max_responsibility": 0.6875
+  },
+  {
+    "object_id": "TOI-01379",
+    "x": -0.27212,
+    "y": -0.4946,
+    "max_responsibility": 0.891
+  },
+  {
+    "object_id": "TOI-01380",
+    "x": -0.18375,
+    "y": -0.56778,
+    "max_responsibility": 0.539
+  },
+  {
+    "object_id": "TOI-01381",
+    "x": -0.07717,
+    "y": -0.62428,
+    "max_responsibility": 0.7425
+  },
+  {
+    "object_id": "TOI-01382",
+    "x": 0.04428,
+    "y": -0.65981,
+    "max_responsibility": 0.946
+  },
+  {
+    "object_id": "TOI-01383",
+    "x": 0.1763,
+    "y": -0.67077,
+    "max_responsibility": 0.594
+  },
+  {
+    "object_id": "TOI-01384",
+    "x": 0.31375,
+    "y": -0.65449,
+    "max_responsibility": 0.7975
+  },
+  {
+    "object_id": "TOI-01385",
+    "x": 0.45089,
+    "y": -0.60939,
+    "max_responsibility": 0.4455
+  },
+  {
+    "object_id": "TOI-01386",
+    "x": 0.58161,
+    "y": -0.53511,
+    "max_responsibility": 0.649
+  },
+  {
+    "object_id": "TOI-01387",
+    "x": 0.69964,
+    "y": -0.4326,
+    "max_responsibility": 0.8525
+  },
+  {
+    "object_id": "TOI-01388",
+    "x": 0.7989,
+    "y": -0.30416,
+    "max_responsibility": 0.5005
+  },
+  {
+    "object_id": "TOI-01389",
+    "x": 0.87374,
+    "y": -0.15339,
+    "max_responsibility": 0.704
+  },
+  {
+    "object_id": "TOI-01390",
+    "x": 0.91923,
+    "y": 0.01491,
+    "max_responsibility": 0.9075
+  },
+  {
+    "object_id": "TOI-01391",
+    "x": 0.93145,
+    "y": 0.19485,
+    "max_responsibility": 0.5555
+  },
+  {
+    "object_id": "TOI-01392",
+    "x": 0.90765,
+    "y": 0.37971,
+    "max_responsibility": 0.759
+  },
+  {
+    "object_id": "TOI-01393",
+    "x": 0.84648,
+    "y": 0.56214,
+    "max_responsibility": 0.9625
+  },
+  {
+    "object_id": "TOI-01394",
+    "x": 0.7481,
+    "y": 0.73448,
+    "max_responsibility": 0.6105
+  },
+  {
+    "object_id": "TOI-01395",
+    "x": 0.61426,
+    "y": 0.88909,
+    "max_responsibility": 0.814
+  },
+  {
+    "object_id": "TOI-01396",
+    "x": 0.44828,
+    "y": 1.01862,
+    "max_responsibility": 0.462
+  },
+  {
+    "object_id": "TOI-01397",
+    "x": 0.25502,
+    "y": 1.1164,
+    "max_responsibility": 0.6655
+  },
+  {
+    "object_id": "TOI-01398",
+    "x": 0.04071,
+    "y": 1.17672,
+    "max_responsibility": 0.869
+  },
+  {
+    "object_id": "TOI-01399",
+    "x": -0.18725,
+    "y": 1.1951,
+    "max_responsibility": 0.517
+  },
+  {
+    "object_id": "TOI-01400",
+    "x": -0.42051,
+    "y": 1.16858,
+    "max_responsibility": 0.7205
+  }
+]

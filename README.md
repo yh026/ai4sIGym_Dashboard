@@ -19,6 +19,27 @@ Drive folder ──▶ Apps Script (sync + JSON feed) ──▶ this build ─�
               registry sheet (Draft / Live / Archived + metadata)
 ```
 
+## Development baseline and local tools
+
+The [2026-09-15 baseline record](docs/baseline-2026-09-15.md) identifies the
+verified Production commit and the local development snapshot before the
+Key Findings page work. The deployment stories below retain their original
+release context; use the dated baseline record for that checkpoint.
+
+The optional [Payload dashboard kit](payload-dashboard-kit/README.md) creates
+standalone HTML reports from versioned JSON packages and verified data
+sidecars. It requires Node.js 24 and no package installation:
+
+```sh
+npm run render:payload -- \
+  --input payload-dashboard-kit/examples/generic-manufacturing/payload.json \
+  --output local-content/manufacturing.html
+```
+
+Source packages and tests are versioned. Generated reports and delivery ZIPs
+are local artifacts. Run `npm test` to check both the Registry website and the
+payload tool; tests generate their HTML in temporary directories.
+
 ## One-time setup (~20 min)
 
 ### A. Deploy the Registry v2 Apps Script as a web app

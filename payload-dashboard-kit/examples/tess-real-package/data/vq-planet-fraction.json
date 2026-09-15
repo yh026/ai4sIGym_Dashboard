@@ -1,0 +1,42 @@
+[
+  {
+    "adjudicated": 193,
+    "codeword": "C0",
+    "planet_fraction": 0.77202073
+  },
+  {
+    "adjudicated": 57,
+    "codeword": "C1",
+    "planet_fraction": 0.64912281
+  },
+  {
+    "adjudicated": 318,
+    "codeword": "C2",
+    "planet_fraction": 0.62578616
+  },
+  {
+    "adjudicated": 141,
+    "codeword": "C3",
+    "planet_fraction": 0.53900709
+  },
+  {
+    "adjudicated": 270,
+    "codeword": "C4",
+    "planet_fraction": 0.08518519
+  },
+  {
+    "adjudicated": 484,
+    "codeword": "C5",
+    "planet_fraction": 0.59090909
+  },
+  {
+    "adjudicated": 303,
+    "codeword": "C6",
+    "planet_fraction": 0.44224422
+  },
+  {
+    "adjudicated": 473,
+    "codeword": "C7",
+    "planet_fraction": 0.27272727
+  }
+]
