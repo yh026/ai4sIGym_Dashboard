@@ -13,7 +13,8 @@
  * Netlify's CONTEXT and BRANCH select a fail-closed content policy:
  *   production/main       -> Live only
  *   branch-deploy/develop -> Live + Draft
- * Local preview: node build.js --mock
+ * Local website: node build.js --local (outputs to local-content/site/)
+ * Mock fixtures: node build.js --mock
  */
 
 const fs = require('fs');
@@ -21,8 +22,9 @@ const path = require('path');
 
 const MOCK = process.argv.includes('--mock');
 const LOCAL = process.argv.includes('--local');
+const INCLUDE_DRAFTS = process.argv.includes('--include-drafts');
 const ROOT = __dirname;
-const DIST = path.join(ROOT, 'dist');
+const DIST = LOCAL ? path.join(ROOT, 'local-content', 'site') : path.join(ROOT, 'dist');
 const SITE = path.join(ROOT, 'site');
 const NEW_WINDOW_DAYS = 14;
 const DEPLOY_RECEIPT_SCHEMA = 1;
@@ -1748,11 +1750,12 @@ function domainSwitcherHtml(currentDomain, grouped, domains = DOMAIN_DEFINITIONS
 
 async function main() {
   if (MOCK && LOCAL) throw new Error('Choose either --mock or --local.');
+  if (INCLUDE_DRAFTS && !LOCAL) throw new Error('--include-drafts requires --local.');
   console.log(LOCAL ? 'Build AIS Instrumentation Gym (local Drive snapshot)…'
     : MOCK ? 'Build AIS Instrumentation Gym (mock fixtures)…' : 'Build AIS Instrumentation Gym (live registry)…');
   validateTaxonomy();
   const policy = LOCAL
-    ? require('./lib/local-content').localContentPolicy(process.env)
+    ? require('./lib/local-content').localContentPolicy(process.env, { includeDrafts: INCLUDE_DRAFTS })
     : resolveBuildContentPolicy(process.env);
   const trigger = resolvePreviewHookReceipt(process.env, policy);
   console.log('  content policy: ' + policy.audience + ' (' + policy.context + ' / ' + policy.branch + ')');
@@ -1854,6 +1857,12 @@ async function main() {
     );
   }
 
+  // Authoring pages are loaded only for an explicit local build and are kept
+  // outside the dist/ directory used by Netlify. Read them before clearing output.
+  const localProjects = LOCAL
+    ? require('./lib/local-project-pages').loadLocalProjectPages(path.join(ROOT, 'local-content', 'v2'), demos)
+    : new Map();
+
   fs.rmSync(DIST, { recursive: true, force: true });
   fs.mkdirSync(DIST, { recursive: true });
   fs.writeFileSync(path.join(DIST, '_headers'), deployHeaders(policy));
@@ -1861,6 +1870,16 @@ async function main() {
   if (fs.existsSync(assetSource)) fs.cpSync(assetSource, path.join(DIST, 'assets'), { recursive: true });
   materializeCardAssets(cardAssets);
   for (const { demo, html } of pages) {
+    const localPages = localProjects.get(demo.slug);
+    if (localPages) {
+      for (const page of localPages) {
+        const destination = path.join(DIST, page.path);
+        fs.mkdirSync(path.dirname(destination), { recursive: true });
+        fs.writeFileSync(destination, page.html);
+        console.log('  local page: /' + page.path);
+      }
+      continue;
+    }
     const directory = path.join(DIST, 'demos', demo.slug);
     fs.mkdirSync(directory, { recursive: true });
     fs.writeFileSync(path.join(directory, 'index.html'), injectIntoDemo(html, demo));
@@ -2106,7 +2125,8 @@ async function main() {
     deployReceipt, null, 2,
   ));
 
-  console.log('Done: ' + demos.length + ' demos across ' + pluralText(activeDepartments.length, 'active department') + ' → dist/ (built ' + built + ')');
+  console.log('Done: ' + demos.length + ' demos across ' + pluralText(activeDepartments.length, 'active department')
+    + ' → ' + path.relative(ROOT, DIST) + '/ (built ' + built + ')');
 }
 
 if (require.main === module) {

@@ -278,8 +278,11 @@ quiet pending state rather than a generic science emblem.
 For the current downloaded collection and the V2 authoring workspace, see
 [the local content workflow](docs/local-content-workflow.md). Run
 `npm run content:verify`, `npm run content:build`, then `npm run content:preview`
-to open the local workspace at `http://127.0.0.1:4173/`. The local snapshot includes
-healthy Live and Draft projects and stays outside Git.
+to open the actual website homepage at `http://127.0.0.1:4173/`. Local builds show
+Live projects by default; add `-- --include-drafts` to `content:build` to include
+Drafts. Downloaded content and the generated local site stay outside Git. The
+TBB V2 package, when present, adds its Key Findings → Dataset / Workflow flow only
+to the local site. Netlify continues to build and publish `dist/`.
 
 Use Node.js 24 or newer. `node build.js --mock` builds from `fixtures/` into `dist/` with no network —
 open `dist/index.html` in a browser. With `REGISTRY_URL` exported in your

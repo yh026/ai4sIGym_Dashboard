@@ -86,8 +86,13 @@ test('an inventory cannot escape its content directory through paths or symlinks
   assert.throws(() => verifySnapshot(data.directory), /escapes its directory/);
 });
 
-test('local Draft access is unavailable in deployment environments', () => {
-  assert.deepEqual(localContentPolicy({}), { audience: 'preview', context: 'local', branch: 'local', netlify: false });
+test('local builds default to Live content and cannot run in deployment environments', () => {
+  assert.deepEqual(localContentPolicy({}), { audience: 'production', context: 'local', branch: 'local', netlify: false });
+  assert.equal(localContentPolicy({}, { includeDrafts: true }).audience, 'preview');
+  const { isPublishableDemo } = require('../build');
+  const draft = { status: 'Draft', file_check: 'OK', public_page_permission: 'Preview only' };
+  assert.equal(isPublishableDemo(draft, localContentPolicy({}), 2), false);
+  assert.equal(isPublishableDemo(draft, localContentPolicy({}, { includeDrafts: true }), 2), true);
   assert.throws(() => localContentPolicy({ NETLIFY: 'true' }), /cannot run in a Netlify deployment/);
   assert.throws(() => localContentPolicy({ CONTEXT: 'production' }), /cannot run in a Netlify deployment/);
   assert.throws(() => localContentPolicy({ CONTEXT: 'deploy-preview' }), /cannot run in a Netlify deployment/);

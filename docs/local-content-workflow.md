@@ -14,7 +14,8 @@
 | `local-content/v2/datasets/` | 可被多个项目引用的数据集页面 |
 | `local-content/source.json` | Drive 根目录和 Registry 表的 ID |
 | `local-content/last-refresh.json` | 最近刷新新增、更新、移除的文件清单 |
-| `dist/` | 生成的网站，运行构建会重新生成 |
+| `local-content/site/` | 本地构建的网站，含 TBB 试点页面 |
+| `dist/` | 普通构建及 Netlify 使用的输出；与本地试点目录分开 |
 
 在 `v2/` 修改工作副本。刷新会校验 `drive-current/`，发现其中有本地修改便停止，
 避免覆盖编辑成果。项目清单保留原有 `demo_id` 和公开 slug；工作文件夹可以使用
@@ -34,11 +35,15 @@ npm run content:build
 npm run content:preview
 ```
 
-预览入口为 `http://127.0.0.1:4173/`，包括：
+预览入口为 `http://127.0.0.1:4173/`，直接展示现有网站首页，使用同一套地图、
+卡片、筛选和分类页面。默认按正式站规则展示健康的 Live 项目；下载副本仍包含 Draft。
+旧的 `/site/index.html` 地址会跳转到新入口。此前额外制作的内容工作台已撤下。
 
-- 本地完整网站，沿用现有首页、分类和项目详情结构；
-- 下载的原始项目页面；
-- V2 工作区中各页面的独立预览。
+需要检查 Draft 时，运行 `npm run content:build -- --include-drafts`。
+恢复正式站的项目范围，重新运行 `npm run content:build`。
+自动 NEW 标记和页脚日期按本地构建时间计算，可能与最近一次线上构建不同。
+
+修改 V2 HTML 或导航代码后，重新执行 `npm run content:build` 并刷新浏览器。
 
 这个服务只监听本机地址。关闭终端进程即可停止。端口占用时可以使用
 `npm run content:preview -- --port 4174`。
@@ -46,9 +51,10 @@ npm run content:preview
 如果终端找不到 `node`，可让 Codex 使用桌面应用自带的 Node；当前应用的运行时路径
 由 `load_workspace_dependencies` 提供。也可以把该 Node 所在目录加入当前终端的 PATH。
 
-`content:build` 使用已校验的本地快照，展示健康的 Live 和 Draft 项目，完全不请求
-Registry Web App。`--local` 在 Netlify 部署环境中会报错。普通 `npm run build` 和
-线上构建继续使用现有 Registry 流程。构建回执中的本地 revision 是快照校验值，
+`content:build` 使用已校验的本地快照，完全不请求 Registry Web App。
+`--local` 在 Netlify 部署环境中会报错，生成的内容写入 `local-content/site/`。
+普通 `npm run build` 和线上构建使用现有 Registry 流程，输出到 `dist/`，
+不加载本地 V2 页面。构建回执中的本地 revision 是快照校验值，
 不是正式部署的 Registry revision，也不是网站已发布的证明。
 
 ## 刷新 Drive 副本
@@ -88,6 +94,13 @@ await module.exports({ tools, root: projectRoot, report: notify });
 三份用户提供的 HTML 已按角色放入 `v2/`，导入时保持字节一致，原文件名及校验值
 记录在 `project.json`。Dataset 在项目目录之外，便于后续复用。
 
-本轮完成内容整理和独立预览。Key Findings → Workflow / Dataset 的页面导航、
-Workflow 内的旧 Dataset 链接，以及首页进入 Key Findings 的新逻辑，属于下一轮页面改造。
-预览入口提供三页直达链接，以便现在就能打开检查。
+本地试点已接通：
+
+- 首页 TBB 卡片 → `/demos/tbb-cluster-explorer-2/index.html`，内容为 Key Findings。
+- 左下角 Dataset → `/datasets/himawari-9-ahi/index.html#overview`。
+- 右下角 Workflow → `/demos/tbb-cluster-explorer-2/workflow.html`。
+- Dataset 和 Workflow 提供返回 Key Findings 的按钮，三页顶部均可返回项目列表。
+
+导航由 `lib/local-project-pages.js` 在本地构建时加入。该模块同时修正 Workflow 的旧
+Dataset 链接；原始三份 HTML 保持不变，嵌入数据及图表代码继续来自用户模板。
+仅匹配既有 TBB 项目身份的本地包会替换页面，其余项目沿用现有构建流程。
