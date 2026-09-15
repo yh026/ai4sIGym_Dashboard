@@ -5,7 +5,10 @@
   "scripts": {
     "build": "node build.js",
     "mock": "node build.js --mock",
-    "test": "node --test --test-concurrency=1",
+    "content:verify": "node scripts/local-content.cjs verify",
+    "content:build": "node build.js --local",
+    "content:preview": "node scripts/preview-local.cjs",
+    "test": "node --test --test-concurrency=1 test/*.test.js",
     "render:payload": "node payload-dashboard-kit/render.mjs"
   }
 }

@@ -20,6 +20,7 @@ const fs = require('fs');
 const path = require('path');
 
 const MOCK = process.argv.includes('--mock');
+const LOCAL = process.argv.includes('--local');
 const ROOT = __dirname;
 const DIST = path.join(ROOT, 'dist');
 const SITE = path.join(ROOT, 'site');
@@ -1238,6 +1239,11 @@ function isPublishableDemo(demo, policy, schemaVersion = 1) {
 }
 
 async function loadRegistry(policy, expectedRevision) {
+  if (LOCAL) {
+    return require('./lib/local-content').loadLocalRegistry(
+      process.env.AIS_LOCAL_CONTENT_DIR || path.join(ROOT, 'local-content', 'drive-current'),
+    );
+  }
   if (MOCK) {
     const manifestPath = process.env.MOCK_MANIFEST || path.join(ROOT, 'fixtures', 'manifest.json');
     const fallbackHtml = process.env.MOCK_HTML_FALLBACK;
@@ -1741,9 +1747,13 @@ function domainSwitcherHtml(currentDomain, grouped, domains = DOMAIN_DEFINITIONS
 // ------------------------------------------------------------------ main
 
 async function main() {
-  console.log(MOCK ? 'Build AIS Instrumentation Gym (mock fixtures)…' : 'Build AIS Instrumentation Gym (live registry)…');
+  if (MOCK && LOCAL) throw new Error('Choose either --mock or --local.');
+  console.log(LOCAL ? 'Build AIS Instrumentation Gym (local Drive snapshot)…'
+    : MOCK ? 'Build AIS Instrumentation Gym (mock fixtures)…' : 'Build AIS Instrumentation Gym (live registry)…');
   validateTaxonomy();
-  const policy = resolveBuildContentPolicy(process.env);
+  const policy = LOCAL
+    ? require('./lib/local-content').localContentPolicy(process.env)
+    : resolveBuildContentPolicy(process.env);
   const trigger = resolvePreviewHookReceipt(process.env, policy);
   console.log('  content policy: ' + policy.audience + ' (' + policy.context + ' / ' + policy.branch + ')');
   console.log('  deploy receipt: ' + (trigger.verified ? 'verified Preview request' : 'unverified build'));

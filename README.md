@@ -275,6 +275,12 @@ first round. When **Card Image** is blank, the build reuses the matching
 quiet pending state rather than a generic science emblem.
 
 ## Local preview
+For the current downloaded collection and the V2 authoring workspace, see
+[the local content workflow](docs/local-content-workflow.md). Run
+`npm run content:verify`, `npm run content:build`, then `npm run content:preview`
+to open the local workspace at `http://127.0.0.1:4173/`. The local snapshot includes
+healthy Live and Draft projects and stays outside Git.
+
 Use Node.js 24 or newer. `node build.js --mock` builds from `fixtures/` into `dist/` with no network —
 open `dist/index.html` in a browser. With `REGISTRY_URL` exported in your
 shell, plain `node build.js` builds from the real registry.
