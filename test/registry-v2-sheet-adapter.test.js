@@ -125,6 +125,52 @@ test('present Options requires both project and registry option columns', async 
   }
 });
 
+test('source folder IDs round-trip privately and remain optional with or without Options', async t => {
+  for (const withOptions of [false, true]) {
+    await t.test(`Options present: ${withOptions}`, () => {
+      const snapshot = makeTwentyProjectSnapshot();
+      if (withOptions) snapshot.Options = [OPTIONS_SHEET_HEADERS.slice()];
+      let column = snapshot._Registry[0].indexOf('source_folder_id');
+      if (column === -1) {
+        column = snapshot._Registry[0].length;
+        snapshot._Registry.forEach((row, index) => row.push(index === 0 ? 'source_folder_id' : ''));
+      }
+      snapshot._Registry[2][column] = 'private-source-folder-12345';
+      const demoId = snapshot._Registry[2][snapshot._Registry[0].indexOf('demo_id')];
+      snapshot.Projects = [snapshot.Projects[0], ...snapshot.Projects.slice(1).reverse()];
+
+      const result = compileRegistryV2Sheet(snapshot);
+      assert.equal(result.compiled.ok, true);
+      assert.equal(result.compilerInput.sourceProjections.find(row => row.demo_id === demoId)
+        .source_folder_id, 'private-source-folder-12345');
+      const registry = result.hiddenSheetRows._Registry;
+      const output = registry.slice(1).find(row => row[registry[0].indexOf('demo_id')] === demoId);
+      assert.equal(output[registry[0].indexOf('source_folder_id')], 'private-source-folder-12345');
+      assert.doesNotMatch(JSON.stringify(toRegistryV2(result.compiled)), /source_folder_id|private-source-folder/);
+
+      removeColumn(snapshot._Registry, 'source_folder_id');
+      const legacy = compileRegistryV2Sheet(snapshot);
+      assert.equal(legacy.compiled.ok, true);
+      assert.ok(legacy.compilerInput.sourceProjections.every(row => row.source_folder_id === ''));
+      assert.deepEqual(toRegistryV2(legacy.compiled), toRegistryV2(result.compiled));
+    });
+  }
+});
+
+test('two projects cannot claim the same nonempty source folder ID', () => {
+  const snapshot = makeTwentyProjectSnapshot();
+  let column = snapshot._Registry[0].indexOf('source_folder_id');
+  if (column === -1) {
+    column = snapshot._Registry[0].length;
+    snapshot._Registry.forEach((row, index) => row.push(index === 0 ? 'source_folder_id' : ''));
+  }
+  snapshot._Registry[2][column] = 'shared-source-folder-12345';
+  snapshot._Registry[3][column] = 'shared-source-folder-12345';
+  const result = compileRegistryV2Sheet(snapshot);
+  assert.equal(result.compiled.ok, false);
+  assert.ok(result.compiled.errors.some(error => error.code === 'duplicate_source_folder_id'));
+});
+
 test('Options uses one strict seven-column controlled vocabulary contract', () => {
   assert.deepEqual(OPTIONS_SHEET_HEADERS, [
     'Category', 'Option ID', 'Option Label', 'Aliases', 'Display Order',

@@ -111,7 +111,16 @@ configured Drive root/
 - 根目录 loose HTML、shortcut、非英文文件夹和主 HTML 不明确的文件夹不自动入库。
 - 相同 Drive file ID 重跑幂等。
 - 文件移出边界后保留记录并标为 missing；同一 file ID 恢复后恢复原身份。
-- `Projects` 人工字段不被同步覆盖。
+- 用户删除旧文件后重新上传唯一 HTML 时，系统优先按 `source_folder_id` 识别原项目；
+  未有目录归属时可按确定的 folder slug / demo ID 匹配。旧 file ID 必须从完整扫描
+  （含次要 HTML）消失，新 ID 不能被其他项目占用，匹配组只能有一个候选。
+  通过检查后保留原项目身份及公开 slug，包括历史上带后缀的身份；发布状态重置为
+  `Draft + Preview only + Featured=false`，并在 `_Audit` 记录新旧 ID。
+- 已属于项目的目录若未通过替换检查，会作为冲突跳过，不能另建项目。新项目也会立即
+  占用目录身份，防止同一轮扫描出现重复记录。
+- 可选的 `_Registry.source_folder_id` 由同步维护；Apps Script 与 Node 读取器都兼容
+  没有该列的旧表。该字段只在内部表格保留，不进入构建 manifest。
+- 除接受替换时重置的三项发布状态外，`Projects` 人工字段不被同步覆盖。
 - `_Registry`、`_Facets`、`_Assets`、Readiness 和 Preview URL 继续使用现有并发检查。
 - 同步事件写入 `_Audit`，不再写 V1 Log。
 
@@ -138,13 +147,16 @@ detail 的 1,000 字符上限打包。正常的 3 条 notice 只 append 一行�
   重新打开 V2，并对六张输入表做精确 post-write verification。Fingerprint 只会在 no-op
   linearisation point 或这个精确验证成功后提交。
 
-当前 Git 分类功能基线为
-`develop@6958b1557b07c18633a2651174ce03e4e4ce00b1`，`Code.gs` SHA-256 为
-`a9e8e8d7b1b37326e404d2367b7d9f2513f523907397edf2463af386ced4401a`，完整测试为
-355/355。正式 Apps Script Web App 已在原 deployment ID 和 `/exec` URL 上原地更新到
-Version 16，精确对应 `6958b15`；deployment topology 仍精确为 2。V13–V15
-保留为首轮 facets、checkbox placeholder 与重复值去重的历史阶段。V16 rollout
-本身没有触发 Production。随后的 taxonomy-6 Private Preview
+历史 Version 18 部署记录中的 `Code.gs` SHA-256 为
+`d4aec9aa7a0cd8d3e92491e9f25062f0ee573d2ec9f110161af4790924a517b5`，完整 tracked
+测试为 362/362。正式 Apps Script Web App 已在原 deployment ID 和 `/exec` URL 上原地
+更新到 Version 18，说明为 `Registry V2 guarded re-upload replacement d4aec9a
+(362 tests)`；deployment topology 仍精确为 2。V13–V17 保留为首轮 facets、checkbox
+placeholder、重复值去重、optional-single facets 与首轮 replacement 的历史阶段。
+Version 18 rollout 本身没有触发 Production。这是历史部署记录，不代表当前工作目录
+与线上 Apps Script 源码相同。2026-09-15 的本地整理补充了目录冲突保护、Node 内部字段
+兼容和回归测试；这次整理没有更新线上 Apps Script 或 Google Sheet。
+此前的 taxonomy-6 Private Preview
 `6a8195aef1aafb00082c247a` 已 ready，精确包含 16 demos / 16 cards，receipt
 verified 且 revision-bound。
 

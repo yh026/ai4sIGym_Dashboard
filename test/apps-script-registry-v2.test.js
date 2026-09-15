@@ -269,6 +269,7 @@ function fixture(script, options = {}) {
       public_page_permission: 'Public', card_asset_id: cardName ? 'live-card' : '',
       file_id: 'page-live-12345', file_check: options.liveFileCheck || 'check assets: legacy local file',
       date_added: new Date('2026-08-01T00:00:00.000Z'),
+      source_folder_id: 'demo-folder-12345',
     }),
     row(registryHeader, {
       schema_version: 2, row_number: 3, demo_id: 'demo-draft', entry_type: 'project',
@@ -279,6 +280,7 @@ function fixture(script, options = {}) {
       public_page_permission: 'Preview only', card_asset_id: '',
       file_id: 'page-draft-12345', file_check: 'ok',
       date_added: new Date('2026-08-02T00:00:00.000Z'),
+      source_folder_id: 'draft-folder-12345',
     }),
   ];
   const taxonomyRows = [
@@ -415,6 +417,7 @@ function installServices(script, v2Sheet, files, properties = {}) {
 function standardDrive(options = {}) {
   const root = folder('root-folder-12345');
   const demoFolder = folder('demo-folder-12345', [root]);
+  const draftFolder = folder('draft-folder-12345', [root]);
   const otherFolder = folder('other-folder-12345', [root]);
   const files = {
     'page-live-12345': driveFile({
@@ -423,7 +426,7 @@ function standardDrive(options = {}) {
       onBlob: options.onPageBlob,
     }),
     'page-draft-12345': driveFile({
-      id: 'page-draft-12345', name: 'draft.html', mime: 'text/html', parents: [demoFolder],
+      id: 'page-draft-12345', name: 'draft.html', mime: 'text/html', parents: [draftFolder],
     }),
   };
   if (options.withAsset) {
@@ -2088,6 +2091,8 @@ test('Drive auto-ingest creates one blocked v2 Draft pair and is idempotent by f
   const registry = plan.target._Registry.values.at(-1);
   const registryHeader = plan.target._Registry.values[0];
   assert.equal(registry[registryHeader.indexOf('file_id')], 'page-new-12345');
+  assert.equal(registry[registryHeader.indexOf('source_folder_id')],
+    'new-demo-folder-12345');
   assert.equal(registry[registryHeader.indexOf('readiness')], 'blocked');
   const finalCompile = script.registryV2CompileState_(
     null, candidate.cfg, 'preview', plan.target,
@@ -2103,6 +2108,393 @@ test('Drive auto-ingest creates one blocked v2 Draft pair and is idempotent by f
   assert.equal(again.target._Registry.rows, plan.target._Registry.rows);
   assert.equal(script.registryV2CompileState_(null, candidate.cfg, 'preview', again.target)
     .registry_revision, finalCompile.registry_revision);
+});
+
+test('a sole same-slug HTML replaces an absent Drive ID while preserving project identity', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script);
+  const files = standardDrive();
+  installServices(script, sheet, files);
+  const registrySheet = sheet.getSheetByName('_Registry');
+  const sourceHeader = registrySheet.rows[0];
+  const sourceFileColumn = sourceHeader.indexOf('file_id');
+  const sourceDateColumn = sourceHeader.indexOf('date_added');
+  registrySheet.rows[1][sourceHeader.indexOf('slug')] = 'live';
+  registrySheet.formulas[`2:${sourceFileColumn + 1}`] = '=MUST_BE_CLEARED()';
+  registrySheet.formulas[`2:${sourceDateColumn + 1}`] = '=MUST_BE_CLEARED()';
+  const projectsSheet = sheet.getSheetByName('Projects');
+  const projectHeader = projectsSheet.rows[0];
+  const gateNames = new Set([
+    'Status', 'Readiness', 'Preview URL', 'Featured', 'Public Permission',
+  ]);
+  const preservedColumns = projectHeader
+    .map((name, index) => ({ name, index }))
+    .filter(column => !gateNames.has(column.name));
+  const originalProject = projectsSheet.rows[1].slice();
+  ['Status', 'Featured', 'Public Permission'].forEach(name => {
+    projectsSheet.formulas[`2:${projectHeader.indexOf(name) + 1}`] = '=MUST_BE_CLEARED()';
+  });
+
+  const root = folder('root-folder-12345');
+  const replacementFolder = folder('live-replacement-folder-12345', [root]);
+  const replacementFile = driveFile({
+    id: 'page-live-replacement-67890', name: 'live.html', mime: 'text/html',
+    parents: [replacementFolder], created: Date.parse('2026-08-27T01:02:03.000Z'),
+  });
+  files[replacementFile.getId()] = replacementFile;
+  const replacement = autoItem(replacementFile, 'live', {
+    title: 'Replacement metadata must not overwrite editor copy',
+    description: 'Replacement metadata.',
+  });
+  const draft = autoItem(files['page-draft-12345'], 'draft');
+  const cfg = {
+    drive_folder_url: 'https://drive.google.com/drive/folders/root-folder-12345',
+  };
+  const before = script.registryV2WorkbookState_(sheet);
+  const plan = script.registryV2AutoPlan_(before, cfg, [replacement, draft]);
+
+  assert.equal(plan.added, 0);
+  assert.equal(plan.replaced, 1);
+  assert.equal(plan.skipped, 0);
+  assert.equal(plan.missing, 0);
+  assert.equal(plan.target.Projects.rows, before.Projects.rows);
+  assert.equal(plan.target._Registry.rows, before._Registry.rows);
+  const project = plan.target.Projects.values[1];
+  assert.equal(project[projectHeader.indexOf('Status')], 'Draft');
+  assert.equal(project[projectHeader.indexOf('Public Permission')], 'Preview only');
+  assert.equal(project[projectHeader.indexOf('Featured')], false);
+  ['Status', 'Featured', 'Public Permission'].forEach(name => {
+    assert.equal(plan.target.Projects.formulas[1][projectHeader.indexOf(name)], '',
+      `${name} formula must not bypass the release-gate reset`);
+  });
+  preservedColumns.forEach(({ name, index }) => {
+    assert.equal(project[index], originalProject[index], `${name} must be preserved`);
+  });
+
+  const registry = plan.target._Registry.values[1];
+  const registryHeader = plan.target._Registry.values[0];
+  assert.equal(registry[registryHeader.indexOf('demo_id')], 'demo-live');
+  assert.equal(registry[registryHeader.indexOf('slug')], 'live');
+  assert.equal(registry[registryHeader.indexOf('file_id')], replacementFile.getId());
+  assert.equal(registry[registryHeader.indexOf('date_added')],
+    '2026-08-27T01:02:03.000Z');
+  assert.equal(registry[registryHeader.indexOf('source_folder_id')],
+    'live-replacement-folder-12345');
+  assert.equal(registry[registryHeader.indexOf('title')], 'Live project');
+  assert.equal(plan.target._Registry.formulas[1][sourceFileColumn], '');
+  assert.equal(plan.target._Registry.formulas[1][sourceDateColumn], '');
+  assert.equal(plan.events.length, 1);
+  assert.deepEqual({
+    event: plan.events[0].event,
+    demo_id: plan.events[0].demo_id,
+    old_file_id: plan.events[0].old_file_id,
+    new_file_id: plan.events[0].new_file_id,
+  }, {
+    event: 'sync-v2-replacement',
+    demo_id: 'demo-live',
+    old_file_id: 'page-live-12345',
+    new_file_id: 'page-live-replacement-67890',
+  });
+  assert.match(plan.events[0].details,
+    /old file_id page-live-12345.*new file_id page-live-replacement-67890/);
+
+  let payload;
+  script.Sheets = { Spreadsheets: { batchUpdate: body => { payload = body; } } };
+  script.registryV2BatchWrite_('v2-sheet-id', before, plan, {
+    Projects: { sheet_id: 1, table_id: 'ProjectsCatalogV2' },
+    _Registry: { sheet_id: 2, table_id: '' },
+    _Facets: { sheet_id: 3, table_id: '' },
+    _Assets: { sheet_id: 4, table_id: '' },
+  });
+  const registryUpdates = new Map(payload.requests
+    .filter(request => request.updateCells?.range.sheetId === 2
+      && request.updateCells.range.startRowIndex === 1)
+    .map(request => [
+      request.updateCells.range.startColumnIndex,
+      request.updateCells.rows[0].values[0].userEnteredValue,
+    ]));
+  assert.equal(registryUpdates.get(sourceFileColumn).stringValue, replacementFile.getId());
+  assert.equal(registryUpdates.get(sourceDateColumn).stringValue,
+    '2026-08-27T01:02:03.000Z');
+  assert.equal('formulaValue' in registryUpdates.get(sourceFileColumn), false);
+  assert.equal('formulaValue' in registryUpdates.get(sourceDateColumn), false);
+
+  const again = script.registryV2AutoPlan_(plan.target, cfg, [replacement, draft]);
+  assert.equal(again.added, 0);
+  assert.equal(again.replaced, 0);
+  assert.equal(again.skipped, 0);
+  assert.equal(again.events.length, 0);
+  assert.equal(script.registryV2WorkbookStatesEqual_(plan.target, again.target), true,
+    'the accepted replacement must be idempotent by its new file ID');
+});
+
+test('a stable Drive folder ID replaces a legacy suffixed public identity', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script);
+  const files = standardDrive();
+  installServices(script, sheet, files);
+
+  const projectsSheet = sheet.getSheetByName('Projects');
+  const projectHeader = projectsSheet.rows[0];
+  projectsSheet.rows[1][projectHeader.indexOf('demo_id')] = 'demo-live-2';
+  const originalProject = projectsSheet.rows[1].slice();
+
+  const registrySheet = sheet.getSheetByName('_Registry');
+  const registryHeader = registrySheet.rows[0];
+  registrySheet.rows[1][registryHeader.indexOf('demo_id')] = 'demo-live-2';
+  registrySheet.rows[1][registryHeader.indexOf('slug')] = 'live-2';
+  registrySheet.rows[1][registryHeader.indexOf('source_folder_id')]
+    = 'demo-folder-12345';
+
+  const root = folder('root-folder-12345');
+  const stableFolder = folder('demo-folder-12345', [root]);
+  const replacementFile = driveFile({
+    id: 'page-live-folder-replacement-67890', name: 'live.html', mime: 'text/html',
+    parents: [stableFolder], created: Date.parse('2026-08-31T05:25:08.723Z'),
+  });
+  files[replacementFile.getId()] = replacementFile;
+  const replacement = autoItem(replacementFile, 'live', {
+    title: 'Replacement metadata must not overwrite editor copy',
+    description: 'Replacement metadata.',
+  });
+  const draft = autoItem(files['page-draft-12345'], 'draft');
+  const cfg = {
+    drive_folder_url: 'https://drive.google.com/drive/folders/root-folder-12345',
+  };
+  const before = script.registryV2WorkbookState_(sheet);
+  const plan = script.registryV2AutoPlan_(before, cfg, [replacement, draft]);
+
+  assert.equal(plan.added, 0);
+  assert.equal(plan.replaced, 1);
+  assert.equal(plan.skipped, 0);
+  assert.equal(plan.missing, 0);
+  assert.equal(plan.target.Projects.rows, before.Projects.rows);
+  assert.equal(plan.target._Registry.rows, before._Registry.rows);
+
+  const project = plan.target.Projects.values[1];
+  assert.equal(project[projectHeader.indexOf('demo_id')], 'demo-live-2');
+  assert.equal(project[projectHeader.indexOf('Status')], 'Draft');
+  assert.equal(project[projectHeader.indexOf('Public Permission')], 'Preview only');
+  assert.equal(project[projectHeader.indexOf('Featured')], false);
+  projectHeader.forEach((name, index) => {
+    if (['Status', 'Readiness', 'Preview URL', 'Featured', 'Public Permission']
+      .includes(name)) return;
+    assert.equal(project[index], originalProject[index], `${name} must be preserved`);
+  });
+
+  const registry = plan.target._Registry.values[1];
+  assert.equal(registry[registryHeader.indexOf('demo_id')], 'demo-live-2');
+  assert.equal(registry[registryHeader.indexOf('slug')], 'live-2');
+  assert.equal(registry[registryHeader.indexOf('file_id')], replacementFile.getId());
+  assert.equal(registry[registryHeader.indexOf('source_folder_id')],
+    'demo-folder-12345');
+  assert.equal(plan.events.length, 1);
+  assert.equal(plan.events[0].demo_id, 'demo-live-2');
+  assert.match(plan.events[0].details,
+    /Drive folder demo-folder-12345 \(current folder slug live\)/);
+
+  const again = script.registryV2AutoPlan_(plan.target, cfg, [replacement, draft]);
+  assert.equal(again.added, 0);
+  assert.equal(again.replaced, 0);
+  assert.equal(again.skipped, 0);
+  assert.equal(script.registryV2WorkbookStatesEqual_(plan.target, again.target), true);
+});
+
+test('rejected replacements of a legacy identity never create a second project in its folder', async t => {
+  for (const [oldPageRemains, knownFolder] of [[false, true], [true, true], [true, false]]) {
+    await t.test(`old page remains: ${oldPageRemains}, folder recorded: ${knownFolder}`, () => {
+      const script = loadAppsScript();
+      const sheet = fixture(script);
+      const files = standardDrive();
+      installServices(script, sheet, files);
+      const projects = sheet.getSheetByName('Projects');
+      projects.rows[1][projects.rows[0].indexOf('demo_id')] = 'demo-live-2';
+      const registry = sheet.getSheetByName('_Registry');
+      const header = registry.rows[0];
+      registry.rows[1][header.indexOf('demo_id')] = 'demo-live-2';
+      registry.rows[1][header.indexOf('slug')] = 'live-2';
+      if (!knownFolder) registry.rows[1][header.indexOf('source_folder_id')] = '';
+
+      const parent = folder('demo-folder-12345', [folder('root-folder-12345')]);
+      const replacement = driveFile({
+        id: 'page-rejected-replacement-12345', name: 'live.html', mime: 'text/html', parents: [parent],
+      });
+      const second = oldPageRemains ? files['page-live-12345'] : driveFile({
+        id: 'page-secondary-12345', name: 'details.html', mime: 'text/html', parents: [parent],
+      });
+      files[replacement.getId()] = replacement;
+      files[second.getId()] = second;
+      const item = autoItem(replacement, 'live');
+      item.pageFiles = [replacement, second];
+      const items = [item, autoItem(files['page-draft-12345'], 'draft')];
+      const cfg = { drive_folder_url: 'https://drive.google.com/drive/folders/root-folder-12345' };
+      const before = script.registryV2WorkbookState_(sheet);
+      const plan = script.registryV2AutoPlan_(before, cfg, items);
+      assert.equal(plan.added, 0);
+      assert.equal(plan.replaced, 0);
+      assert.equal(plan.skipped, 1);
+      assert.equal(plan.target._Registry.rows, before._Registry.rows);
+      assert.equal(plan.target._Registry.values[1][header.indexOf('file_id')], 'page-live-12345');
+      assert.ok(plan.events.some(event => event.event === 'sync-v2-conflict'));
+      const again = script.registryV2AutoPlan_(plan.target, cfg, items);
+      assert.equal(again.added, 0);
+      assert.equal(script.registryV2WorkbookStatesEqual_(plan.target, again.target), true);
+    });
+  }
+});
+
+test('a newly claimed folder cannot create another project during the same scan', () => {
+  const script = loadAppsScript();
+  const sheet = fixture(script);
+  const files = standardDrive();
+  installServices(script, sheet, files);
+  const parent = folder('new-shared-folder-12345', [folder('root-folder-12345')]);
+  const first = driveFile({ id: 'page-new-first-12345', name: 'first.html', mime: 'text/html', parents: [parent] });
+  const second = driveFile({ id: 'page-new-second-12345', name: 'second.html', mime: 'text/html', parents: [parent] });
+  files[first.getId()] = first;
+  files[second.getId()] = second;
+  const items = [...existingItems(files), autoItem(first, 'first'), autoItem(second, 'second')];
+  const cfg = { drive_folder_url: 'https://drive.google.com/drive/folders/root-folder-12345' };
+  const plan = script.registryV2AutoPlan_(script.registryV2WorkbookState_(sheet), cfg, items);
+  assert.equal(plan.added, 1);
+  assert.equal(plan.skipped, 1);
+  const again = script.registryV2AutoPlan_(plan.target, cfg, items);
+  assert.equal(again.added, 0);
+  assert.equal(script.registryV2WorkbookStatesEqual_(plan.target, again.target), true);
+});
+
+test('Apps Script and Node share physical Registry headers including the optional folder ID', () => {
+  const script = loadAppsScript();
+  const { HIDDEN_SHEET_HEADERS } = require('../lib/registry-v2');
+  assert.deepEqual(Array.from(script.REGISTRY_V2_HEADERS._Registry), HIDDEN_SHEET_HEADERS._Registry);
+  const sheet = fixture(script);
+  const registry = sheet.getSheetByName('_Registry');
+  const column = registry.rows[0].indexOf('source_folder_id');
+  registry.rows.forEach(row => row.splice(column, 1));
+  assert.doesNotThrow(() => script.registryV2RowsFromGrid_(
+    '_Registry', registry.rows, script.REGISTRY_V2_HEADERS._Registry, false,
+  ));
+});
+
+test('replacement discovery fails closed when the old ID remains or candidates are ambiguous', async t => {
+  function scenario() {
+    const script = loadAppsScript();
+    const sheet = fixture(script);
+    const files = standardDrive();
+    installServices(script, sheet, files);
+    const registry = sheet.getSheetByName('_Registry');
+    registry.rows[1][registry.rows[0].indexOf('slug')] = 'live';
+    const cfg = {
+      drive_folder_url: 'https://drive.google.com/drive/folders/root-folder-12345',
+    };
+    return { script, sheet, files, cfg };
+  }
+
+  function replacementItem(files, id, folderId = `${id}-folder`) {
+    const file = driveFile({
+      id, name: 'live.html', mime: 'text/html',
+      parents: [folder(folderId, [folder('root-folder-12345')])],
+    });
+    files[id] = file;
+    return autoItem(file, 'live', { title: 'Replacement' });
+  }
+
+  await t.test('two Registry rows cannot claim the same Drive source folder', () => {
+    const value = scenario();
+    const registry = value.sheet.getSheetByName('_Registry');
+    const folderColumn = registry.rows[0].indexOf('source_folder_id');
+    registry.rows[2][folderColumn] = registry.rows[1][folderColumn];
+    const before = value.script.registryV2WorkbookState_(value.sheet);
+    assert.throws(() => value.script.registryV2AutoPlan_(
+      before, value.cfg, existingItems(value.files),
+    ), /duplicate source folder identity/);
+  });
+
+  await t.test('old Drive ID is still in the complete scan', () => {
+    const value = scenario();
+    const old = autoItem(value.files['page-live-12345'], 'live');
+    const draft = autoItem(value.files['page-draft-12345'], 'draft');
+    const replacement = replacementItem(value.files, 'page-live-replacement-67890');
+    const before = value.script.registryV2WorkbookState_(value.sheet);
+    const plan = value.script.registryV2AutoPlan_(
+      before, value.cfg, [old, draft, replacement],
+    );
+    const fileColumn = plan.target._Registry.values[0].indexOf('file_id');
+    assert.equal(plan.replaced, 0);
+    assert.equal(plan.skipped, 1);
+    assert.equal(plan.target._Registry.values[1][fileColumn], 'page-live-12345');
+    assert.equal(plan.target._Registry.values.flat().includes(replacement.file.getId()), false);
+  });
+
+  await t.test('old Drive ID survives only as another folder secondary HTML', () => {
+    const value = scenario();
+    const draft = autoItem(value.files['page-draft-12345'], 'draft');
+    const replacement = replacementItem(value.files, 'page-live-replacement-67890');
+    const root = folder('root-folder-12345');
+    const carrierFolder = folder('old-secondary-carrier-folder-12345', [root]);
+    const carrierPrimary = driveFile({
+      id: 'page-carrier-primary-67890', name: 'carrier.html', mime: 'text/html',
+      parents: [carrierFolder],
+    });
+    const oldSecondary = driveFile({
+      id: 'page-live-12345', name: 'old-live.html', mime: 'text/html',
+      parents: [carrierFolder],
+    });
+    const carrier = autoItem(carrierPrimary, '旧文件');
+    carrier.pageFiles = [carrierPrimary, oldSecondary];
+    carrier.notes = [];
+    const before = value.script.registryV2WorkbookState_(value.sheet);
+    const plan = value.script.registryV2AutoPlan_(
+      before, value.cfg, [replacement, draft, carrier],
+    );
+    const fileColumn = plan.target._Registry.values[0].indexOf('file_id');
+    assert.equal(plan.replaced, 0);
+    assert.equal(plan.target._Registry.values[1][fileColumn], 'page-live-12345');
+    assert.equal(plan.target._Registry.values.flat().includes(replacement.file.getId()), false);
+  });
+
+  await t.test('two same-slug folders each offer a new HTML', () => {
+    const value = scenario();
+    const draft = autoItem(value.files['page-draft-12345'], 'draft');
+    const first = replacementItem(value.files, 'page-live-replacement-a-67890');
+    const second = replacementItem(value.files, 'page-live-replacement-b-67890');
+    const before = value.script.registryV2WorkbookState_(value.sheet);
+    const plan = value.script.registryV2AutoPlan_(before, value.cfg, [draft, first, second]);
+    const fileColumn = plan.target._Registry.values[0].indexOf('file_id');
+    assert.equal(plan.replaced, 0);
+    assert.equal(plan.skipped, 2);
+    assert.equal(plan.missing, 1);
+    assert.equal(plan.target._Registry.values[1][fileColumn], 'page-live-12345');
+  });
+
+  await t.test('one folder has more than one HTML even without a selection note', () => {
+    const value = scenario();
+    const draft = autoItem(value.files['page-draft-12345'], 'draft');
+    const replacement = replacementItem(value.files, 'page-live-replacement-67890');
+    const secondPage = driveFile({
+      id: 'page-live-second-67890', name: 'second.html', mime: 'text/html',
+      parents: [replacement.folder],
+    });
+    replacement.pageFiles = [replacement.file, secondPage];
+    replacement.notes = [];
+    const before = value.script.registryV2WorkbookState_(value.sheet);
+    const plan = value.script.registryV2AutoPlan_(before, value.cfg, [draft, replacement]);
+    const fileColumn = plan.target._Registry.values[0].indexOf('file_id');
+    assert.equal(plan.replaced, 0);
+    assert.equal(plan.skipped, 1);
+    assert.equal(plan.target._Registry.values[1][fileColumn], 'page-live-12345');
+  });
+
+  await t.test('candidate file ID is already bound to another project', () => {
+    const value = scenario();
+    const occupied = autoItem(value.files['page-draft-12345'], 'live');
+    const before = value.script.registryV2WorkbookState_(value.sheet);
+    const plan = value.script.registryV2AutoPlan_(before, value.cfg, [occupied]);
+    const fileColumn = plan.target._Registry.values[0].indexOf('file_id');
+    assert.equal(plan.replaced, 0);
+    assert.equal(plan.target._Registry.values[1][fileColumn], 'page-live-12345');
+    assert.equal(plan.target._Registry.values[2][fileColumn], 'page-draft-12345');
+  });
 });
 
 test('v2 auto-ingest projects exact taxonomy and leaves unknown initial taxonomy blocked', () => {

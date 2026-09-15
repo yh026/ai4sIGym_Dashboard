@@ -106,7 +106,7 @@ var REGISTRY_V2_HEADERS = {
     'department_id', 'subtopic_id', 'task_ids', 'method_ids', 'data_type_ids',
     'instrument_type_ids', 'audience',
     'data_source_label', 'public_page_permission', 'card_asset_id', 'file_id',
-    'file_check', 'date_added'
+    'file_check', 'date_added', 'source_folder_id'
   ],
   _Taxonomy: [
     'term_type', 'term_id', 'parent_id', 'label', 'short_label', 'description',
@@ -877,6 +877,7 @@ function syncDriveUnlocked_() {
   };
   var result = registryV2AutoIngest_(context, cfg, items);
   var summary = 'Registry v2: ' + result.added + ' added, '
+    + (result.replaced || 0) + ' replaced, '
     + result.checked + ' checked, ' + result.skipped + ' skipped, '
     + result.missing + ' missing; ' + result.cache_hits
     + ' unchanged reused, ' + result.source_reads + ' source pairs parsed; '
@@ -2544,7 +2545,11 @@ var REGISTRY_V2_OPTIONAL_PROJECT_FIELDS = {
   instrument_types: true
 };
 var REGISTRY_V2_OPTIONAL_MACHINE_HEADERS = {
-  _Registry: { data_type_ids: true, instrument_type_ids: true }
+  _Registry: {
+    data_type_ids: true,
+    instrument_type_ids: true,
+    source_folder_id: true
+  }
 };
 
 function registryV2HeaderIsOptional_(sheetName, key, projectHeaders) {
@@ -2969,6 +2974,66 @@ function registryV2ItemRecord_(item, cfg) {
   return record;
 }
 
+/**
+ * Group every English direct-child demo candidate by its deterministic folder
+ * slug.  Replacement is allowed only when the complete collection contains
+ * exactly one item in the matching group; counting before reconciliation keeps
+ * two same-slug folders fail-closed regardless of their iteration order.
+ */
+function registryV2ItemsByFolderSlug_(items) {
+  var groups = {};
+  (items || []).forEach(function (item) {
+    if (!item.folderName || !registryV2EnglishFolderName_(item.folderName)) return;
+    var slug = slugify_(item.folderName);
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return;
+    if (!groups[slug]) groups[slug] = [];
+    groups[slug].push(item);
+  });
+  return groups;
+}
+
+/** Stable Drive folder identity, independent of a legacy/public slug. */
+function registryV2ItemsByFolderId_(items) {
+  var groups = {};
+  (items || []).forEach(function (item) {
+    if (!item.folderName || !registryV2EnglishFolderName_(item.folderName)) return;
+    var folderId = registryV2Clean_(item.folderId);
+    if (!folderId) return;
+    if (!groups[folderId]) groups[folderId] = [];
+    groups[folderId].push(item);
+  });
+  return groups;
+}
+
+function registryV2UnambiguousReplacementItem_(item) {
+  var pages = item && item.pageFiles || [];
+  if (pages.length !== 1
+      || String(pages[0].getId()) !== String(item.file.getId())) return false;
+  return !(item.notes || []).some(function (note) {
+    return /^primary page unclear\b/i.test(String(note || ''));
+  });
+}
+
+/** Preserve editor fields except for the three release gates reset on replace. */
+function registryV2ResetReplacementProject_(target, project) {
+  var map = registryV2HeaderMap_(target.Projects.values[0], true);
+  var rowIndex = Number(project._row_number) - 1;
+  var row = target.Projects.values[rowIndex];
+  var formulas = target.Projects.formulas[rowIndex];
+  if (!row || !formulas) {
+    throw new Error('Registry v2 replacement could not resolve its Projects row.');
+  }
+  [
+    { key: 'status', value: 'Draft' },
+    { key: 'public_permission', value: 'Preview only' },
+    { key: 'featured', value: false }
+  ].forEach(function (gate) {
+    registryV2SetRowField_(row, map, gate.key, gate.value);
+    formulas[map[gate.key]] = '';
+    project[gate.key] = gate.value;
+  });
+}
+
 function registryV2AutoPlan_(before, cfg, items) {
   registryV2RequireOptionColumns_(before);
   var target = registryV2CloneState_(before);
@@ -2994,17 +3059,25 @@ function registryV2AutoPlan_(before, cfg, items) {
   });
   var registryById = {};
   var registryByFile = {};
+  var registryBySlug = {};
+  var registryByFolder = {};
   var usedSlugs = {};
   registry.forEach(function (source) {
     var id = registryV2Clean_(source.demo_id);
     var fileId = registryV2Clean_(source.file_id);
     var slug = registryV2Clean_(source.slug);
+    var sourceFolderId = registryV2Clean_(source.source_folder_id);
     if (!id || registryById[id] || !fileId || registryByFile[fileId]
         || !slug || usedSlugs[slug]) {
       throw new Error('Registry v2 has duplicate or missing page identity.');
     }
+    if (sourceFolderId && registryByFolder[sourceFolderId]) {
+      throw new Error('Registry v2 has duplicate source folder identity.');
+    }
     registryById[id] = source;
     registryByFile[fileId] = source;
+    registryBySlug[slug] = source;
+    if (sourceFolderId) registryByFolder[sourceFolderId] = source;
     usedSlugs[slug] = true;
   });
   if (Object.keys(projectsById).length !== Object.keys(registryById).length
@@ -3014,14 +3087,38 @@ function registryV2AutoPlan_(before, cfg, items) {
 
   var seen = {};
   var itemByFile = {};
+  var scannedPageFileIds = {};
+  var itemsByFolderSlug = registryV2ItemsByFolderSlug_(items);
+  var itemsByFolderId = registryV2ItemsByFolderId_(items);
   (items || []).forEach(function (item) {
     var fileId = String(item.file.getId());
-    if (itemByFile[fileId]) return;
-    // Blob parsing is lazy. New rows always take the cold path; existing rows
-    // may reuse their exact prior machine output after the fingerprint checks.
-    itemByFile[fileId] = { item: item, record: null };
+    scannedPageFileIds[fileId] = true;
+    (item.pageFiles || []).forEach(function (page) {
+      scannedPageFileIds[String(page.getId())] = true;
+    });
+    if (!itemByFile[fileId]) {
+      // Blob parsing is lazy. New rows always take the cold path; existing rows
+      // may reuse their exact prior machine output after the fingerprint checks.
+      itemByFile[fileId] = { item: item, record: null };
+    }
+  });
+  // Claim existing source folders before considering any new page. Legacy
+  // rows may not have source_folder_id yet, and their registered HTML can be
+  // a secondary page in this scan rather than the selected primary.
+  (items || []).forEach(function (item) {
+    var folderId = item.folderName && registryV2Clean_(item.folderId);
+    if (!folderId) return;
+    [item.file].concat(item.pageFiles || []).forEach(function (page) {
+      var source = registryByFile[String(page.getId())];
+      if (!source) return;
+      if (registryByFolder[folderId] && registryByFolder[folderId] !== source) {
+        throw new Error('Registry v2 has duplicate source folder identity.');
+      }
+      registryByFolder[folderId] = source;
+    });
   });
   var added = 0;
+  var replaced = 0;
   var updated = 0;
   var missing = 0;
   var skipped = 0;
@@ -3049,7 +3146,81 @@ function registryV2AutoPlan_(before, cfg, items) {
     }
     var slug = slugify_(item.folderName);
     var demoId = 'demo-' + slug;
-    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)
+    var folderId = registryV2Clean_(item.folderId);
+    var folderReplacementSource = folderId && registryByFolder[folderId];
+    var slugReplacementSource = registryBySlug[slug];
+    var replacementIdentityConflict = folderReplacementSource
+      && slugReplacementSource && folderReplacementSource !== slugReplacementSource;
+    var replacementSource = folderReplacementSource || slugReplacementSource;
+    var replacementDemoId = replacementSource
+      ? registryV2Clean_(replacementSource.demo_id) : '';
+    var replacementProject = projectsById[replacementDemoId];
+    var oldFileId = replacementSource
+      ? registryV2Clean_(replacementSource.file_id) : '';
+    var replacementUsesFolderIdentity = Boolean(folderReplacementSource);
+    var replacementGroup = replacementUsesFolderIdentity
+      ? (itemsByFolderId[folderId] || []) : (itemsByFolderSlug[slug] || []);
+    var replacementIdentityMatches = replacementSource && replacementProject
+      && registryById[replacementDemoId] === replacementSource
+      && (replacementUsesFolderIdentity
+        || (replacementDemoId === demoId && slugReplacementSource === replacementSource));
+    var deterministicIdentityUnclaimed = !registryById[demoId]
+      || registryById[demoId] === replacementSource;
+    var deterministicSlugUnclaimed = !registryBySlug[slug]
+      || registryBySlug[slug] === replacementSource;
+    var replacementSafe = !replacementIdentityConflict && replacementIdentityMatches
+      && deterministicIdentityUnclaimed && deterministicSlugUnclaimed
+      && oldFileId && !scannedPageFileIds[oldFileId]
+      && replacementGroup.length === 1
+      && replacementGroup[0] === item
+      && registryV2UnambiguousReplacementItem_(item)
+      && !registryByFile[fileId];
+    if (replacementSafe) {
+      var replacementRecord = registryV2ItemRecord_(item, cfg);
+      itemByFile[fileId].record = replacementRecord;
+      var replacementRowIndex = replacementSource._row_number - 1;
+      var replacementRow = target._Registry.values[replacementRowIndex];
+      var replacementFormulas = target._Registry.formulas[replacementRowIndex];
+      if (!replacementRow || !replacementFormulas) {
+        throw new Error('Registry v2 replacement could not resolve its _Registry row.');
+      }
+      registryV2SetRowField_(replacementRow, registryMap, 'file_id', fileId);
+      registryV2SetRowField_(replacementRow, registryMap,
+        'date_added', replacementRecord.date_added);
+      registryV2SetOptionalRowField_(replacementRow, registryMap,
+        'source_folder_id', folderId);
+      replacementFormulas[registryMap.file_id] = '';
+      replacementFormulas[registryMap.date_added] = '';
+      if (Object.prototype.hasOwnProperty.call(registryMap, 'source_folder_id')) {
+        replacementFormulas[registryMap.source_folder_id] = '';
+      }
+      registryV2ResetReplacementProject_(target, replacementProject);
+      delete registryByFile[oldFileId];
+      replacementSource.file_id = fileId;
+      var priorSourceFolderId = registryV2Clean_(replacementSource.source_folder_id);
+      if (priorSourceFolderId && priorSourceFolderId !== folderId) {
+        delete registryByFolder[priorSourceFolderId];
+      }
+      replacementSource.source_folder_id = folderId;
+      registryByFile[fileId] = replacementSource;
+      if (folderId) registryByFolder[folderId] = replacementSource;
+      replaced++;
+      events.push({
+        event: 'sync-v2-replacement',
+        demo_id: replacementDemoId,
+        old_file_id: oldFileId,
+        new_file_id: fileId,
+        details: 'Accepted Drive page replacement for ' + replacementDemoId
+          + ': old file_id ' + oldFileId + ' was absent from the complete scan; '
+          + 'new file_id ' + fileId + ' was the sole unambiguous HTML candidate '
+          + 'for Drive folder ' + folderId + ' (current folder slug ' + slug + ')'
+          + '. Reset release gates to Draft, Preview only, Featured=false.'
+      });
+      return;
+    }
+    // A rejected replacement still belongs to its existing project. It must
+    // never fall through to creation under a newly derived slug or demo_id.
+    if (folderReplacementSource || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)
         || projectsById[demoId] || registryById[demoId] || usedSlugs[slug]) {
       skipped++;
       events.push({ event: 'sync-v2-conflict', details: 'Skipped Registry v2 folder "'
@@ -3113,6 +3284,8 @@ function registryV2AutoPlan_(before, cfg, items) {
     registryV2SetRowField_(registryRow, registryMap, 'file_id', fileId);
     registryV2SetRowField_(registryRow, registryMap, 'file_check', itemRecord.file_check);
     registryV2SetRowField_(registryRow, registryMap, 'date_added', itemRecord.date_added);
+    registryV2SetOptionalRowField_(registryRow, registryMap,
+      'source_folder_id', folderId);
     registryV2AppendStateRow_(target._Registry, registryRow);
     projectsById[demoId] = registryV2RowsFromGrid_(
       'Projects', [target.Projects.values[0], projectRow], [], true)[0];
@@ -3122,6 +3295,8 @@ function registryV2AutoPlan_(before, cfg, items) {
       REGISTRY_V2_HEADERS._Registry, false)[0];
     registryById[demoId]._row_number = target._Registry.rows;
     registryByFile[fileId] = registryById[demoId];
+    registryBySlug[slug] = registryById[demoId];
+    if (folderId) registryByFolder[folderId] = registryById[demoId];
     usedSlugs[slug] = true;
     added++;
   });
@@ -3164,6 +3339,20 @@ function registryV2AutoPlan_(before, cfg, items) {
     if (priorCheck !== nextCheck) updated++;
     if (!current) missing++;
     registryV2SetRowField_(registryRow, registryMap, 'file_check', nextCheck);
+    if (current) {
+      var priorFolderId = registryV2Clean_(source.source_folder_id);
+      // Loose root HTML files share the configured root and therefore have no
+      // one-project folder identity. Keep this key only for direct subfolders.
+      var nextFolderId = current.item.folderName
+        ? registryV2Clean_(current.item.folderId) : '';
+      if (priorFolderId !== nextFolderId) updated++;
+      registryV2SetOptionalRowField_(registryRow, registryMap,
+        'source_folder_id', nextFolderId);
+      if (Object.prototype.hasOwnProperty.call(registryMap, 'source_folder_id')) {
+        target._Registry.formulas[source._row_number - 1][registryMap.source_folder_id] = '';
+      }
+      source.source_folder_id = nextFolderId;
+    }
     if (!registryV2Clean_(source.date_added) && current && current.record.date_added) {
       registryV2SetRowField_(registryRow, registryMap, 'date_added', current.record.date_added);
       updated++;
@@ -3210,6 +3399,7 @@ function registryV2AutoPlan_(before, cfg, items) {
     target: target,
     compiled: compiled,
     added: added,
+    replaced: replaced,
     updated: updated,
     missing: missing,
     skipped: skipped,
@@ -3420,6 +3610,7 @@ function registryV2AutoIngest_(context, cfg, items) {
   return {
     enabled: true,
     added: plan.added,
+    replaced: plan.replaced,
     updated: plan.updated,
     missing: plan.missing,
     checked: plan.checked,

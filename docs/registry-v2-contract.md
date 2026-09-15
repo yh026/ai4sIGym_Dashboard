@@ -48,9 +48,22 @@ is appended to the native `ProjectsCatalogV2` table and the plain-grid
 `_Registry` / `_Facets` indexes. It starts as `Draft`, `Preview only`,
 `Featured=false`, with a stable `demo-<folder-slug>` identity. Loose root HTML,
 shortcuts, non-English folder names and ambiguous primary pages are outside
-this creation boundary. Re-running with the same Drive `file_id` is idempotent;
-a slug or identity collision is reported and never replaces an existing
-source.
+this creation boundary. Re-running with the same Drive `file_id` is idempotent.
+A slug or identity collision remains fail-closed except for a guarded
+delete/re-upload: the old `file_id` must be absent from the complete scan,
+including secondary HTML pages, and the new `file_id` must not already belong
+to another record. The existing project is matched by `source_folder_id`, or
+by the deterministic folder slug and `demo_id` when the folder is not already
+claimed. The matching folder-ID or slug group must contain exactly one candidate
+with exactly one direct-child HTML page. A folder-ID match preserves legacy
+public slugs and demo IDs even when they differ from the current folder name.
+
+An existing folder claim that fails these replacement checks is a conflict,
+never a new-project candidate. Folder claims include registered primary and
+secondary HTML found in the complete scan, even for legacy rows without a
+stored folder ID. Newly created records claim their folder immediately within
+the same plan, so a later candidate cannot create another owner. All other
+collisions are reported without replacing anything.
 
 Initial HTML or provenance metadata is only a convenience seed. Taxonomy is
 copied only when the complete field resolves exactly; unknown initial values
@@ -58,8 +71,19 @@ remain blank and make that Draft locally blocked. Later non-empty unknown human
 values remain structural errors. A blocked Draft is excluded from the
 build-facing manifest, so its creation does not change the Registry revision or
 request a deploy. Missing files remain as tombstones and recover when the same
-Drive file returns. A delete/re-upload with a new `file_id` is deliberately not
-guessed as a replacement and requires explicit migration.
+Drive file returns. An accepted guarded delete/re-upload preserves the existing
+slug and human-owned `Projects` fields, migrates the source `file_id` and source
+creation date while normal reconciliation refreshes machine-derived checks,
+resets `Status=Draft`, `Public Permission=Preview only` and `Featured=false`,
+and audits both old and new IDs. This reset ensures that newly uploaded content
+must pass Preview review before it can be public again.
+
+`source_folder_id` is an optional internal `_Registry` column owned by Drive
+sync. It is populated for direct-child project folders; loose root HTML keeps
+it blank. Apps Script and the Node sheet adapter both accept older workbooks
+without the column, independently of the Options rollout. The Node compiler
+preserves it in hidden rows across sorting and round trips, rejects duplicate
+nonempty folder IDs, and omits it from the build-facing manifest.
 
 Every run revalidates the complete Drive metadata and direct-parent contract
 before accepting its result. The fingerprint input binds the Spreadsheet ID,
@@ -257,8 +281,9 @@ Tokens, deploy hooks and credentials do not belong in any Sheet tab.
 physical `Projects`, `Options`, `_Registry`, `_Taxonomy`, `_Facets` and
 `_Assets` rows into compiler input and converting normalised records back to
 exact Sheet rows. It performs no Google API, filesystem or network operations.
-Every canonical machine header is required after the Options rollout; missing
-or additional machine columns fail closed (column order may change because
+Except for the optional `source_folder_id`, every canonical machine header is
+required after the Options rollout; missing or additional machine columns fail
+closed (column order may change because
 parsing is by header name). Every `_Taxonomy.active` and `Options.Active` cell
 must contain an explicit boolean. The adapter and standalone compiler both
 enforce this, so missing, blank or string values can never be silently
