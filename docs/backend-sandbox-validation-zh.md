@@ -1,6 +1,6 @@
 # Backend Sandbox 实施与验证记录
 
-记录日期：2026-09-23。**状态：进行中，未接通 Netlify 测试发布，未迁移原后台。**
+记录日期：2026-09-23。**状态：测试 API 与 develop Hook 已配置；等待用户推送代码后进行真实 Netlify 构建验证。未迁移原后台。**
 
 ## 已建立
 
@@ -9,6 +9,7 @@
 - 原生 Versions / Pages / Resources 表及隐藏、受保护的机器索引；下拉框、选择框、只读结果列和菜单已在 Google Sheets 实际界面核验。
 - 首批 TBB、Air Quality、SOH、Curve Shape 已实际导入，并完成一次完整 Google 云端校验。
 - 13 项完整集合的独立导入包已上传到测试 Drive，剩余项目尚待试点发布验证后导入。
+- 独立 Web API 已部署为 Version 1。Netlify 新增 `AIS Registry V3 sandbox develop` Hook；测试脚本已保存该 Hook，Netlify 仅 develop 的 Registry URL / 回执密钥 / 实例标识已切换。Production 的原有配置保持不变，自动发布仍关闭。
 
 ## 原环境基线
 
@@ -42,6 +43,8 @@ Netlify UI 显示 Production 为公开，预览为 Private。未登录访问旧 
 | 回执与恢复 | 请求去重、最大重试次数、并发锁、重复回执、过期回执、未验证 Git 部署替换 ready 的测试通过 |
 | 实际 Google 试点 | 4 项快照成功；修复原生复选框空行及实体行号映射差异 |
 | 实际无变化同步 | 16:09:36 返回 No content changes; no new snapshot or build，仍保留同一快照 |
+| 实际 Web API | 正确密钥读出 4 个试点；缺失 / 错误密钥、Production、schema 2、原始 Drive ID、过期 revision 六项请求均被拒绝 |
+| 实际大文件读取 | TBB 最大下载资源 22,314,567 字节，长度与 SHA-256 均匹配，实测约 140 秒 |
 | 本地浏览器 | 两个基因页核心图保留；单细胞默认 8,569 全部细胞；Cluster 23 可选择后恢复全图；三页往返正常 |
 | 响应式抽查 | 手机 AD / 电池 Dataset 占位和中等宽度电池页未出现横向溢出；浏览器尺寸已恢复 |
 
@@ -49,8 +52,8 @@ Netlify UI 显示 Production 为公开，预览为 Private。未登录访问旧 
 
 ## 接下来仍必须完成
 
-1. 通过浏览器所需确认，发布独立测试 Web API、创建专用 develop Hook、保存该分支的测试凭据；原环境值不变。
-2. 真实 API 权限和字节校验、4 项 Netlify 构建、匹配的签名 ready 回执。
+1. 用户自行将本次 worktree 的已验证提交推送到 develop。远端 develop 尚未更新；现有提交带 `[skip netlify]`，推送后通过测试 Sheet 的 Hook 发起一次带版本绑定的构建。
+2. 完成 4 项 Netlify 构建及匹配的签名 ready 回执。API 与 Hook 配置成功不等于网站已构建成功。
 3. 实际共享 Dataset Placeholder → Ready → 恢复的演练，页面 / 文件替换与失败恢复检查。
 4. 导入剩余项目，完成 13 项真实云端构建和受保护预览验证。
 5. 新 develop 别名、固定部署链接和下载路径的未授权访问测试；对比原 Production 基线。
