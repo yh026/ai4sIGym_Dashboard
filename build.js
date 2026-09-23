@@ -1297,6 +1297,9 @@ async function loadRegistry(policy, expectedRevision) {
   }
 
   const base = process.env.REGISTRY_URL;
+  if (base && new URL(base).searchParams.get('schema') === '3') {
+    return require('./lib/registry-v3-client').loadV3Registry(base, policy, getJson, expectedRevision);
+  }
   if (!base) {
     fail('REGISTRY_URL is not set. In Netlify: Site configuration → Environment variables. '
       + 'Get the value from the sheet: AI4S dashboard → Show Registry API URL for Netlify.');
@@ -1665,6 +1668,7 @@ function cardHtml(demo, domain, isNew, hrefBase, index) {
     : [demo.task_type, demo.framework].filter(Boolean)).map(esc).join(' &middot; ');
   const search = [
     demo.title,
+    demo._localCollectionLabel,
     isV2 ? demo.card_summary : demo.description,
     domain.name,
     subtopic.name,
@@ -1694,9 +1698,9 @@ function cardHtml(demo, domain, isNew, hrefBase, index) {
   const methodValues = isV2 ? demo.method_ids.join('|') : '';
   const dataTypeValues = isV2 ? demo.data_type_ids.join('|') : '';
   const instrumentTypeValues = isV2 ? demo.instrument_type_ids.join('|') : '';
-  const facetAttributes = isV2
+  const facetAttributes = (isV2
     ? ` data-method="${esc(methodValues)}" data-data-type="${esc(dataTypeValues)}" data-instrument-type="${esc(instrumentTypeValues)}"`
-    : '';
+    : '') + (demo._localCollection ? ` data-collection="${esc(demo._localCollection)}"` : '');
   const domainFilterId = isV2 ? demo.department_id : domain.id;
   const summary = isV2 ? demo.card_summary : demo.description;
   return `<a class="project-card" href="${hrefBase}demos/${esc(demo.slug)}/index.html" style="--card-accent:${domain.color}" data-search="${esc(search)}" data-domain="${esc(domainFilterId)}" data-subtopic="${esc(subtopic.id)}" data-task="${esc(taskValues)}"${facetAttributes}>
@@ -1761,6 +1765,10 @@ async function main() {
   console.log('  content policy: ' + policy.audience + ' (' + policy.context + ' / ' + policy.branch + ')');
   console.log('  deploy receipt: ' + (trigger.verified ? 'verified Preview request' : 'unverified build'));
   const registry = await loadRegistry(policy, trigger.registryRevision);
+  const localCollection = LOCAL
+    ? require('./lib/local-demo-collection').loadLocalDemoCollection(path.join(ROOT, 'demos_v4'), registry.demos)
+    : null;
+  if (localCollection) registry.demos = localCollection.demos;
   if (trigger.verified && registry.audience !== policy.audience) {
     throw new Error('Registry audience does not match the verified Preview request.');
   }
@@ -1791,10 +1799,27 @@ async function main() {
       : [];
   }
 
-  const excluded = demos.filter(demo => !isPublishableDemo(demo, policy, schemaVersion));
+  const localPreviewIds = LOCAL
+    ? require('./lib/local-project-pages').localPreviewProjectIds(path.join(ROOT, 'local-content', 'v2'), demos)
+    : new Set();
+  if (localCollection) {
+    localCollection.previewIds.forEach(id => localPreviewIds.add(id));
+    demos.forEach(demo => {
+      if (localCollection.entries.has(demo.slug)) {
+        Object.defineProperties(demo, {
+          _localCollection: { value: localCollection.id },
+          _localCollectionLabel: { value: localCollection.label },
+        });
+      }
+    });
+  }
+  const visibleHere = demo => isPublishableDemo(demo, policy, schemaVersion)
+    || (LOCAL && localPreviewIds.has(demo.demo_id)
+      && isPublishableDemo(demo, { ...policy, audience: 'preview' }, schemaVersion));
+  const excluded = demos.filter(demo => !visibleHere(demo));
   excluded.forEach(demo => console.warn('  skipping (not publishable for ' + policy.audience + '): '
     + (demo.title || demo.file_name || demo.file_id || 'unnamed row')));
-  demos = demos.filter(demo => isPublishableDemo(demo, policy, schemaVersion));
+  demos = demos.filter(visibleHere);
 
   const siteRecords = demos.filter(demo => isSiteRecord(demo));
   siteRecords.forEach(demo => console.warn('  skipping (dashboard record, not a project): ' + (demo.title || demo.file_name)));
@@ -1834,9 +1859,10 @@ async function main() {
   }
 
   const pages = await inChunks(demos, registryReadBatchSize(schemaVersion), async demo => {
-    const result = await withRetry(() => registry.getHtml(
-      demo.file_id, activeRegistryRevision,
-    ));
+    const localEntry = localCollection?.entries.get(demo.slug);
+    const result = localEntry
+      ? { html: localEntry.insightHtml, registryRevision: activeRegistryRevision }
+      : await withRetry(() => registry.getHtml(demo.file_id, activeRegistryRevision));
     requireMatchingRegistryRevision(
       result && result.registryRevision, activeRegistryRevision, 'Project file',
     );
@@ -1846,9 +1872,22 @@ async function main() {
     }
     return { demo, html };
   });
-  const cardAssets = schemaVersion === REGISTRY_SCHEMA_V2
+  const cardAssets = schemaVersion === REGISTRY_SCHEMA_V2 && registry.protocolVersion !== 3
     ? await fetchV2CardAssets(demos, registry, activeRegistryRevision)
     : [];
+
+  const registryProjectPages = registry.protocolVersion === 3
+    ? await registry.getProjectPages(demos, activeRegistryRevision) : new Map();
+  if (registry.protocolVersion === 3) {
+    for (const demo of demos) {
+      const bundle = registry.bundles.find(b => b.demo_id === demo.demo_id);
+      const card = bundle.resources.find(r => r.role === 'card');
+      if (card) demo.card_asset = { asset_id: card.resource_id, public_path: card.route, alt_text: demo.title };
+      if (bundle.collection) Object.defineProperties(demo, {
+        _localCollection: { value: bundle.collection }, _localCollectionLabel: { value: 'Yuhan demos' },
+      });
+    }
+  }
 
   if (activeRegistryRevision) {
     const finalRegistryRevision = await registry.getRevision(activeRegistryRevision);
@@ -1859,9 +1898,12 @@ async function main() {
 
   // Authoring pages are loaded only for an explicit local build and are kept
   // outside the dist/ directory used by Netlify. Read them before clearing output.
-  const localProjects = LOCAL
+  let localProjects = LOCAL
     ? require('./lib/local-project-pages').loadLocalProjectPages(path.join(ROOT, 'local-content', 'v2'), demos)
     : new Map();
+  if (localCollection) {
+    localProjects = require('./lib/local-demo-collection').integrateLocalDemoPages(localCollection, demos, localProjects);
+  }
 
   fs.rmSync(DIST, { recursive: true, force: true });
   fs.mkdirSync(DIST, { recursive: true });
@@ -1870,14 +1912,16 @@ async function main() {
   if (fs.existsSync(assetSource)) fs.cpSync(assetSource, path.join(DIST, 'assets'), { recursive: true });
   materializeCardAssets(cardAssets);
   for (const { demo, html } of pages) {
-    const localPages = localProjects.get(demo.slug);
+    const localPages = registryProjectPages.get(demo.slug) || localProjects.get(demo.slug);
     if (localPages) {
       for (const page of localPages) {
         const destination = path.join(DIST, page.path);
         fs.mkdirSync(path.dirname(destination), { recursive: true });
-        fs.writeFileSync(destination, page.html);
-        console.log('  local page: /' + page.path);
+        fs.writeFileSync(destination, page.bytes ?? (page.legacy ? injectIntoDemo(page.html, demo) : page.html));
+        if (page.html) console.log('  local page: /' + page.path);
       }
+      const downloads = localPages.filter(page => page.bytes).length;
+      if (downloads) console.log('  local downloads: ' + downloads + ' files');
       continue;
     }
     const directory = path.join(DIST, 'demos', demo.slug);
@@ -1932,7 +1976,10 @@ async function main() {
       demos, 'instrument_type_ids',
     )
     : '';
-  const rootFilters = [domainFilters, methodFilters, dataTypeFilters, instrumentTypeFilters]
+  const collections = localCollection ? [{ value: localCollection.id, label: localCollection.label }]
+    : [...new Set(demos.map(demo => demo._localCollection).filter(Boolean))].map(value => ({ value, label: 'Yuhan demos' }));
+  const collectionFilter = collections.length ? filterGroupHtml('Collection', 'collection', collections) : '';
+  const rootFilters = [collectionFilter, domainFilters, methodFilters, dataTypeFilters, instrumentTypeFilters]
     .filter(Boolean).join('\n');
 
   const page = fillTemplate(template, {
@@ -2044,6 +2091,7 @@ async function main() {
       public_page_permission: demo.public_page_permission,
       card_asset: demo.card_asset ? { ...demo.card_asset } : null,
       date_added: demo.date_added,
+      ...(demo._localCollection ? { collection: demo._localCollection } : {}),
     }))
     : demos.map(({
       file_id,
@@ -2117,10 +2165,21 @@ async function main() {
       instrument_types: publicOptionTerms(v2Taxonomy.instrument_types),
     };
   }
+  if (registry.protocolVersion === 3) {
+    publicManifest.schema_version = 3;
+    publicManifest.demos.forEach(demo => {
+      const bundle = registry.bundles.find(b => b.demo_id === demo.demo_id);
+      demo.pages = bundle.pages.map(p => ({ role: p.role, state: p.state, path: p.route }));
+    });
+  }
   fs.writeFileSync(path.join(DIST, 'manifest.json'), JSON.stringify(publicManifest, null, 2));
   const deployReceipt = createDeployReceipt(
     process.env, policy, trigger, activeRegistryRevision, new Date().toISOString(),
   );
+  if (registry.protocolVersion === 3) {
+    deployReceipt.registry_schema = 3;
+    deployReceipt.registry_instance = registry.registryInstance;
+  }
   fs.writeFileSync(path.join(DIST, 'deploy-receipt.json'), JSON.stringify(
     deployReceipt, null, 2,
   ));

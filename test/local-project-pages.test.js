@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
-const { TBB_SLUG, loadLocalProjectPages } = require('../lib/local-project-pages');
+const { TBB_SLUG, loadLocalProjectPages, localPreviewProjectIds } = require('../lib/local-project-pages');
 const { createServer } = require('../scripts/preview-local.cjs');
 const root = path.resolve(__dirname, '..');
 
@@ -63,6 +63,71 @@ test('an incomplete page package fails before it can be emitted', t => {
   const sample = packageFixture(t);
   fs.unlinkSync(path.join(sample.directory, 'workflow.html'));
   assert.throws(() => loadLocalProjectPages(sample.workspace, sample.demos), /ENOENT/);
+});
+
+function addInsightPackage(sample, slug, options = {}) {
+  const directory = path.join(sample.workspace, 'projects', options.folder || slug);
+  const project = { schema_version: 2, project_id: 'demo-' + slug, slug,
+    navigation_label: 'Gene & cell study', local_preview: options.localPreview ?? false,
+    pages: { insight: 'insight.html', workflow: 'workflow.html' },
+    dataset: { slug, page: 'datasets/' + slug + '/index.html' }, ...options.project };
+  fs.mkdirSync(directory, { recursive: true });
+  fs.mkdirSync(path.dirname(path.join(sample.workspace, project.dataset.page)), { recursive: true });
+  const html = '<!doctype html><html><head><title>Gene study</title></head><body><canvas id="gene-map"></canvas><script type="application/json" id="payload">{"values":[1,2,3]}</script></body></html>';
+  fs.writeFileSync(path.join(directory, 'project.json'), JSON.stringify(project));
+  for (const file of ['insight.html', 'workflow.html']) fs.writeFileSync(path.join(directory, file), html);
+  fs.writeFileSync(path.join(sample.workspace, project.dataset.page), html);
+  if (!sample.demos.some(demo => demo.slug === slug)) sample.demos.push({ demo_id: 'demo-' + slug, slug, status: 'Draft' });
+  return project;
+}
+
+test('multiple Insight packages retain their identities and navigate within their own three pages', t => {
+  const sample = packageFixture(t);
+  addInsightPackage(sample, 'gene-expression');
+  addInsightPackage(sample, 'co-expression');
+  const packages = loadLocalProjectPages(sample.workspace, sample.demos);
+  assert.equal(packages.size, 3);
+  assert.match(packages.get(TBB_SLUG)[0].html, /data-page-role="key_findings"/);
+  for (const slug of ['gene-expression', 'co-expression']) {
+    const pages = packages.get(slug);
+    const emitted = new Set(['index.html', ...pages.map(page => page.path)]);
+    assert.equal(pages.length, 3);
+    for (const page of pages) {
+      assert.match(page.html, /Gene &amp; cell study pages/);
+      assert.match(page.html, /<script type="application\/json" id="payload">\{"values":\[1,2,3\]\}<\/script>/);
+      for (const [, href] of page.html.matchAll(/href="([^"]+)"/g)) {
+        assert.ok(emitted.has(new URL(href, 'http://test/' + page.path).pathname.slice(1)), href);
+      }
+    }
+    assert.match(pages[0].html, /data-page-role="insight"/);
+    assert.match(pages[1].html, /<span>Insight<\/span>/);
+    assert.doesNotMatch(pages[1].html, /Key Findings/);
+  }
+});
+
+test('local preview requires an explicit boolean and a matching Registry identity', t => {
+  const sample = packageFixture(t);
+  addInsightPackage(sample, 'selected-draft', { localPreview: true });
+  addInsightPackage(sample, 'unselected-draft');
+  addInsightPackage(sample, 'string-flag', { localPreview: 'true' });
+  addInsightPackage(sample, 'unregistered', { localPreview: true });
+  sample.demos = sample.demos.filter(demo => demo.slug !== 'unregistered');
+  assert.deepEqual([...localPreviewProjectIds(sample.workspace, sample.demos)], ['demo-selected-draft']);
+  const manifest = path.join(sample.workspace, 'projects/selected-draft/project.json');
+  const project = JSON.parse(fs.readFileSync(manifest, 'utf8'));
+  project.project_id = 'wrong-identity';
+  fs.writeFileSync(manifest, JSON.stringify(project));
+  assert.throws(() => localPreviewProjectIds(sample.workspace, sample.demos), /does not match/);
+});
+
+test('duplicate project or Dataset destinations cannot silently replace another page', t => {
+  const sample = packageFixture(t);
+  addInsightPackage(sample, 'gene-expression');
+  addInsightPackage(sample, 'gene-expression', { folder: 'duplicate' });
+  assert.throws(() => loadLocalProjectPages(sample.workspace, sample.demos), /Duplicate local project package/);
+  fs.rmSync(path.join(sample.workspace, 'projects/duplicate'), { recursive: true });
+  addInsightPackage(sample, 'co-expression', { project: { dataset: { slug: 'gene-expression', page: 'datasets/gene-expression/index.html' } } });
+  assert.throws(() => loadLocalProjectPages(sample.workspace, sample.demos), /unique local dataset route/);
 });
 
 test('Netlify cannot enable local authoring pages through CLI flags', () => {

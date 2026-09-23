@@ -1,0 +1,43 @@
+.ais-workflow-overview{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin:20px 0 24px;padding:18px 20px;border:1px solid var(--grid);border-left:3px solid var(--series-1);border-radius:10px;background:var(--surface-1)}
+.ais-workflow-overview strong{font-size:15px;font-weight:600;color:var(--text-primary)}
+.ais-workflow-overview p{margin:5px 0 0;font-size:12px;line-height:1.6;color:var(--text-secondary)}
+.ais-workflow-overview .ais-resource-button{flex-shrink:0}
+.ais-resource-toolbar{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin:18px 0 22px;padding:16px 0;border-top:1px solid var(--grid);border-bottom:1px solid var(--grid)}
+.ais-resource-toolbar strong{font-size:14px;font-weight:600;color:var(--text-primary)}
+.ais-resource-toolbar p{margin:3px 0 0;font-size:12px;color:var(--text-secondary)}
+.ais-resource-actions{display:flex;flex-wrap:wrap;align-items:center;gap:9px}
+.ais-resource-button{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;min-height:38px;max-width:100%;padding:8px 12px;border:1px solid var(--axis);border-radius:7px;background:var(--surface-1);color:var(--text-primary);font:500 12px/1.4 var(--font,system-ui,sans-serif);text-decoration:none;cursor:pointer;white-space:normal;text-align:center}
+.ais-resource-button:hover{background:var(--surface-2);border-color:var(--text-primary);text-decoration:none}
+.ais-resource-button.ais-primary{background:var(--text-primary);color:var(--page);border-color:var(--text-primary)}
+.ais-resource-button:focus-visible{outline:2px solid var(--series-1);outline-offset:3px}
+.ais-workflow-chapters{--ais-rail-space:56px;position:relative;padding-right:var(--ais-rail-space)}
+.ais-workflow-chapters>section.fold{position:relative}
+.fold-controls.ais-has-skill-rail{padding-right:56px}
+.ais-skill-rail-line{position:absolute;right:21px;width:1px;background:var(--axis);opacity:.65;pointer-events:none}
+.ais-skill-rail-title{position:absolute;right:0;top:-32px;width:44px;text-align:center;color:var(--text-secondary);font:500 9px/1.5 var(--font,system-ui);letter-spacing:.09em}
+.ais-rail-marker{position:absolute;z-index:2;right:calc(-1 * var(--ais-rail-space));top:10px;display:flex;align-items:center;justify-content:center;width:44px;height:44px;margin:0;padding:0;border:0;background:none;box-shadow:none;border-radius:50%}
+.ais-rail-marker:before{content:"";box-sizing:border-box;width:9px;height:9px;border:1.5px solid var(--axis);border-radius:50%;background:var(--page)}
+.ais-rail-marker.ais-has-methods{cursor:pointer}
+.ais-rail-marker.ais-has-methods:before{width:19px;height:19px;border:3px solid var(--page);background:var(--series-1);box-shadow:0 0 0 5px var(--accent-soft),0 0 0 6px color-mix(in srgb,var(--series-1) 25%,transparent);transition:box-shadow .15s}
+.ais-rail-marker.ais-has-methods:hover:before,.ais-rail-marker[aria-expanded="true"]:before{box-shadow:0 0 0 6px var(--accent-soft),0 0 0 7px var(--series-1)}
+.ais-rail-marker:focus-visible{outline:2px solid var(--series-1);outline-offset:0}
+.ais-method-menu[hidden]{display:none}
+.ais-method-menu{position:fixed;z-index:1100;box-sizing:border-box;width:min(300px,calc(100vw - 64px));padding:19px;border:1px solid var(--axis);border-radius:12px;background:var(--surface-1);color:var(--text-primary);box-shadow:0 8px 30px rgba(0,0,0,.12);overflow:auto;overscroll-behavior:contain;font:400 13px/1.5 var(--font,system-ui,sans-serif)}
+.ais-method-menu-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.ais-method-menu-eyebrow{font-size:9px;letter-spacing:.1em;color:var(--text-secondary)}
+.ais-method-menu #ais-method-menu-title{margin:4px 0;font-size:18px;line-height:1.3;font-weight:600}
+.ais-method-menu-heading p{margin:0;font-size:12px;color:var(--text-secondary)}
+.ais-method-menu-close{display:flex;align-items:center;justify-content:center;flex:0 0 32px;width:32px;height:32px;border:1px solid var(--grid);border-radius:6px;background:var(--surface-1);color:var(--text-secondary);font:400 20px/1 system-ui;cursor:pointer}
+.ais-method-menu-links{margin-top:16px;border-top:1px solid var(--grid)}
+.ais-method-link{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:46px;padding:11px 7px;border-bottom:1px solid var(--grid);color:var(--text-primary);text-decoration:none;font-size:13px;font-weight:500}
+.ais-method-link:hover{background:var(--accent-soft);color:var(--series-1);text-decoration:none}
+.ais-method-link>span:last-child{color:var(--series-1);font-size:16px}
+.ais-method-menu-note{margin:12px 0 0;font-size:11px;color:var(--text-secondary)}
+.ais-resource-note{font-size:12px;line-height:1.55;color:var(--text-secondary);margin:12px 0 0}
+.ais-notebook-intro h3{font-size:16px;margin:4px 0 8px}
+.ais-notebook-intro>p{max-width:78ch}
+.ais-notebook-intro .ais-resource-actions{margin:15px 0}
+@media(max-width:760px){.ais-workflow-overview{padding:16px;gap:12px}.ais-resource-toolbar{align-items:flex-start;gap:12px}.ais-resource-actions{gap:8px}.ais-workflow-chapters{--ais-rail-space:38px}.fold-controls.ais-has-skill-rail{padding-right:38px}.ais-method-menu{padding:16px}}
+@media(pointer:coarse){.ais-resource-button{min-height:44px}.ais-method-menu-close{min-width:44px;min-height:44px}}
+@media(prefers-reduced-motion:reduce){.ais-rail-marker.ais-has-methods:before{transition:none}}
+@media print{.ais-workflow-overview,.ais-resource-toolbar,.ais-rail-marker,.ais-skill-rail-line,.ais-skill-rail-title,.ais-method-menu,.ais-notebook-intro .ais-resource-actions{display:none}.ais-workflow-chapters{padding-right:0}}
