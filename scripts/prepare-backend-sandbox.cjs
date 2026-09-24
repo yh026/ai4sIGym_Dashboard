@@ -4,7 +4,7 @@
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const {loadLocalRegistry}=require('../lib/local-content');
 const {loadLocalDemoCollection,integrateLocalDemoPages}=require('../lib/local-demo-collection');
-const {loadLocalProjectPages}=require('../lib/local-project-pages');
+const {loadLocalProjectPages,projectPackages}=require('../lib/local-project-pages');
 const {stripProjectNavigation}=require('../lib/project-pages');
 const root=path.resolve(__dirname,'..');
 const out=path.join(root,'local-content/backend-sandbox/import');
@@ -14,6 +14,8 @@ async function main(){
   const registry=loadLocalRegistry(path.join(root,'local-content/drive-current'));
   const collection=loadLocalDemoCollection(path.join(root,'demos_v4'),registry.demos);
   const authored=loadLocalProjectPages(path.join(root,'local-content/v2'),collection.demos);
+  const authoredDatasets=new Map(projectPackages(path.join(root,'local-content/v2'),collection.demos)
+    .map(({project})=>[project.slug,project.dataset]));
   const pages=integrateLocalDemoPages(collection,collection.demos,authored);
   const legacy=['air-quality-day-segment-pca-and-amp-umap-by-sensor','singapore-road-speed-clusters-umap'];
   const demos=collection.demos.filter(d=>pages.has(d.slug)||legacy.includes(d.slug));
@@ -43,7 +45,7 @@ async function main(){
       const role=!pages.has(d.slug)?'legacy':page.path.endsWith('/workflow-resources.html')?'resource_page':page.path.endsWith('/workflow.html')?'workflow':(page.path.startsWith('datasets/')||page.path.endsWith('/dataset.html'))?'dataset':'insight';
       const placeholder=role==='dataset'&&page.html.includes('data-dataset-state="pending"');
       const datasetKey=role==='dataset'?(collection.entries.get(d.slug)?.dataset_source?.split('/')[0]||page.path.split('/')[1]):'';
-      const datasetVersion=datasetKey?(collection.entries.get(d.slug)?.dataset_version||'v1'):'';
+      const datasetVersion=datasetKey?(collection.entries.get(d.slug)?.dataset_version||authoredDatasets.get(d.slug)?.version||'v1'):'';
       const relative=role==='dataset'?'datasets/'+datasetKey+'/'+datasetVersion+'/dataset.html':folder+'/'+role+'.html';
       const html=stripProjectNavigation(page.html);
       const file=placeholder?'':addFile(relative,Buffer.from(html), 'text/html');

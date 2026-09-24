@@ -14,7 +14,22 @@
 | calce-cs2-shape_dataset.html | Battery curve shape | calce-cs2-shape / v1 |
 | nasa-battery-capacity_dataset.html | CEEMDAN battery forecasting | nasa-battery-capacity / v1 |
 
-CALCE 两页描述不同特征集，因此拆分此前共用的占位 Dataset ID。旧 `calce-cs2/v1` 测试文件保留为未登记的测试历史。Gaia 文件名保留 `edr3`，正文明确标记 DR3；接入不改写其科学描述。两个人类基因项目使用原来的 Dataset。
+CALCE 两页描述不同特征集，因此拆分此前共用的占位 Dataset ID。旧 `calce-cs2/v1` 测试文件保留为未登记的测试历史。Gaia 文件名保留 `edr3`，正文明确标记 DR3；接入不改写其科学描述。两个人类基因项目随后更新为下述 v2 Dataset。
+
+## 两个基因 Dataset 的 v2 更新
+
+同日接入用户提供的 `Downloads/ais-gene-project-pages/` 中两份重做的 `dataset.html`：
+
+| 输入子目录 | 对应 Demo | Dataset ID / version | 保留的网址 |
+| --- | --- | --- | --- |
+| alzheimer-gene-coexpression | Alzheimer's gene co-expression | gse1297-hippocampus / v2 | datasets/gse1297-hippocampus/index.html |
+| single-cell-gene-expression | Single Cell Gene Expression | gse84133-human-pancreas / v2 | datasets/gse84133-human-pancreas/index.html |
+
+仅替换 Dataset，包中的 Insight / Workflow 未导入。新版源文件原样保存，包含数据审计、处理步骤和可交互矩阵查看器；导航由现有构建添加。保留原 Dataset ID 和 URL，避免来源文件中较短的 `gse84133-pancreas` 名称改变现有链接。
+
+测试 Drive 为两者新建 `v2/dataset.html`，保留旧 v1。Sandbox 表格仅修改 `Pages!E24`、`G24`、`E30`、`G30` 的源文件链接和 Dataset version；相应链接目标同步更新，其他格式与字段保留。
+
+本地使用 `local-content/v2/datasets/<id>/index.html`；原件副本位于 `datasets_v4/<id>/v2/dataset.html`，旧页面和导入记录位于 `local-content/gene-dataset-import-20260924/`。项目 `project.json` 的 `dataset.version` 记为 v2，测试包导出现在沿用该版本号。两个项目的 Insight / Workflow 源文件哈希保持不变。
 
 Google Drive 文件位于独立测试根目录的 `datasets/<id>/<version>/dataset.html`。TBB 新建 v2，保留旧 v1；其余八项从 Placeholder 改为 Ready。Sheet `Pages` 只更改对应九行的 D:G（State、Source file、Dataset ID、Dataset version），Page ID、Version ID、Route、下拉控件和表格格式保持原样。
 
