@@ -7,7 +7,7 @@ const crypto=require('node:crypto'),{spawn}=require('node:child_process'),assert
 const {compileRegistryV3}=require('../lib/registry-v3');
 const {loadLocalRegistry}=require('../lib/local-content');
 const root=path.resolve(__dirname,'..'),source=path.join(root,'local-content/backend-sandbox');
-const pack=JSON.parse(fs.readFileSync(path.join(source,'import-config.json')));
+const pack=JSON.parse(fs.readFileSync(process.argv[2]||path.join(source,'import-config.json')));
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
 const sources=new Map(pack.files.map((f,i)=>{const bytes=fs.readFileSync(path.join(source,'import',f.path));assert.equal(hash(bytes),f.sha256);return [f.path,{...f,file_id:'test-source-'+i,in_scope:true,modified_at:'2026-09-23T00:00:00.000Z',parent_path:path.posix.dirname(f.path),bytes}];}));
 const registry=loadLocalRegistry(path.join(root,'local-content/drive-current'));
@@ -35,6 +35,8 @@ function run(env){return new Promise(resolve=>{const child=spawn(process.execPat
   const build=await run(env);fs.writeFileSync(path.join(source,'rehearsal-build.log'),build.text);assert.equal(build.code,0,build.text);
   const manifest=JSON.parse(fs.readFileSync(path.join(temp,'dist/manifest.json')));assert.equal(manifest.schema_version,3);assert.equal(manifest.demos.length,13);
   const publicText=JSON.stringify(manifest);assert(!/file_id|source_path|drive_root|spreadsheet_id|test-source/.test(publicText));
+  const homepage=fs.readFileSync(path.join(temp,'dist/index.html'),'utf8');
+  assert(!/Yuhan demos|data-collection=|data-filter="collection"/.test(homepage),'Import source must not become a homepage category');
   const checks=[];
   for(const b of snapshot.manifest.bundles){
     for(const p of b.pages){const html=fs.readFileSync(path.join(temp,'dist',p.route),'utf8');if(p.state==='Placeholder')assert.match(html,/data-dataset-state="pending"/);else{const src=[...sources.values()].find(f=>f.file_id===p.source.file_id).bytes.toString('utf8');const scripts=s=>[...s.matchAll(/<script\b[^>]*>[\s\S]*?<\/script>/gi)].map(m=>m[0]);for(const script of scripts(src))assert(html.includes(script),'Scientific script changed: '+p.route);}checks.push(p.route);}
@@ -42,6 +44,6 @@ function run(env){return new Promise(resolve=>{const child=spawn(process.execPat
   }
   const before=hash(fs.readFileSync(path.join(temp,'dist/manifest.json')));corrupt=true;const broken=await run(env);assert.notEqual(broken.code,0);assert.equal(hash(fs.readFileSync(path.join(temp,'dist/manifest.json'))),before,'Failed build replaced previous output');
   const wrong=await run({...env,CONTEXT:'production',BRANCH:'main'});assert.notEqual(wrong.code,0);
-  const out={projects:13,pages:checks.length,resources:pack.resources.length,placeholders:8,requests:requests.length,scientificScriptsUnchanged:true,downloadHashesMatch:true,productionRejected:true,failedBuildPreservesPreviousOutput:true,output:path.join(temp,'dist')};
+  const out={projects:13,pages:checks.length,resources:pack.resources.length,placeholders:pack.pages.filter(p=>p.state==='Placeholder').length,requests:requests.length,scientificScriptsUnchanged:true,downloadHashesMatch:true,productionRejected:true,failedBuildPreservesPreviousOutput:true,output:path.join(temp,'dist')};
   fs.writeFileSync(path.join(source,'rehearsal-result.json'),JSON.stringify(out,null,2));console.log(JSON.stringify(out,null,2));
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>server.close());

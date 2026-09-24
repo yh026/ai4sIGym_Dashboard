@@ -121,6 +121,32 @@ test('bad identities, duplicate routes, missing files and unsafe paths fail befo
   assert.throws(sample.load, /ENOENT/);
 });
 
+test('a supplied Dataset replaces the existing shared route once and keeps workflow downloads', t => {
+  const sample = fixture(t);
+  Object.assign(sample.manifest.projects[0], {
+    dataset: 'datasets/example/index.html', dataset_source: 'example/example_dataset.html',
+    preserve_workflow_resources: true,
+  });
+  sample.write();
+  const source = path.resolve(sample.directory, '../datasets_v4/example/example_dataset.html');
+  fs.mkdirSync(path.dirname(source), { recursive: true });
+  fs.writeFileSync(source, sample.html.replace('<canvas', '<h1>New Dataset</h1><canvas'));
+  const asset = { path: 'demos/example/resources/notebook.ipynb', bytes: Buffer.from('notebook') };
+  const collection = sample.load();
+  const pages = integrateLocalDemoPages(collection, collection.demos, new Map([['example', [
+    { path: 'demos/example/index.html', html: 'old insight' },
+    { path: 'demos/example/workflow.html', html: '<a href="resources/notebook.ipynb">Notebook</a>' },
+    { path: 'datasets/example/index.html', html: 'old dataset' }, asset,
+  ]]])).get('example');
+  const datasets = pages.filter(page => page.path === 'datasets/example/index.html');
+  assert.equal(datasets.length, 1);
+  assert.match(datasets[0].html, /New Dataset/);
+  assert.match(datasets[0].html, /\.\.\/\.\.\/demos\/example\/index.html/);
+  assert.match(datasets[0].html, /<script type="application\/json" id="payload">\{"values":\[1,2,3\]\}<\/script>/);
+  assert.ok(pages.includes(asset));
+  assert.match(pages.find(page => page.path.endsWith('workflow-resources.html')).html, /resources\/notebook.ipynb/);
+});
+
 test('local additions cannot declare publication or silently overwrite an authored project', t => {
   const sample = fixture(t);
   sample.manifest.projects[1].new_demo.status = 'Live'; sample.write();

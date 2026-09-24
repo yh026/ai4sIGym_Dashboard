@@ -1668,7 +1668,6 @@ function cardHtml(demo, domain, isNew, hrefBase, index) {
     : [demo.task_type, demo.framework].filter(Boolean)).map(esc).join(' &middot; ');
   const search = [
     demo.title,
-    demo._localCollectionLabel,
     isV2 ? demo.card_summary : demo.description,
     domain.name,
     subtopic.name,
@@ -1700,7 +1699,7 @@ function cardHtml(demo, domain, isNew, hrefBase, index) {
   const instrumentTypeValues = isV2 ? demo.instrument_type_ids.join('|') : '';
   const facetAttributes = (isV2
     ? ` data-method="${esc(methodValues)}" data-data-type="${esc(dataTypeValues)}" data-instrument-type="${esc(instrumentTypeValues)}"`
-    : '') + (demo._localCollection ? ` data-collection="${esc(demo._localCollection)}"` : '');
+    : '');
   const domainFilterId = isV2 ? demo.department_id : domain.id;
   const summary = isV2 ? demo.card_summary : demo.description;
   return `<a class="project-card" href="${hrefBase}demos/${esc(demo.slug)}/index.html" style="--card-accent:${domain.color}" data-search="${esc(search)}" data-domain="${esc(domainFilterId)}" data-subtopic="${esc(subtopic.id)}" data-task="${esc(taskValues)}"${facetAttributes}>
@@ -1804,14 +1803,6 @@ async function main() {
     : new Set();
   if (localCollection) {
     localCollection.previewIds.forEach(id => localPreviewIds.add(id));
-    demos.forEach(demo => {
-      if (localCollection.entries.has(demo.slug)) {
-        Object.defineProperties(demo, {
-          _localCollection: { value: localCollection.id },
-          _localCollectionLabel: { value: localCollection.label },
-        });
-      }
-    });
   }
   const visibleHere = demo => isPublishableDemo(demo, policy, schemaVersion)
     || (LOCAL && localPreviewIds.has(demo.demo_id)
@@ -1883,9 +1874,6 @@ async function main() {
       const bundle = registry.bundles.find(b => b.demo_id === demo.demo_id);
       const card = bundle.resources.find(r => r.role === 'card');
       if (card) demo.card_asset = { asset_id: card.resource_id, public_path: card.route, alt_text: demo.title };
-      if (bundle.collection) Object.defineProperties(demo, {
-        _localCollection: { value: bundle.collection }, _localCollectionLabel: { value: 'Yuhan demos' },
-      });
     }
   }
 
@@ -1976,10 +1964,7 @@ async function main() {
       demos, 'instrument_type_ids',
     )
     : '';
-  const collections = localCollection ? [{ value: localCollection.id, label: localCollection.label }]
-    : [...new Set(demos.map(demo => demo._localCollection).filter(Boolean))].map(value => ({ value, label: 'Yuhan demos' }));
-  const collectionFilter = collections.length ? filterGroupHtml('Collection', 'collection', collections) : '';
-  const rootFilters = [collectionFilter, domainFilters, methodFilters, dataTypeFilters, instrumentTypeFilters]
+  const rootFilters = [domainFilters, methodFilters, dataTypeFilters, instrumentTypeFilters]
     .filter(Boolean).join('\n');
 
   const page = fillTemplate(template, {
@@ -2091,7 +2076,6 @@ async function main() {
       public_page_permission: demo.public_page_permission,
       card_asset: demo.card_asset ? { ...demo.card_asset } : null,
       date_added: demo.date_added,
-      ...(demo._localCollection ? { collection: demo._localCollection } : {}),
     }))
     : demos.map(({
       file_id,
