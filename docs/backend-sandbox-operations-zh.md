@@ -1,6 +1,6 @@
 # AIS 测试后台维护说明
 
-本说明适用于独立 Sandbox，不适用于原 Production 后台。测试 API 和 develop Hook 已接通，13 个项目已通过真实构建及签名回执。具体记录见 `backend-sandbox-validation-zh.md`。
+本说明适用于独立 Sandbox，不适用于原 Production 后台。测试 API 和 develop Hook 已接通。2026-09-24 又接入了 9 个用户提供的 Dataset 页面，当前 13 个项目中的 11 个三页项目都有完整 Dataset。具体对应关系见 `dataset-page-integration-zh.md`，首次后台验收记录见 `backend-sandbox-validation-zh.md`。
 
 ## 入口
 
@@ -41,7 +41,9 @@ Hook 的 accepted 只说明 Netlify 收到了请求；只有包含匹配内容�
 - 未接入：Pages 中 Role 选 dataset，State 选 Placeholder，Source file 留空，仍填写 Dataset ID / Dataset version / Route。构建会显示简洁的待接入页面。
 - 接入：将完整 HTML 放到 `datasets/<dataset-id>/<version>/dataset.html`，填写文件链接，将 State 改为 Ready，Route 保持不变。
 - Ready 文件缺失、损坏或读不到会阻止构建，不会自动降级成占位。
-- SOH 与 Curve Shape 使用同一个 `calce-cs2@v1` 引用时，两行必须指向同一个源文件。网站会分别生成带各自项目导航的页面。
+- SOH 使用 `calce-cs2-soh@v1`，Curve Shape 使用 `calce-cs2-shape@v1`。两者来自相同原始实验，但分别解释 SOH 序列和电压曲线矩阵，不能再指向同一个页面。
+- TBB 当前使用 `himawari-9-ahi@v2`，旧 `v1` 文件保留，公开路径仍是 `datasets/himawari-9-ahi/index.html`。
+- 以后确实需要共享页面时，相同 Dataset ID / version 必须指向同一源文件；各项目保留自己的导航。
 - 共享内容更新时建立新的 Dataset version，可供不同开发版本选择；不能直接覆盖已发布版本绑定的文件。
 
 ## 下载资源

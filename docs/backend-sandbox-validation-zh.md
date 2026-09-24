@@ -1,6 +1,6 @@
 # Backend Sandbox 实施与验证记录
 
-记录日期：2026-09-24。**状态：独立测试后台验收完成；13 项预览成功，8 个 Dataset 占位已恢复，每小时同步已开启且去重检查通过。原后台与 Production 未迁移。**
+记录日期：2026-09-24。**独立测试后台首次验收完成；13 项预览成功，每小时同步及去重检查通过。原后台与 Production 未迁移。** 本文保留首次验收时的占位页和测试记录；同日下午已接入九个完整 Dataset 文档，最新内容状态见 [Dataset 接入记录](dataset-page-integration-zh.md)。
 
 ## 已建立
 
@@ -8,7 +8,7 @@
 - 独立 Drive 根目录、原生复制的 Google Spreadsheet、独立绑定 Apps Script。原表的 15 项元数据保留在副本中，测试副本全部为 Draft / Preview only。
 - 原生 Versions / Pages / Resources 表及隐藏、受保护的机器索引；下拉框、选择框、只读结果列和菜单已在 Google Sheets 实际界面核验。
 - 首批 TBB、Air Quality、SOH、Curve Shape 已实际导入，并完成一次完整 Google 云端校验。
-- 13 项完整集合已导入测试 Drive / Sheet，共 36 页、21 个资源。正常状态有 8 个 Dataset 占位，共享 Dataset 接入测试期间暂为 6 个。
+- 首次验收时，13 项完整集合已导入测试 Drive / Sheet，共 36 页、21 个资源，正常状态有 8 个 Dataset 占位，共享 Dataset 接入测试期间暂为 6 个。后续 Dataset 接入已将占位数降为 0。
 - 独立 Web API 已部署为 Version 1。Netlify 新增 `AIS Registry V3 sandbox develop` Hook；测试脚本已保存该 Hook，Netlify 仅 develop 的 Registry URL / 回执密钥 / 实例标识已切换。Production 的原有配置保持不变。
 
 ## 原环境基线
