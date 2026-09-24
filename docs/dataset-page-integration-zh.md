@@ -31,6 +31,15 @@ CALCE 两页描述不同特征集，因此拆分此前共用的占位 Dataset ID
 
 本地使用 `local-content/v2/datasets/<id>/index.html`；原件副本位于 `datasets_v4/<id>/v2/dataset.html`，旧页面和导入记录位于 `local-content/gene-dataset-import-20260924/`。项目 `project.json` 的 `dataset.version` 记为 v2，测试包导出现在沿用该版本号。两个项目的 Insight / Workflow 源文件哈希保持不变。
 
+两页 v2 的验收：
+
+- 15 项相关测试及完整 Registry 构建预演通过，仍为 13 个项目、36 个页面、21 个资源、0 个占位页。
+- 两个云端源文件哈希与下载原件一致；其余 34 个页面的源文件哈希不变。
+- 本地与线上均验证矩阵加载、行号选择、折叠区域、导航和浅色布局，未发现浏览器错误或桌面横向溢出。
+- develop 代码提交 `11a01a3645c1fb6c974186e1e38323150186d8bf`；部署 `6ab4e925c75eae0008468537` 于新加坡时间 17:21:34 成功，构建耗时 10 分 32 秒。
+- 内容版本 `sha256:725f60dde65b3d72b82dcd59a1ae1fa82b9f11ac37ea007fe4a9f86489694355`；17:22:53 收到对应签名回执，13 个选中项目均为 Preview ready。
+- 原 Production 的 manifest / receipt 未变化；两页在 develop 与固定部署地址上的四项匿名访问检查均为 HTTP 401。17:24:01 恢复测试后台每小时同步。
+
 Google Drive 文件位于独立测试根目录的 `datasets/<id>/<version>/dataset.html`。TBB 新建 v2，保留旧 v1；其余八项从 Placeholder 改为 Ready。Sheet `Pages` 只更改对应九行的 D:G（State、Source file、Dataset ID、Dataset version），Page ID、Version ID、Route、下拉控件和表格格式保持原样。
 
 首页不再把导入来源当作 Collection 分类，也不在搜索词、卡片属性或公开 manifest 中输出该来源。Department、Method、Data Type 和 Instrument Type 四类筛选保留。
@@ -54,7 +63,7 @@ node build.js --local
 - 本地九页可展开内容，导航对应各自 Insight / Workflow，桌面无整页横向溢出；科学脚本原样保留。
 - 修改只推送到 develop；原正式后台和 main 不参与此次更新。
 
-## 云端验收
+## 首批九个 Dataset 的云端验收
 
 - 功能代码提交：`d1ca85635f16ccb6fa5d01c156e43ea194655d7a`，推送到 develop。
 - Netlify 部署：`6ab4c38b33421c0008e442f6`，2026-09-24 14:30:36–14:40:47（新加坡时间），构建成功，10 分 11 秒。
