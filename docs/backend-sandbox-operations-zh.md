@@ -1,13 +1,13 @@
 # AIS 测试后台维护说明
 
-本说明适用于独立 Sandbox，不适用于原 Production 后台。测试接口和 Netlify 联调尚未完成时，下面的构建、回执和自动化步骤不能视为已启用。
+本说明适用于独立 Sandbox，不适用于原 Production 后台。测试 API 和 develop Hook 已接通，13 个项目已通过真实构建及签名回执。具体记录见 `backend-sandbox-validation-zh.md`。
 
 ## 入口
 
 - [测试表格](https://docs.google.com/spreadsheets/d/1LIoR1wJKW-qqaGLePnrQCmqz3YWatPWwZNtrLkEajXI/edit)
 - [测试 Drive 目录](https://drive.google.com/drive/folders/1d0Dat-aXa2n60nkQxR2PCBbkCBsnGlS2)
 - [独立 Apps Script](https://script.google.com/u/0/home/projects/13vUF9owEebxyjfuHzvMN6Cp3dI9zAQrdkkYCLrS-Syb1abkyeTbuKsy9/edit)
-- [受保护的 develop 预览](https://develop--aisigym.netlify.app/)，接线完成后使用；当前网址本身不代表测试后台已经接入。
+- [受保护的 develop 预览](https://develop--aisigym.netlify.app/)，需要相应 Netlify 团队访问权限。
 
 ## 五张日常表
 
@@ -28,9 +28,13 @@ Projects 最后的开发版、发布版引用，以及 Versions 的 Snapshot dig
 3. 如果该版本已经是 Reviewed，先建立新的 Draft 版本；不能让旧审核摘要继续为修改后的内容背书。
 4. 在 Versions 中，每个项目只勾选一个 Use in develop。项目、版本的 Private 权限都会排除该版本。
 5. 点击表格菜单 **AIS Sandbox → Validate and sync**。校验通过后生成新的内容快照；内容未变则不重复生成。
-6. 接线完成后使用 **Build develop preview**。等待 Projects 显示 **Preview ready**，再从 Preview URL 打开结果。
+6. 使用 **Build develop preview**。等待 Projects 显示 **Preview ready**，再从 Preview URL 打开结果。
+
+本机已经具备 GitHub SSH 推送权限；代码更新可以正常 push 到 develop。仅更新 Drive 网页时不需要 Git 提交，通过同步和 Hook 重建即可。需要签名验收的内容构建由 Sheet 发起；带 `[skip netlify]` 的文档提交不会替换当前预览。
 
 Hook 的 accepted 只说明 Netlify 收到了请求；只有包含匹配内容版本、请求、分支、站点和部署编号的签名回执，才会将状态改为 ready。
+
+完整集合实测构建约 10 分钟，成功回执随后写回表格。等待期间可以继续查看上一次成功的预览，不要重复点击构建。
 
 ## Dataset 暂时为空或后续接入
 
@@ -63,7 +67,9 @@ TBB 保留额外的 `workflow-resources.html`。Notebook、完整工作流和方
 
 ## 自动化与回退
 
-初始自动发布为 off，没有测试定时触发器。只有真实 develop 构建收到签名 ready 回执后，才允许用 **Enable hourly preview sync** 开启每小时同步。**Disable sandbox automation** 仅移除本测试脚本自己的 hourlySandbox 触发器。
+2026-09-24 已在完整预览验证通过后开启测试后台的每小时同步。内容变化时请求新的 develop 构建；内容不变时不新建快照、不重复构建。也可通过菜单手动同步和构建，不必等下一小时。
+
+**Disable sandbox automation** 仅移除本测试脚本自己的 hourlySandbox 触发器。再次开启时使用 **Enable hourly preview sync**，脚本要求已有验证成功的 develop 回执。原后台的触发器不受这些菜单影响。
 
 回退 develop 时先关闭 Sandbox 自动化，再恢复 develop 分支原来的 REGISTRY_URL、AI4S_PREVIEW_CALLBACK_SECRET 和对应旧代码 / 已成功产物，删除本轮新增的分支 AIS_REGISTRY_INSTANCE 配置。Production 的变量、原 Apps Script 部署和原文件始终不参与这一回退。
 
