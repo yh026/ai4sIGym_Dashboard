@@ -9,7 +9,7 @@ const vm = require('node:vm');
 
 function loadAppsScript() {
   const filename = path.join(__dirname, '..', 'google-apps-script', 'Code.gs');
-  const context = vm.createContext({});
+  const context = vm.createContext({ PropertiesService: { getScriptProperties: () => ({ getProperty: () => null }) } });
   vm.runInContext(fs.readFileSync(filename, 'utf8'), context, { filename });
   context.Utilities = {
     DigestAlgorithm: { SHA_256: 'SHA_256' },

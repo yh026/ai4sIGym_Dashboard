@@ -58,9 +58,7 @@ function objects_(rows){return rows.slice(1).map(function(r){return Object.fromE
 function fileId_(value){var s=String(value||'').trim();var m=s.match(/\/d\/([A-Za-z0-9_-]+)/)||s.match(/[?&]id=([A-Za-z0-9_-]+)/);if(m)return m[1];if(/^[A-Za-z0-9_-]{20,}$/.test(s))return s;throw new Error('Use a valid Drive file link');}
 function sourceFile_(id){
   var f=DriveApp.getFileById(id);if(f.isTrashed())throw new Error('Source file is in Trash');
-  var queue=[f],seen={};var found=false;
-  while(queue.length){var current=queue.shift(),parents=current.getParents();while(parents.hasNext()){var parent=parents.next(),pid=parent.getId();if(pid===SANDBOX.drive_root_id){found=true;break;}if(!seen[pid]){seen[pid]=true;queue.push(parent);}}if(found)break;}
-  if(!found)throw new Error('Source file is outside the sandbox');return f;
+  sourceParentPath_(f);return f;
 }
 function source_(id,previous){
   var f=sourceFile_(id),stamp=f.getLastUpdated().toISOString(),size=f.getSize(),mime=f.getMimeType(),parent=sourceParentPath_(f);
@@ -70,7 +68,7 @@ function source_(id,previous){
   if(f.getLastUpdated().toISOString()!==stamp||f.getSize()!==size)throw new Error('Source changed during read');
   return {in_scope:true,file_id:id,modified_at:stamp,size:size,mime_type:mime,sha256:hash_(bytes),parent_path:parent};
 }
-function sourceParentPath_(f){var parts=[],parents=f.getParents(),steps=0;while(parents.hasNext()){var parent=parents.next();if(parents.hasNext())throw new Error('Ambiguous source parents');if(parent.getId()===SANDBOX.drive_root_id)return parts.reverse().join('/');parts.push(parent.getName());parents=parent.getParents();if(++steps>12)break;}throw new Error('Source is outside sandbox');}
+function sourceParentPath_(f){return mountedSourceParentPath_(f);}
 function audit_(ss,action,revision,detail){ss.getSheetByName('_SandboxAudit').appendRow([new Date().toISOString(),action,revision||'',String(detail||'').slice(0,1500)]);}
 function initializeSandbox(){return locked_(function(){
   var ss=sandboxGuard_(),p=PropertiesService.getScriptProperties();

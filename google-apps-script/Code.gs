@@ -1083,10 +1083,12 @@ function collectDemoFolder_(sub, rootId, notices) {
   var subId = driveEntryIdOrThrow_(sub, 'demo folder "' + name + '"');
   var pages = [], images = [], prov = null;
 
-  var files = sub.getFiles();
+  var sourceFolder = registryV2ArchiveSource_(sub, rootId);
+  var sourceFolderId = sourceFolder.getId();
+  var files = sourceFolder.getFiles();
   while (files.hasNext()) {
     var f = files.next();
-    if (!hasDirectParentOrThrow_(f, subId, 'file')) {
+    if (!hasDirectParentOrThrow_(f, sourceFolderId, 'file')) {
       notices.push('file "' + driveEntryName_(f)
         + '" is no longer directly inside demo folder "' + name + '"');
       continue;
@@ -1110,7 +1112,7 @@ function collectDemoFolder_(sub, rootId, notices) {
   var card = null;
   var selectionProvenanceContract = null;
   if (pick.needsCard && prov) {           // several pages and no name match:
-    var selection = registryV2ReadStableSelectionCard_(prov, subId);
+    var selection = registryV2ReadStableSelectionCard_(prov, sourceFolderId);
     card = selection.card;                // the card's pages[] is the tie-break
     selectionProvenanceContract = selection.contract;
     pick = pickPrimaryPage_(name, names, card);
@@ -1130,6 +1132,7 @@ function collectDemoFolder_(sub, rootId, notices) {
   if (picked.note) notes.push(picked.note);
 
   return { file: file, pageFiles: pages.slice(), folder: sub, folderId: subId,
+    sourceFolderId: sourceFolderId,
     rootId: String(rootId || ''), folderName: name, provFile: prov, picFile: picFile,
     imageFiles: images.slice(), card: card,
     selectionProvenanceContract: selectionProvenanceContract,
@@ -1301,25 +1304,30 @@ function registryV2IngestContract_(item) {
   var spreadsheetId = String(item && item.registryIngestSpreadsheetId || '');
   var rootId = String(item && item.rootId || '');
   var folderId = String(item && item.folderId || '');
+  var sourceFolderId = String(item && item.sourceFolderId || folderId);
   if (!spreadsheetId || !rootId || !folderId || !item || !item.file) {
     throw new Error('Drive sync stopped: an item lacks its collected folder identity.');
   }
   var folderParents = folderId === rootId ? ['@configured-root']
     : registryV2SyncParentIds_(item.folder, rootId,
       'demo folder "' + String(item.folderName || '') + '"');
+  if (sourceFolderId !== folderId
+      && registryV2ArchiveSource_(item.folder, rootId).getId() !== sourceFolderId) {
+    throw new Error('Archived source changed during sync.');
+  }
   var pages = (item.pageFiles && item.pageFiles.length
     ? item.pageFiles : [item.file]).map(function (file) {
-    return registryV2SyncFileContract_(file, folderId, 'HTML file');
+    return registryV2SyncFileContract_(file, sourceFolderId, 'HTML file');
   });
   var provenance = item.provFile
-    ? registryV2SyncFileContract_(item.provFile, folderId, 'PROVENANCE.md') : null;
+    ? registryV2SyncFileContract_(item.provFile, sourceFolderId, 'PROVENANCE.md') : null;
   if (item.selectionProvenanceContract
       && stableJson_(item.selectionProvenanceContract) !== stableJson_(provenance)) {
     throw new Error('Drive source metadata changed after selecting the primary HTML page. '
       + 'No registry changes were written; run sync again.');
   }
   var images = (item.imageFiles || []).map(function (file) {
-    return registryV2SyncFileContract_(file, folderId, 'card-image candidate');
+    return registryV2SyncFileContract_(file, sourceFolderId, 'card-image candidate');
   });
   return {
     schema: REGISTRY_V2_INGEST_CACHE_SCHEMA,
@@ -3944,12 +3952,13 @@ function registryV2ReadinessError_(demo, project, taxonomyIndex) {
 }
 
 function registryV2AllowedParentIds_(file, rootId) {
+  var archivedParent = registryV2ArchivedParentId_(file, rootId);
   var parents = file.getParents();
   var allowed = [];
   while (parents.hasNext()) {
     var parent = parents.next();
     var id = String(parent.getId());
-    if (id === String(rootId) || folderHasParentId_(parent, rootId)) allowed.push(id);
+    if (id === archivedParent || id === String(rootId) || folderHasParentId_(parent, rootId)) allowed.push(id);
   }
   allowed.sort();
   return allowed;
@@ -4897,6 +4906,7 @@ function registryDriveFile_(cfg, fileId, kind) {
   }
 
   try {
+    if (registryV2ArchivedFileAllowed_(file, rootId)) return file;
     var parents = file.getParents();
     while (parents.hasNext()) {
       var parent = parents.next();
@@ -5950,4 +5960,41 @@ function setListValidation_(sh, col, options, allowInvalid, maxR) {
 
 function groupCols_(sh, from, to) {
   sh.getRange(1, from, 1, to - from + 1).shiftColumnGroupDepth(1);
+}
+
+/** Explicit, dated legacy sources. No recursive scan of new development files. */
+function registryV2Archives_() {
+  return JSON.parse(PropertiesService.getScriptProperties().getProperty('AI4S_DATED_ARCHIVES_V1') || '{}');
+}
+function registryV2CheckedArchive_(project, rootId, entry) {
+  if (entry.root_id !== rootId || project.getId() !== entry.project_id) throw new Error('Archive root mismatch');
+  registryV2SyncParentIds_(project, rootId, 'archived project');
+  var archive = DriveApp.getFolderById(entry.archive_id), dated = DriveApp.getFolderById(entry.date_id);
+  if (archive.getName() !== 'archive' || dated.getName() !== entry.date) throw new Error('Archive name mismatch');
+  registryV2SyncParentIds_(archive, project.getId(), 'archive folder');
+  registryV2SyncParentIds_(dated, archive.getId(), 'dated archive');
+  return dated;
+}
+function registryV2ArchiveSource_(project, rootId) {
+  var entry = registryV2Archives_()[project.getId()];
+  if (!entry) return project;
+  var dated = registryV2CheckedArchive_(project, rootId, entry);
+  var page = DriveApp.getFileById(entry.page_id);
+  if (hasDirectParentOrThrow_(page, dated.getId(), 'archived HTML')) return dated;
+  // Allows the compatibility deployment before the controlled file move.
+  if (hasDirectParentOrThrow_(page, project.getId(), 'legacy HTML')) return project;
+  throw new Error('Pinned legacy HTML moved outside its project archive');
+}
+function registryV2ArchivedParentId_(file, rootId) {
+  var entries = registryV2Archives_(), ids = Object.keys(entries);
+  for (var i = 0; i < ids.length; i++) {
+    var entry = entries[ids[i]];
+    if (entry.file_ids.indexOf(file.getId()) === -1) continue;
+    var dated = registryV2CheckedArchive_(DriveApp.getFolderById(entry.project_id), rootId, entry);
+    return hasDirectParentOrThrow_(file, dated.getId(), 'archived response file') ? dated.getId() : '';
+  }
+  return '';
+}
+function registryV2ArchivedFileAllowed_(file, rootId) {
+  return !!registryV2ArchivedParentId_(file, rootId);
 }
