@@ -11,6 +11,8 @@ const { AUTHORIZED_DEMOS, sha256, productionPolicy, validateReleaseManifest,
 
 const env = { NETLIFY: 'true', CONTEXT: 'production', BRANCH: 'main', COMMIT_REF: 'b'.repeat(40),
   SITE_ID: '00000000-0000-4000-8000-000000000001', BUILD_ID: 'production-build', DEPLOY_ID: 'production-deploy' };
+const reviewEnv = { ...env, CONTEXT: 'deploy-preview', BRANCH: 'pull/10/head', REVIEW_ID: '10',
+  BUILD_ID: 'review-build', DEPLOY_ID: 'review-deploy', COMMIT_REF: 'd'.repeat(40) };
 const source = { verified: true, commit_ref: 'a'.repeat(40), registry_revision: 'sha256:' + 'c'.repeat(64), deploy_id: 'reviewed-preview' };
 
 function ustar(entries) {
@@ -71,6 +73,68 @@ test('release policy accepts only current Production identity or explicit local 
   assert.throws(() => productionPolicy({}));
   assert.throws(() => productionPolicy(env, { local: true }), /forbidden/);
   assert.throws(() => productionPolicy({ CONTEXT: 'deploy-preview' }, { local: true }), /forbidden/);
+});
+
+test('explicit review mode is confined to an identified Netlify pull request deployment', () => {
+  const policy = productionPolicy(reviewEnv, { review: true });
+  assert.equal(policy.context, 'deploy-preview');
+  assert.equal(policy.branch, 'pull/10/head');
+  assert.equal(policy.review_id, '10');
+  assert.equal(policy.commit_ref, reviewEnv.COMMIT_REF);
+  for (const patch of [{ NETLIFY: '' }, { CONTEXT: 'production' }, { CONTEXT: 'branch-deploy' },
+    { BRANCH: 'main' }, { BRANCH: 'develop' }, { BRANCH: 'pull/11/head' }, { REVIEW_ID: '' },
+    { REVIEW_ID: '0', BRANCH: 'pull/0/head' }, { REVIEW_ID: '01', BRANCH: 'pull/01/head' },
+    { REVIEW_ID: '1.5', BRANCH: 'pull/1.5/head' }, { REVIEW_ID: '9007199254740992', BRANCH: 'pull/9007199254740992/head' },
+    { COMMIT_REF: '' }, { SITE_ID: '' }, { BUILD_ID: '' }, { DEPLOY_ID: '' }]) {
+    assert.throws(() => productionPolicy({ ...reviewEnv, ...patch }, { review: true }));
+  }
+  assert.throws(() => productionPolicy(reviewEnv), /requires NETLIFY/);
+  assert.throws(() => productionPolicy(env, { review: true }), /--review requires/);
+  assert.throws(() => productionPolicy({}, { local: true, review: true }), /mutually exclusive/);
+});
+
+test('review candidate preserves artifact bytes and source proof while remaining private and unindexed', t => {
+  const s = sample(t), result = s.build({ env: reviewEnv, review: true });
+  for (const [name, bytes] of s.entries) if (name !== 'manifest.json') {
+    assert.deepEqual(fs.readFileSync(path.join(s.outputDirectory, name)), bytes, name);
+  }
+  const manifest = JSON.parse(fs.readFileSync(path.join(s.outputDirectory, 'manifest.json')));
+  assert.equal(manifest.audience, 'preview');
+  assert.ok(manifest.demos.every(d => d.status === 'Draft' && d.public_page_permission === 'Preview only' && d.audience === 'General'));
+  const receipt = result.receipt;
+  assert.equal(receipt.verified, false);
+  assert.equal(receipt.target, 'preview');
+  assert.equal(receipt.audience, 'preview');
+  assert.equal(receipt.context, 'deploy-preview');
+  assert.equal(receipt.branch, 'pull/10/head');
+  assert.equal(receipt.review_id, '10');
+  assert.equal(receipt.commit_ref, reviewEnv.COMMIT_REF);
+  assert.equal(receipt.deploy_id, reviewEnv.DEPLOY_ID);
+  assert.deepEqual(receipt.source_preview, source);
+  const headers = fs.readFileSync(path.join(s.outputDirectory, '_headers'), 'utf8');
+  assert.match(headers, /(?:^|\n)\/\*\n  X-Robots-Tag: noindex, nofollow/);
+  assert.doesNotMatch(headers, /Cache-Control: public/);
+  for (const kind of ['embedded', 'optimized', 'runtime']) assert.ok(headers.includes('/assets/' + kind + '/*\n  Cache-Control: private, max-age=31536000, immutable'));
+  assert.equal(fs.readFileSync(path.join(s.outputDirectory, 'robots.txt'), 'utf8'), 'User-agent: *\nDisallow: /\n');
+  fs.appendFileSync(path.join(s.directory, 'release.tar.gz'), 'changed');
+  assert.throws(() => s.build({ env: reviewEnv, review: true }), /archive checksum/);
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(s.outputDirectory, 'deploy-receipt.json'))), receipt);
+});
+
+test('CLI --review is explicit and cannot combine with local or enter production/develop', t => {
+  const s = sample(t), cli = path.join(__dirname, '../scripts/build-production-release.cjs');
+  const args = [cli, '--manifest', s.manifestPath, '--output', s.outputDirectory, '--review'];
+  const invoke = (environment, extra = []) => spawnSync(process.execPath, [...args, ...extra], {
+    encoding: 'utf8', env: { ...process.env, ...environment },
+  });
+  const review = invoke(reviewEnv);
+  assert.equal(review.status, 0, review.stderr);
+  assert.match(review.stdout, /release review validated/);
+  assert.notEqual(invoke(env).status, 0);
+  assert.notEqual(invoke({ ...reviewEnv, CONTEXT: 'branch-deploy', BRANCH: 'develop' }).status, 0);
+  const mixed = invoke(reviewEnv, ['--local']);
+  assert.notEqual(mixed.status, 0);
+  assert.match(mixed.stderr, /mutually exclusive/);
 });
 
 test('frozen release preserves every scientific/image/download byte and creates honest production metadata', t => {

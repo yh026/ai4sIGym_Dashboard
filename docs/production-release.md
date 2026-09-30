@@ -5,8 +5,11 @@ the V3 registry continue to control develop; editing a Draft in Drive does not
 silently update this production release. This is a release lane, not a migration
 of the sandbox API into a full V3 production publisher.
 
-Netlify's production context runs `scripts/build-production-release.cjs`. Other
-contexts retain the existing registry build. The production builder requires
+Netlify's production context runs `scripts/build-production-release.cjs`. Pull
+request previews use the same package with `--review`, preview status, and global
+noindex rules; they require a matching Netlify pull-request identity and do not
+read Drive credentials. Branch deploys retain the existing registry build.
+The production builder requires
 Netlify production/main identity and validates the checked-in archive and every
 file against `release/production-release.json` before replacing its output.
 Images, scientific values, page scripts, and downloads are preserved byte for

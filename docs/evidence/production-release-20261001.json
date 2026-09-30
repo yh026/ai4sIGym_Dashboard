@@ -17,7 +17,7 @@
     "broken_references": 0
   },
   "tests": {
-    "passed": 567,
+    "passed": 570,
     "failed": 0
   },
   "browser_checks": [
@@ -91,5 +91,11 @@
     "archive_sha256": "fe5ec225805e4d422d9f0dec43d41c4e64f1924b9916bbb50604d30603a77bb8",
     "frozen_files": 130,
     "byte_preserved_files": 129
+  },
+  "review_build": {
+    "package_files": 133,
+    "audience": "preview",
+    "requires": "Netlify deploy-preview with matching REVIEW_ID and pull branch",
+    "production_package_unchanged": true
   }
 }

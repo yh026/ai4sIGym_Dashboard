@@ -8,5 +8,8 @@
 [context.production]
   command = "node scripts/build-production-release.cjs"
 
+[context.deploy-preview]
+  command = "node scripts/build-production-release.cjs --review"
+
 [[context.branch-deploy.plugins]]
   package = "./netlify/plugins/preview-ready"
