@@ -5,5 +5,8 @@
 [build.environment]
   NODE_VERSION = "24"
 
+[context.production]
+  command = "node scripts/build-production-release.cjs"
+
 [[context.branch-deploy.plugins]]
   package = "./netlify/plugins/preview-ready"
