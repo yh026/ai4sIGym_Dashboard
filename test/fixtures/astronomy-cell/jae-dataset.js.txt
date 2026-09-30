@@ -1,0 +1,211 @@
+/* NeurIPS 2021 BMMC CITE-seq Dataset page (product page): instrument -> raw -> transformation -> design matrix.
+   Reads only D.stages. */
+const S = D.stages, CV = S.coverage, R = S.record, F = S.follow, MX = S.matrix, DX = MX.display, L = S.labels;
+const $ = id => document.getElementById(id);
+const isOpen = id => PCFolds.isOpen($(id));
+const fmtN = v => Number(v).toLocaleString();
+const LIN_VAR = L.lineages.map((_, k) => '--series-' + (k + 1));          // fixed lineage colours, same order in every fold
+const linColor = k => PC.css(LIN_VAR[k]);
+const CODES = (() => { const b = atob(DX.codes_b64), a = new Uint8Array(b.length); for (let k = 0; k < b.length; k++) a[k] = b.charCodeAt(k); return a; })();
+const NC = DX.n_cols, NR = DX.n_rows;
+
+function nice(lo, hi, n) {
+  const step0 = (hi - lo) / (n || 5), mag = Math.pow(10, Math.floor(Math.log10(step0))), f = step0 / mag;
+  const step = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * mag, out = [];
+  for (let v = Math.ceil(lo / step - 1e-9) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(10));
+  return out;
+}
+function panel(cv, h, xr, yr, xl, yl, o) {
+  o = o || {};
+  const w = o.w || cv.parentElement.clientWidth || 600, g = PC.fit(cv, w, h);
+  const sc = PC.scales(cv, xr, yr, o.pad || { l: 58, r: 14, t: 12, b: 46 });
+  PC.drawAxes(g, sc, o.xt || nice(xr[0], xr[1], w < 480 ? 4 : 7), o.yt || nice(yr[0], yr[1], 4), sc.x, sc.y,
+    xl, yl, { grid: o.grid || 'both', xFmt: o.xFmt, yFmt: o.yFmt });
+  return { g, sc, w, h };
+}
+function legend(host, items) {
+  host.innerHTML = items.map(([lab, col]) => '<span class="lg"><i style="background:' + col + '"></i>' + lab + '</span>').join('');
+}
+
+/* ---------- Raw data: one cell's antibody profile ---------- */
+const ADT_N = R.adt_counts.length, ISO_N = R.iso.length;
+function paintCell() {
+  if (!isOpen('raw-data')) return;
+  const cv = $('adtCell'), w = cv.parentElement.clientWidth || 600, h = 360, g = PC.fit(cv, w, h);
+  const pl = 58, pr = 12, top1 = 14, h1 = 130, top2 = top1 + h1 + 44, h2 = 110, nb = ADT_N + ISO_N + 2;
+  const iw = w - pl - pr, bw = iw / nb, xOf = k => pl + (k < ADT_N ? k : k + 2) * bw;
+  const cnt = R.adt_counts.concat(R.iso.map(q => q[1])), clr = R.adt_x.concat(R.iso.map(q => q[2]));
+  const lc = v => Math.log10(1 + v), cmax = Math.max(...cnt.map(lc)) * 1.05, xmax = Math.max(...clr) * 1.08;
+  const yc = v => top1 + h1 - lc(v) / cmax * h1, yx = v => top2 + h2 - v / xmax * h2;
+  g.strokeStyle = PC.css('--grid'); g.lineWidth = 1;
+  [0, 1, 10, 100, 1000, 10000].filter(t => lc(t) <= cmax).forEach(t => {
+    g.beginPath(); g.moveTo(pl, yc(t)); g.lineTo(w - pr, yc(t)); g.stroke(); PC.tickText(g, fmtN(t), pl - 6, yc(t), 'right', 'middle');
+  });
+  nice(0, xmax, 3).forEach(t => { g.beginPath(); g.moveTo(pl, yx(t)); g.lineTo(w - pr, yx(t)); g.stroke(); PC.tickText(g, t.toFixed(1), pl - 6, yx(t), 'right', 'middle'); });
+  PC.tickText(g, 'count (log scale)', pl, top1 - 4, 'left', 'bottom');
+  PC.tickText(g, 'stored X (CLR)', pl, top2 - 6, 'left', 'bottom');
+  const pts = [];
+  cnt.forEach((v, k) => {
+    const iso = k >= ADT_N, x = xOf(k), c = PC.css(iso ? '--muted' : '--series-1');
+    g.fillStyle = c; g.fillRect(x + 0.5, yc(v), Math.max(1, bw - 1), top1 + h1 - yc(v));
+    g.fillRect(x + 0.5, yx(clr[k]), Math.max(1, bw - 1), top2 + h2 - yx(clr[k]));
+    pts.push([x + bw / 2, top1 + h1 / 2, k], [x + bw / 2, top2 + h2 / 2, k]);
+  });
+  PC.tickText(g, 'antibodies in file order', pl + (ADT_N * bw) / 2, top2 + h2 + 8, 'center', 'top');
+  PC.tickText(g, 'isotype', xOf(ADT_N) + ISO_N * bw / 2, top2 + h2 + 8, 'center', 'top');
+  PC.hover(cv, pts, {
+    radius: Math.max(24, bw), onHit: (k, evt) => PC.tip('<b>' + (k < ADT_N ? S.proteins[k] : R.iso[k - ADT_N][0] + ' (isotype control)') + '</b><br>count '
+      + fmtN(cnt[k]) + '<br>stored CLR ' + clr[k].toFixed(3), evt), onLeave: () => PC.hideTip()
+  });
+}
+
+/* ---------- Raw data: coverage ---------- */
+function paintCoverage() {
+  if (!isOpen('raw-data')) return;
+  const cv = $('coverage'), w = cv.parentElement.clientWidth || 600, rows = CV.batch_lineage, rh = 26;
+  const lg = 34, h = lg + rows.length * rh + 40, g = PC.fit(cv, w, h), lw = 54, x0 = lw + 8, bw = w - x0 - 70;
+  const tot = rows.map(r => r.reduce((a, b) => a + b, 0)), max = Math.max(...tot), pts = [];
+  // legend: lineages in fixed order
+  let lx = 0;
+  L.lineages.forEach((l, k) => {
+    const tw = g.measureText ? (g.font = PC.font.tick(), g.measureText(l).width) : 40;
+    if (lx + tw + 26 > w) return;
+    g.fillStyle = linColor(k); g.fillRect(lx, 6, 10, 10); PC.tickText(g, l, lx + 14, 11, 'left', 'middle'); lx += tw + 28;
+  });
+  rows.forEach((r, j) => {
+    const y = lg + j * rh; let x = x0;
+    const siteGap = j && CV.batches[j].slice(0, 2) !== CV.batches[j - 1].slice(0, 2);
+    if (siteGap) { g.strokeStyle = PC.css('--border'); g.beginPath(); g.moveTo(0, y - 3); g.lineTo(w, y - 3); g.stroke(); }
+    PC.tickText(g, CV.batches[j], lw, y + 9, 'right', 'middle');
+    r.forEach((v, k) => {
+      const ww = v / max * bw; if (!v) return;
+      g.fillStyle = linColor(k); g.fillRect(x, y, Math.max(1, ww - 1), 18);
+      pts.push([x + ww / 2, y + 9, j * 100 + k]); x += ww;
+    });
+    PC.tickText(g, fmtN(tot[j]), x + 6, y + 9, 'left', 'middle');
+  });
+  PC.tickText(g, 'cells', x0 + bw / 2, lg + rows.length * rh + 12, 'center', 'top');
+  PC.hover(cv, pts, {
+    radius: 24, onHit: (id, evt) => { const j = Math.floor(id / 100), k = id % 100;
+      PC.tip('<b>' + CV.batches[j] + ' · ' + L.lineages[k] + '</b><br>' + fmtN(rows[j][k]) + ' of ' + fmtN(tot[j]) + ' cells', evt); },
+    onLeave: () => PC.hideTip()
+  });
+}
+$('ctTable').innerHTML = '<thead><tr><th>Cell type</th><th>Lineage</th>' + CV.batches.map(b => '<th>' + b + '</th>').join('') + '<th>All</th></tr></thead><tbody>'
+  + L.cell_types.map((c, k) => { const v = CV.batch_celltype.map(r => r[k]);
+    return '<tr><td>' + c + '</td><td>' + L.cell_type_lineage[k] + '</td>' + v.map(x => '<td>' + fmtN(x) + '</td>').join('') + '<td>' + fmtN(v.reduce((a, b) => a + b, 0)) + '</td></tr>'; }).join('') + '</tbody>';
+
+/* ---------- Transformation: funnel ---------- */
+function paintFunnel() {
+  if (!isOpen('transformation')) return;
+  const sel = $('funnelBatch').value, total = S.funnel[0][1];
+  const scale = sel === 'all' ? 1 : CV.batch_lineage[+sel].reduce((a, b) => a + b, 0) / total;
+  const st = S.funnel.map(([l, v]) => [l, Math.round(v * scale)]);
+  const cv = $('funnel'), w = cv.parentElement.clientWidth || 600, rh = 30, h = 20 + rh * st.length + 10;
+  const g = PC.fit(cv, w, h), lw = Math.min(230, w * 0.42), max = st[0][1], x0 = lw + 8, bw = w - x0 - 110;
+  st.forEach(([label, v], j) => {
+    const y = 12 + j * rh;
+    PC.tickText(g, label, lw, y + 10, 'right', 'middle');
+    g.fillStyle = PC.css(j === st.length - 1 ? '--stage-2' : '--axis');
+    g.beginPath(); g.roundRect(x0, y, Math.max(2, v / max * bw), 20, [0, 4, 4, 0]); g.fill();
+    g.fillStyle = PC.css('--text-primary'); g.font = PC.font.emph(); g.textAlign = 'left'; g.textBaseline = 'middle';
+    g.fillText(fmtN(v) + (j ? '  (−' + fmtN(st[j - 1][1] - v) + ')' : ''), x0 + v / max * bw + 6, y + 10);
+  });
+}
+
+/* ---------- Transformation: follow one cell ---------- */
+const FEAT = F.genes.concat(F.proteins), NG = F.genes.length;
+function bars(cv, vals, unit, fmt) {
+  const w = cv.parentElement.clientWidth || 300, h = 30 + 18 * vals.length + 26, g = PC.fit(cv, w, h);
+  const lw = 58, x0 = lw + 6, bw = w - x0 - 64, max = Math.max(1e-9, ...vals.map(v => v || 0));
+  vals.forEach((v, k) => {
+    const y = 6 + k * 18 + (k >= NG ? 10 : 0);
+    PC.tickText(g, FEAT[k], lw, y + 7, 'right', 'middle');
+    g.fillStyle = PC.css(k < NG ? '--series-1' : '--series-2');
+    g.fillRect(x0, y, Math.max(v ? 1 : 0, v / max * bw), 14);
+    PC.tickText(g, fmt(v), x0 + v / max * bw + 4, y + 7, 'left', 'middle');
+  });
+  PC.tickText(g, unit, x0, h - 6, 'left', 'bottom');
+}
+function rowStrip(cv, r, h) {
+  const w = cv.parentElement.clientWidth || 300, g = PC.fit(cv, w, h), ramp = PC.rampScale ? PC.rampScale() : PC.rampColor;
+  const x0 = 4, iw = w - 8, cw = iw / NC, top = 18, sh = h - top - 22;
+  for (let j = 0; j < NC; j++) { g.fillStyle = ramp(CODES[r * NC + j] / 255); g.fillRect(x0 + j * cw, top, Math.ceil(cw), sh); }
+  const nm = DX.kinds.indexOf('protein');
+  g.strokeStyle = PC.css('--surface-1'); g.lineWidth = 2; g.beginPath(); g.moveTo(x0 + nm * cw, top); g.lineTo(x0 + nm * cw, top + sh); g.stroke();
+  PC.tickText(g, 'genes', x0 + nm * cw / 2, top - 4, 'center', 'bottom');
+  PC.tickText(g, 'antibodies', x0 + nm * cw + (NC - nm) * cw / 2, top - 4, 'center', 'bottom');
+  return { g, x0, cw, top, sh };
+}
+function paintFollow() {
+  if (!isOpen('transformation')) return;
+  const e = F.examples[+$('cellSelect').value];
+  $('cellReadout').textContent = 'Row ' + fmtN(e.row) + ' of both files, barcode ' + e.barcode + ', batch ' + e.batch + ', ' + e.cell_type
+    + ' (' + e.lineage + '). ' + fmtN(e.gex_umis) + ' gene UMIs over ' + fmtN(e.gex_genes) + ' genes, ' + fmtN(e.adt_counts) + ' antibody counts; size factor '
+    + e.size_factor + ', CLR divisor ' + e.clr_factor + '. Kept: it becomes matrix row ' + fmtN(e.row) + ' and display row ' + fmtN(e.display_row) + '.';
+  bars($('fRaw'), e.raw, 'count', v => fmtN(v));
+  bars($('fProv'), e.provider, 'GEX ln(1 + count ÷ size factor) · ADT CLR', v => v.toFixed(2));
+  bars($('fOurs'), e.ours, 'log₁₀(1 + counts per 10⁴)', v => v.toFixed(2));
+  rowStrip($('fRow'), e.display_row, 80);
+}
+
+/* ---------- Design matrix: heatmap of the display copy ---------- */
+let hmRow = 0, hmImg = null, hmTheme = null;
+function heatImage() {
+  const theme = PC.isDark() ? 'd' : 'l';
+  if (hmImg && hmTheme === theme) return hmImg;
+  const ramp = PC.rampScale ? PC.rampScale() : PC.rampColor, lut = [];
+  for (let v = 0; v < 256; v++) lut.push((ramp(v / 255).match(/\d+/g) || [0, 0, 0]).map(Number));
+  const c = document.createElement('canvas'); c.width = NC; c.height = NR;
+  const x = c.getContext('2d'), img = x.createImageData(NC, NR);
+  for (let k = 0; k < CODES.length; k++) { const rgb = lut[CODES[k]]; img.data[k * 4] = rgb[0]; img.data[k * 4 + 1] = rgb[1]; img.data[k * 4 + 2] = rgb[2]; img.data[k * 4 + 3] = 255; }
+  x.putImageData(img, 0, 0); hmImg = c; hmTheme = theme; return c;
+}
+const BLOCKS = (() => { const out = []; DX.row_lineage.forEach((l, r) => { if (!out.length || out[out.length - 1][0] !== l) out.push([l, r, r + 1]); else out[out.length - 1][2] = r + 1; }); return out; })();
+function paintHeat() {
+  if (!isOpen('matrix')) return;
+  const cv = $('heat'), w = cv.parentElement.clientWidth || 600, h = Math.max(380, Math.min(560, w * 0.8)), g = PC.fit(cv, w, h);
+  const Lm = w < 480 ? 74 : 92, Rm = 10, T = 22, Bm = 30, iw = w - Lm - Rm, ih = h - T - Bm, nm = DX.kinds.indexOf('protein');
+  g.imageSmoothingEnabled = false; g.drawImage(heatImage(), Lm, T, iw, ih);
+  const yOf = r => T + r / NR * ih, xOf = j => Lm + j / NC * iw;
+  BLOCKS.forEach(([l, a, b]) => {
+    g.fillStyle = linColor(l); g.fillRect(Lm - 9, yOf(a) + 0.5, 6, Math.max(1, yOf(b) - yOf(a) - 1));
+    if (yOf(b) - yOf(a) > 11) PC.tickText(g, L.lineages[l], Lm - 13, (yOf(a) + yOf(b)) / 2, 'right', 'middle');
+    if (a) { g.strokeStyle = PC.css('--surface-1'); g.lineWidth = 1.5; g.beginPath(); g.moveTo(Lm, yOf(a)); g.lineTo(Lm + iw, yOf(a)); g.stroke(); }
+  });
+  g.strokeStyle = PC.css('--surface-1'); g.lineWidth = 2; g.beginPath(); g.moveTo(xOf(nm), T); g.lineTo(xOf(nm), T + ih); g.stroke();
+  PC.tickText(g, nm + ' marker genes', (Lm + xOf(nm)) / 2, T - 5, 'center', 'bottom');
+  PC.tickText(g, (NC - nm) + ' antibodies', (xOf(nm) + Lm + iw) / 2, T - 5, 'center', 'bottom');
+  PC.tickText(g, fmtN(NR) + ' display cells, grouped by lineage then cell type', Lm + iw / 2, T + ih + 8, 'center', 'top');
+  g.strokeStyle = PC.css('--text-primary'); g.lineWidth = 1.5; g.strokeRect(Lm - 0.5, yOf(hmRow) - 1.5, iw + 1, Math.max(3, ih / NR) + 2);
+  cv.onpointermove = evt => {
+    const b = cv.getBoundingClientRect(), y = evt.clientY - b.top;
+    if (y < T || y > T + ih || evt.clientX - b.left < Lm) return;
+    const row = Math.min(NR - 1, Math.floor((y - T) / ih * NR));
+    if (row !== hmRow) { hmRow = row; paintHeat(); paintRow(); }
+  };
+}
+function paintRow() {
+  if (!isOpen('matrix')) return;
+  const r = hmRow, ct = DX.row_cell_type[r];
+  $('rowReadout').textContent = 'Display row ' + fmtN(r) + ' · matrix row ' + fmtN(DX.row_file_index[r]) + ' · ' + L.cell_types[ct] + ' (' + L.lineages[DX.row_lineage[r]]
+    + ') · batch ' + L.batches[DX.row_batch[r]];
+  const vals = Array.from({ length: NC }, (_, j) => CODES[r * NC + j] / 255 * DX.hi[j]), vmax = Math.max(0.5, ...vals) * 1.08;
+  const P = panel($('heatRow'), 190, [-0.5, NC - 0.5], [0, vmax], 'display column (hover a bar)', 'log₁₀(1 + cp10⁴)', { xt: [0, DX.kinds.indexOf('protein'), NC - 1], grid: 'y' });
+  const cw = P.sc.iw / NC, pts = [];
+  vals.forEach((v, j) => {
+    P.g.fillStyle = PC.css(DX.kinds[j] === 'gene' ? '--series-1' : '--series-2');
+    P.g.fillRect(P.sc.x(j) - cw / 2 + 0.3, P.sc.y(v), Math.max(1, cw - 0.6), P.sc.y(0) - P.sc.y(v));
+    pts.push([P.sc.x(j), P.sc.y(v / 2), j]);
+  });
+  PC.hover($('heatRow'), pts, { radius: 24, onHit: (j, evt) => PC.tip('<b>' + DX.columns[j] + '</b> (' + DX.kinds[j] + ')<br>' + vals[j].toFixed(2)
+    + (CODES[r * NC + j] === 255 ? ' or more (saturated)' : ''), evt), onLeave: () => PC.hideTip() });
+}
+$('colTable').innerHTML = '<thead><tr><th>Column</th><th>Kind</th><th>Display scale top (99.5th pct.)</th><th>Mean over all cells</th><th>Share of cells non-zero</th></tr></thead><tbody>'
+  + DX.columns.map((c, j) => '<tr><td>' + c + '</td><td>' + DX.kinds[j] + '</td><td>' + DX.hi[j].toFixed(3) + '</td><td>' + DX.full_mean[j].toFixed(3)
+    + '</td><td>' + (100 * DX.full_nonzero[j]).toFixed(1) + '%</td></tr>').join('') + '</tbody>';
+
+$('funnelBatch').addEventListener('change', paintFunnel);
+$('cellSelect').addEventListener('change', paintFollow);
+PC.registerRepaint(() => { paintCell(); paintCoverage(); paintFunnel(); paintFollow(); paintHeat(); paintRow(); });
+PC.repaint('initial', document);

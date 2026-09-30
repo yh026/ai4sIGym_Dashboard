@@ -1,0 +1,227 @@
+/* CALCE CS2 Dataset pages, shared part: chart helpers, Instrument and Raw data.
+   Reads D.common. Each view's author.js adds its Transformation and Design matrix. */
+const C = D.common, CELLS = C.cells;
+const $ = id => document.getElementById(id);
+const isOpen = id => PCFolds.isOpen($(id));
+const cellVar = c => '--' + c.toLowerCase().replace('_', '-');
+const fmtN = v => Number(v).toLocaleString();
+
+function nice(lo, hi, n) {
+  const step0 = (hi - lo) / (n || 5), mag = Math.pow(10, Math.floor(Math.log10(step0))), f = step0 / mag;
+  const step = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * mag, out = [];
+  for (let v = Math.ceil(lo / step - 1e-9) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(10));
+  return out;
+}
+/* One panel: fit to its box width, draw axes, return scales. */
+function panel(cv, h, xr, yr, xl, yl, o) {
+  o = o || {};
+  const w = cv.parentElement.clientWidth || 600, g = PC.fit(cv, w, h);
+  const sc = PC.scales(cv, xr, yr, o.pad || { l: 58, r: 14, t: 12, b: o.xl === false ? 22 : 46 });
+  PC.drawAxes(g, sc, o.xt || nice(xr[0], xr[1], w < 480 ? 4 : 7), o.yt || nice(yr[0], yr[1], 4), sc.x, sc.y,
+    xl, yl, { grid: 'both', xFmt: o.xFmt, yFmt: o.yFmt });
+  return { g, sc, w, h };
+}
+function line(g, sc, xs, ys, color, width, from, to) {
+  g.strokeStyle = color; g.lineWidth = width || 2; g.lineJoin = 'round'; g.beginPath();
+  for (let k = from || 0, first = true; k < (to == null ? xs.length : to); k++) {
+    if (ys[k] == null) { first = true; continue; }
+    g[first ? 'moveTo' : 'lineTo'](sc.x(xs[k]), sc.y(ys[k])); first = false;
+  }
+  g.stroke();
+}
+function band(g, sc, x0, x1, color) {
+  g.save(); g.globalAlpha = PC.isDark() ? 0.22 : 0.13; g.fillStyle = color;
+  g.fillRect(sc.x(x0), sc.p.t, sc.x(x1) - sc.x(x0), sc.ih); g.restore();
+}
+function hline(g, sc, y, color, dash) {
+  g.strokeStyle = color; g.lineWidth = 1; g.setLineDash(dash || [4, 3]); g.beginPath();
+  g.moveTo(sc.p.l, sc.y(y)); g.lineTo(sc.p.l + sc.iw, sc.y(y)); g.stroke(); g.setLineDash([]);
+}
+/* Horizontal count funnel: stages = [[label, value], ...], last bar highlighted. */
+function funnel(cv, stages) {
+  const w = cv.parentElement.clientWidth || 600, rh = 30, h = 20 + rh * stages.length + 10;
+  const g = PC.fit(cv, w, h), lw = Math.min(190, w * 0.38), max = stages[0][1], x0 = lw + 8, bw = w - x0 - 130;
+  stages.forEach(([label, v], j) => {
+    const y = 12 + j * rh;
+    PC.tickText(g, label, lw, y + 10, 'right', 'middle');
+    g.fillStyle = PC.css(j === stages.length - 1 ? '--stage-2' : '--axis');
+    g.beginPath(); g.roundRect(x0, y, Math.max(2, v / max * bw), 20, [0, 4, 4, 0]); g.fill();
+    g.fillStyle = PC.css('--text-primary'); g.font = PC.font.emph(); g.textAlign = 'left'; g.textBaseline = 'middle';
+    const lost = j ? stages[j - 1][1] - v : 0;
+    g.fillText(fmtN(v) + (lost ? '  (−' + fmtN(lost) + ')' : ''), x0 + v / max * bw + 6, y + 10);
+  });
+}
+const phaseColor = { cc: '--series-2', cv: '--series-5', dis: '--series-1' };
+
+/* ---------- Instrument: one logged cycle ---------- */
+function phases(ex) {
+  const out = [];
+  if (ex.charge) {
+    const [c0, c1] = ex.charge; let cvStart = c1;
+    for (let k = c0; k <= c1; k++) if (ex.i[k] < 0.4 && ex.v[k] > 4.15) { cvStart = k; break; }
+    out.push(['cc', ex.t[c0], ex.t[cvStart], 'CC charge'], ['cv', ex.t[cvStart], ex.t[c1], 'CV hold 4.2 V']);
+  }
+  if (ex.discharge) out.push(['dis', ex.t[ex.discharge[0]], ex.t[ex.discharge[1]], 'CC discharge']);
+  return out;
+}
+function paintProto() {
+  if (!isOpen('instrument')) return;
+  const ex = C.proto, th = ex.t.map(t => t / 3600), ph = phases(ex), xr = [0, Math.max(...th)];
+  $('protoLegend').innerHTML = ph.map(p => '<span><span class="swatch" style="background:var(' + phaseColor[p[0]] + ')"></span>' + p[3] + '</span>').join('')
+    + '<span>' + ex.cell + ' cycle ' + ex.cycle + ' · ' + ex.t.length + ' samples</span>';
+  let P = panel($('protoV'), 230, xr, [2.6, 4.3], null, 'Voltage (V)', { xl: false });
+  ph.forEach(p => band(P.g, P.sc, p[1] / 3600, p[2] / 3600, PC.css(phaseColor[p[0]])));
+  line(P.g, P.sc, th, ex.v, PC.css('--text-primary'), 1.8);
+  P = panel($('protoI'), 200, xr, [-1.3, 0.8], 'Time within cycle (h)', 'Current (A)');
+  ph.forEach(p => band(P.g, P.sc, p[1] / 3600, p[2] / 3600, PC.css(phaseColor[p[0]])));
+  line(P.g, P.sc, th, ex.i, PC.css('--text-primary'), 1.8);
+}
+
+/* ---------- Raw data ---------- */
+const SESSION_H = 48;
+function paintSession() {
+  if (!isOpen('raw-data')) return;
+  const s = C.session, xr = [0, SESSION_H], n = s.t_h.findIndex(t => t > SESSION_H);
+  let P = panel($('sessV'), 200, xr, [2.6, 4.3], null, 'Voltage (V)', { xl: false });
+  line(P.g, P.sc, s.t_h, s.v, PC.css(cellVar(s.cell)), 1.4, 0, n);
+  P = panel($('sessI'), 170, xr, [-1.3, 0.8], 'Hours since the first sample in this workbook', 'Current (A)');
+  line(P.g, P.sc, s.t_h, s.i, PC.css(cellVar(s.cell)), 1.4, 0, n);
+}
+const ms = d => new Date(d.replace(' ', 'T') + ':00Z').getTime();
+function paintTimeline() {
+  if (!isOpen('raw-data')) return;
+  const cv = $('wbTimeline'), w = cv.parentElement.clientWidth || 600, lane = 34, h = 40 + lane * CELLS.length + 30;
+  const g = PC.fit(cv, w, h), t0 = ms('2010-08-14 00:00'), t1 = ms('2011-02-06 00:00');
+  const sc = PC.scales(cv, [t0, t1], [0, CELLS.length], { l: 70, r: 14, t: 10, b: 40 });
+  const xt = Array.from({ length: 7 }, (_, k) => Date.UTC(2010, 7 + k, 1));   // Aug 2010 .. Feb 2011
+  PC.drawAxes(g, sc, xt, [], sc.x, sc.y, 'Data date (from timestamps inside each workbook)', null,
+    { grid: 'x', xFmt: v => new Date(v).toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' }) });
+  const pts = [];
+  CELLS.forEach((c, r) => {
+    const yTop = sc.p.t + 6 + r * lane;
+    PC.tickText(g, c, sc.p.l - 8, yTop + 9, 'right', 'middle');
+    C.files.filter(f => f.cell === c).forEach(f => {
+      const x0 = sc.x(ms(f.start)), x1 = Math.max(x0 + 2, sc.x(ms(f.end)));
+      const y = f.duplicate ? yTop + 21 : yTop, hh = f.duplicate ? 7 : 18;
+      if (f.duplicate) { g.strokeStyle = PC.css('--critical'); g.lineWidth = 1.5; g.setLineDash([3, 2]); g.strokeRect(x0 + .5, y + .5, x1 - x0 - 1, hh - 1); g.setLineDash([]); }
+      else { g.fillStyle = PC.css('--series-1'); g.fillRect(x0 + 1, y, x1 - x0 - 2, hh); }
+      pts.push([(x0 + x1) / 2, y + hh / 2, C.files.indexOf(f)]);
+    });
+  });
+  PC.hover(cv, pts, {
+    onHit: (i, evt) => { const f = C.files[i]; PC.tip('<b>' + f.file + '</b><br>' + f.cell + ' · data ' + f.start + ' → ' + f.end + '<br>' + fmtN(f.samples) + ' samples · ' + f.cycles + ' cycles' + (f.duplicate ? '<br><b>Duplicate export</b>: same samples as another workbook' : ''), evt); },
+    onLeave: () => PC.hideTip()
+  });
+}
+PC.registerRepaint(() => { paintProto(); paintSession(); paintTimeline(); });
+
+/* Shape-matrix view: Recipe B transformation and the 3,245 x 128 design matrix. Reads D.shape. */
+const B = D.shape;
+
+/* ---------- Transformation ---------- */
+const STAGES = [['logged', 'Logged cycles'], ['half_missing', 'Both halves present'], ['protocol', 'On protocol'],
+  ['truncated', 'Reaches cut-offs'], ['resolution', '≥ 64 samples per half']];
+function paintFunnel() {
+  if (!isOpen('transformation')) return;
+  const sel = $('funnelCell').value, cells = sel === 'all' ? CELLS : [sel];
+  const sum = k => cells.reduce((a, c) => a + B.funnel[c][k], 0);
+  let left = sum('logged');
+  funnel($('funnel'), STAGES.map(([k, label], j) => [label, j ? (left -= sum(k)) : left]));
+}
+const exSel = $('exSelect');
+B.examples.forEach((e, k) => { const o = document.createElement('option'); o.value = k; o.textContent = e.cell + ' · cycle ' + e.cycle + ' · ' + e.why; exSel.appendChild(o); });
+const DROP = { half_missing: 'one half is missing from the record', protocol: 'the currents or timing do not match the schedule',
+  truncated: 'the trace stops before the 4.2 V taper or the 2.7 V cut-off', resolution: 'a half has fewer than 64 logged samples' };
+function paintExample() {
+  if (!isOpen('transformation')) return;
+  const ex = B.examples[+exSel.value], tm = ex.t.map(t => t / 60), xr = [0, Math.max(...tm)], cc = PC.css(cellVar(ex.cell));
+  const parts = [ex.cell + ', cycle ' + ex.cycle + ' (' + ex.date + ', workbook ' + ex.file + '): ' + ex.t.length + ' raw samples.'];
+  if (ex.drop) parts.push('Dropped: ' + DROP[ex.drop] + '.');
+  else parts.push('Kept: q_dis ' + ex.q_dis + ' Ah, CE ' + ex.ce + ', row mean ' + ex.v_mean + ' V, SD ' + ex.v_std + ' V.');
+  $('exReadout').textContent = parts.join(' ');
+  const shade = P => {
+    if (ex.charge) band(P.g, P.sc, tm[ex.charge[0]], tm[ex.charge[1]], PC.css('--series-2'));
+    if (ex.discharge) band(P.g, P.sc, tm[ex.discharge[0]], tm[ex.discharge[1]], PC.css('--series-1'));
+  };
+  let P = panel($('exRaw'), 190, xr, [2.4, 4.4], null, 'Voltage (V)', { xl: false });
+  shade(P); line(P.g, P.sc, tm, ex.v, cc, 1.6);
+  P = panel($('exRawI'), 150, xr, [-1.3, 0.8], 'Minutes since the cycle’s first sample', 'Current (A)');
+  shade(P); line(P.g, P.sc, tm, ex.i, cc, 1.6);
+  P = panel($('exHalves'), 210, [0, 1], [2.4, 4.4], 'Normalised time within the half', 'Voltage (V)');
+  [['charge', '--series-2'], ['discharge', '--series-1']].forEach(([key, col]) => {
+    if (!ex[key]) return;
+    const [a, b] = ex[key], ta = ex.t[a], tb = ex.t[b], xs = [], ys = [];
+    for (let k = a; k <= b; k++) { xs.push((ex.t[k] - ta) / (tb - ta)); ys.push(ex.v[k]); }
+    line(P.g, P.sc, xs, ys, PC.css(col), 1.6);
+    P.g.fillStyle = PC.css(col); xs.forEach((x, k) => { P.g.beginPath(); P.g.arc(P.sc.x(x), P.sc.y(ys[k]), 2, 0, 7); P.g.fill(); });
+    PC.tickText(P.g, key + ' · ' + (b - a + 1) + ' samples', P.sc.x(key === 'charge' ? 0.02 : 0.5), P.sc.y(key === 'charge' ? 4.33 : 2.5), 'left', 'middle');
+  });
+  const cols = Array.from({ length: 128 }, (_, k) => k);
+  ['exResampled', 'exRow'].forEach((id, j) => {
+    const cv = $(id);
+    if (!ex.v128) {
+      const g = PC.fit(cv, cv.parentElement.clientWidth || 600, 120);
+      PC.tickText(g, 'Not produced: the cycle was dropped at screening.', 16, 60, 'left', 'middle'); return;
+    }
+    const ys = j ? ex.z128 : ex.v128, yr = j ? [-4.5, 2.5] : [2.4, 4.4];
+    const Q = panel(cv, 190, [0, 127], yr, 'Matrix column', j ? 'z (row-standardised)' : 'Voltage (V)', { xt: [0, 32, 64, 96, 127] });
+    Q.g.strokeStyle = PC.css('--axis'); Q.g.setLineDash([4, 3]); Q.g.beginPath(); Q.g.moveTo(Q.sc.x(63.5), Q.sc.p.t); Q.g.lineTo(Q.sc.x(63.5), Q.sc.p.t + Q.sc.ih); Q.g.stroke(); Q.g.setLineDash([]);
+    line(Q.g, Q.sc, cols, ys, PC.css('--series-2'), 2, 0, 64); line(Q.g, Q.sc, cols, ys, PC.css('--series-1'), 2, 64, 128);
+    if (j) { const div = PC.divScale(); cols.forEach(k => { Q.g.fillStyle = div(ys[k] / HEAT_RANGE); Q.g.fillRect(Q.sc.x(k - .5), Q.sc.p.t + Q.sc.ih - 8, Q.sc.iw / 128 + .5, 8); }); }
+  });
+}
+
+/* ---------- Design matrix: shape heatmap ---------- */
+const M = B.matrix, Z8 = (() => { const b = atob(M.z_i8_b64), a = new Int8Array(b.length); for (let k = 0; k < b.length; k++) a[k] = (b.charCodeAt(k) << 24) >> 24; return a; })();
+const HEAT_RANGE = 3;   // colour saturates at |z| = 3; values are stored to |z| = 4.2
+let hmRow = 0, hmImg = null, hmTheme = null;
+function heatImage() {
+  const theme = PC.isDark() ? 'd' : 'l';
+  if (hmImg && hmTheme === theme) return hmImg;
+  const div = PC.divScale(), lut = [];
+  for (let v = -127; v <= 127; v++) lut.push((div(v / 127 * M.clip / HEAT_RANGE).match(/\d+/g) || [0, 0, 0]).map(Number));
+  const c = document.createElement('canvas'); c.width = M.n_cols; c.height = M.n_rows;
+  const x = c.getContext('2d'), img = x.createImageData(M.n_cols, M.n_rows);
+  for (let k = 0; k < Z8.length; k++) { const rgb = lut[Z8[k] + 127]; img.data.set([rgb[0], rgb[1], rgb[2], 255], k * 4); }
+  x.putImageData(img, 0, 0); hmImg = c; hmTheme = theme; return c;
+}
+function paintHeat() {
+  if (!isOpen('matrix')) return;
+  const cv = $('shapeHeat'), w = cv.parentElement.clientWidth || 600, h = 440, g = PC.fit(cv, w, h);
+  const L = 70, R = 12, T = 8, Bm = 44, iw = w - L - R, ih = h - T - Bm;
+  g.imageSmoothingEnabled = false; g.drawImage(heatImage(), L, T, iw, ih);
+  const yOf = r => T + r / M.n_rows * ih;
+  let start = 0;
+  CELLS.forEach((c, ci) => {
+    const n = M.cell.filter(v => v === ci).length;
+    g.fillStyle = PC.css(cellVar(c)); g.fillRect(L - 8, yOf(start) + 1, 5, yOf(start + n) - yOf(start) - 2);
+    PC.tickText(g, c, L - 12, (yOf(start) + yOf(start + n)) / 2, 'right', 'middle');
+    if (ci) { g.strokeStyle = PC.css('--surface-1'); g.lineWidth = 2; g.beginPath(); g.moveTo(L, yOf(start)); g.lineTo(L + iw, yOf(start)); g.stroke(); }
+    start += n;
+  });
+  g.strokeStyle = PC.css('--surface-1'); g.lineWidth = 2; g.beginPath(); g.moveTo(L + iw / 2, T); g.lineTo(L + iw / 2, T + ih); g.stroke();
+  PC.tickText(g, 'charge half · columns 0–63', L + iw / 4, T + ih + 8, 'center', 'top');
+  PC.tickText(g, 'discharge half · columns 64–127', L + iw * 3 / 4, T + ih + 8, 'center', 'top');
+  PC.tickText(g, 'rows: cell, then cycle (early → late)', L + iw / 2, T + ih + 26, 'center', 'top');
+  g.strokeStyle = PC.css('--text-primary'); g.lineWidth = 1.5; g.strokeRect(L - .5, yOf(hmRow) - 1.5, iw + 1, Math.max(3, ih / M.n_rows) + 2);
+  cv.onpointermove = evt => {
+    const r = cv.getBoundingClientRect(), y = evt.clientY - r.top;
+    if (y < T || y > T + ih || evt.clientX - r.left < L) return;
+    const row = Math.min(M.n_rows - 1, Math.floor((y - T) / ih * M.n_rows));
+    if (row !== hmRow) { hmRow = row; paintHeat(); paintRow(); }
+  };
+}
+function paintRow() {
+  if (!isOpen('matrix')) return;
+  const r = hmRow, z = Array.from(Z8.subarray(r * 128, r * 128 + 128), v => v / 127 * M.clip), cols = z.map((_, k) => k);
+  const c = CELLS[M.cell[r]];
+  $('rowReadout').textContent = 'Row ' + fmtN(r) + ' · ' + c + ' cycle ' + M.cycle[r] + ' · q_dis ' + M.q_dis[r] + ' Ah · CE ' + M.ce[r]
+    + ' · row mean ' + M.v_mean[r] + ' V, SD ' + M.v_std[r] + ' V · charge ' + M.dur_ch_h[r] + ' h, discharge ' + M.dur_dis_h[r] + ' h';
+  const P = panel($('shapeRow'), 180, [0, 127], [-4.5, 2.5], 'Matrix column', 'z', { xt: [0, 32, 64, 96, 127] });
+  line(P.g, P.sc, cols, z, PC.css(cellVar(c)), 2);
+}
+
+$('funnelCell').addEventListener('change', paintFunnel);
+exSel.addEventListener('change', paintExample);
+PC.registerRepaint(() => { paintFunnel(); paintExample(); paintHeat(); paintRow(); });
+PC.repaint('initial', document);

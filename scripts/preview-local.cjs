@@ -33,7 +33,8 @@ function createServer(siteDirectory = path.join(root, 'local-content', 'site')) 
       const bytes = fs.readFileSync(file);
       const type = types[path.extname(file)] || 'application/octet-stream';
       const receipt = relative === 'deploy-receipt.json';
-      const immutable = /^assets\/(?:embedded|optimized)\/[a-f0-9]{64}\.(?:png|jpe?g|webp|avif|gif)$/.test(relative);
+      const immutable = /^assets\/(?:embedded|optimized)\/[a-f0-9]{64}\.(?:png|jpe?g|webp|avif|gif)$/.test(relative)
+        || /^assets\/runtime\/[a-f0-9]{64}\.(?:js|css)$/.test(relative);
       const etag = '"' + crypto.createHash('sha256').update(bytes).digest('hex') + '"';
       res.setHeader('Cache-Control', receipt ? 'no-store' : immutable
         ? 'private, max-age=31536000, immutable' : 'private, no-cache');

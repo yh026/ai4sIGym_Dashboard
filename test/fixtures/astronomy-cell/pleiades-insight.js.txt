@@ -1,0 +1,196 @@
+/* The page is one held-out test. Motion and parallax - the only columns any model
+   saw - are drawn on the left; colour and brightness, which no fit was ever given,
+   are drawn on the right. A single highlight drives all three panels, so switching
+   from the biggest group to the candidate is what makes the withheld sequence
+   appear. Every number printed comes from tools/prepare_insight.py, measured on the
+   same stored labels these plots read, so the text cannot drift from the picture. */
+const $=id=>document.getElementById(id),css=t=>PC.css(t),num=n=>n.toLocaleString();
+const bytes=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const asF64=s=>{const u=bytes(s);return new Float64Array(u.buffer)};
+const asI16=s=>{const u=bytes(s);return new Int16Array(u.buffer)};
+const asU64=s=>{const u=bytes(s);return new BigUint64Array(u.buffer)};
+
+const V={};for(const k of ['pmra','pmdec','parallax','g_mag','bp_rp'])V[k]=asF64(D.arrays[k]);
+const ID=asU64(D.source_id_u64_b64),LAB={},BRIGHT=D.bright_index;
+for(const k of D.model_order)LAB[k]=asI16(D.models[k].labels_i16_b64);
+const GROUPS=[['all','All stars','--series-1'],['largest','The biggest group','--series-3'],['candidate','The Pleiades candidate','--series-2']];
+const S={model:'hdbscan',group:'all',pick:-1};
+const M=()=>D.models[S.model],G=()=>M().groups[S.group],tone=()=>GROUPS.find(g=>g[0]===S.group)[2];
+const member=i=>S.group==='all'||LAB[S.model][i]===(S.group==='largest'?M().largest_label:M().candidate_label);
+const inCandidate=i=>LAB[S.model][i]===M().candidate_label;
+
+/* -- controls -------------------------------------------------------------- */
+$('modelSeg').innerHTML=D.model_order.map(k=>`<button type="button" data-k="${k}">${D.models[k].label}</button>`).join('');
+$('groupPick').innerHTML=GROUPS.map(([k,label,c])=>`<button class="legend-chip" type="button" data-k="${k}" style="--chip:var(${c})">${label}<b data-count="${k}"></b></button>`).join('');
+for(const b of $('modelSeg').querySelectorAll('button'))b.onclick=()=>{S.model=b.dataset.k;paint()};
+for(const b of $('groupPick').querySelectorAll('button'))b.onclick=()=>{S.group=b.dataset.k;paint()};
+
+/* -- shared plotting frame ------------------------------------------------- */
+function frame(cv,xd,yd,xlabel,ylabel,opt){
+ /* Height follows width until the plot would grow taller than it is useful. Without the
+    cap, stacking the panes on a narrow window turns the colour-magnitude panel into a
+    screen-and-a-half of empty axis. */
+ opt=opt||{};const w=cv.parentElement.clientWidth;
+ const h=Math.min(opt.tall||460,Math.max(210,Math.round(w*(opt.ratio||.9))));
+ const g=PC.fit(cv,w,h),p={l:opt.l||54,r:16,t:28,b:40},inv=!!opt.invertY;
+ const x=v=>p.l+(v-xd[0])/(xd[1]-xd[0])*(w-p.l-p.r);
+ const y=v=>{const t=(v-yd[0])/(yd[1]-yd[0]);return inv?p.t+t*(h-p.t-p.b):h-p.b-t*(h-p.t-p.b)};
+ g.clearRect(0,0,w,h);g.font='11px '+PC.font.family();g.textBaseline='middle';
+ for(let i=0;i<4;i++){
+  const a=xd[0]+(xd[1]-xd[0])*i/3,b=yd[0]+(yd[1]-yd[0])*i/3;
+  g.strokeStyle=css('--grid');g.beginPath();g.moveTo(p.l,y(b));g.lineTo(w-p.r,y(b));g.stroke();
+  g.fillStyle=css('--muted');g.textAlign='center';g.fillText(a.toFixed(opt.dx===0?0:1),x(a),h-p.b+16);
+  g.textAlign='right';g.fillText(b.toFixed(opt.dy===0?0:1),p.l-8,y(b));
+ }
+ g.fillStyle=css('--text-secondary');g.textAlign='left';g.fillText(ylabel,4,9);
+ g.textAlign='center';g.fillText(xlabel,(p.l+w-p.r)/2,h-8);
+ return {g,x,y,w,h,p};
+}
+const PROJ={};
+
+/* -- what the model was given --------------------------------------------- */
+function paintScatter(id,kx,ky,xd,yd,xlabel,ylabel,opt){
+ const f=frame($(id),xd,yd,xlabel,ylabel,opt),{g,x,y}=f;let shown=0,outside=0;
+ for(let pass=0;pass<2;pass++)for(let i=0;i<D.n;i++){
+  const on=member(i);if(Number(on)!==pass)continue;
+  const a=V[kx][i],b=V[ky][i];
+  if(a<xd[0]||a>xd[1]||b<yd[0]||b>yd[1]){if(on)outside++;continue}
+  if(on)shown++;
+  g.fillStyle=on?css(tone()):css('--muted');
+  g.globalAlpha=on?(S.group==='candidate'?.75:.4):.09;
+  g.beginPath();g.arc(x(a),y(b),on&&S.group==='candidate'?2.3:1.4,0,6.284);g.fill();
+ }
+ g.globalAlpha=1;PROJ[id]={x,y,kx,ky,xd,yd};
+ return {f,shown,outside};
+}
+function paintMotion(){
+ const R=D.ranges,{f,shown,outside}=paintScatter('motion','pmra','pmdec',R.pmra,R.pmdec,'pmRA (mas/yr)','pmDec (mas/yr)');
+ const {g,x,y}=f,px=x(D.reference.pmra),py=y(D.reference.pmdec);
+ g.strokeStyle=css('--text-primary');g.lineWidth=1.4;g.beginPath();
+ g.moveTo(px-8,py);g.lineTo(px+8,py);g.moveTo(px,py-8);g.lineTo(px,py+8);g.stroke();
+ ring(f,'motion');
+ $('motionNote').textContent=`Cross: the published Pleiades motion. ${num(shown)} highlighted stars drawn, ${num(outside)} outside this fixed window.`;
+}
+function paintParallax(){
+ const R=D.ranges.parallax,NB=40,mine=new Array(NB).fill(0),all=new Array(NB).fill(0),step=(R[1]-R[0])/NB;
+ let n=0,outside=0;
+ for(let i=0;i<D.n;i++){
+  const v=V.parallax[i],b=Math.floor((v-R[0])/step),on=member(i);
+  if(on)n++;
+  if(b<0||b>=NB){if(on)outside++;continue}
+  all[b]++;if(on)mine[b]++;
+ }
+ const top=Math.max(...mine.map(c=>c/Math.max(1,n)),...all.map(c=>c/D.n))*100;
+ const ymax=Math.max(5,Math.ceil(top/5)*5);
+ const f=frame($('parallax'),R,[0,ymax],'Parallax (mas)','% of highlighted stars'),{g,x,y,p,h}=f;
+ g.strokeStyle=css('--muted');g.lineWidth=1.2;g.beginPath();
+ all.forEach((c,i)=>{const v=y(c/D.n*100);g[i?'lineTo':'moveTo'](x(R[0]+i*step),v);g.lineTo(x(R[0]+(i+1)*step),v)});
+ g.stroke();
+ g.fillStyle=css(tone());g.globalAlpha=.75;
+ mine.forEach((c,i)=>{const v=y(c/Math.max(1,n)*100),x0=x(R[0]+i*step);g.fillRect(x0,v,Math.max(1,x(R[0]+(i+1)*step)-x0-1),y(0)-v)});
+ g.globalAlpha=1;
+ g.strokeStyle=css('--text-primary');g.setLineDash([4,4]);g.beginPath();
+ g.moveTo(x(D.reference.parallax),p.t);g.lineTo(x(D.reference.parallax),h-p.b);g.stroke();g.setLineDash([]);
+ if(S.pick>=0){const v=V.parallax[S.pick];if(v>=R[0]&&v<=R[1]){g.strokeStyle=css('--text-primary');g.lineWidth=2;g.beginPath();g.moveTo(x(v),p.t);g.lineTo(x(v),h-p.b);g.stroke()}}
+ $('parallaxNote').textContent=`Grey outline: all ${num(D.n)} stars on the same percentage scale. Dashed line: the published Pleiades parallax, ${D.reference.parallax} mas. ${num(outside)} highlighted stars fall outside this window.`;
+}
+
+/* -- what it was never shown ---------------------------------------------- */
+function paintCMD(){
+ const R=D.ranges,{f}=paintScatter('cmd','bp_rp','g_mag',R.bp_rp,R.g_mag,'Colour  BP − RP (mag)','G (mag, brighter upward)',{invertY:true,ratio:.92,tall:520});
+ const {g,x,y}=f;
+ g.lineWidth=1.3;
+ for(const i of BRIGHT){
+  g.strokeStyle=css(member(i)?'--text-primary':'--muted');
+  g.globalAlpha=member(i)?1:.45;
+  g.beginPath();g.arc(x(V.bp_rp[i]),y(V.g_mag[i]),5.5,0,6.284);g.stroke();
+ }
+ g.globalAlpha=1;ring(f,'cmd');
+ const s=G();
+ $('cmdNote').textContent=`Rings: the ${D.bright_n} brightest stars in the field, ${s.bright} of them inside the highlighted group. Colour and brightness were never given to any model — this panel is the check, not an input.`;
+}
+function ring(f,id){
+ if(S.pick<0)return;const {g,x,y}=f,P=PROJ[id];if(!P)return;
+ const a=V[P.kx][S.pick],b=V[P.ky][S.pick];
+ if(a<P.xd[0]||a>P.xd[1]||b<P.yd[0]||b>P.yd[1])return;
+ g.strokeStyle=css('--text-primary');g.lineWidth=2;
+ g.beginPath();g.arc(x(a),y(b),8,0,6.284);g.stroke();
+ g.beginPath();g.moveTo(x(a)-13,y(b));g.lineTo(x(a)-9,y(b));g.moveTo(x(a)+9,y(b));g.lineTo(x(a)+13,y(b));g.stroke();
+}
+
+/* -- picking one star ------------------------------------------------------ */
+for(const id of ['motion','cmd']){
+ const cv=$(id);
+ cv.addEventListener('click',e=>{
+  const P=PROJ[id];if(!P)return;
+  const r=cv.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
+  let best=-1,bd=Infinity;
+  for(let i=0;i<D.n;i++){
+   const a=V[P.kx][i],b=V[P.ky][i];
+   if(a<P.xd[0]||a>P.xd[1]||b<P.yd[0]||b>P.yd[1])continue;
+   const dx=P.x(a)-mx,dy=P.y(b)-my,d=dx*dx+dy*dy;
+   if(d<bd){bd=d;best=i}
+  }
+  const reach=r.width<520?24:15;
+  if(best>=0&&bd<reach*reach){S.pick=S.pick===best?-1:best;paint()}
+ });
+ cv.addEventListener('keydown',e=>{
+  if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;
+  e.preventDefault();
+  const at=BRIGHT.indexOf(S.pick),step=e.key==='ArrowRight'?1:-1;
+  S.pick=BRIGHT[(at<0?(step>0?0:BRIGHT.length-1):(at+step+BRIGHT.length)%BRIGHT.length)];
+  paint();
+ });
+}
+function paintPicked(){
+ const box=$('picked');
+ if(S.pick<0){
+  box.innerHTML='<p class="picked-hint">Click any star in the motion or colour panel to follow it through all three — or focus a panel and use the left and right arrow keys to step through the twenty brightest.</p>';
+  return;
+ }
+ const i=S.pick,rank=BRIGHT.indexOf(i),inG=inCandidate(i);
+ box.innerHTML=`<p class="picked-title">Gaia EDR3 <span class="picked-id">${ID[i]}</span></p>`
+  +`<p class="picked-row">G <strong>${V.g_mag[i].toFixed(2)}</strong> mag${rank>=0?` · <strong>${rank+1}${rank===0?'st':rank===1?'nd':rank===2?'rd':'th'}</strong> brightest in the field`:''}</p>`
+  +`<p class="picked-row">BP − RP <strong>${V.bp_rp[i].toFixed(2)}</strong></p>`
+  +`<p class="picked-row">motion <strong>${V.pmra[i].toFixed(2)}</strong>, <strong>${V.pmdec[i].toFixed(2)}</strong> mas/yr</p>`
+  +`<p class="picked-row">parallax <strong>${V.parallax[i].toFixed(2)}</strong> mas</p>`
+  +`<p class="picked-row">${inG?'In':'Not in'} the ${D.models[S.model].label} candidate group</p>`
+  +`<button class="clear-pick" type="button" id="clearPick">Clear</button>`;
+ $('clearPick').onclick=()=>{S.pick=-1;paint()};
+}
+
+/* -- readouts -------------------------------------------------------------- */
+function paintText(){
+ const m=M(),s=G(),cand=m.groups.candidate,big=m.groups.largest;
+ for(const b of $('modelSeg').querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.dataset.k===S.model));
+ for(const b of $('groupPick').querySelectorAll('button')){
+  b.setAttribute('aria-pressed',String(b.dataset.k===S.group));
+  const k=b.dataset.k;b.querySelector('b').textContent=k==='all'?num(D.n):num(m.groups[k].n);
+ }
+ $('groupReading').textContent=S.group==='all'
+  ?`All ${num(D.n)} stars. The panels marked given to the model are everything ${m.label} saw; the one marked never shown to it is what it was denied. Highlight one of its groups to put it to the test.`
+  :S.group==='largest'
+  ?`The biggest group ${m.label} returns holds ${num(big.n)} stars, ${(big.share*100).toFixed(1)}% of the field. In the panel it never saw, it stays a ${big.width.toFixed(2)}-magnitude smear and contains ${big.bright===0?'none':big.bright} of the ${D.bright_n} brightest stars. Sorting by size finds the background.`
+  :`${num(cand.n)} stars, ${(cand.share*100).toFixed(1)}% of the field. In the panel it never saw, they collapse onto one band ${cand.width.toFixed(2)} magnitudes wide holding ${cand.bright} of the ${D.bright_n} brightest stars — a population born together at one distance. Nothing about colour or brightness was used to choose them.`;
+ $('sizeValue').textContent=num(s.n);
+ $('sizeShare').textContent=S.group==='all'?'every star in the field':`${(s.share*100).toFixed(1)}% of the field`;
+ $('widthValue').textContent=s.width.toFixed(2);
+ $('brightValue').textContent=`${s.bright} / ${D.bright_n}`;
+ for(const el of [$('sizeValue'),$('widthValue'),$('brightValue')])el.style.color=css(S.group==='all'?'--text-secondary':tone());
+ $('compare').innerHTML=D.model_order.map(k=>{
+  const x=D.models[k],c=x.groups.candidate,l=x.groups.largest;
+  return `<article class="compare-card" data-current="${k===S.model}">`
+   +`<p class="compare-name">${x.label}</p><p class="compare-detail">${x.detail}</p>`
+   +`<p class="compare-row"><span>candidate group</span><strong>${num(c.n)} stars</strong></p>`
+   +`<p class="compare-row"><span>its sequence width</span><strong>${c.width.toFixed(2)} mag</strong></p>`
+   +`<p class="compare-row"><span>of the ${D.bright_n} brightest</span><strong>${c.bright}</strong></p>`
+   +`<p class="compare-row"><span>biggest group, for contrast</span><strong>${l.width.toFixed(2)} mag · ${l.bright}</strong></p>`
+   +`<p class="compare-row"><span>overlap with HDBSCAN</span><strong>${(x.jaccard_with_hdbscan*100).toFixed(1)}%</strong></p></article>`;
+ }).join('');
+ $('guideNote').textContent='The cross and the dashed line mark a published Pleiades motion and parallax. They were read after fitting, only to say which of the returned groups is the interesting one — no model was given them, and agreement with them is not a verification of membership.';
+}
+const TITLES={inputs:'What each model was given',width:'How sequence width is measured',bright:'The twenty brightest stars',sky:'Sky position was withheld too, and cannot help',guide:'The published guide',models:'The three saved fits',limits:'What this does not establish'};
+$('evidence').innerHTML=Object.entries(D.evidence).map(([k,v])=>`<h3>${TITLES[k]||k}</h3><p>${v}</p>`).join('');
+
+function paint(){paintText();paintMotion();paintParallax();paintCMD();paintPicked()}
+PC.registerRepaint(paint);PC.repaint('initial',document);

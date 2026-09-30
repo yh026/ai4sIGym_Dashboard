@@ -1,0 +1,977 @@
+/* Shared, dependency-free fold controller for Workflow and Dataset pages. */
+(function (global) {
+  "use strict";
+
+  var SELECTOR = "section.fold";
+  var ready = false;
+
+  function sections() {
+    return Array.prototype.slice.call(document.querySelectorAll(SELECTOR)).filter(function (section) { return !section.hidden; });
+  }
+
+  function parts(section) {
+    if (!section) return {};
+    var head = section.querySelector(":scope > h2 > button.fold-head");
+    var body = head && document.getElementById(head.getAttribute("aria-controls"));
+    return { head: head, body: body };
+  }
+
+  function isOpen(section) {
+    var body = parts(section).body;
+    return !!body && !body.hasAttribute("data-folded");
+  }
+
+  function announce(section, open) {
+    section.dispatchEvent(new CustomEvent(open ? "fold:open" : "fold:close", {
+      bubbles: true, detail: { section: section }
+    }));
+  }
+
+  function setOpen(section, open, opts) {
+    var pair = parts(section);
+    if (section.hidden || !pair.head || !pair.body) return false;
+    var changed = isOpen(section) !== open;
+    pair.body.toggleAttribute("data-folded", !open);
+    pair.head.setAttribute("aria-expanded", open ? "true" : "false");
+    if (changed || (opts && opts.forceEvent)) announce(section, open);
+    return true;
+  }
+
+  function targetForHash() {
+    var id;
+    try { id = decodeURIComponent(global.location.hash.slice(1)); }
+    catch (_) { return null; }
+    if (!id) return null;
+    var target = document.getElementById(id);
+    if (!target) return null;
+    var section = target.matches && target.matches(SELECTOR) ? target : target.closest(SELECTOR);
+    return section && !section.hidden ? { section: section, target: target } : null;
+  }
+
+  function openId(id, scroll) {
+    var target = document.getElementById(id);
+    if (!target) return false;
+    var section = target.matches && target.matches(SELECTOR) ? target : target.closest(SELECTOR);
+    if (!section || section.hidden) return false;
+    setOpen(section, true, { forceEvent: true });
+    if (scroll && target.scrollIntoView) target.scrollIntoView({ block: "start" });
+    return true;
+  }
+
+  function setAll(open) {
+    sections().forEach(function (section) { setOpen(section, open, { forceEvent: open }); });
+    document.dispatchEvent(new CustomEvent("folds:set-all", { detail: { open: open } }));
+  }
+
+  function openHash(scroll) {
+    var found = targetForHash();
+    if (!found) return false;
+    setOpen(found.section, true, { forceEvent: true });
+    if (scroll && found.target.scrollIntoView) found.target.scrollIntoView({ block: "start" });
+    return true;
+  }
+
+  function moveFocus(head, key) {
+    var heads = sections().map(function (section) { return parts(section).head; }).filter(Boolean);
+    var at = heads.indexOf(head);
+    if (at < 0) return;
+    var next = key === "Home" ? 0 : key === "End" ? heads.length - 1 :
+      key === "ArrowDown" ? (at + 1) % heads.length : (at - 1 + heads.length) % heads.length;
+    heads[next].focus();
+  }
+
+  function bind() {
+    if (!ready) {
+      document.documentElement.classList.add("pc-folds-ready");
+      ready = true;
+    }
+    sections().forEach(function (section) {
+      var pair = parts(section);
+      if (!pair.head || !pair.body || pair.head.dataset.foldBound) return;
+      pair.head.dataset.foldBound = "true";
+      pair.body.removeAttribute("hidden");
+      setOpen(section, false);
+      pair.head.addEventListener("click", function () { setOpen(section, !isOpen(section)); });
+      pair.head.addEventListener("keydown", function (event) {
+        if (["ArrowUp", "ArrowDown", "Home", "End"].indexOf(event.key) < 0) return;
+        event.preventDefault();
+        moveFocus(pair.head, event.key);
+      });
+    });
+
+    document.querySelectorAll(".fold-controls [data-fold-action]").forEach(function (button) {
+      if (button.dataset.foldBound) return;
+      button.dataset.foldBound = "true";
+      button.addEventListener("click", function () {
+        if (button.dataset.foldAction === "open-all") setAll(true);
+        if (button.dataset.foldAction === "close-all") setAll(false);
+      });
+    });
+
+    document.querySelectorAll("[data-fold-target]").forEach(function (control) {
+      if (control.dataset.foldTargetBound) return;
+      control.dataset.foldTargetBound = "true";
+      control.addEventListener("click", function () {
+        var id = control.dataset.foldTarget;
+        if (openId(id, true) && global.location.hash !== "#" + id) {
+          global.history.replaceState(null, "", "#" + encodeURIComponent(id));
+        }
+      });
+      control.addEventListener("keydown", function (event) {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault(); control.click();
+      });
+    });
+
+    openHash(false);
+  }
+
+  global.PCFolds = {
+    bind: bind, isOpen: isOpen, setOpen: setOpen, open: openId,
+    setAll: setAll, sections: sections
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bind);
+  else bind();
+  global.addEventListener("hashchange", function () { openHash(true); });
+}(window));
+
+/* Shared runtime for both folded page skeletons. It parses the one payload,
+   coalesces repaint scopes, and owns theme/fold/resize repaint wiring. */
+"use strict";
+const D = JSON.parse(document.getElementById("payload").textContent);
+(function (global) {
+  const PC = global.PC = global.PC || {};
+
+  /* Page-owned theme lifecycle: URL preference, control, system changes and
+     external data-theme changes share one coalesced repaint path. */
+  PC.initTheme = function (opts) {
+    opts = typeof opts === "function" ? { redraw: opts } : (opts || {});
+    const redraw = typeof opts.redraw === "function" ? opts.redraw : function () {};
+    let queued = false;
+    function fire() {
+      if (queued) return;
+      queued = true;
+      (global.requestAnimationFrame || function (fn) { return setTimeout(fn, 16); })(function () {
+        queued = false;
+        if (PC.repaintThemePainters) PC.repaintThemePainters();
+        redraw();
+      });
+    }
+    const param = opts.param || "theme";
+    let query = null;
+    try { query = new URLSearchParams(global.location.search).get(param); } catch (_) {}
+    if (query === "dark" || query === "light") PC.setTheme(query);
+    const button = opts.button
+      ? (typeof opts.button === "string" ? document.querySelector(opts.button) : opts.button)
+      : document.getElementById(opts.buttonId || "themeBtn");
+    function labelButton() {
+      if (button) button.setAttribute("aria-label", "Switch to " +
+        (PC.isDark() ? "light" : "dark") + " theme");
+    }
+    if (button && !button.dataset.pcThemeBound) {
+      button.dataset.pcThemeBound = "true";
+      button.addEventListener("click", function () {
+        PC.setTheme(PC.isDark() ? "light" : "dark"); labelButton(); fire();
+      });
+    }
+    labelButton();
+    const mq = global.matchMedia("(prefers-color-scheme: dark)");
+    const systemChanged = function () { labelButton(); fire(); };
+    if (mq.addEventListener) mq.addEventListener("change", systemChanged);
+    else if (mq.addListener) mq.addListener(systemChanged);
+    if (global.MutationObserver) {
+      new MutationObserver(function () { labelButton(); fire(); })
+        .observe(document.documentElement,
+                 { attributes: true, attributeFilter: ["data-theme"] });
+    }
+    return {
+      redraw: fire,
+      set: function (theme) { PC.setTheme(theme); labelButton(); fire(); },
+      toggle: function () { PC.setTheme(PC.isDark() ? "light" : "dark"); labelButton(); fire(); },
+      isDark: PC.isDark
+    };
+  };
+
+  const painters = [];
+  const reasons = new Set();
+  let frame = 0;
+  let dirtyScope = null;
+
+  PC.registerRepaint = function (paint) {
+    if (typeof paint !== "function") throw new TypeError("registerRepaint expects a function");
+    if (!painters.includes(paint)) painters.push(paint);
+    return function () {
+      const at = painters.indexOf(paint);
+      if (at >= 0) painters.splice(at, 1);
+    };
+  };
+
+  /* A document request dominates. Two different scoped requests promote to
+     document so no fold opened in the same frame loses its paint. */
+  PC.repaint = function (reason, scope) {
+    const next = scope && typeof scope.querySelectorAll === "function" ? scope : document;
+    reasons.add(reason || "manual");
+    if (dirtyScope === document || next === document) dirtyScope = document;
+    else if (dirtyScope === null || dirtyScope === next) dirtyScope = next;
+    else dirtyScope = document;
+    if (frame) return;
+    frame = requestAnimationFrame(function () {
+      const event = { reason: Array.from(reasons).join("+"), scope: dirtyScope || document };
+      frame = 0; dirtyScope = null; reasons.clear();
+      painters.slice().forEach(function (paint) { paint(event); });
+      document.dispatchEvent(new CustomEvent("pc:repaint", { detail: event }));
+    });
+  };
+
+  document.addEventListener("fold:open", function (event) {
+    PC.repaint("fold-open", event.target);
+  });
+  document.addEventListener("folds:set-all", function (event) {
+    if (event.detail && event.detail.open) PC.repaint("open-all", document);
+    else if (PC.hideTip) PC.hideTip();
+  });
+  global.addEventListener("resize", PC.debounce(function () {
+    PC.repaint("resize", document);
+  }, 120));
+  PC.initTheme({ redraw: function () { PC.repaint("theme", document); } });
+}(window));
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PHONE FOLD + TAB SCROLL POLICY  —  page behaviour module
+   ---------------------------------------------------------------------------
+   Owner review of real phone screenshots: on a handset the story strip and the
+   header workflow figure each consume about a full screen before any content
+   is reachable, and tapping a tab threw the reader back to the top of the
+   page. This module fixes all three without changing either component renderer: it runs
+   after PC has rendered and adapts the DOM it finds, so a demo inherits the
+   behaviour by rebuilding and no template changes.
+
+   WHY A SEPARATE IIFE. renderStory/renderDag are load-bearing and gated
+   (check_design 13 asserts the published DAG geometry). Wrapping their output
+   from outside cannot change what they draw or what they publish — it only
+   changes whether the finished figure is open on a narrow screen.
+
+   THE FIGURES STAY FIGURES (DESIGN.md §2.4, §3.2). Both sections forbid a
+   <button>, an href, a click handler or a focus ring INSIDE the figure. So the
+   disclosure is never placed inside: a native <details> is inserted AROUND the
+   figure and the figure is moved into it untouched. .storystrip / .dagfig keep
+   role="figure", keep their aria-label and still contain no control. The
+   <summary> is page furniture wrapping the figure, which is exactly what §2.4
+   allows — it is not a panel, not a stage and not a "current" marker.
+
+   DESKTOP IS BYTE-IDENTICAL IN BEHAVIOUR. Above the phone breakpoint the
+   <details> is forced open and components.css hides the <summary>, so the
+   rendered page is what it always was. The fold state follows the viewport
+   until the reader touches it, after which their choice is kept for the rest
+   of the session (folds carry data-pc-user once toggled by hand).
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function (global) {
+  "use strict";
+  var doc = global.document;
+  if (!doc) return;
+
+  var PHONE = "(max-width: 640px)";
+  function isPhone() {
+    try { return global.matchMedia(PHONE).matches; } catch (e) { return false; }
+  }
+
+  /* The natural document Y of an element. offsetTop walks the layout tree and
+     is NOT moved by position:sticky (sticky is a paint-time offset), which is
+     the whole reason it is used here: the tab strip is sticky at top:0, so its
+     getBoundingClientRect().top reads 0 whenever it is stuck and cannot tell us
+     where the strip actually lives in the document. */
+  function docTop(el) {
+    var y = 0;
+    while (el) { y += el.offsetTop || 0; el = el.offsetParent; }
+    return y;
+  }
+
+  /* ── 1 + 2 · fold the story strip and the workflow figure on a phone ─────── */
+
+  function repaintInside(el) {
+    var PC = global.PC;
+    if (!PC) return;
+    try { if (el.querySelector(".dagfig, .dagcols") || el.classList.contains("dagfig")) PC.repaintDags(); } catch (e) {}
+    try { if (el.querySelector(".storystrip") || el.classList.contains("storystrip")) PC.repaintStories(); } catch (e) {}
+  }
+
+  function fold(fig, summaryText) {
+    if (!fig || !fig.parentNode) return null;
+    if (fig.closest && fig.closest("details.pcfold")) return null;   // already folded
+    if (fig.hidden) return null;                                     // no story block: leave hidden
+
+    var det = doc.createElement("details");
+    det.className = "pcfold";
+    var sum = doc.createElement("summary");
+    sum.className = "pcfoldsum";
+    sum.textContent = summaryText || "Show";
+    fig.parentNode.insertBefore(det, fig);
+    det.appendChild(sum);
+    det.appendChild(fig);                       // the figure moves in UNCHANGED
+
+    /* A canvas measured while its <details> is closed has a zero CSS box, so
+       every thumbnail and every DAG edge is redrawn the moment it opens. */
+    det.addEventListener("toggle", function () {
+      if (det.open) {
+        (global.requestAnimationFrame || function (f) { return setTimeout(f, 16); })(function () {
+          repaintInside(det);
+        });
+      }
+    });
+    /* A hand toggle pins the state: after this the viewport no longer decides
+       for the reader. */
+    sum.addEventListener("click", function () { det.dataset.pcUser = "1"; });
+    return det;
+  }
+
+  function syncFolds() {
+    var phone = isPhone();
+    var list = doc.querySelectorAll("details.pcfold");
+    for (var i = 0; i < list.length; i++) {
+      var det = list[i];
+      if (det.dataset.pcUser === "1") continue;      // the reader has decided
+      var want = !phone;                             // open everywhere except a phone
+      if (det.open !== want) {
+        det.open = want;
+        if (want) repaintInside(det);
+      }
+    }
+  }
+
+  function storySummary() {
+    /* The headline question IS the summary: collapsed, a phone still shows the
+       one line §2.4 calls the whole point of the strip. */
+    var q = doc.querySelector(".storystrip .storyq");
+    var text = q && q.textContent ? q.textContent.trim() : "";
+    return text || "What this demo is about";
+  }
+
+  function dagSummary() {
+    var steps = doc.querySelectorAll(".dagfig .dagnode").length;
+    if (steps) return "Analysis workflow — 4 stages · " + steps + " steps";
+    var segs = doc.querySelectorAll(".ribbon .rseg").length;
+    if (segs) return "Analysis workflow — " + segs + " stages";
+    return "Analysis workflow";
+  }
+
+  function installFolds() {
+    var story = doc.querySelector(".storystrip");
+    if (story) fold(story, storySummary());
+
+    /* The DAG host when the page has a card, else the bare rollup a legacy
+       page ships. Never both: .dagroll lives INSIDE .dagfig. */
+    var wf = doc.querySelector(".dagfig");
+    if (!wf) {
+      var ribbons = doc.querySelectorAll(".ribbon");
+      for (var i = 0; i < ribbons.length; i++) {
+        if (!ribbons[i].closest(".dagfig")) { wf = ribbons[i]; break; }
+      }
+    }
+    if (wf) fold(wf, dagSummary());
+
+    syncFolds();
+  }
+
+  /* ── 3b · a tab must not throw the reader back to the top of the page ─────
+     Every demo template carries its own PC.selectTop, and six of them end it
+     with scrollTo({top:0}) — which on a phone means the reader lands back above
+     the masthead, the story strip and the workflow figure every single time
+     they change tab. The templates cannot all be edited from here, so the
+     policy is applied from the shared library instead: this listener runs on
+     document in the BUBBLE phase, i.e. after the chip's own handler has
+     already scrolled, and puts the viewport back at the tab strip.
+
+     The correction is queued in rAF, which runs before the next paint, so the
+     intermediate scroll to 0 is never rendered — the reader sees no jump.
+     Phone only: on a desktop the existing scroll-to-top is the documented
+     behaviour and is left alone. */
+  function tabScrollPolicy(evt) {
+    if (!isPhone()) return;
+    var t = evt.target;
+    if (!t || !t.closest) return;
+    var chip = t.closest('.toptabs [role="tab"], .toptabs .tab');
+    if (!chip) return;
+    var strip = chip.closest(".toptabs");
+    if (!strip) return;
+    var y = docTop(strip);
+    (global.requestAnimationFrame || function (f) { return setTimeout(f, 16); })(function () {
+      if (Math.abs((global.scrollY || 0) - y) > 1) {
+        try { global.scrollTo({ top: y, behavior: "auto" }); }
+        catch (e) { global.scrollTo(0, y); }
+      }
+    });
+  }
+
+  function boot() {
+    installFolds();
+    doc.addEventListener("click", tabScrollPolicy, false);
+    try {
+      var mq = global.matchMedia(PHONE);
+      if (mq.addEventListener) mq.addEventListener("change", syncFolds);
+      else if (mq.addListener) mq.addListener(syncFolds);
+    } catch (e) {}
+    global.addEventListener("resize", function () { syncFolds(); });
+  }
+
+  /* The page script renders the story strip and the DAG during its own load
+     handler, so the fold is installed after that: DOM ready, then one more
+     turn. installFolds is idempotent, so running it twice is harmless and the
+     second pass catches a figure rendered late. */
+  function schedule() {
+    boot();
+    setTimeout(installFolds, 0);
+    global.addEventListener("load", function () { setTimeout(installFolds, 0); });
+  }
+  if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", schedule);
+  else schedule();
+
+  if (global.PC) {
+    global.PC.syncFolds = syncFolds;
+    global.PC.installFolds = installFolds;
+  }
+})(typeof globalThis !== "undefined" ? globalThis : this);
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PHONE PARAMETER BAR  —  page behaviour module
+   ---------------------------------------------------------------------------
+   Owner review on a REAL handset: on tab 3 the .filters control panel is most
+   of a phone screen tall, so the controls and the plots they drive are never
+   visible together. You change the embedding, then scroll to find out what it
+   did. On a laptop the two are side by side and nothing is wrong.
+
+   On a phone this collapses each .filters panel behind a slim sticky bar
+   carrying a LIVE SUMMARY of the panel's current values — "t-SNE · perplexity
+   30 · k 6" — pinned directly under the sticky tab strip. Tap the bar and the
+   full panel pushes down under it; change any control and the summary updates
+   and the panel collapses again, so the plot is on screen the moment the value
+   changes. Tap the bar again to reopen: the return trip is always one tap.
+
+   GENERIC BY CONSTRUCTION. The bar and the summary are derived from the
+   panel's OWN markup — the .fgroup label text and the live control values —
+   so every demo with a .filters panel inherits this by rebuilding, and no
+   template is edited. Nothing here is demo-specific.
+
+   WHY A SEPARATE IIFE, AND WHY IT IS SAFE FOR THE GATE. It only rearranges
+   chrome around an existing panel. Critically, collapsing uses display:none on
+   the PANEL while every control stays in the DOM: the design acceptance
+   pass (§9.3) drives controls purely in JS — `el.selectedIndex = …; fire(el,
+   "change")`, `el.click()` — never by coordinate and never checking
+   visibility, so a collapsed panel is still fully exercised at 380x844.
+
+   SPEC. DESIGN.md §6.3 calls .filters a "sticky control bar … positioned below
+   the sticky tabs" and §5.2 fixes the offset at `top: topTabs.offsetHeight` —
+   which is exactly what this restores on phones, at 44px instead of a full
+   panel. The bar is a CONTROL SURFACE, not navigation: one <button
+   aria-expanded aria-controls>, no role="navigation", no aria-current, no
+   stage colour. The selects inside stay native (§6.3). Flat — the only shadow
+   in the suite is #tip (§6.1).
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function (global) {
+  "use strict";
+  var doc = global.document;
+  if (!doc) return;
+
+  var PHONE = "(max-width: 640px)";
+  function isPhone() {
+    try { return global.matchMedia(PHONE).matches; } catch (e) { return false; }
+  }
+  function stripHeight() {
+    var s = doc.querySelector(".toptabs");
+    return s ? Math.round(s.getBoundingClientRect().height) : 0;
+  }
+
+  /* ── the summary line ────────────────────────────────────────────────────
+     One reading per .fgroup, in the panel's own order. A select contributes
+     its selected option's text ("t-SNE"); anything with a numeric value
+     contributes "<short label> <value>" ("perplexity 30"). The short label is
+     the LAST word of the group's own <label>, which is what makes the output
+     read like the owner's example without any per-demo table: "t-SNE
+     perplexity" -> "perplexity", "K-means clusters k" -> "k".
+
+     A DISABLED control is skipped, and that is a feature rather than an
+     omission: tbb disables "UMAP n_neighbors" while t-SNE is selected, so the
+     summary names only the parameters actually in force — which is exactly the
+     owner's "t-SNE · perplexity 30 · k 6", with n_neighbors absent. */
+  function shortLabel(group) {
+    var lab = group.querySelector("label");
+    var t = lab && lab.textContent ? lab.textContent.trim() : "";
+    if (!t) return "";
+    t = t.replace(/[:：]\s*$/, "");
+    var words = t.split(/\s+/);
+    return words[words.length - 1];
+  }
+  function controlOf(group) {
+    return group.querySelector(
+      'select,input[type="range"],input[type="number"],input[type="checkbox"],input[type="radio"]');
+  }
+  function readingFor(group) {
+    var c = controlOf(group);
+    if (!c || c.disabled || c.getAttribute("aria-disabled") === "true") return "";
+    if (c.tagName === "SELECT") {
+      var o = c.options[c.selectedIndex];
+      var t = o && o.textContent ? o.textContent.trim() : "";
+      if (!t) return "";
+      /* A "— pick a held-out material —" placeholder is a prompt, not a value,
+         and it crowds out the readings that are. Skipped while it is the
+         selection; the moment a real option is chosen it appears. */
+      if (/^[—–-]/.test(t) && /[—–-]$/.test(t)) return "";
+      /* A select whose options are bare numbers says nothing on its own — tbb's
+         perplexity select reads "30", which could be anything. When the option
+         text carries no letter, prefix the group's short label, so the summary
+         reads "perplexity 30" beside a self-describing "t-SNE". */
+      if (!/[A-Za-z]/.test(t)) {
+        var s = shortLabel(group);
+        return s ? s + " " + t : t;
+      }
+      return t;
+    }
+    if (c.type === "checkbox" || c.type === "radio") {
+      return c.checked ? shortLabel(group) : "";
+    }
+    var v = String(c.value == null ? "" : c.value).trim();
+    if (v === "") return "";
+    var s = shortLabel(group);
+    return s ? s + " " + v : v;
+  }
+  function summarize(panel) {
+    var groups = panel.querySelectorAll(".fgroup");
+    var parts = [];
+    if (groups.length) {
+      Array.prototype.forEach.call(groups, function (g) {
+        var r = readingFor(g);
+        if (r) parts.push(r);
+      });
+    } else {
+      /* a panel that never adopted .fgroup: fall back to the bare controls */
+      Array.prototype.forEach.call(
+        panel.querySelectorAll('select,input[type="range"]'), function (c) {
+          if (c.disabled) return;
+          if (c.tagName === "SELECT") {
+            var o = c.options[c.selectedIndex];
+            if (o && o.textContent) parts.push(o.textContent.trim());
+          } else if (c.value != null && String(c.value) !== "") {
+            parts.push(String(c.value));
+          }
+        });
+    }
+    return parts.join(" · ");
+  }
+
+  /* ── one bar per panel ───────────────────────────────────────────────────*/
+  var SEQ = 0;
+
+  function enhance(panel) {
+    if (!panel || panel.__pcParamBar) return null;
+    if (!panel.parentNode) return null;
+
+    if (!panel.id) panel.id = "pcFilters" + (++SEQ);
+
+    var bar = doc.createElement("div");
+    bar.className = "parambar";
+
+    var btn = doc.createElement("button");
+    btn.type = "button";                       // never a submit inside a form
+    btn.className = "parambar-btn";
+    btn.setAttribute("aria-expanded", "false");
+    btn.setAttribute("aria-controls", panel.id);
+
+    var key = doc.createElement("span");
+    key.className = "parambar-k";
+    key.textContent = "Parameters";
+
+    var sum = doc.createElement("span");
+    sum.className = "parambar-sum";
+
+    var chev = doc.createElement("span");
+    chev.className = "parambar-chev";
+    chev.setAttribute("aria-hidden", "true");
+    chev.textContent = "▾";               // ▾ — the same glyph base.css uses
+
+    btn.appendChild(key);
+    btn.appendChild(sum);
+    btn.appendChild(chev);
+    bar.appendChild(btn);
+    panel.parentNode.insertBefore(bar, panel);
+    /* The panel moves INSIDE the bar, and the phone stylesheet then drops it
+       out of flow as a dropdown anchored to the bar (position:absolute against
+       the sticky bar). That is what makes the expansion deterministic: an
+       inline push-down opens at the bar's NATURAL position, so once the bar is
+       pinned the panel appears off-screen above it, and Chrome's scroll
+       anchoring then shifts scrollY by the panel's own height to hold the
+       visual position — re-hiding what the tap just revealed (measured twice:
+       scrollY 902 -> 1264). Anchored to the pinned bar there is no scroll maths
+       to get wrong and nothing for anchoring to fight.
+
+       Off the phone the bar is display:contents, so this nesting is invisible:
+       .filters renders in the panel's flow exactly where it always did. */
+    bar.appendChild(panel);
+
+    var inst = { panel: panel, bar: bar, btn: btn, sum: sum, chev: chev, open: false };
+    panel.__pcParamBar = inst;
+
+    function refresh() {
+      var text = summarize(panel);
+      sum.textContent = text;
+      btn.setAttribute("aria-label",
+        (inst.open ? "Hide" : "Show") + " analysis parameters" + (text ? " — " + text : ""));
+    }
+
+    function setOpen(open) {
+      inst.open = !!open;
+      panel.setAttribute("data-pc-param", open ? "open" : "collapsed");
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+      chev.textContent = open ? "▸" : "▾";      // ▸ closes / ▾ opens
+      refresh();
+      /* No scrolling on open. The panel is a DROPDOWN anchored to the bar,
+         so wherever the bar is — pinned under the tab strip or still in the
+         flow — the panel opens directly beneath it and is already on screen.
+         The earlier inline push-down needed a scroll correction and lost a
+         race with Chrome's scroll anchoring twice (scrollY 902 -> 1264, the
+         panel's own height); anchoring the panel to the bar removes the
+         problem rather than compensating for it. */
+    }
+
+    btn.addEventListener("click", function () { setOpen(!inst.open); });
+
+    /* A committed value collapses the panel so the plot it just changed is on
+       screen. `change`, not `input`: a range fires `input` continuously while
+       the thumb is moving, and collapsing mid-drag would take the control out
+       from under the finger. So dragging keeps live feedback through `input`
+       (summary only) and commits on release through `change`. */
+    panel.addEventListener("input", function () { refresh(); });
+    panel.addEventListener("change", function () {
+      refresh();
+      if (isPhone() && inst.open) setOpen(false);
+    });
+
+    inst.refresh = refresh;
+    inst.setOpen = setOpen;
+    setOpen(false);
+    return inst;
+  }
+
+  /* Only the FIRST .filters inside a given panel becomes a bar. Two sticky
+     bars in one view would pin at the same offset and overlap; a second
+     control panel in the same tab is left alone and logged for phase 2. */
+  function install() {
+    var seen = {};
+    var panels = doc.querySelectorAll(".filters");
+    for (var i = 0; i < panels.length; i++) {
+      var p = panels[i];
+      var host = p.closest ? (p.closest(".toppanel") || doc.body) : doc.body;
+      var key = host.id || "body";
+      if (seen[key]) continue;                 // one bar per view
+      seen[key] = true;
+      enhance(p);
+    }
+    position();
+    sync();
+  }
+
+  /* The sticky offset is the LIVE tab-strip height (DESIGN.md §5.2), not a
+     constant: the strip is 46px on a phone and 67px on a laptop, and it
+     changes when the chips reflow. */
+  function position() {
+    var h = stripHeight();
+    var bars = doc.querySelectorAll(".parambar");
+    for (var i = 0; i < bars.length; i++) bars[i].style.top = h + "px";
+  }
+
+  /* Off the phone the panel must be exactly what it always was: no data-attr,
+     so no CSS from §23C applies and .filters keeps its own sticky rule. */
+  function sync() {
+    var phone = isPhone();
+    var panels = doc.querySelectorAll(".filters");
+    for (var i = 0; i < panels.length; i++) {
+      var p = panels[i], inst = p.__pcParamBar;
+      if (!inst) continue;
+      if (phone) {
+        if (!p.hasAttribute("data-pc-param")) inst.setOpen(false);
+        else inst.refresh();
+      } else {
+        p.removeAttribute("data-pc-param");
+        inst.open = false;
+        inst.btn.setAttribute("aria-expanded", "false");
+      }
+    }
+    position();
+  }
+
+  function boot() {
+    install();
+    setTimeout(install, 0);
+    global.addEventListener("load", function () { setTimeout(install, 0); });
+    global.addEventListener("resize", function () { sync(); });
+    /* the strip's height changes when a tab is selected, and a newly shown
+       panel's bar has never been positioned */
+    doc.addEventListener("click", function (e) {
+      if (e.target && e.target.closest && e.target.closest(".toptabs")) {
+        (global.requestAnimationFrame || function (f) { return setTimeout(f, 16); })(function () {
+          install();
+        });
+      }
+    }, false);
+    try {
+      var mq = global.matchMedia(PHONE);
+      if (mq.addEventListener) mq.addEventListener("change", sync);
+      else if (mq.addListener) mq.addListener(sync);
+    } catch (e) {}
+  }
+
+  if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", boot);
+  else boot();
+
+  if (global.PC) {
+    global.PC.installParamBars = install;
+    global.PC.syncParamBars = sync;
+  }
+})(typeof globalThis !== "undefined" ? globalThis : this);
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PHONE CHART OVERLAY  —  page behaviour module
+   ---------------------------------------------------------------------------
+   A chart panel on a phone is ~330px wide whatever it draws, and most of them
+   are shorter than they are wide, so the plot the reader came for is a strip.
+   This gives every plot an expand affordance at phone width: tap it and the
+   panel covers the viewport; rotate and the chart redraws with the whole
+   landscape width; tap ✕ or press Escape and it goes back.
+
+   HOW IT REDRAWS — the one mechanism that needs no per-demo cooperation.
+   Every demo template binds `window` `resize` to its own redraw (verified: all
+   8 templates, exactly one listener each) and every draw function sizes itself
+   from `cv.parentNode.clientWidth`. So the overlay changes the panel's width
+   and dispatches a synthetic `resize`; each demo redraws itself, at its own
+   aspect logic, through the code path it already uses for a window resize.
+   Nothing here knows or assumes what any panel draws — which is also why a
+   keep-ratio panel stays honest: tbb's map computes h = w × GEO.aspect, so it
+   letterboxes itself at any width the overlay gives it.
+
+   NO DOM MOVE — a considered deviation from the brief's "move the live panel
+   node". The node is never reparented: the panel is promoted IN PLACE with
+   position:fixed. Moving it out of its .toppanel would take it out of the
+   subtree every demo's redraw scopes to (`.toppanel:not([hidden])`), so the
+   panel would stop being redrawn — the exact failure the brief's "not a clone"
+   instruction exists to prevent. Promoting in place satisfies that intent more
+   strongly: it IS the live node, still inside its panel, still found by the
+   demo's own selectors, with its listeners and PC.hover binding untouched.
+
+   Z-ORDER: 90 — above the sticky tab strip (30) and the parameter bar (25),
+   below #tip (100) so a tooltip still paints over a full-screen chart.
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function (global) {
+  "use strict";
+  var doc = global.document;
+  if (!doc) return;
+
+  /* Width OR height — see components.css §23D. A phone in landscape is 844x390:
+     a width-only test calls that "desktop" and tears the overlay down at the
+     moment rotation is supposed to help (measured: zoomOpen true -> false on
+     rotate). The max-width:950px bound keeps a short desktop window out. */
+  var PHONE = "(max-width: 640px), (max-height: 640px) and (max-width: 950px)";
+  function isPhone() {
+    try { return global.matchMedia(PHONE).matches; } catch (e) { return false; }
+  }
+
+  /* The wrappers demos actually put a plot in. First match wins; a canvas with
+     none of them falls back to its own parent. */
+  var BOXES = ".pbox,.chartbox,.plotwrap,.bookbox,.plot-card,.dm,.mxcard,.scard";
+  var open = null;                          // the promoted box, or null
+
+  /* ONE box-detection for the whole suite. PC.plotBoxOf (the touch-mode block
+     in the core library) holds the same selector list and is what the docked
+     readout and the selection ring use; delegating to it is what guarantees
+     the ⤢ button, the readout and the ring land in the same container — and
+     therefore that all three survive this overlay promoting that container.
+     The local copy stays as the fallback for a page that somehow loads this
+     module without the core. */
+  function boxFor(cv) {
+    var PC = global.PC;
+    if (PC && typeof PC.plotBoxOf === "function") return PC.plotBoxOf(cv);
+    var b = cv.closest ? cv.closest(BOXES) : null;
+    return b || cv.parentElement;
+  }
+
+  function plotCanvases() {
+    var out = [], all = doc.querySelectorAll("canvas");
+    for (var i = 0; i < all.length; i++) {
+      var c = all[i];
+      if (c.classList.contains("storycanvas")) continue;      // §2.4 thumbnails
+      if (c.getAttribute("aria-hidden") === "true") continue;
+      out.push(c);
+    }
+    return out;
+  }
+
+  /* PC.fit() writes cv.style.width, and the measure-the-box call signature
+     (PC.fit(cv) / PC.fit(cv, null, h)) then re-measures the canvas's OWN frozen
+     inline width instead of the container's — so once a canvas has been fitted
+     it can never grow again. Measured on pleiades with the overlay open in
+     landscape: inline width 337px inside a 365px box, and the chart stayed
+     337px however wide the overlay got.
+     Clearing the inline WIDTH (never the height — demos that pass an explicit h
+     depend on it, and a cleared height would collapse a canvas with no CSS
+     height to PC.fit's 160px floor) lets the next fit read the real container.
+     A demo that passes explicit w/h simply writes both again and is unaffected. */
+  function unfreeze(box) {
+    if (!box) return;
+    var cvs = box.querySelectorAll("canvas");
+    for (var i = 0; i < cvs.length; i++) {
+      if (cvs[i].classList.contains("storycanvas")) continue;
+      cvs[i].style.width = "";
+    }
+  }
+
+  /* Every demo redraws on window resize; that is the hook. rAF first, so the
+     promoted box has been laid out at its new width before anything measures. */
+  function redraw() {
+    (global.requestAnimationFrame || function (f) { return setTimeout(f, 16); })(function () {
+      var ev;
+      try { ev = new Event("resize"); }
+      catch (e) { ev = doc.createEvent("Event"); ev.initEvent("resize", true, true); }
+      global.dispatchEvent(ev);
+    });
+  }
+
+  function chromeOf(box) {
+    var kids = box.children;
+    for (var i = 0; i < kids.length; i++) {
+      if (kids[i].className === "pczoom-chrome") return kids[i];
+    }
+    return null;
+  }
+  function btnOf(box) {
+    var kids = box.children;
+    for (var i = 0; i < kids.length; i++) {
+      if (kids[i].className === "pczoom-btn") return kids[i];
+    }
+    return null;
+  }
+
+  function closeZoom() {
+    if (!open) return;
+    var box = open;
+    open = null;
+    box.classList.remove("pczoom-on");
+    var chrome = chromeOf(box);
+    if (chrome) chrome.parentNode.removeChild(chrome);
+    doc.documentElement.classList.remove("pczoom-lock");
+    var btn = btnOf(box);
+    if (btn) btn.setAttribute("aria-expanded", "false");
+    try { if (global.PC && global.PC.hideTip) global.PC.hideTip(); } catch (e) {}
+    unfreeze(box);
+    redraw();
+    if (btn) { try { btn.focus(); } catch (e) {} }
+  }
+
+  function openZoom(box) {
+    if (open) closeZoom();
+    open = box;
+    box.classList.add("pczoom-on");
+    doc.documentElement.classList.add("pczoom-lock");
+    var btn = btnOf(box);
+    if (btn) btn.setAttribute("aria-expanded", "true");
+
+    var chrome = doc.createElement("div");
+    chrome.className = "pczoom-chrome";
+
+    /* One line, and it takes itself away. Permanent chrome would compete with
+       the chart the reader just asked to look at. */
+    var hint = doc.createElement("p");
+    hint.className = "pczoom-hint";
+    hint.textContent = "Rotate for a wider view";
+    setTimeout(function () { hint.className = "pczoom-hint gone"; }, 3200);
+
+    var close = doc.createElement("button");
+    close.type = "button";
+    close.className = "pczoom-close";
+    close.setAttribute("aria-label", "Close full-screen chart");
+    close.textContent = "✕";
+    close.addEventListener("click", function (e) { e.stopPropagation(); closeZoom(); });
+
+    chrome.appendChild(hint);
+    chrome.appendChild(close);
+    box.insertBefore(chrome, box.firstChild);
+
+    try { if (global.PC && global.PC.hideTip) global.PC.hideTip(); } catch (e) {}
+    unfreeze(box);
+    redraw();
+    try { close.focus(); } catch (e) {}
+  }
+
+  function enhance(box) {
+    if (!box || box.__pcZoom) return;
+    box.__pcZoom = true;
+    box.classList.add("pczoom-host");
+
+    var btn = doc.createElement("button");
+    btn.type = "button";
+    btn.className = "pczoom-btn";
+    btn.setAttribute("aria-expanded", "false");
+    btn.setAttribute("aria-label", "View this chart full screen");
+    btn.textContent = "⤢";              // ⤢ expand, a real glyph (§1.5)
+    btn.addEventListener("click", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (open === box) closeZoom(); else openZoom(box);
+    });
+    box.appendChild(btn);
+  }
+
+  function install() {
+    var cvs = plotCanvases();
+    for (var i = 0; i < cvs.length; i++) {
+      var box = boxFor(cvs[i]);
+      if (!box) continue;
+      /* A demo opts a panel out by marking it, for anything the overlay is
+         MEASURED to break. Nothing is opted out at the time of writing. */
+      if (box.getAttribute && box.getAttribute("data-pc-zoom") === "off") continue;
+      enhance(box);
+    }
+  }
+
+  function boot() {
+    install();
+    setTimeout(install, 0);
+    global.addEventListener("load", function () { setTimeout(install, 0); });
+
+    /* a newly shown tab holds panels that have never been enhanced */
+    doc.addEventListener("click", function (e) {
+      if (e.target && e.target.closest && e.target.closest(".toptabs")) {
+        (global.requestAnimationFrame || function (f) { return setTimeout(f, 16); })(install);
+      }
+    }, false);
+
+    /* Rotation fires a real resize. The promoted box is now a different width,
+       so the same unfreeze has to happen before the demo re-fits — otherwise the
+       chart keeps the width it was frozen at when the overlay opened. */
+    global.addEventListener("resize", function () {
+      if (!open) return;
+      unfreeze(open);
+    });
+
+    doc.addEventListener("keydown", function (e) {
+      if (open && (e.key === "Escape" || e.key === "Esc")) {
+        e.preventDefault();
+        closeZoom();
+      }
+    });
+
+    /* Leaving phone width with a panel promoted would strand it: the §23D rules
+       stop applying and the box would keep its chrome. */
+    try {
+      var mq = global.matchMedia(PHONE);
+      var onChange = function () { if (!isPhone()) closeZoom(); };
+      if (mq.addEventListener) mq.addEventListener("change", onChange);
+      else if (mq.addListener) mq.addListener(onChange);
+    } catch (e) {}
+  }
+
+  if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", boot);
+  else boot();
+
+  if (global.PC) {
+    global.PC.installChartZoom = install;
+    global.PC.closeChartZoom = closeZoom;
+    global.PC.zoomOpen = function () { return !!open; };
+  }
+})(typeof globalThis !== "undefined" ? globalThis : this);

@@ -1,0 +1,218 @@
+{
+  "schema": 1,
+  "date": "2026-09-30",
+  "scope": "Six remaining demos, all eighteen Insight/Dataset/Workflow pages; no speed measurements.",
+  "pages": [
+    {
+      "path": "demos/battery-curve-shape-explorer/dataset.html",
+      "startup": [
+        "shape-dataset-defer-matrix-decode"
+      ],
+      "reviewedUnchangedReasons": [],
+      "sharedResources": 3,
+      "originalBytes": 1150038,
+      "outputBytes": 963992
+    },
+    {
+      "path": "demos/battery-curve-shape-explorer/index.html",
+      "startup": [],
+      "reviewedUnchangedReasons": [
+        {
+          "optimization": "shape-insight",
+          "reason": "default-chart-requires-matrix"
+        }
+      ],
+      "sharedResources": 3,
+      "originalBytes": 980012,
+      "outputBytes": 795538
+    },
+    {
+      "path": "demos/battery-curve-shape-explorer/workflow.html",
+      "startup": [
+        "shape-workflow-defer-matrix-decode"
+      ],
+      "reviewedUnchangedReasons": [],
+      "sharedResources": 4,
+      "originalBytes": 1542555,
+      "outputBytes": 1276080
+    },
+    {
+      "path": "demos/ceemdan-battery-forecasting/dataset.html",
+      "startup": [
+        "ceemdan-defer-capacity-table"
+      ],
+      "reviewedUnchangedReasons": [],
+      "sharedResources": 3,
+      "originalBytes": 392795,
+      "outputBytes": 206737
+    },
+    {
+      "path": "demos/ceemdan-battery-forecasting/index.html",
+      "startup": [
+        "ceemdan-cache-fixed-forecast-domain"
+      ],
+      "reviewedUnchangedReasons": [],
+      "sharedResources": 3,
+      "originalBytes": 250606,
+      "outputBytes": 66341
+    },
+    {
+      "path": "demos/ceemdan-battery-forecasting/workflow.html",
+      "startup": [],
+      "reviewedUnchangedReasons": [
+        {
+          "optimization": "forecast-startup",
+          "reason": "reviewed-no-startup-change-needed"
+        }
+      ],
+      "sharedResources": 4,
+      "originalBytes": 470424,
+      "outputBytes": 203822
+    },
+    {
+      "path": "demos/jae-joint-embedding-how-one-cell-becomes-61-numbers/dataset.html",
+      "startup": [
+        "jae-defer-dataset-matrix-decode"
+      ],
+      "reviewedUnchangedReasons": [],
+      "sharedResources": 3,
+      "originalBytes": 1390106,
+      "outputBytes": 1204348
+    },
+    {
+      "path": "demos/jae-joint-embedding-how-one-cell-becomes-61-numbers/index.html",
+      "startup": [
+        "jae-cache-exact-neighbours"
+      ],
+      "reviewedUnchangedReasons": [],
+      "sharedResources": 3,
+      "originalBytes": 805158,
+      "outputBytes": 621012
+    },
+    {
+      "path": "demos/jae-joint-embedding-how-one-cell-becomes-61-numbers/workflow.html",
+      "startup": [
+        "jae-reuse-workflow-array-decode",
+        "jae-reuse-workflow-dequantization"
+      ],
+      "reviewedUnchangedReasons": [],
+      "sharedResources": 3,
+      "originalBytes": 2951629,
+      "outputBytes": 2767637
+    },
+    {
+      "path": "demos/pleiades-membership-explorer/dataset.html",
+      "startup": [
+        "pleiades-cache-dataset-histograms"
+      ],
+      "reviewedUnchangedReasons": [],
+      "sharedResources": 3,
+      "originalBytes": 1847172,
+      "outputBytes": 1661259
+    },
+    {
+      "path": "demos/pleiades-membership-explorer/index.html",
+      "startup": [
+        "pleiades-defer-model-label-decode"
+      ],
+      "reviewedUnchangedReasons": [],
+      "sharedResources": 3,
+      "originalBytes": 1338322,
+      "outputBytes": 1154286
+    },
+    {
+      "path": "demos/pleiades-membership-explorer/workflow.html",
+      "startup": [
+        "pleiades-defer-workflow-arrays"
+      ],
+      "reviewedUnchangedReasons": [],
+      "sharedResources": 4,
+      "originalBytes": 7171406,
+      "outputBytes": 6905288
+    },
+    {
+      "path": "demos/soh-battery/dataset.html",
+      "startup": [
+        "soh-dataset-reuse-series-table"
+      ],
+      "reviewedUnchangedReasons": [],
+      "sharedResources": 3,
+      "originalBytes": 691342,
+      "outputBytes": 505211
+    },
+    {
+      "path": "demos/soh-battery/index.html",
+      "startup": [
+        "soh-insight-single-initial-paint"
+      ],
+      "reviewedUnchangedReasons": [],
+      "sharedResources": 3,
+      "originalBytes": 436594,
+      "outputBytes": 252175
+    },
+    {
+      "path": "demos/soh-battery/workflow.html",
+      "startup": [
+        "soh-workflow-reuse-sweep-statistics",
+        "soh-workflow-reuse-training-matrix-rows"
+      ],
+      "reviewedUnchangedReasons": [],
+      "sharedResources": 4,
+      "originalBytes": 1385740,
+      "outputBytes": 1119272
+    },
+    {
+      "path": "demos/superconductor-regression-explorer/dataset.html",
+      "startup": [
+        "superconductor-defer-rank-matrix-decode"
+      ],
+      "reviewedUnchangedReasons": [],
+      "sharedResources": 3,
+      "originalBytes": 3181786,
+      "outputBytes": 2995580
+    },
+    {
+      "path": "demos/superconductor-regression-explorer/index.html",
+      "startup": [],
+      "reviewedUnchangedReasons": [
+        {
+          "optimization": "forecast-startup",
+          "reason": "reviewed-no-startup-change-needed"
+        }
+      ],
+      "sharedResources": 3,
+      "originalBytes": 920284,
+      "outputBytes": 735810
+    },
+    {
+      "path": "demos/superconductor-regression-explorer/workflow.html",
+      "startup": [
+        "superconductor-defer-pca-coordinates-and-table",
+        "superconductor-cache-fixed-prediction-domain"
+      ],
+      "reviewedUnchangedReasons": [],
+      "sharedResources": 3,
+      "originalBytes": 1877291,
+      "outputBytes": 1693356
+    }
+  ],
+  "checks": {
+    "jsonPayloadsByteIdentical": 18,
+    "sharedResourcesByteIdentical": 98,
+    "classicProgramsParsed": 72,
+    "otherPagesByteIdentical": 28,
+    "targetPages": 18,
+    "excludedProjectPages": 2,
+    "sharedUniqueAssets": 7,
+    "sharedUniqueBytes": 454139,
+    "scientificStartupPages": 15,
+    "htmlBytesRemoved": 3655516,
+    "testSuite": {
+      "passed": 555,
+      "failed": 0
+    }
+  },
+  "limitations": [
+    "No browser rendering or end-to-end speed measurements. Numerical and structural checks do not substitute for live visual acceptance."
+  ]
+}

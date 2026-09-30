@@ -1,0 +1,148 @@
+/* Gaia Pleiades Dataset page (product page): instrument -> raw -> transformation -> design matrix.
+   Reads only D.stages. */
+const S = D.stages, M = S.matrix, COLS = S.columns;
+const $ = id => document.getElementById(id);
+const isOpen = id => PCFolds.isOpen($(id));
+const fmtN = v => Number(v).toLocaleString();
+const fmtV = v => v == null ? '—' : (typeof v === 'string' ? v : Math.abs(v) >= 1000 ? v.toFixed(1) : +v.toPrecision(6) + '');
+
+function nice(lo, hi, n) {
+  const step0 = (hi - lo) / (n || 5), mag = Math.pow(10, Math.floor(Math.log10(step0))), f = step0 / mag;
+  const step = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * mag, out = [];
+  for (let v = Math.ceil(lo / step - 1e-9) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(10));
+  return out;
+}
+function panel(cv, h, xr, yr, xl, yl, o) {
+  o = o || {};
+  const w = o.w || cv.parentElement.clientWidth || 600, g = PC.fit(cv, w, h);
+  const sc = PC.scales(cv, xr, yr, o.pad || { l: 58, r: 14, t: 12, b: 46 });
+  PC.drawAxes(g, sc, o.xt || nice(xr[0], xr[1], w < 480 ? 4 : 7), o.yt || nice(yr[0], yr[1], 4), sc.x, sc.y,
+    xl, yl, { grid: 'both', xFmt: o.xFmt, yFmt: o.yFmt });
+  return { g, sc, w, h };
+}
+const PM_X = [-15, 45], PM_Y = [-60, 20];
+function pmDiagram(cv, h, highlight, w) {
+  const P = panel(cv, h, PM_X, PM_Y, 'pmRA (mas yr⁻¹)', 'pmDec (mas yr⁻¹)', { w });
+  const g = P.g, x = S.pm.pmra, y = S.pm.pmdec;
+  g.save(); g.beginPath(); g.rect(P.sc.p.l, P.sc.p.t, P.sc.iw, P.sc.ih); g.clip();
+  g.fillStyle = PC.css('--series-1'); g.globalAlpha = PC.isDark() ? 0.35 : 0.22;
+  for (let k = 0; k < x.length; k++) g.fillRect(P.sc.x(x[k]) - 0.8, P.sc.y(y[k]) - 0.8, 1.6, 1.6);
+  g.restore();
+  if (highlight) {
+    const [px, py] = highlight, X = P.sc.x(Math.max(PM_X[0], Math.min(PM_X[1], px))), Y = P.sc.y(Math.max(PM_Y[0], Math.min(PM_Y[1], py)));
+    g.fillStyle = PC.css('--surface-1'); g.beginPath(); g.arc(X, Y, 7, 0, 7); g.fill();
+    g.fillStyle = PC.css('--critical'); g.beginPath(); g.arc(X, Y, 5, 0, 7); g.fill();
+  }
+  return P;
+}
+
+/* ---------- Raw data ---------- */
+$('excerpt').innerHTML = '<thead><tr>' + COLS.map(c => '<th>' + c + '</th>').join('') + '</tr></thead><tbody>'
+  + S.excerpt.map(r => '<tr>' + r.map(v => '<td>' + fmtV(v) + '</td>').join('') + '</tr>').join('') + '</tbody>';
+function paintRaw() {
+  if (!isOpen('raw-data')) return;
+  pmDiagram($('pmPlot'), 340);
+  const cv = $('skyPlot'), w = Math.min(cv.parentElement.clientWidth || 600, 520), c = S.cone, cosd = Math.cos(c.dec * Math.PI / 180);
+  const xr = [c.ra + 1.08 / cosd, c.ra - 1.08 / cosd], yr = [c.dec - 1.08, c.dec + 1.08];     // RA increases to the left
+  const P = panel(cv, w * 0.92, xr, yr, 'Right ascension (deg)', 'Declination (deg)', { w, xt: nice(xr[1], xr[0], 4), yt: nice(yr[0], yr[1], 4), xFmt: v => v.toFixed(1), yFmt: v => v.toFixed(1) });
+  const g = P.g, s = S.sky;
+  g.fillStyle = PC.css('--text-primary');
+  for (let k = 0; k < s.ra.length; k++) {
+    const m = s.g[k] == null ? 21 : s.g[k], r = Math.max(0.5, (21.5 - m) * 0.28);
+    g.globalAlpha = m < 12 ? 0.9 : 0.35; g.beginPath(); g.arc(P.sc.x(s.ra[k]), P.sc.y(s.dec[k]), r, 0, 7); g.fill();
+  }
+  g.globalAlpha = 1; g.strokeStyle = PC.css('--series-2'); g.lineWidth = 1.5; g.beginPath();
+  for (let a = 0; a <= 360; a += 3) {
+    const t = a * Math.PI / 180, ra = c.ra + Math.cos(t) / cosd, de = c.dec + Math.sin(t);
+    g[a ? 'lineTo' : 'moveTo'](P.sc.x(ra), P.sc.y(de));
+  }
+  g.stroke();
+  // missing values per column group
+  const groups = [['astrometry (parallax, pm)', S.missing.parallax], ['BP photometry', S.missing.phot_bp_mean_mag],
+    ['RP photometry', S.missing.phot_rp_mean_mag], ['G photometry', S.missing.phot_g_mean_mag]];
+  const cm = $('missPlot'), wm = cm.parentElement.clientWidth || 600, gm = PC.fit(cm, wm, 30 * groups.length + 30);
+  const lw = Math.min(200, wm * 0.4), bw = wm - lw - 110, mx = Math.max(...groups.map(q => q[1]));
+  PC.tickText(gm, 'Missing values in the held file', 0, 4, 'left', 'top');
+  groups.forEach(([lab, v], j) => {
+    const y = 26 + j * 30; PC.tickText(gm, lab, lw, y + 10, 'right', 'middle');
+    gm.fillStyle = PC.css('--axis'); gm.beginPath(); gm.roundRect(lw + 8, y, Math.max(2, v / mx * bw), 20, [0, 4, 4, 0]); gm.fill();
+    gm.fillStyle = PC.css('--text-primary'); gm.font = PC.font.emph(); gm.textAlign = 'left'; gm.textBaseline = 'middle';
+    gm.fillText(fmtN(v) + ' rows', lw + 14 + v / mx * bw, y + 10);
+  });
+}
+
+/* ---------- Transformation ---------- */
+function paintFunnel() {
+  if (!isOpen('transformation')) return;
+  const st = S.funnel, cv = $('funnel'), w = cv.parentElement.clientWidth || 600, rh = 30, h = 20 + rh * st.length + 10;
+  const g = PC.fit(cv, w, h), lw = Math.min(190, w * 0.38), max = st[0][1], x0 = lw + 8, bw = w - x0 - 130;
+  st.forEach(([label, v], j) => {
+    const y = 12 + j * rh;
+    PC.tickText(g, label, lw, y + 10, 'right', 'middle');
+    g.fillStyle = PC.css(j === st.length - 1 ? '--stage-2' : '--axis');
+    g.beginPath(); g.roundRect(x0, y, Math.max(2, v / max * bw), 20, [0, 4, 4, 0]); g.fill();
+    g.fillStyle = PC.css('--text-primary'); g.font = PC.font.emph(); g.textAlign = 'left'; g.textBaseline = 'middle';
+    const lost = j ? st[j - 1][1] - v : 0;
+    g.fillText(fmtN(v) + (lost ? '  (−' + fmtN(lost) + ')' : ''), x0 + v / max * bw + 6, y + 10);
+  });
+}
+const sel = $('srcSelect');
+S.examples.forEach((e, k) => { const o = document.createElement('option'); o.value = k; o.textContent = 'Gaia DR3 ' + e.source_id + ' · ' + e.why; sel.appendChild(o); });
+const V = (e, c) => e.values[COLS.indexOf(c)];
+const SHOW = ['ra', 'dec', 'parallax', 'parallax_error', 'pmra', 'pmdec', 'phot_g_mean_flux', 'phot_g_mean_flux_error', 'phot_g_mean_mag', 'phot_bp_mean_mag', 'phot_rp_mean_mag'];
+function paintSource() {
+  if (!isOpen('transformation')) return;
+  const e = S.examples[+sel.value];
+  $('srcReadout').textContent = 'Row ' + fmtN(e.index) + ' of the held file. ' + (e.reason === 'kept' ? 'Kept: it becomes matrix row ' + fmtN(e.row) + '.' : 'Dropped: ' + e.reason + '.');
+  $('srcRow').innerHTML = '<tbody>' + SHOW.map(c => '<tr><td><code>' + c + '</code></td><td>' + fmtV(V(e, c)) + '</td></tr>').join('') + '</tbody>';
+  const bp = V(e, 'phot_bp_mean_mag'), rp = V(e, 'phot_rp_mean_mag');
+  $('srcDerive').innerHTML = e.e_g == null ? '<p>No G flux: nothing to derive.</p>'
+    : '<p>G uncertainty = 2.5 / ln 10 × ' + fmtV(V(e, 'phot_g_mean_flux_error')) + ' / ' + fmtV(V(e, 'phot_g_mean_flux')) + ' = <b>' + e.e_g.toFixed(4) + ' mag</b></p>'
+      + '<p>BP − RP = ' + (bp == null || rp == null ? 'not available' : '<b>' + (bp - rp).toFixed(3) + ' mag</b>') + '</p>';
+  const complete = !e.values.some(v => v == null), plx = V(e, 'parallax');
+  const checks = [['Complete row', complete], ['Parallax > 0', complete ? plx > 0 : null], ['G uncertainty < 0.005 mag', complete && plx > 0 ? e.e_g < 0.005 : null]];
+  $('srcScreens').innerHTML = checks.map(([t, ok]) => '<li class="' + (ok == null ? 'na' : ok ? 'pass' : 'fail') + '"><span class="flagmark">'
+    + (ok == null ? '–' : ok ? '✓' : '✕') + '</span>' + t + (ok == null ? ' <span class="note">not reached</span>' : ok ? '' : ' <b>dropped here</b>') + '</li>').join('');
+  const cz = $('srcZ'), w = cz.parentElement.clientWidth || 300;
+  if (!e.z) { const g = PC.fit(cz, w, 90); PC.tickText(g, 'Not produced: the source was dropped at screening.', 8, 45, 'left', 'middle'); }
+  else {
+    const g = PC.fit(cz, w, 120), lw = 80, mid = lw + (w - lw - 20) / 2, sc = (w - lw - 20) / 2 / Math.max(4, ...e.z.map(Math.abs));
+    g.strokeStyle = PC.css('--axis'); g.beginPath(); g.moveTo(mid, 6); g.lineTo(mid, 110); g.stroke();
+    ['pmRA', 'pmDec', 'Parallax'].forEach((lab, j) => {
+      const y = 12 + j * 32, v = e.z[j];
+      PC.tickText(g, lab, lw - 6, y + 10, 'right', 'middle');
+      g.fillStyle = PC.css('--series-1'); g.fillRect(Math.min(mid, mid + v * sc), y, Math.abs(v * sc), 20);
+      PC.tickText(g, (v >= 0 ? '+' : '') + v.toFixed(2), v >= 0 ? mid + v * sc + 4 : mid + v * sc - 4, y + 10, v >= 0 ? 'left' : 'right', 'middle');
+    });
+  }
+  const pmra = V(e, 'pmra'), pmdec = V(e, 'pmdec');
+  pmDiagram($('srcPm'), 260, pmra == null ? null : [pmra, pmdec]);
+}
+
+/* ---------- Design matrix ---------- */
+const LABS = ['pmRA (z)', 'pmDec (z)', 'Parallax (z)'];
+function paintHist() {
+  if (!isOpen('matrix')) return;
+  M.z.forEach((col, j) => {
+    const cv = $('hist' + j), lo = -4, hi = 4, nb = 64, bins = new Array(nb).fill(0);
+    let under = 0, over = 0;
+    col.forEach(v => { if (v < lo) under++; else if (v >= hi) over++; else bins[Math.floor((v - lo) / (hi - lo) * nb)]++; });
+    const P = panel(cv, 190, [lo, hi], [0, Math.max(...bins) * 1.08], LABS[j], j ? null : 'Sources', { xt: [-4, -2, 0, 2, 4] });
+    const bw = P.sc.iw / nb;
+    g = P.g; g.fillStyle = PC.css('--series-1');
+    bins.forEach((b, k) => g.fillRect(P.sc.p.l + k * bw + 0.5, P.sc.y(b), Math.max(1, bw - 1), P.sc.y(0) - P.sc.y(b)));
+    PC.tickText(g, fmtN(under) + ' below · ' + fmtN(over) + ' above', P.sc.p.l + P.sc.iw, P.sc.p.t + 2, 'right', 'top');
+    PC.hover(cv, bins.map((b, k) => [P.sc.p.l + (k + 0.5) * bw, P.sc.y(b / 2), k]), {
+      radius: 30, onHit: (k, evt) => PC.tip('<b>' + LABS[j] + '</b><br>' + (lo + k * (hi - lo) / nb).toFixed(2) + ' to ' + (lo + (k + 1) * (hi - lo) / nb).toFixed(2) + '<br>' + fmtN(bins[k]) + ' sources', evt),
+      onLeave: () => PC.hideTip()
+    });
+  });
+}
+let g;
+$('mxRows').innerHTML = '<thead><tr><th>Row</th><th>pmRA (z)</th><th>pmDec (z)</th><th>Parallax (z)</th><th>ra</th><th>dec</th><th>BP − RP</th><th>G</th></tr></thead><tbody>'
+  + Array.from({ length: 12 }, (_, r) => '<tr><td>' + r + '</td>' + M.z.map(c => '<td>' + c[r].toFixed(3) + '</td>').join('')
+    + ['ra', 'dec', 'bp_rp', 'phot_g_mean_mag'].map(k => '<td>' + M.labels[k][r].toFixed(3) + '</td>').join('') + '</tr>').join('') + '</tbody>';
+
+sel.addEventListener('change', paintSource);
+PC.registerRepaint(() => { paintRaw(); paintFunnel(); paintSource(); paintHist(); });
+PC.repaint('initial', document);

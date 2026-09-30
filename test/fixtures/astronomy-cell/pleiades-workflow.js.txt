@@ -1,0 +1,541 @@
+
+
+
+/* -- TOP: the five canonical tabs ----------------------------------------
+   Names and order are fixed for every page in the suite. Only entry 3's label
+   and the five sub-labels change per demo. NO `stage` key: tab chips carry no
+   stage number and no stage colour (§3.1). Glossary is reference material and
+   is pushed to the right edge by its role. */
+const TOP = [
+  {label:"Data provenance", sub:"files, hashes and claims"},
+  {label:"Design matrix",   sub:"one source × three features"},
+  {label:"Membership probability", sub:"submitted trace and controlled models"},
+  {label:"Conclusions",     sub:"evidence, failure and limits"},
+  {label:"Glossary",        sub:"terms used here", role:"glossary-content"}
+];
+
+/* -- RIBBON: the pipeline diagram, with this demo's REAL numbers ----------
+   One entry per PIPELINE STAGE — not per tab, and always starting at stage 1,
+   preprocessing. There is no `tab` key: the diagram goes nowhere.
+   Every `value` MUST be read out of D (the payload). A hard-coded number here
+   is the thing this component exists to prevent. Keep `label` short — it is
+   uppercase and clipped with an ellipsis on narrow screens. */
+const RIBBON = [
+  {stage:1, label:"Filter", value:D.metadata.n_clean.toLocaleString(), note:"quality-filtered Gaia rows"},
+  {stage:2, label:"Transform", value:D.metadata.n_features + " features", note:"standardized motion and parallax"},
+  {stage:3, label:"Cluster", value:Object.values(D.configurations).reduce((n,x)=>n+Object.keys(x).length,0) + " fits", note:"stored deterministic settings"},
+  {stage:4, label:"Evaluate", value:D.configurations[D.controlled_initial.model][D.controlled_defaults[D.controlled_initial.model]].candidate_count.toLocaleString(), note:"default nearest-guide group"}
+];
+
+/* -- STORY: the three thumbnails of the story strip (§2.4) ----------------
+   One painter per panel, in the strip's order — ① the data, ② the question,
+   ③ the answer. Each is handed its own canvas plus the 2D context PC.fit() has
+   already sized for the device pixel ratio and cleared, and draws the smallest
+   TRUE picture of that sentence: the shape of the raw signal, the split the
+   question turns on, the result the answer claims.
+
+   The rules that apply everywhere apply here:
+     - every value comes out of D. A thumbnail invented for the look of it is
+       the same defect as a number typed into prose (§1.4).
+     - every colour through PC.css("--token"), read at draw time; no literal hex
+       (§4.2). The strip repaints on both theme signals, so a cached colour is a
+       thumbnail stuck in the old theme.
+     - no axes, no legend, no tick labels, no tooltip. It is 72px tall; the
+       panel it summarises carries the real chart, and this points at it.
+
+   A painter left `null` renders a sentence-only panel, which is what a demo
+   with nothing honest to draw at 72px should ship. Worked example:
+
+     const STORY_PAINTERS = [
+       function (cv, g) {                                    // ① the data
+         const y = D.series.raw;
+         const s = PC.scales(cv, [0, y.length - 1], PC.pad10(PC.extent(y)),
+                             {l: 3, r: 3, t: 5, b: 5});
+         g.strokeStyle = PC.css("--series-1"); g.lineWidth = 1.5;
+         g.beginPath();
+         y.forEach((v, i) => (i ? g.lineTo(s.x(i), s.y(v)) : g.moveTo(s.x(i), s.y(v))));
+         g.stroke();
+       },
+       function (cv, g) { … },                               // ② the question
+       function (cv, g) { … }                                // ③ the answer
+     ];
+*/
+const STORY_PAINTERS = [
+  function(cv,g){ paintMiniScatter(cv,g,A.ra,A.dec,PC.css("--series-1")); },
+  function(cv,g){ paintMiniScatter(cv,g,A.pmra,A.pmdec,PC.css("--series-2")); },
+  function(cv,g){ paintMiniMembership(cv,g,D.controlled_initial.model,D.controlled_defaults[D.controlled_initial.model]); }
+];
+
+/* -- WFMAP: the stages the analysis sections performs ------------------------------------
+   Three cards for most demos, keeping the course diagram's numbering. Stage 1
+   is preprocessing and belongs to Design matrix, so it is absent here — and the three
+   that remain stay numbered 2, 3, 4. `anchor` is the id of a section INSIDE
+   #top2; `desc` is one line, no numbers, no second sentence. */
+const WFMAP = [
+  {stage:2, anchor:"wf-2", title:"Transformation",       desc:"Keep the submitted matrix distinct from the controlled matrix."},
+  {stage:3, anchor:"wf-3", title:"Modelling & training", desc:"Change one model premise while holding the physical inputs fixed."},
+  {stage:4, anchor:"wf-4", title:"Evaluation",           desc:"Check one nearest-guide label in sky, motion, colour and distance views."}
+];
+
+
+/* Demo-specific runtime. Scientific fitting lives in precompute.py; this layer
+   only switches stored arrays, draws them, and keeps one shared selection. */
+function bytes(encoded){
+  const raw=atob(encoded), out=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++) out[i]=raw.charCodeAt(i);
+  return out;
+}
+function typed(Type,encoded){return new Type(bytes(encoded).buffer);}
+const A={
+  source:typed(BigUint64Array,D.arrays.source_id_u64_b64),
+  ra:typed(Float64Array,D.arrays.ra_f64_b64),
+  dec:typed(Float64Array,D.arrays.dec_f64_b64),
+  parallax:typed(Float64Array,D.arrays.parallax_f64_b64),
+  poe:typed(Float64Array,D.arrays.parallax_over_error_f64_b64),
+  pmra:typed(Float64Array,D.arrays.pmra_f64_b64),
+  pmdec:typed(Float64Array,D.arrays.pmdec_f64_b64),
+  g:typed(Float64Array,D.arrays.g_mag_f64_b64),
+  colour:typed(Float64Array,D.arrays.bp_rp_f64_b64),
+  eg:typed(Float64Array,D.arrays.e_g_mag_f64_b64),
+  pca:typed(Float32Array,D.arrays.pca_xy_f32_b64),
+  notebookPca:typed(Float32Array,D.arrays.notebook_pca_xy_f32_b64),
+  notebookLabels:typed(Int16Array,D.arrays.notebook_gmm_labels_i16_b64),
+  percentile:typed(Uint8Array,D.arrays.feature_percentiles_u8_b64)
+};
+const FAMILY_LABEL={gmm:"Gaussian mixture",dbscan:"DBSCAN",hdbscan:"HDBSCAN"};
+const DEFAULT_CONFIG=D.controlled_defaults;
+const EXAMPLE_LABEL={
+  center:"Nearest to the motion–parallax guide",
+  both_models:"Default GMM and HDBSCAN agree",
+  gmm_only:"Default GMM-only selection",
+  hdbscan_only:"Default HDBSCAN-only selection",
+  boundary:"Near the default GMM probability boundary",
+  field_control:"Representative field control"
+};
+const EXAMPLE_REASON={
+  center:"Smallest scaled astrometric offset; no sky-position claim.",
+  both_models:"Selected by both default GMM and HDBSCAN fits.",
+  gmm_only:"Selected only by the default GMM among all default fits.",
+  hdbscan_only:"Selected only by default HDBSCAN among all default fits.",
+  boundary:"Stored example closest to the default mixture boundary.",
+  field_control:"Near the median of sources rejected by all three default fits."
+};
+const FEATURE_ARRAY=[A.pmra,A.pmdec,A.parallax];
+const configCache=new Map();
+function configData(model,key){
+  const cacheKey=model+":"+key;
+  if(configCache.has(cacheKey)) return configCache.get(cacheKey);
+  const record=D.configurations[model][key];
+  const value={record,labels:typed(Int16Array,record.labels_i16_b64),score:typed(Float64Array,record.candidate_probability_f64_b64)};
+  configCache.set(cacheKey,value);
+  return value;
+}
+function esc(value){return String(value).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[ch]);}
+function fmt(value,digits=2){return Number(value).toLocaleString(undefined,{maximumFractionDigits:digits});}
+function sourceId(i){return A.source[i].toString();}
+function z(i,j){return (FEATURE_ARRAY[j][i]-D.metadata.scaler_mean[j])/D.metadata.scaler_scale[j];}
+function tick3(range){return [range[0],(range[0]+range[1])/2,range[1]];}
+function flag(kind,label){
+  const icon=kind==="ok"?"✓":kind==="warn"?"!":"×";
+  return `<span class="flag ${kind}"><span aria-hidden="true">${icon}</span>${esc(label)}</span>`;
+}
+function candidateMask(state){
+  const data=configData(state.model,state.config),threshold=state.threshold;
+  const mask=new Uint8Array(A.ra.length);
+  for(let i=0;i<mask.length;i++) mask[i]=data.labels[i]===data.record.candidate_label&&data.score[i]>=threshold?1:0;
+  return mask;
+}
+function fittedRole(i,state,mask=candidateMask(state)){
+  const data=configData(state.model,state.config),label=data.labels[i];
+  if(label===data.record.candidate_label)return mask[i]?"displayed nearest-guide label":"nearest-guide label below display cut";
+  return label<0?"noise":"other fitted group";
+}
+function shownCount(state){
+  return configData(state.model,state.config).record.display_count_at_threshold[state.threshold.toFixed(2)];
+}
+function plottedPointTip(i,xLabel,x,yLabel,y,context=""){
+  return `<b>Gaia ${sourceId(i)}</b><br><span class="k">${esc(xLabel)}</span> ${fmt(x,6)}<br><span class="k">${esc(yLabel)}</span> ${fmt(y,6)}${context?`<br>${context}`:""}`;
+}
+function astrometricContext(i,motion=true){
+  const parallax=`<span class="k">parallax context</span> ${fmt(A.parallax[i],6)} mas`;
+  return motion?`<span class="k">motion context</span> (${fmt(A.pmra[i],6)}, ${fmt(A.pmdec[i],6)}) mas yr⁻¹<br>${parallax}`:parallax;
+}
+
+const VIEW=PC.createViewState(
+  {model:D.controlled_initial.model,config:D.controlled_defaults[D.controlled_initial.model],threshold:D.controlled_initial.threshold,selected:Number(D.examples.center),feature:0,example:"center",hovered:-1},
+  {params:{
+    model:{values:Object.keys(D.configurations)},
+    config:{values:[...new Set(Object.values(D.configurations).flatMap(f=>Object.keys(f)))]},
+    threshold:{type:"number",min:0.5,max:1,values:Array.from({length:11},(_,i)=>(10+i)/20),param:"cut"},
+    selected:{type:"integer",min:0,max:A.ra.length-1,param:"source"},
+    feature:{type:"integer",min:0,max:D.features.length-1,param:"feature"},
+    example:{values:[...Object.entries(D.examples).filter(([,i])=>i!==null).map(([key])=>key),"custom"],param:"example"}
+  }}
+);
+function normalizeInitialModelConfig(){const state=VIEW.get();if(!D.configurations[state.model][state.config])VIEW.set({config:DEFAULT_CONFIG[state.model]},{source:"url-model-config-normalization"});}
+normalizeInitialModelConfig();
+function reinforceSource(i){VIEW.set({hovered:i},{source:"derived-hover",url:false});}
+function clearReinforcement(){VIEW.set({hovered:-1},{source:"derived-leave",url:false});PC.hideTip();}
+function selectSource(i,source,extra={}){const state=VIEW.get(),keep=state.example!=="custom"&&Number(D.examples[state.example])===Number(i);VIEW.set({...extra,selected:i,example:keep?state.example:namedExampleFor(i),hovered:-1},{source});}
+function renderHoverBridge(state){
+  const explorer=document.getElementById("matrixExplorer"),readout=document.getElementById("dmHoverReadout");
+  if(state.hovered>=0){explorer.dataset.hoverSource=String(state.hovered);readout.textContent=`Derived-view hover reinforces X[${state.hovered},:] · Gaia ${sourceId(state.hovered)}; click makes it the shared selection.`;}
+  else{delete explorer.dataset.hoverSource;readout.textContent="Derived-view hover: none; the selected X[i,:] row remains linked by click.";}
+}
+function namedExampleFor(index){return Object.entries(D.examples).find(([,i])=>i!==null&&Number(i)===Number(index))?.[0]||"custom";}
+function normalizeInitialShareState(){
+  const query=new URLSearchParams(location.search),state=VIEW.get(),hasSource=query.has("source"),hasExample=query.has("example");
+  if(hasExample&&!hasSource&&state.example!=="custom"&&D.examples[state.example]!==null){VIEW.set({selected:Number(D.examples[state.example])},{source:"url-example-normalization"});return;}
+  if(hasSource){const consistent=state.example!=="custom"&&Number(D.examples[state.example])===state.selected;VIEW.set({example:hasExample?(consistent?state.example:"custom"):namedExampleFor(state.selected)},{source:"url-source-normalization"});}
+}
+normalizeInitialShareState();
+
+function buildProvenance(){
+  const body=document.querySelector("#provTable tbody");
+  body.innerHTML=D.provenance.claims.map(row=>`<tr><td>${esc(row.property)}</td><td>${esc(row.card_says)}</td><td>${esc(row.file_says)}<br><span class="note">${esc(row.note)}</span></td><td>${flag(row.verdict,row.verdict==="ok"?"confirmed":row.verdict==="bad"?"contradicted":"caution")}</td></tr>`).join("");
+  document.getElementById("provSource").innerHTML=`Retained CSV <code>${esc(D.metadata.source_sha256)}</code> · retained notebook <code>${esc(D.notebook.sha256)}</code> · upstream ${esc(D.provenance.identifier)} · licence ${esc(D.provenance.licence)} · donor/course record ${esc(D.provenance.source)}. ESA record: <code data-audit="esa-record">${esc(D.provenance.upstream_url)}</code> · licence deed: <code>${esc(D.provenance.licence_url)}</code>. ${esc(D.provenance.changes_notice)}`;
+  document.getElementById("gaiaAttribution").textContent=D.provenance.attribution;
+}
+function buildFindings(){
+  const p=D.provenance,n=D.notebook;
+  const rows=[
+    ["Cleaning is reproducible",`${D.metadata.raw_shape.join("×")} → ${D.metadata.complete_shape.join("×")} → ${D.metadata.clean_shape.join("×")}`,"Complete-case, four derived columns, positive-parallax and G-error rules reproduce the saved shapes."],
+    ["The report understates its GMM matrix",`${D.provenance.claims.find(x=>x.property==="Notebook GMM inputs").file_says}`,"The submitted code includes total proper motion and G-band flux beyond the named inputs."],
+    ["The largest HDBSCAN label is field",`${Number(n.stored_hdbscan_counts["2"]).toLocaleString()} rows · ${fmt(n.stored_largest_group_centre.parallax,3)} mas`,"Its stored motion, parallax and broad sky footprint conflict with the compact Pleiades interpretation."],
+    ["Every original figure is retained",`${n.gallery.length.toLocaleString()} stored PNG outputs · ${n.error_outputs.toLocaleString()} stored errors`,"The exact submitted HDBSCAN and unseeded probability outputs remain visible without pretending a different implementation reproduced them."],
+    ["No verified membership target exists",`${p.clean_rows.toLocaleString()} analysed rows · no target column`,"Model agreement is stability evidence only, never accuracy against truth."],
+    ["The source subset is not publisher-verifiable",`CSV ${esc(D.metadata.source_sha256.slice(0,12))}…`,"The course file is byte-audited, but the exact Gaia Archive query job was not retained."]
+  ];
+  document.getElementById("forensics").innerHTML=rows.map(r=>`<article class="finding"><h4>${r[0]}</h4><p class="ev">${r[1]}</p><p class="so"><b>Why it matters.</b> ${r[2]}</p></article>`).join("");
+}
+function buildNotebookAudit(){
+  const n=D.notebook;
+  document.getElementById("notebookAuditTable").innerHTML=`<thead><tr><th>Evidence</th><th>Stored notebook says</th><th>Rebuild check</th></tr></thead><tbody>
+    <tr><td>Execution</td><td>${n.executed_code_cells.toLocaleString()} executed code cells; ${n.png_outputs.toLocaleString()} PNG outputs</td><td>${n.error_outputs.toLocaleString()} stored errors</td></tr>
+    <tr><td>Stored dataframe shapes</td><td>${n.stored_shapes.raw.join("×")} → ${n.stored_shapes.complete.join("×")} → ${n.stored_shapes.clean.join("×")}</td><td>${D.metadata.raw_shape.join("×")} → ${D.metadata.complete_shape.join("×")} → ${D.metadata.clean_shape.join("×")}</td></tr>
+    <tr><td>Seeded GMM groups</td><td>${Object.values(n.stored_gmm_k3_counts).map(Number).map(x=>x.toLocaleString()).join(" / ")}</td><td>${Object.values(n.recomputed_gmm_k3_counts).map(Number).map(x=>x.toLocaleString()).join(" / ")} · ${n.gmm_k3_reproduces?"exact match":"does not match"}</td></tr>
+    <tr><td>Five-component negated lower bound</td><td>${fmt(n.stored_gmm_k5_negated_lower_bound,15)}</td><td>${fmt(n.recomputed_gmm_k5_negated_lower_bound,15)} · ${n.gmm_k5_reproduces?"matches within 10⁻¹²":"does not match"}</td></tr>
+    <tr><td>Third-party HDBSCAN labels</td><td>${Object.entries(n.stored_hdbscan_counts).map(([k,v])=>`${esc(k)}: ${Number(v).toLocaleString()}`).join(" · ")}</td><td>Preserved stored output; not substituted with scikit-learn labels</td></tr>
+    <tr><td>Probability tiers</td><td>${Object.values(n.stored_threshold_counts).map(Number).map(x=>x.toLocaleString()).join(" / ")}</td><td>Audited as an unseeded failure path</td></tr>
+  </tbody>`;
+  document.getElementById("notebookAuditNote").textContent=`Notebook SHA-256 ${n.sha256}; kernel metadata records Python ${n.python}.`;
+}
+function buildNotebookTables(){
+  const n=D.notebook, keys=[...new Set([...Object.keys(n.stored_gmm_k3_counts),...Object.keys(n.recomputed_gmm_k3_counts)])].sort();
+  document.getElementById("notebookGmmTable").innerHTML=`<thead><tr><th>Arbitrary label</th><th>Stored count</th><th>Recomputed count</th></tr></thead><tbody>${keys.map(k=>`<tr><td>${esc(k)}</td><td>${Number(n.stored_gmm_k3_counts[k]).toLocaleString()}</td><td>${Number(n.recomputed_gmm_k3_counts[k]).toLocaleString()}</td></tr>`).join("")}</tbody>`;
+  document.getElementById("notebookInterpretation").innerHTML=`<b>Audit reading.</b> ${n.gmm_k3_reproduces?"The saved seeded counts reproduce exactly.":"The recomputed seeded counts do not match the saved output."} The stored five-component value is ${fmt(n.stored_gmm_k5_negated_lower_bound,15)} and the recomputed value is ${fmt(n.recomputed_gmm_k5_negated_lower_bound,15)}${n.gmm_k5_reproduces?" (matching within 10⁻¹²)":" (not matching)"}; this is a negated per-sample lower bound rather than a total negative log-likelihood.`;
+}
+function buildControls(){
+  const model=document.getElementById("modelSelect"),feature=document.getElementById("featureSelect"),example=document.getElementById("exampleSelect");
+  model.innerHTML=Object.keys(D.configurations).map(k=>`<option value="${k}">${FAMILY_LABEL[k]}</option>`).join("");
+  feature.innerHTML=D.features.map((f,i)=>`<option value="${i}">${esc(f.short)} · ${esc(f.unit)}</option>`).join("");
+  example.innerHTML=Object.entries(D.examples).filter(([,i])=>i!==null).map(([k])=>`<option value="${k}">${esc(EXAMPLE_LABEL[k])}</option>`).join("")+`<option value="custom">Custom plot/table selection</option>`;
+  model.addEventListener("change",()=>VIEW.set({model:model.value,config:DEFAULT_CONFIG[model.value]},{source:"model-control"}));
+  document.getElementById("configSelect").addEventListener("change",event=>VIEW.set({config:event.target.value},{source:"config-control"}));
+  document.getElementById("thresholdRange").addEventListener("input",event=>VIEW.set({threshold:Number(event.target.value)},{source:"threshold-control"}));
+  feature.addEventListener("change",()=>VIEW.set({feature:Number(feature.value)},{source:"feature-control"}));
+  example.addEventListener("change",()=>{if(example.value!=="custom")VIEW.set({selected:Number(D.examples[example.value]),example:example.value},{source:"example-control"});});
+}
+function buildDesignMatrix(){
+  document.getElementById("heroValue").textContent=D.metadata.n_clean.toLocaleString();
+  document.getElementById("heroNote").textContent=`from ${D.metadata.n_raw.toLocaleString()} retained catalogue rows; all ${D.metadata.n_unique_sources.toLocaleString()} clean source identifiers are unique (asserted during precompute).`;
+  document.getElementById("statRow").innerHTML=`<div class="stat"><div class="v">${D.metadata.n_features}</div><div class="l">controlled input columns</div></div><div class="stat"><div class="v">${D.metadata.pca_variance.reduce((a,b)=>a+b,0).toLocaleString(undefined,{style:"percent",maximumFractionDigits:1})}</div><div class="l">variance in display PCA</div></div><div class="stat"><div class="v">${D.metadata.g_error_limit_mag}</div><div class="l">G-error limit, mag</div></div>`;
+  document.getElementById("validationNote").textContent=`Reserve ${D.metadata.withheld_validation.map(item=>item.label).join(", ")} for post-fit validation; none enters controlled X.`;
+  document.getElementById("scaleNote").insertAdjacentHTML("beforeend",` The browser uses the stored means (${D.metadata.scaler_mean.map(x=>fmt(x,3)).join(", ")}) and scales (${D.metadata.scaler_scale.map(x=>fmt(x,3)).join(", ")}); PCA is display-only.`);
+  document.getElementById("scalerTable").innerHTML=`<thead><tr><th>Controlled X column</th><th>Unit</th><th>Stored mean</th><th>Stored scale</th><th>Model role</th></tr></thead><tbody>${D.features.map((feature,j)=>`<tr><td>${esc(feature.label)}</td><td>${esc(feature.unit)}</td><td>${fmt(D.metadata.scaler_mean[j],6)}</td><td>${fmt(D.metadata.scaler_scale[j],6)}</td><td>standardized full-dimensional clustering input</td></tr>`).join("")}</tbody>`;
+}
+function buildDefaultComparison(){
+  document.getElementById("defaultComparisonTable").innerHTML=`<thead><tr><th>Family</th><th>Exact stored default</th><th>Nearest-guide-label rows</th><th>Noise rows</th><th>Jaccard vs default HDBSCAN</th></tr></thead><tbody>${Object.entries(D.default_comparison).map(([family,row])=>`<tr><td>${esc(FAMILY_LABEL[family])}</td><td>${esc(row.setting)}</td><td>${Number(row.candidate_count).toLocaleString()}</td><td>${Number(row.noise_count).toLocaleString()}</td><td>${fmt(row.jaccard_with_hdbscan_30,6)}</td></tr>`).join("")}</tbody>`;
+}
+function defaultVotes(i){
+  return Object.entries(DEFAULT_CONFIG).reduce((n,[m,k])=>{const c=configData(m,k);return n+(c.labels[i]===c.record.candidate_label?1:0);},0);
+}
+function buildExampleTable(){
+  const body=document.querySelector("#exampleTable tbody");
+  const grouped=[];for(const [key,i] of Object.entries(D.examples).filter(([,value])=>value!==null)){let row=grouped.find(x=>x.i===i);if(!row){row={i,keys:[]};grouped.push(row);}row.keys.push(key);}
+  body.innerHTML=grouped.map(row=>`<tr data-key="${row.i}" data-example="${esc(row.keys[0])}"><td>${row.keys.map(key=>esc(EXAMPLE_LABEL[key])).join(" / ")}</td><td><code>${sourceId(row.i)}</code></td><td>${defaultVotes(row.i)} / ${Object.keys(D.configurations).length}</td><td>${row.keys.map(key=>esc(EXAMPLE_REASON[key])).join(" ")}</td></tr>`).join("");
+}
+let exampleRows;
+function buildGlossary(){
+  const groups=[
+    ["Data",[["Gaia source","One catalogue row identified by source_id; it is not a verified cluster member."],["Parallax","Annual apparent displacement in milliarcseconds, used here as a distance-sensitive coordinate."],["Proper motion","Angular motion on the sky per year; pmRA already includes the cosine-of-declination convention."],["Colour–magnitude diagram","BP−RP colour against G magnitude with the magnitude axis inverted."]]],
+    ["Model",[["Standardization","Subtract the stored feature mean and divide by the stored feature scale."],["PCA","A two-dimensional display projection; clustering in the controlled branch is fitted before this projection."],["GMM","Gaussian mixture model; component numbers have no physical identity on their own."],["DBSCAN","A density clustering method with a fixed neighbourhood radius and minimum sample count."],["HDBSCAN","A hierarchical density method. The submitted third-party package and current scikit-learn implementation are distinct."],["Noise","Rows a density model leaves outside every non-noise group."]]],
+    ["Evidence",[["Nearest-guide group","The fitted non-noise group with the smallest post-fit scaled offset from the disclosed Pleiades interpretation guide."],["Credible separated candidate","A nearest-guide group inside the declared scaled-offset cutoff; still not verified membership."],["Membership strength","A stored model-specific display score. It is a GMM component probability, density strength, or binary inclusion value depending on model."],["Jaccard agreement","Intersection divided by union against the default controlled HDBSCAN group."],["Stored notebook output","An exact executed figure or printed value retained inside the original notebook."],["Verified membership","An external truth label, which this dataset does not contain."]]]
+  ];
+  document.getElementById("glossary-content").innerHTML=`<div class="gloss">${groups.map(([title,terms])=>`<h3>${title}</h3>${terms.map(([term,text])=>`<div class="term"><b>${term}</b><p>${text}</p></div>`).join("")}`).join("")}</div>`;
+}
+
+function paintMiniScatter(cv,g,xValues,yValues,colour){
+  const w=parseFloat(cv.style.width)||cv.getBoundingClientRect().width,h=parseFloat(cv.style.height)||72;
+  const xr=PC.extent(xValues),yr=PC.extent(yValues),sx=v=>(v-xr[0])/(xr[1]-xr[0])*w,sy=v=>h-(v-yr[0])/(yr[1]-yr[0])*h;
+  for(let i=0;i<xValues.length;i+=D.metadata.story_field_stride)drawPoint(g,sx(xValues[i]),sy(yValues[i]),colour,4,.58);
+}
+function paintMiniMembership(cv,g,model,key){
+  const c=configData(model,key),w=parseFloat(cv.style.width)||cv.getBoundingClientRect().width,h=parseFloat(cv.style.height)||72;
+  const xr=D.metadata.display_ranges.pmra,yr=D.metadata.display_ranges.pmdec,sx=v=>(v-xr[0])/(xr[1]-xr[0])*w,sy=v=>h-(v-yr[0])/(yr[1]-yr[0])*h;
+  for(let i=0;i<A.pmra.length;i+=D.metadata.story_field_stride)drawPoint(g,sx(A.pmra[i]),sy(A.pmdec[i]),PC.css("--muted"),4,.32);
+  let candidate=0;for(let i=0;i<A.pmra.length;i++)if(c.labels[i]===c.record.candidate_label&&candidate++%D.metadata.story_candidate_stride===0)drawPoint(g,sx(A.pmra[i]),sy(A.pmdec[i]),PC.css("--series-1"),4,.9);
+}
+function inside(value,range){return value>=Math.min(...range)&&value<=Math.max(...range);}
+function clampRange(value,range){return Math.max(Math.min(...range),Math.min(Math.max(...range),value));}
+function histInterval(hist,k,digits=3,unit=""){
+  const suffix=unit?` ${unit}`:"",last=hist.counts.length-1;
+  if(k===0)return `≤ ${fmt(hist.edges[1],digits)}${suffix}`;
+  if(k===last)return `≥ ${fmt(hist.edges[k],digits)}${suffix}`;
+  return `${fmt(hist.edges[k],digits)}–${fmt(hist.edges[k+1],digits)}${suffix}`;
+}
+function drawPoint(g,x,y,fill,r=4,alpha=1){
+  r=Math.max(4,r);
+  g.globalAlpha=1;g.fillStyle=PC.css("--surface-1");g.beginPath();g.arc(x,y,r+1.5,0,Math.PI*2);g.fill();
+  g.globalAlpha=alpha;g.fillStyle=fill;g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.fill();g.globalAlpha=1;
+}
+function selectedPoint(g,x,y,fill,r=4){
+  r=Math.max(4,r);g.globalAlpha=1;g.strokeStyle=PC.css("--text-primary");g.lineWidth=2;g.beginPath();g.arc(x,y,r+5,0,Math.PI*2);g.stroke();drawPoint(g,x,y,fill,r,1);
+}
+function verticalBar(g,x,y,width,bottom,fill,alpha=1){
+  const h=Math.max(0,bottom-y),r=Math.min(4,width/2,h/2);
+  if(h<=0||width<=0)return;
+  g.globalAlpha=alpha;g.fillStyle=fill;g.beginPath();g.moveTo(x,bottom);g.lineTo(x,y+r);g.quadraticCurveTo(x,y,x+r,y);g.lineTo(x+width-r,y);g.quadraticCurveTo(x+width,y,x+width,y+r);g.lineTo(x+width,bottom);g.closePath();g.fill();g.globalAlpha=1;
+}
+const POINT_TABLE_BINDINGS=new Map();
+function renderPointTable(tableId,indices,state,xValues,yValues,xLabel,yLabel,roleFor){
+  const table=document.getElementById(tableId);if(!table)return;
+  const activeKey=table.contains(document.activeElement)?document.activeElement.dataset.key:null;
+  table.innerHTML=`<thead><tr><th>Gaia source ID</th><th>Role</th><th>${esc(xLabel)}</th><th>${esc(yLabel)}</th></tr></thead><tbody>${indices.map(i=>{const role=roleFor(i);return `<tr data-key="${i}"><td><code>${sourceId(i)}</code></td><td>${esc(i===state.selected?`selected · ${role}`:role)}</td><td>${fmt(xValues[i],6)}</td><td>${fmt(yValues[i],6)}</td></tr>`;}).join("")}</tbody>`;
+  if(!POINT_TABLE_BINDINGS.has(tableId))POINT_TABLE_BINDINGS.set(tableId,PC.bindTableRows(table,{key:row=>Number(row.dataset.key),selected:()=>VIEW.get().selected,onSelect:key=>selectSource(key,tableId+"-table"),onClear:()=>VIEW.set({selected:Number(D.examples.center),example:"center",hovered:-1},{source:tableId+"-table"})}));
+  POINT_TABLE_BINDINGS.get(tableId).refresh(()=>VIEW.get().selected);
+  if(activeKey!==null){const focusRow=table.querySelector(`tbody tr[data-key="${activeKey}"]`)||table.querySelector('tbody tr[aria-selected="true"]');if(focusRow){table.querySelectorAll("tbody tr").forEach(row=>row.tabIndex=-1);focusRow.tabIndex=0;focusRow.focus();}}
+}
+function drawScatter(canvasId,xValues,yValues,xRange,yRange,xLabel,yLabel,state,options={}){
+  const cv=document.getElementById(canvasId),g=PC.fit(cv),s=PC.scales(cv,xRange,yRange,{l:58,r:15,t:14,b:54}),box=PC.boxOf(s);
+  PC.drawAxes(g,box,tick3(xRange),tick3(yRange),s.x,s.y,xLabel,yLabel);
+  const mask=candidateMask(state),selected=state.selected,points=[],drawn=[];let selectedClamped=false;
+  g.save();g.beginPath();g.rect(box.left,box.top,box.right-box.left,box.bottom-box.top);g.clip();
+  for(let pass=0;pass<2;pass++){
+    for(let i=0;i<xValues.length;i++){
+      const member=!!mask[i];
+      if((pass===0&&member)||(pass===1&&!member)||(!member&&i%D.metadata.field_display_stride!==0&&i!==selected))continue;
+      const outside=!inside(xValues[i],xRange)||!inside(yValues[i],yRange);if(outside&&i!==selected)continue;if(outside)selectedClamped=true;
+      const px=s.x(clampRange(xValues[i],xRange)),py=s.y(clampRange(yValues[i],yRange)),colour=member?PC.css("--series-1"):PC.css("--muted");
+      if(i===selected)selectedPoint(g,px,py,colour);else drawPoint(g,px,py,colour,4,member?.86:.58);
+      points.push([px,py,i]);drawn.push(i);
+    }
+  }
+  if(options.reference){
+    const x=s.x(D.reference.pmra),y=s.y(D.reference.pmdec);
+    g.strokeStyle=PC.css("--axis");g.lineWidth=1;g.setLineDash([4,3]);
+    g.beginPath();g.moveTo(x-8,y);g.lineTo(x+8,y);g.moveTo(x,y-8);g.lineTo(x,y+8);g.stroke();g.setLineDash([]);
+    g.font=PC.font.tick();g.textAlign="left";g.textBaseline="bottom";g.fillStyle=PC.css("--text-secondary");g.fillText("guide",x+10,y-5);
+  }
+  g.restore();
+  let clipped=0;for(let i=0;i<xValues.length;i++)if(!inside(xValues[i],xRange)||!inside(yValues[i],yRange))clipped++;
+  const readout=document.getElementById(options.readoutId||"");
+  const baseReadout=`${drawn.length.toLocaleString()} rendered marks: all in-domain displayed nearest-guide-label rows, every ${D.metadata.field_display_stride}th row not currently blue (including below-cut nearest-guide-label rows, other groups and noise), and the selected source. `+(clipped?`${clipped.toLocaleString()} tail rows fall outside this payload-defined display domain. `:"")+(selectedClamped?"The selected source is retained at the nearest plot edge; its tooltip and table show the unclamped values. ":"")+"Hover for plotted values; the numeric twin lists every rendered mark, and click shares a source across views.";
+  if(readout)readout.textContent=baseReadout;
+  if(options.tableId)renderPointTable(options.tableId,drawn,state,xValues,yValues,xLabel,yLabel,i=>fittedRole(i,state,mask));
+  PC.hover(cv,points,{onHit:(i,event)=>{reinforceSource(i);let context=canvasId==="motionCanvas"?astrometricContext(i,false):astrometricContext(i,true);if(!inside(xValues[i],xRange)||!inside(yValues[i],yRange))context+=`<br><span class="k">display</span> marker clamped to the nearest plot edge`;PC.tip(plottedPointTip(i,xLabel,xValues[i],yLabel,yValues[i],context),event);if(readout)readout.textContent=`Hover: plotted values for Gaia ${sourceId(i)}; click to select.`;},onLeave:()=>{clearReinforcement();if(readout)readout.textContent=baseReadout;},onClick:i=>selectSource(i,canvasId)});
+  return drawn;
+}
+function drawMatrix(state){
+  const cv=document.getElementById("matrixCanvas"),g=PC.fit(cv),w=parseFloat(cv.style.width),h=parseFloat(cv.style.height),left=50,top=30,right=12,bottom=24,rows=15;
+  let rowIds=Array.from({length:rows},(_,r)=>Math.round(r*(A.ra.length-1)/(rows-1)));
+  const middle=Math.floor(rows/2);rowIds[middle]=state.selected;if(state.hovered>=0&&state.hovered!==state.selected)rowIds[middle-1]=state.hovered;
+  rowIds=[...new Set(rowIds)];for(let r=0;rowIds.length<rows&&r<A.ra.length;r++){const candidate=Math.round(r*(A.ra.length-1)/(rows-1));if(!rowIds.includes(candidate))rowIds.push(candidate);}rowIds.sort((a,b)=>a-b);
+  const cellW=(w-left-right)/D.features.length,cellH=(h-top-bottom)/rows,points=[],meta=[];
+  g.font=PC.font.tick();g.textAlign="center";g.textBaseline="bottom";g.fillStyle=PC.css("--text-secondary");
+  D.features.forEach((feature,j)=>g.fillText(feature.short,left+(j+.5)*cellW,top-8));
+  rowIds.forEach((row,r)=>{
+    for(let j=0;j<D.features.length;j++){
+      const x=left+j*cellW,y=top+r*cellH,value=z(row,j);
+      g.fillStyle=PC.divColor(Math.max(-1,Math.min(1,value/3)));g.fillRect(x+1,y+1,cellW-2,cellH-2);
+      if(row===state.selected){g.strokeStyle=PC.css("--matrix-row");g.lineWidth=2;g.strokeRect(left+.5,y+.5,cellW*D.features.length-1,cellH-1);}
+      if(row===state.hovered){g.strokeStyle=PC.css("--matrix-row");g.lineWidth=4;g.setLineDash([4,3]);g.strokeRect(left+2,y+2,cellW*D.features.length-4,cellH-4);g.setLineDash([]);}
+      if(j===state.feature){g.strokeStyle=PC.css("--matrix-column");g.lineWidth=1.5;g.strokeRect(x+.5,top+.5,cellW-1,cellH*rows-1);}
+      if(row===state.selected&&j===state.feature){g.strokeStyle=PC.css("--matrix-cell");g.lineWidth=3;g.strokeRect(x+2,y+2,cellW-4,cellH-4);}
+      points.push([x+cellW/2,y+cellH/2,meta.length]);meta.push({row,feature:j,value});
+    }
+  });
+  g.strokeStyle=PC.css("--axis");g.lineWidth=1;g.strokeRect(left+.5,top+.5,cellW*D.features.length-1,cellH*rows-1);
+  g.fillStyle=PC.css("--muted");g.textAlign="right";g.textBaseline="middle";g.fillText("rows",left-8,top+cellH*rows/2);
+  PC.hover(cv,points,{onHit:(k,event)=>{const m=meta[k];PC.tip(`<b>X[${m.row}, ${m.feature}]</b><br>${esc(D.features[m.feature].short)} z = ${fmt(m.value,3)}<br>Gaia ${sourceId(m.row)}`,event);},onLeave:()=>PC.hideTip(),onClick:k=>{const m=meta[k];selectSource(m.row,"matrix-canvas",{feature:m.feature});}});
+}
+function drawRow(state){
+  const cv=document.getElementById("rowCanvas"),g=PC.fit(cv),range=[0,100],s=PC.scales(cv,[-.4,D.features.length-.6],range,{l:45,r:12,t:14,b:54}),box=PC.boxOf(s),points=[];
+  PC.drawAxes(g,box,D.features.map((_,i)=>i),[0,25,50,75,100],s.x,s.y,"feature","within-column percentile",{xFmt:i=>D.features[i].short});
+  D.features.forEach((feature,j)=>{const value=A.percentile[state.selected*D.features.length+j],x=s.x(j),y=s.y(value);g.strokeStyle=PC.css("--axis");g.beginPath();g.moveTo(x,s.y(0));g.lineTo(x,y);g.stroke();drawPoint(g,x,y,j===state.feature?PC.css("--matrix-cell"):PC.css("--matrix-row"),5,1);points.push([x,y,j]);});
+  PC.hover(cv,points,{onHit:(j,event)=>PC.tip(`<b>${esc(D.features[j].label)}</b><br>raw ${fmt(FEATURE_ARRAY[j][state.selected],3)} ${esc(D.features[j].unit)}<br>shared percentile ${A.percentile[state.selected*D.features.length+j]}<br>z = ${fmt(z(state.selected,j),3)}`,event),onLeave:()=>PC.hideTip(),onClick:j=>VIEW.set({feature:j},{source:"row-canvas"})});
+}
+function drawColumn(state){
+  const feature=D.features[state.feature],hist=D.histograms[feature.key],cv=document.getElementById("columnCanvas"),g=PC.fit(cv),max=Math.max(...hist.counts),s=PC.scales(cv,[hist.q01,hist.q99],[0,max*1.08],{l:58,r:12,t:14,b:54}),box=PC.boxOf(s),points=[];
+  PC.drawAxes(g,box,tick3([hist.q01,hist.q99]),tick3([0,max]),s.x,s.y,`${feature.short} (${feature.unit})`,"source count");
+  hist.counts.forEach((count,k)=>{const x0=s.x(hist.edges[k]),x1=s.x(hist.edges[k+1]),y=s.y(count);verticalBar(g,x0+1,y,Math.max(1,x1-x0-2),box.bottom,PC.css("--matrix-column"),.74);points.push([(x0+x1)/2,y,k]);});
+  const value=FEATURE_ARRAY[state.feature][state.selected],lineX=s.x(Math.max(hist.q01,Math.min(hist.q99,value)));g.strokeStyle=PC.css("--matrix-cell");g.lineWidth=2;g.beginPath();g.moveTo(lineX,box.top);g.lineTo(lineX,box.bottom);g.stroke();
+  PC.hover(cv,points,{onHit:(k,event)=>PC.tip(`<b>${esc(histInterval(hist,k,3,feature.unit))}</b><br>${hist.counts[k].toLocaleString()} sources`,event),onLeave:()=>PC.hideTip(),onClick:k=>{const middle=(hist.edges[k]+hist.edges[k+1])/2;let best=0,distance=Infinity;for(let i=0;i<A.ra.length;i++){const d=Math.abs(FEATURE_ARRAY[state.feature][i]-middle);if(d<distance){distance=d;best=i;}}selectSource(best,"column-canvas");}});
+}
+function renderDesignTables(state){
+  document.getElementById("dmCellReadout").textContent=`x[${state.selected}, ${state.feature}] = ${fmt(z(state.selected,state.feature),3)} · Gaia ${sourceId(state.selected)}`;
+  document.getElementById("dmRowReadout").textContent=`X[${state.selected},:] · real source ${sourceId(state.selected)} · all three row measurements use one disclosed 0–100 within-column percentile scale; tooltip and table retain raw values and standardized z-values.`;
+  const hist=D.histograms[D.features[state.feature].key];
+  document.getElementById("dmColumnReadout").textContent=`X[:,${state.feature}] · ${hist.below_count.toLocaleString()} values below ${fmt(hist.q01,3)} and ${hist.above_count.toLocaleString()} above ${fmt(hist.q99,3)} ${D.features[state.feature].unit} are folded into open-ended edge bins.`;
+  document.getElementById("dmRowTable").innerHTML=`<thead><tr><th>Feature</th><th>Raw value</th><th>Standardized value</th><th>Percentile</th></tr></thead><tbody>${D.features.map((f,j)=>`<tr><td>${esc(f.label)}</td><td>${fmt(FEATURE_ARRAY[j][state.selected],4)} ${esc(f.unit)}</td><td>${fmt(z(state.selected,j),4)}</td><td>${A.percentile[state.selected*D.features.length+j]}</td></tr>`).join("")}</tbody>`;
+  document.getElementById("dmColumnTable").innerHTML=`<thead><tr><th>${esc(D.features[state.feature].short)} interval</th><th>Count</th></tr></thead><tbody>${hist.counts.map((count,k)=>`<tr><td>${esc(histInterval(hist,k,4,D.features[state.feature].unit))}</td><td>${count.toLocaleString()}</td></tr>`).join("")}</tbody>`;
+}
+function drawNotebookPca(state){
+  const cv=document.getElementById("notebookPcaCanvas"),g=PC.fit(cv),xr=D.notebook.pca_ranges.x,yr=D.notebook.pca_ranges.y,s=PC.scales(cv,xr,yr,{l:58,r:14,t:14,b:54}),box=PC.boxOf(s),points=[],drawn=[],pcaX=[],pcaY=[];let selectedClamped=false,clipped=0;
+  PC.drawAxes(g,box,tick3(xr),tick3(yr),s.x,s.y,"ten-feature PC1","ten-feature PC2");
+  const colours=[PC.css("--series-1"),PC.css("--series-2"),PC.css("--series-3")];
+  g.save();g.beginPath();g.rect(box.left,box.top,box.right-box.left,box.bottom-box.top);g.clip();
+  for(let i=0;i<A.ra.length;i++){
+    const x=A.notebookPca[2*i],y=A.notebookPca[2*i+1],outside=!inside(x,xr)||!inside(y,yr);if(outside)clipped++;if(i%D.metadata.notebook_display_stride!==0&&i!==state.selected)continue;if(outside&&i!==state.selected)continue;if(outside)selectedClamped=true;
+    const px=s.x(clampRange(x,xr)),py=s.y(clampRange(y,yr)),colour=colours[A.notebookLabels[i]]||PC.css("--muted");if(i===state.selected)selectedPoint(g,px,py,colour);else drawPoint(g,px,py,colour,4,.72);points.push([px,py,i]);drawn.push(i);pcaX[i]=x;pcaY[i]=y;
+  }
+  g.restore();
+  document.getElementById("notebookPcaReadout").textContent=`${drawn.length.toLocaleString()} rendered marks: every ${D.metadata.notebook_display_stride}th submitted row plus the selected source. Selected Gaia ${sourceId(state.selected)} · arbitrary submitted label ${A.notebookLabels[state.selected]}. ${clipped.toLocaleString()} rows lie outside the stored tail-quantile display domain.${selectedClamped?" The selected marker is clamped to the edge while its table keeps the original coordinates.":""}`;
+  renderPointTable("notebookPcaTable",drawn,state,pcaX,pcaY,"ten-feature PC1","ten-feature PC2",i=>`submitted GMM label ${A.notebookLabels[i]}`);
+  PC.hover(cv,points,{onHit:(i,event)=>{reinforceSource(i);let context=astrometricContext(i,true);if(!inside(A.notebookPca[2*i],xr)||!inside(A.notebookPca[2*i+1],yr))context+=`<br><span class="k">display</span> marker clamped to the nearest plot edge`;PC.tip(`${plottedPointTip(i,"ten-feature PC1",A.notebookPca[2*i],"ten-feature PC2",A.notebookPca[2*i+1],context)}<br><span class="k">submitted GMM label</span> ${A.notebookLabels[i]}`,event);},onLeave:clearReinforcement,onClick:i=>selectSource(i,"notebook-pca")});
+}
+function drawControlledPca(state){
+  const cv=document.getElementById("controlledPcaCanvas"),g=PC.fit(cv),xr=D.metadata.display_ranges.pca_x,yr=D.metadata.display_ranges.pca_y,s=PC.scales(cv,xr,yr,{l:58,r:14,t:14,b:54}),box=PC.boxOf(s),mask=candidateMask(state),points=[],drawn=[];let selectedClamped=false,clipped=0;
+  PC.drawAxes(g,box,tick3(xr),tick3(yr),s.x,s.y,"three-feature PC1","three-feature PC2");
+  g.save();g.beginPath();g.rect(box.left,box.top,box.right-box.left,box.bottom-box.top);g.clip();
+  for(let pass=0;pass<2;pass++)for(let i=0;i<A.ra.length;i++){
+    const member=!!mask[i],x=A.pca[2*i],y=A.pca[2*i+1],outside=!inside(x,xr)||!inside(y,yr);if(pass===0&&outside)clipped++;if((pass===0&&member)||(pass===1&&!member)||(!member&&i%D.metadata.field_display_stride!==0&&i!==state.selected))continue;if(outside&&i!==state.selected)continue;if(outside)selectedClamped=true;
+    const px=s.x(clampRange(x,xr)),py=s.y(clampRange(y,yr)),colour=member?PC.css("--series-1"):PC.css("--muted");if(i===state.selected)selectedPoint(g,px,py,PC.css("--matrix-cell"));else drawPoint(g,px,py,colour,4,member?.86:.58);points.push([px,py,i]);drawn.push(i);
+  }
+  g.restore();
+  document.getElementById("controlledPcaReadout").textContent=`${drawn.length.toLocaleString()} rendered marks: all in-domain displayed nearest-guide-label rows, every ${D.metadata.field_display_stride}th row not currently blue (including below-cut nearest-guide-label rows, other groups and noise), and the selected source. ${shownCount(state).toLocaleString()} rows pass the current stored-label and display-strength rule; ${clipped.toLocaleString()} rows lie outside the fixed tail-quantile display domain; selected Gaia ${sourceId(state.selected)}.${selectedClamped?" Its marker is clamped to the edge while the table keeps original coordinates.":""}`;
+  const pcaX={length:A.ra.length},pcaY={length:A.ra.length};for(let i of drawn){pcaX[i]=A.pca[2*i];pcaY[i]=A.pca[2*i+1];}
+  renderPointTable("controlledPcaTable",drawn,state,pcaX,pcaY,"three-feature PC1","three-feature PC2",i=>fittedRole(i,state,mask));
+  PC.hover(cv,points,{onHit:(i,event)=>{reinforceSource(i);let context=astrometricContext(i,true)+`<br><span class="k">current assignment</span> ${esc(fittedRole(i,state,mask))}`;if(!inside(A.pca[2*i],xr)||!inside(A.pca[2*i+1],yr))context+=`<br><span class="k">display</span> marker clamped to the nearest plot edge`;PC.tip(plottedPointTip(i,"three-feature PC1",A.pca[2*i],"three-feature PC2",A.pca[2*i+1],context),event);},onLeave:clearReinforcement,onClick:i=>selectSource(i,"controlled-pca")});
+}
+function drawScore(state){
+  const record=configData(state.model,state.config).record,hist=record.score_histogram,cv=document.getElementById("scoreCanvas"),g=PC.fit(cv),max=Math.max(...hist.counts),s=PC.scales(cv,[0,1],[0,max*1.08],{l:58,r:14,t:14,b:54}),box=PC.boxOf(s),points=[];
+  PC.drawAxes(g,box,[0,.5,1],tick3([0,max]),s.x,s.y,"stored nearest-guide-label score","source count");
+  const passing=hist.counts.map((count,k)=>state.threshold===1?(k===hist.counts.length-1?hist.exact_one_count:0):(hist.edges[k]+1e-12>=state.threshold?count:0));
+  hist.counts.forEach((count,k)=>{const lo=hist.edges[k],hi=hist.edges[k+1],x0=s.x(lo),x1=s.x(hi),y=s.y(count),region=passing[k]===count&&count>0;verticalBar(g,x0+1,y,Math.max(1,x1-x0-2),box.bottom,region?PC.css("--series-1"):PC.css("--muted"),.78);points.push([(x0+x1)/2,y,k]);});
+  if(state.threshold===1&&hist.exact_one_count)verticalBar(g,box.right-4,s.y(hist.exact_one_count),3,box.bottom,PC.css("--series-1"),.9);
+  const cut=s.x(state.threshold);g.strokeStyle=PC.css("--axis");g.lineWidth=1;g.setLineDash([4,3]);g.beginPath();g.moveTo(cut,box.top);g.lineTo(cut,box.bottom);g.stroke();g.setLineDash([]);g.font=PC.font.tick();g.textAlign="left";g.textBaseline="top";g.fillStyle=PC.css("--text-secondary");g.fillText("cut",Math.min(cut+5,box.right-18),box.top+4);
+  PC.hover(cv,points,{onHit:(k,event)=>PC.tip(`<b>score ${fmt(hist.edges[k],2)}–${fmt(hist.edges[k+1],2)}</b><br>${hist.counts[k].toLocaleString()} assigned-label rows<br>${passing[k].toLocaleString()} pass the current cut`,event),onLeave:()=>PC.hideTip()});
+  document.getElementById("scoreReadout").textContent=`Histogram includes only the ${record.candidate_count.toLocaleString()} rows assigned to the nearest-guide label; ${hist.excluded_count.toLocaleString()} other/noise rows are reported separately rather than flattened into a zero-score bar. The cut filters after fitting.`;
+  document.getElementById("scoreTable").innerHTML=`<thead><tr><th>Score interval</th><th>Assigned-label rows</th><th>Rows passing current cut</th><th>Relative to display threshold</th></tr></thead><tbody>${hist.counts.map((count,k)=>{const last=k===hist.counts.length-1,above=state.threshold<1&&hist.edges[k]+1e-12>=state.threshold,relation=last&&state.threshold===1?`contains the exact 1.00 cut; only the ${hist.exact_one_count.toLocaleString()} score = 1 rows pass`:above?"at/above display region":"below display region";return `<tr><td>${fmt(hist.edges[k],2)}–${fmt(hist.edges[k+1],2)}</td><td>${count.toLocaleString()}</td><td>${passing[k].toLocaleString()}</td><td>${relation}</td></tr>`;}).join("")}</tbody>`;
+}
+function drawGroups(state){
+  const record=configData(state.model,state.config).record,rows=record.clusters,cv=document.getElementById("groupCanvas"),g=PC.fit(cv),max=Math.max(...rows.map(r=>r.size)),s=PC.scales(cv,[-.6,rows.length-.4],[0,max*1.08],{l:58,r:14,t:14,b:54}),box=PC.boxOf(s),points=[];
+  PC.drawAxes(g,box,rows.map((_,i)=>i),tick3([0,max]),s.x,s.y,"model label","source count",{xFmt:i=>String(rows[i].label)});
+  rows.forEach((row,k)=>{const x0=s.x(k-.35),x1=s.x(k+.35),y=s.y(row.size);verticalBar(g,x0,y,x1-x0,box.bottom,row.candidate?PC.css("--series-1"):row.noise?PC.css("--muted"):PC.css("--series-2"),.8);points.push([s.x(k),y,k]);});
+  PC.hover(cv,points,{onHit:(k,event)=>{const row=rows[k];PC.tip(`<b>label ${row.label}</b><br>${row.size.toLocaleString()} sources<br>offset ${fmt(row.reference_offset,2)}`,event);},onLeave:()=>PC.hideTip()});
+}
+function renderClusterTable(state){
+  const rows=configData(state.model,state.config).record.clusters;
+  document.getElementById("clusterTable").innerHTML=`<thead><tr><th>Label</th><th>Role</th><th>Rows</th><th>Median pmRA</th><th>Median pmDec</th><th>Median parallax</th><th>Guide offset</th></tr></thead><tbody>${rows.map(row=>`<tr><td>${row.label}</td><td>${row.candidate?"nearest guide":row.noise?"noise":"other"}</td><td>${row.size.toLocaleString()}</td><td>${fmt(row.median_pmra)}</td><td>${fmt(row.median_pmdec)}</td><td>${fmt(row.median_parallax,3)}</td><td>${fmt(row.reference_offset,2)}</td></tr>`).join("")}</tbody>`;
+}
+function drawParallax(state){
+  const record=configData(state.model,state.config).record,hist=D.histograms.parallax,candidateCounts=record.candidate_parallax_counts_by_threshold[state.threshold.toFixed(2)],remainderCounts=hist.counts.map((count,k)=>count-candidateCounts[k]),cv=document.getElementById("parallaxCanvas"),g=PC.fit(cv),max=Math.max(...hist.counts),s=PC.scales(cv,[hist.q01,hist.q99],[0,max*1.08],{l:58,r:14,t:14,b:54}),box=PC.boxOf(s),points=[];
+  PC.drawAxes(g,box,tick3([hist.q01,hist.q99]),tick3([0,max]),s.x,s.y,"parallax (mas)","source count");
+  hist.counts.forEach((count,k)=>{const x0=s.x(hist.edges[k]),x1=s.x(hist.edges[k+1]),y=s.y(remainderCounts[k]),cy=s.y(candidateCounts[k]);verticalBar(g,x0+1,y,Math.max(1,x1-x0-2),box.bottom,PC.css("--muted"),.58);verticalBar(g,x0+2,cy,Math.max(1,x1-x0-4),box.bottom,PC.css("--series-1"),.86);points.push([(x0+x1)/2,Math.min(y,cy),k]);});
+  PC.hover(cv,points,{onHit:(k,event)=>PC.tip(`<b>${esc(histInterval(hist,k,3,"mas"))}</b><br>all ${hist.counts[k].toLocaleString()} · all minus displayed ${remainderCounts[k].toLocaleString()} · displayed nearest-guide label ${candidateCounts[k].toLocaleString()}`,event),onLeave:()=>PC.hideTip()});
+  document.getElementById("parallaxReadout").textContent=`The outer ${hist.below_count.toLocaleString()} low and ${hist.above_count.toLocaleString()} high parallax values are folded into the open-ended first and last bins; no tail value is relabelled as an ordinary closed interval.`;
+  document.getElementById("parallaxTable").innerHTML=`<thead><tr><th>Parallax interval</th><th>All rows</th><th>All minus displayed</th><th>Displayed nearest-guide-label rows</th></tr></thead><tbody>${hist.counts.map((count,k)=>`<tr><td>${esc(histInterval(hist,k,3,"mas"))}</td><td>${count.toLocaleString()}</td><td>${remainderCounts[k].toLocaleString()}</td><td>${candidateCounts[k].toLocaleString()}</td></tr>`).join("")}</tbody>`;
+}
+function renderModelStatus(state){
+  const record=configData(state.model,state.config).record,credible=record.candidate_credible;
+  document.getElementById("modelStatus").innerHTML=`${flag(credible?"ok":"bad",credible?"credible separated nearest-guide group":"no credible separated candidate at this setting")}<span>${shownCount(state).toLocaleString()} displayed rows · scaled guide offset ${fmt(record.candidate_offset,2)} · cutoff ${fmt(D.reference.credibility_cutoff,1)}</span>`;
+  document.getElementById("motionReferenceStatus").innerHTML=`${flag("warn","post-fit reference only")}<span>Guide (${fmt(D.reference.pmra,2)}, ${fmt(D.reference.pmdec,2)}) mas yr⁻¹; never supplied to a fit.</span>`;
+  const fields=[
+    ["Family",FAMILY_LABEL[state.model]],["Stored setting",String(record.parameter)],["Nearest-guide label",String(record.candidate_label)],
+    ["Group rows",record.candidate_count.toLocaleString()],["Noise rows",record.noise_count.toLocaleString()],["Jaccard vs default HDBSCAN",fmt(record.jaccard_with_hdbscan_30,3)]
+  ];
+  if(record.converged!==undefined){fields.push(["Converged",record.converged?"yes":"no"],["Iterations",record.iterations.toLocaleString()],["Average log likelihood",fmt(record.average_log_likelihood,4)]);}
+  if(record.min_samples!==undefined)fields.push(["Fixed minimum samples",record.min_samples.toLocaleString()]);
+  document.getElementById("fitDiagnostics").innerHTML=`<dl class="kv">${fields.map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl><div class="callout"><b>Post-fit guide only.</b> ${esc(D.reference.source)} ${esc(D.reference.role)}</div>`;
+}
+function renderControls(state){
+  const model=document.getElementById("modelSelect"),config=document.getElementById("configSelect"),threshold=document.getElementById("thresholdRange"),feature=document.getElementById("featureSelect"),example=document.getElementById("exampleSelect");
+  model.value=state.model;
+  config.innerHTML=Object.keys(D.configurations[state.model]).map(key=>`<option value="${key}">${esc(settingLabel(state.model,key))}</option>`).join("");config.value=state.config;
+  threshold.value=state.threshold;document.getElementById("thresholdOut").value=fmt(state.threshold,2);feature.value=String(state.feature);
+  const matches=state.example!=="custom"&&Number(D.examples[state.example])===state.selected;example.value=matches?state.example:"custom";
+  for(const [target,source] of [['evalModel','modelSelect'],['evalConfig','configSelect']]){const el=document.getElementById(target);el.innerHTML=document.getElementById(source).innerHTML;el.value=document.getElementById(source).value;}
+  const cut=document.getElementById('evalCut');cut.innerHTML=Array.from({length:11},(_,i)=>'<option value="'+((10+i)/20)+'">'+((10+i)/20).toFixed(2)+'</option>').join('');cut.value=state.threshold;
+}
+function settingLabel(model,key){
+  const record=D.configurations[model][key];
+  if(model==="gmm")return `components = ${record.parameter}`;
+  if(model==="dbscan")return `epsilon = ${fmt(record.parameter,2)} · min samples = ${record.min_samples}`;
+  return `minimum cluster size = ${record.parameter} · min samples = ${record.min_samples}`;
+}
+function renderSelectedSource(state){
+  const i=state.selected,c=configData(state.model,state.config),assigned=c.labels[i]===c.record.candidate_label,score=c.score[i];
+  document.getElementById("selectedSourceTable").innerHTML=`<thead><tr><th>Field</th><th>Value</th></tr></thead><tbody>
+    <tr><td>Gaia source ID</td><td><code>${sourceId(i)}</code></td></tr><tr><td>Right ascension</td><td>${fmt(A.ra[i],6)}°</td></tr><tr><td>Declination</td><td>${fmt(A.dec[i],6)}°</td></tr>
+    <tr><td>pmRA</td><td>${fmt(A.pmra[i],4)} mas yr⁻¹</td></tr><tr><td>pmDec</td><td>${fmt(A.pmdec[i],4)} mas yr⁻¹</td></tr><tr><td>Parallax</td><td>${fmt(A.parallax[i],5)} mas</td></tr>
+    <tr><td>Parallax / uncertainty</td><td>${fmt(A.poe[i],3)}</td></tr><tr><td>BP−RP</td><td>${fmt(A.colour[i],4)} mag</td></tr><tr><td>G magnitude</td><td>${fmt(A.g[i],4)} mag</td></tr>
+    <tr><td>Current stored label</td><td>${c.labels[i]}</td></tr><tr><td>Current score</td><td>${fmt(score,3)}</td></tr><tr><td>Current display rule</td><td>${assigned&&score>=state.threshold?"included":"not included"}</td></tr>
+  </tbody>`;
+  document.getElementById("selectedSourceNote").textContent=`Selected source has ${defaultVotes(i)} nearest-guide-label votes among the three disclosed default fits before the display-strength cut. Selection is linked across matrix, PCA, sky, motion and CMD views.`;
+  if(exampleRows)exampleRows.refresh();
+}
+function buildConclusions(state){
+  const n=D.notebook,record=configData(state.model,state.config).record,candidate=record.clusters.find(row=>row.candidate),credible=record.candidate_credible;
+  const items=[
+    ["The submitted largest-group interpretation fails its own physical checks",`The exact stored overlays show that the dominant HDBSCAN label fills the field rather than a compact co-moving group.`,`Stored largest group: ${Number(n.stored_hdbscan_counts["2"]).toLocaleString()} rows · mean parallax ${fmt(n.stored_largest_group_centre.parallax,3)} mas · inverse-parallax distance ${fmt(n.stored_largest_group_centre.distance_pc,0)} pc.`],
+    [credible?"This controlled setting separates a plausible nearest-guide group":"This controlled setting does not separate a credible candidate",credible?`The nearest post-fit group lies inside the disclosed scaled-offset cutoff. It remains a candidate because no external membership target is present.`:`The least-distant non-noise label lies outside the disclosed cutoff, so the page refuses to call it credible.`,`Current ${FAMILY_LABEL[state.model]} setting ${settingLabel(state.model,state.config)} · group ${candidate.size.toLocaleString()} rows · offset ${fmt(candidate.reference_offset,2)} · displayed at threshold ${fmt(state.threshold,2)}: ${shownCount(state).toLocaleString()} rows.`],
+    ["Stability is informative but is not accuracy",`Default deterministic fits can agree on a compact group while still sharing the same filtering, feature and interpretation assumptions.`,`Current agreement with default HDBSCAN: ${fmt(record.jaccard_with_hdbscan_30,3)} · verified membership labels in the retained CSV: none.`]
+  ];
+  document.getElementById("conclusion-content").innerHTML=`<div class="concl">${items.map(([h,p,e])=>`<div><h4>${esc(h)}</h4><p>${esc(p)}</p><p class="num-ev">${esc(e)}</p></div>`).join("")}</div>`;
+}
+function redrawAnalysis(state){
+  drawParallax(state);
+  drawScatter("skyCanvas",A.ra,A.dec,D.metadata.display_ranges.ra,D.metadata.display_ranges.dec,"right ascension (deg)","declination (deg)",state,{readoutId:"skyReadout",tableId:"skyTable"});
+  drawScatter("motionCanvas",A.pmra,A.pmdec,D.metadata.display_ranges.pmra,D.metadata.display_ranges.pmdec,"pmRA (mas yr⁻¹)","pmDec (mas yr⁻¹)",state,{readoutId:"motionReadout",tableId:"motionTable",reference:true});
+  drawScatter("cmdCanvas",A.colour,A.g,D.metadata.display_ranges.bp_rp,[D.metadata.display_ranges.g_mag[1],D.metadata.display_ranges.g_mag[0]],"BP−RP (mag)","G magnitude (inverted)",state,{readoutId:"cmdReadout",tableId:"cmdTable"});
+}
+function redrawVisible(){
+  const state=VIEW.get();
+  if(PCFolds.isOpen(document.getElementById("design-matrix"))){drawMatrix(state);drawRow(state);drawColumn(state);}
+  if(PCFolds.isOpen(document.getElementById("analysis"))){drawNotebookPca(state);drawControlledPca(state);drawScore(state);drawGroups(state);}
+  if(PCFolds.isOpen(document.getElementById("evaluation")))redrawAnalysis(state);
+}
+function onShow(i){redrawVisible();}
+function renderAll(state){
+  if(!D.configurations[state.model][state.config]){VIEW.set({config:DEFAULT_CONFIG[state.model]},{source:"state-normalization"});return;}
+  renderHoverBridge(state);renderControls(state);renderDesignTables(state);renderModelStatus(state);renderClusterTable(state);renderSelectedSource(state);buildConclusions(state);redrawVisible();
+}
+
+buildProvenance();buildFindings();buildNotebookAudit();buildNotebookTables();buildControls();buildDesignMatrix();buildDefaultComparison();buildExampleTable();buildGlossary();
+exampleRows=PC.bindTableRows("#exampleTable",{
+  key:row=>Number(row.dataset.key),selected:()=>VIEW.get().selected,
+  onSelect:key=>{const row=document.querySelector(`#exampleTable tbody tr[data-key="${key}"]`);VIEW.set({selected:key,example:row?.dataset.example||"custom",hovered:-1},{source:"example-table"});},onClear:()=>VIEW.set({selected:Number(D.examples.center),example:"center",hovered:-1},{source:"example-table"})
+});
+VIEW.subscribe((state,changed)=>{if(changed.length===1&&changed[0]==="hovered"){renderHoverBridge(state);if(PCFolds.isOpen(document.getElementById("design-matrix")))drawMatrix(state);return;}renderAll(state);},{immediate:true});
+
+
+/* -- go ------------------------------------------------------------------- */
+
+
+/* §2.4 — the story strip, above the header figure: the card's headline question
+   and its three one-sentence panels, with this demo's own painters supplying
+   the thumbnails. Rendered only when the card carries a `story` block; a record
+   written before the block existed leaves the slot hidden and the page opens
+   exactly as it did. renderStory repaints its canvases on every theme change
+   through PC.initTheme's own redraw path, so redrawVisible() never has to know
+   the strip exists. */
+
+
+/* §3.2 — the header figure. With PROVENANCE.md's v2 card in the payload it is
+   the workflow DAG: the four stage columns headed by RIBBON's own labels and
+   numbers, carrying the card's steps and edges. Without one it is the RIBBON
+   rollup on its own, which is also what the DAG collapses to under 720px.
+   renderDag repaints its edges from --axis on every theme change through
+   PC.initTheme's own redraw path, so redrawVisible() never has to know. */
+
+
+/* §10.6 — Source evidence's card sections, above the measured claims table. Part C of
+   the same card fills the footer's two [data-prov] slots. */
+if (D.provenance_card) PC.renderProvenance("#provCard", D.provenance_card);
+
+
+PC.panels.dag.create(document.getElementById("workflowDag"),D.dag.steps,D.dag.options);PC.registerRepaint(redrawVisible);PC.repaint("initial",document);
+
+for(const [target,source] of [['evalModel','modelSelect'],['evalConfig','configSelect']])document.getElementById(target).addEventListener('change',event=>{const el=document.getElementById(source);el.value=event.target.value;el.dispatchEvent(new Event('change'))});
+document.getElementById('evalCut').addEventListener('change',event=>VIEW.set({threshold:Number(event.target.value)},{source:'evaluation-cut'}));

@@ -1195,7 +1195,7 @@ function deployHeaders(policy) {
     blocks.push('', '/*', '  X-Robots-Tag: noindex, nofollow');
     // Content hashes change when bytes change. Cache only within the user's
     // browser; the protected preview must not become publicly cacheable.
-    for (const directory of ['embedded', 'optimized']) {
+    for (const directory of ['embedded', 'optimized', 'runtime']) {
       blocks.push('', '/assets/' + directory + '/*',
         '  Cache-Control: private, max-age=31536000, immutable',
         '  X-Content-Type-Options: nosniff');
@@ -2179,7 +2179,7 @@ async function main() {
     const performance = require('./lib/site-performance').optimizeSiteOutput(DIST);
     const saved = performance.pages.reduce((sum, page) => sum + page.inputBytes - page.outputBytes, 0);
     fs.writeFileSync(path.join(DIST, 'performance-report.json'), JSON.stringify(performance, null, 2));
-    console.log('  lossless delivery: ' + performance.assets.length + ' reusable image assets; '
+    console.log('  lossless delivery: ' + performance.assets.length + ' reusable assets; '
       + (saved / 1048576).toFixed(2) + ' MiB removed from HTML');
   }
 

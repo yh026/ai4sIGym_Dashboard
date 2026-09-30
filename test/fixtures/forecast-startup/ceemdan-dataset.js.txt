@@ -1,0 +1,149 @@
+/* NASA PCoE staged Dataset page: instrument -> raw -> transformation -> design matrix.
+   Reads only D.stages. */
+const S = D.stages, CELLS = S.cells;
+const $ = id => document.getElementById(id);
+const isOpen = id => PCFolds.isOpen($(id));
+const cellVar = c => '--series-' + (CELLS.indexOf(c) + 1);
+const TYPE = [['charge', '--series-2'], ['discharge', '--series-1'], ['impedance', '--series-3']];
+const fmtN = v => Number(v).toLocaleString();
+
+function nice(lo, hi, n) {
+  const step0 = (hi - lo) / (n || 5), mag = Math.pow(10, Math.floor(Math.log10(step0))), f = step0 / mag;
+  const step = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * mag, out = [];
+  for (let v = Math.ceil(lo / step - 1e-9) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(10));
+  return out;
+}
+function panel(cv, h, xr, yr, xl, yl, o) {
+  o = o || {};
+  const w = cv.parentElement.clientWidth || 600, g = PC.fit(cv, w, h);
+  const sc = PC.scales(cv, xr, yr, o.pad || { l: 58, r: 14, t: 12, b: o.xl === false ? 22 : 46 });
+  PC.drawAxes(g, sc, o.xt || nice(xr[0], xr[1], w < 480 ? 4 : 7), o.yt || nice(yr[0], yr[1], 4), sc.x, sc.y,
+    xl, yl, { grid: 'both', xFmt: o.xFmt, yFmt: o.yFmt });
+  return { g, sc, w, h };
+}
+function line(g, sc, xs, ys, color, width, from, to) {
+  g.strokeStyle = color; g.lineWidth = width || 2; g.lineJoin = 'round'; g.beginPath();
+  for (let k = from || 0, first = true; k < (to == null ? xs.length : to); k++) {
+    if (ys[k] == null) { first = true; continue; }
+    g[first ? 'moveTo' : 'lineTo'](sc.x(xs[k]), sc.y(ys[k])); first = false;
+  }
+  g.stroke();
+}
+function band(g, sc, x0, x1, color) {
+  g.save(); g.globalAlpha = PC.isDark() ? 0.22 : 0.13; g.fillStyle = color;
+  g.fillRect(sc.x(x0), sc.p.t, sc.x(x1) - sc.x(x0), sc.ih); g.restore();
+}
+const ext = (a, pad) => { const lo = Math.min(...a), hi = Math.max(...a), d = (hi - lo) * (pad || 0.08) || 1; return [lo - d, hi + d]; };
+
+/* ---------- Instrument: one charge ---------- */
+function paintCharge() {
+  if (!isOpen('instrument')) return;
+  const c = S.charge, tm = c.t.map(t => t / 60), xr = [0, Math.max(...tm)];
+  let cv = tm.length - 1; for (let k = 0; k < c.v.length; k++) if (c.v[k] >= 4.199 && c.i[k] < 1.45) { cv = k; break; }
+  const bands = P => { band(P.g, P.sc, 0, tm[cv], PC.css('--series-2')); band(P.g, P.sc, tm[cv], xr[1], PC.css('--series-5')); };
+  let P = panel($('chgV'), 190, xr, [3.4, 4.35], null, 'Voltage (V)', { xl: false });
+  bands(P); line(P.g, P.sc, tm, c.v, PC.css('--text-primary'), 1.8);
+  P = panel($('chgI'), 160, xr, [-0.1, 1.7], null, 'Current (A)', { xl: false });
+  bands(P); line(P.g, P.sc, tm, c.i, PC.css('--text-primary'), 1.8);
+  P = panel($('chgT'), 160, xr, ext(c.temp), 'Minutes since the charge started', 'Temperature (°C)');
+  bands(P); line(P.g, P.sc, tm, c.temp, PC.css('--text-primary'), 1.8);
+}
+
+/* ---------- Raw data ---------- */
+const DAY = 86400000, T0 = Date.parse('2008-04-01T00:00:00Z'), T1 = Date.parse('2008-08-25T00:00:00Z');
+function paintTimeline() {
+  if (!isOpen('raw-data')) return;
+  const cv = $('opTimeline'), w = cv.parentElement.clientWidth || 600, lane = 44, h = 20 + lane * CELLS.length + 44;
+  const g = PC.fit(cv, w, h), sc = PC.scales(cv, [T0, T1], [0, 1], { l: 62, r: 14, t: 10, b: 44 });
+  const xt = Array.from({ length: 5 }, (_, k) => Date.UTC(2008, 3 + k, 1));
+  PC.drawAxes(g, sc, xt, [], sc.x, sc.y, 'Operation start date', null,
+    { grid: 'x', xFmt: v => new Date(v).toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' }) });
+  const pts = [];
+  CELLS.forEach((c, r) => {
+    const o = S.ops[c], start = Date.parse(o.start + ':00Z'), yTop = sc.p.t + 6 + r * lane;
+    PC.tickText(g, c, sc.p.l - 8, yTop + 15, 'right', 'middle');
+    o.rows.forEach((op, k) => {
+      const x = sc.x(start + op[1] * DAY), y = yTop + op[0] * 11;
+      g.fillStyle = PC.css(TYPE[op[0]][1]); g.fillRect(x - 0.6, y, 1.2, 9);
+      pts.push([x, y + 4.5, r * 10000 + k]);
+    });
+  });
+  PC.hover(cv, pts, {
+    radius: 10,
+    onHit: (id, evt) => {
+      const c = CELLS[Math.floor(id / 10000)], k = id % 10000, o = S.ops[c], op = o.rows[k];
+      const when = new Date(Date.parse(o.start + ':00Z') + op[1] * DAY).toISOString().slice(0, 16).replace('T', ' ');
+      PC.tip('<b>' + c + ' · operation ' + k + '</b><br>' + TYPE[op[0]][0] + ' · ' + when + (op[2] != null ? '<br>' + op[2] + ' h · ' + fmtN(op[3]) + ' samples' : '<br>' + op[3] + ' frequency points'), evt);
+    },
+    onLeave: () => PC.hideTip()
+  });
+}
+function paintNyquist() {
+  if (!isOpen('raw-data')) return;
+  const Z = S.impedance, cols = ['--series-1', '--series-2'];
+  $('nyqLegend').innerHTML = Z.map((z, j) => '<span><span class="swatch" style="background:var(' + cols[j] + ')"></span>' + (j ? 'last' : 'first') + ' sweep · ' + z.date.slice(0, 10) + ' · Re ' + z.Re.toFixed(3) + ' Ω, Rct ' + z.Rct.toFixed(3) + ' Ω</span>').join('');
+  const xr = ext(Z.flatMap(z => z.re)), yr = ext(Z.flatMap(z => z.im.map(v => -v)));
+  const f3 = v => v.toFixed(3);
+  const P = panel($('nyq'), 260, xr, yr, 'Real part (Ω)', '−Imaginary part (Ω)', { xFmt: f3, yFmt: f3, pad: { l: 64, r: 14, t: 12, b: 46 } });
+  Z.forEach((z, j) => {
+    P.g.fillStyle = PC.css(cols[j]); z.re.forEach((x, k) => { P.g.beginPath(); P.g.arc(P.sc.x(x), P.sc.y(-z.im[k]), 3, 0, 7); P.g.fill(); });
+  });
+}
+
+/* ---------- Transformation: one discharge ---------- */
+const disSel = $('disSelect');
+S.examples.forEach((e, k) => { const o = document.createElement('option'); o.value = k; o.textContent = e.cell + ' · discharge ' + e.n + ' · ' + e.why; disSel.appendChild(o); });
+function paintDischarge() {
+  if (!isOpen('transformation')) return;
+  const e = S.examples[+disSel.value], tm = e.t.map(t => t / 60), xr = [0, Math.max(...tm)], col = PC.css(cellVar(e.cell)), k = e.k;
+  $('disReadout').textContent = e.cell + ', discharge ' + e.n + ' (' + e.date.replace('T', ' ') + '): ' + e.t.length + ' samples. '
+    + 'Stored capacity ' + e.capacity.toFixed(4) + ' Ah; recomputed from these samples ' + e.recomputed.toFixed(4) + ' Ah ('
+    + ((e.recomputed - e.capacity) * 1000).toFixed(1) + ' mAh). The load ran to ' + S.cutoff[e.cell] + ' V.';
+  let P = panel($('disV'), 200, xr, [1.6, 4.3], null, 'Voltage (V)', { xl: false });
+  band(P.g, P.sc, tm[0], tm[Math.min(k, tm.length - 1)], PC.css('--series-1'));
+  P.g.strokeStyle = PC.css('--critical'); P.g.setLineDash([4, 3]); P.g.beginPath(); P.g.moveTo(P.sc.p.l, P.sc.y(2.7)); P.g.lineTo(P.sc.p.l + P.sc.iw, P.sc.y(2.7)); P.g.stroke(); P.g.setLineDash([]);
+  PC.tickText(P.g, '2.7 V', P.sc.p.l + P.sc.iw - 4, P.sc.y(2.7) - 3, 'right', 'bottom');
+  line(P.g, P.sc, tm, e.v, col, 1.8);
+  P = panel($('disI'), 170, xr, [-2.4, 0.3], null, 'Current (A)', { xl: false });
+  P.g.save(); P.g.globalAlpha = PC.isDark() ? 0.35 : 0.22; P.g.fillStyle = PC.css('--series-1'); P.g.beginPath(); P.g.moveTo(P.sc.x(tm[0]), P.sc.y(0));
+  for (let j = 0; j < k; j++) P.g.lineTo(P.sc.x(tm[j]), P.sc.y(e.i[j]));
+  P.g.lineTo(P.sc.x(tm[k - 1]), P.sc.y(0)); P.g.closePath(); P.g.fill(); P.g.restore();
+  line(P.g, P.sc, tm, e.i, col, 1.8);
+  PC.tickText(P.g, 'shaded area = ' + e.recomputed.toFixed(3) + ' Ah', P.sc.x(tm[Math.floor(k / 2)]), P.sc.y(-1.1), 'center', 'middle');
+  P = panel($('disT'), 160, xr, ext(e.temp), 'Minutes since the discharge started', 'Temperature (°C)');
+  line(P.g, P.sc, tm, e.temp, col, 1.8);
+}
+
+/* ---------- Design matrix: capacity table ---------- */
+const NROW = Math.max(...CELLS.map(c => S.capacity[c].length));
+$('capTable').innerHTML = '<thead><tr><th>Discharge</th>' + CELLS.map(c => '<th>' + c + ' (Ah)</th>').join('') + '</tr></thead><tbody>'
+  + Array.from({ length: NROW }, (_, r) => '<tr><td>' + r + '</td>' + CELLS.map(c => '<td>' + (S.capacity[c][r] != null ? S.capacity[c][r].toFixed(4) : '') + '</td>').join('') + '</tr>').join('') + '</tbody>';
+let capHit = -1;
+function paintCap() {
+  if (!isOpen('matrix')) return;
+  const P = panel($('capChart'), 320, [0, NROW - 1], [1.2, 2.1], 'Discharge number', 'Capacity (Ah)', { pad: { l: 58, r: 60, t: 12, b: 46 } });
+  P.g.strokeStyle = PC.css('--axis'); P.g.setLineDash([5, 4]); P.g.beginPath(); P.g.moveTo(P.sc.p.l, P.sc.y(1.4)); P.g.lineTo(P.sc.p.l + P.sc.iw, P.sc.y(1.4)); P.g.stroke(); P.g.setLineDash([]);
+  CELLS.forEach(c => {
+    const ys = S.capacity[c], xs = ys.map((_, k) => k);
+    line(P.g, P.sc, xs, ys, PC.css(cellVar(c)), 2);
+    P.g.fillStyle = PC.css('--text-secondary'); P.g.font = PC.font.tick(); P.g.textAlign = 'left'; P.g.textBaseline = 'middle';
+    P.g.fillText(c, P.sc.x(xs.length - 1) + 6, P.sc.y(ys[ys.length - 1]));
+  });
+  if (capHit >= 0) {
+    P.g.strokeStyle = PC.css('--axis'); P.g.beginPath(); P.g.moveTo(P.sc.x(capHit), P.sc.p.t); P.g.lineTo(P.sc.x(capHit), P.sc.p.t + P.sc.ih); P.g.stroke();
+    CELLS.forEach(c => { const v = S.capacity[c][capHit]; if (v == null) return; P.g.fillStyle = PC.css(cellVar(c)); P.g.beginPath(); P.g.arc(P.sc.x(capHit), P.sc.y(v), 4, 0, 7); P.g.fill(); P.g.strokeStyle = PC.css('--surface-1'); P.g.lineWidth = 2; P.g.stroke(); });
+  }
+  const pts = Array.from({ length: NROW }, (_, k) => [P.sc.x(k), P.sc.p.t + P.sc.ih / 2, k]);
+  PC.hover($('capChart'), pts, {
+    radius: 400,
+    onHit: (k, evt, changed) => {
+      if (changed) { capHit = k; paintCap(); }
+      PC.tip('<b>Discharge ' + k + '</b><br>' + CELLS.map(c => c + ': ' + (S.capacity[c][k] != null ? S.capacity[c][k].toFixed(4) + ' Ah' : '—')).join('<br>'), evt);
+    },
+    onLeave: () => { capHit = -1; paintCap(); PC.hideTip(); }
+  });
+}
+
+disSel.addEventListener('change', paintDischarge);
+PC.registerRepaint(() => { paintCharge(); paintTimeline(); paintNyquist(); paintDischarge(); paintCap(); });
+PC.repaint('initial', document);

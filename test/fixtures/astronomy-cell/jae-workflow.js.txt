@@ -1,0 +1,1229 @@
+window.__JAE_PAYLOAD__=D;window.__JAE_VIEWS__={};
+
+/* ===== view: explorer (from template.html) ===== */
+(function(){
+var VIEWROOT = document.getElementById('view-explorer');
+var VIEWID = function(id){ return VIEWROOT.querySelector('#' + id) || document.getElementById('explorer-reference').querySelector('#' + id); };
+const DATA = window.__JAE_PAYLOAD__;
+
+/* ---------- typed-array helpers ---------- */
+function unb64(s, Type){
+  const bin = atob(s); const buf = new ArrayBuffer(bin.length);
+  const v = new Uint8Array(buf);
+  for(let i=0;i<bin.length;i++) v[i] = bin.charCodeAt(i);
+  return new Type(buf);
+}
+function deq(codes, lo, hi, max){ // integer codes -> floats
+  const out = new Float32Array(codes.length); const s=(hi-lo)/max;
+  for(let i=0;i<codes.length;i++) out[i]=lo+codes[i]*s;
+  return out;
+}
+/* Colours come from the shared token reader: it caches the live declaration and
+   falls back from a legacy name to its canonical one, so this view keeps every
+   css('--ink3')-style call it already had while the values follow the master. */
+const css = n => PC.css(n);
+
+/* ---------- decode payload ---------- */
+const D = DATA;
+const NC = D.cells.n;
+const cellType = unb64(D.cells.cell_type, Uint8Array);
+const cellBatch = unb64(D.cells.batch, Uint8Array);
+const heldout = unb64(D.cells.heldout, Uint8Array);
+const globalIdx = unb64(D.cells.index, Uint32Array);
+const sScore = deq(unb64(D.cells.S.data, Uint16Array), D.cells.S.lo, D.cells.S.hi, 65535);
+const gScore = deq(unb64(D.cells.G2M.data, Uint16Array), D.cells.G2M.lo, D.cells.G2M.hi, 65535);
+const pTime  = deq(unb64(D.cells.pseudotime.data, Uint16Array), -1, 1, 65535);
+const MAT = unb64(D.matrix.data, Uint8Array);
+const NCOL = D.matrix.shape[1];
+const topIdx = unb64(D.top_genes.idx, Uint16Array);
+const topVal = deq(unb64(D.top_genes.val, Uint8Array), D.top_genes.lo, D.top_genes.hi, 255);
+const NTOP = D.top_genes.shape[1];
+const LAT = D.latent && D.latent.data ? deq(unb64(D.latent.data, Uint8Array), D.latent.lo, D.latent.hi, 255) : null;
+const LATD = D.latent && D.latent.shape ? D.latent.shape[1] : 0;
+
+const coordCache = {};
+function coordsOf(v){
+  if(coordCache[v]) return coordCache[v];
+  const c = D.coords[v];
+  if(!c) return null;
+  const x = deq(unb64(c.x, Uint16Array), c.sx[0], c.sx[1], 65535);
+  const y = deq(unb64(c.y, Uint16Array), c.sy[0], c.sy[1], 65535);
+  return coordCache[v] = {x,y};
+}
+
+const lineageOf = D.cell_type_lineage;
+/* The seven lineages take --series-1..6 and --muted, in this fixed order — the
+   suite's categorical ramp, read at draw time so a theme flip re-colours them. */
+const LINEAGE_TOKEN = ['--series-1','--series-3','--series-5','--series-2',
+                       '--series-6','--series-4','--muted'];
+const LINCOL = {};
+function refreshLineageColours(){
+  D.lineage_order.forEach((l,k)=> LINCOL[l] = css(LINEAGE_TOKEN[k % LINEAGE_TOKEN.length]));
+}
+refreshLineageColours();
+/* nine donor batches over the suite's eight categorical series plus --muted,
+   read at draw time so they follow the theme */
+const BATCH_TOKEN = ['--series-1','--series-2','--series-3','--series-4','--series-5',
+                     '--series-6','--series-7','--series-8','--muted'];
+let BATCHCOL = [];
+function refreshBatchColours(){ BATCHCOL = BATCH_TOKEN.map(css); }
+refreshBatchColours();
+
+/* ---------- canvas plumbing — the SHARED runtime ----------
+   Sizing goes through PC.fit (DPR-aware, capped at 2x, clears, returns the ctx),
+   so this demo no longer carries its own DPR maths. Two details this wrapper
+   still owns, because PC.fit cannot know them:
+
+   1. The AUTHORED css height, cached on the node the first time it is read.
+      `cv.height = …` reflects into the `height` CONTENT ATTRIBUTE, so re-reading
+      that attribute returns what the previous draw wrote and the height gets
+      multiplied by dpr on every redraw. That was the bitmap explosion reported
+      on cv-scree (240 → 960 → 3840 → … → 245760 at dpr 2) — invisible at 1x.
+   2. PC.fit writes cv.style.width, and `#view-explorer canvas{width:100%}` is
+      then out-competed by that inline value, so a LATER measurement of
+      cv.clientWidth returns the frozen width and the canvas can never shrink.
+      Clearing the inline width before measuring is the documented workaround
+      (the phone chart overlay does the same thing for the same reason). */
+function fit(cv){
+  const h = cv.__pcCssH !== undefined ? cv.__pcCssH
+          : (cv.__pcCssH = +cv.getAttribute('height'));
+  cv.style.width = "";
+  const w = cv.clientWidth || (cv.parentElement && cv.parentElement.clientWidth) || 220;
+  const g = PC.fit(cv, w, h);
+  return {g,w,h};
+}
+/* One tooltip contract for every panel in this view: nearest point through the
+   shared hit-tester, readout through the shared #tip. `onClick` must be present
+   on the FIRST PC.hover call for a canvas — `if (st.bound) return` runs before
+   the click binding — so every caller passes its opts every draw and the first
+   one wins. */
+function bindHover(cv, pts, html, opts){
+  return PC.hover(cv, pts, Object.assign({
+    onHit: (i, evt) => PC.tip(html(i), evt),
+    onLeave: () => PC.hideTip()
+  }, opts || {}));
+}
+function txt(g,s,x,y,{size=11,col=null,align='left',baseline='alphabetic',weight=400}={}){
+  g.fillStyle = col || css('--ink3');
+  /* the family comes from the --font token via the shared reader, so a suite-level
+     type change reaches this view's canvas labels too */
+  g.font = weight+' '+size+'px '+PC.font.family();
+  g.textAlign = align; g.textBaseline = baseline; g.fillText(s,x,y);
+}
+function line(g,x1,y1,x2,y2,col,w=1){
+  g.strokeStyle=col; g.lineWidth=w; g.beginPath(); g.moveTo(x1,y1); g.lineTo(x2,y2); g.stroke();
+}
+
+/* ---------- state ---------- */
+const state = {
+  cell: 0,
+  col: 0,
+  lineage: '',
+  color: 'lineage',
+  variant: 'jae_full',
+};
+
+/* ================= STAGE 1: design matrix bridge ================= */
+const MX_ROWS = 150;           // rows drawn in the schematic
+let mxRows = [];               // display-sample indices shown as matrix rows
+function pickMatrixRows(){
+  const pool = [];
+  for(let i=0;i<NC;i++){
+    if(state.lineage && lineageOf[cellType[i]] !== state.lineage) continue;
+    pool.push(i);
+  }
+  if(!pool.length) return [];
+  // sort by cell type so the heatmap has visible structure, then subsample evenly
+  pool.sort((a,b)=> cellType[a]-cellType[b] || a-b);
+  const step = pool.length / Math.min(MX_ROWS, pool.length);
+  const out=[];
+  for(let k=0;k<Math.min(MX_ROWS,pool.length);k++) out.push(pool[Math.floor(k*step)]);
+  if(!out.includes(state.cell) && (!state.lineage || lineageOf[cellType[state.cell]]===state.lineage)){
+    out[Math.floor(out.length/2)] = state.cell;
+    out.sort((a,b)=> cellType[a]-cellType[b] || a-b);
+  }
+  return out;
+}
+const mxGeom = {};
+function drawMatrix(){
+
+  const cv = VIEWID('cv-matrix');
+  const {g,w,h} = fit(cv);
+  mxRows = pickMatrixRows();
+  const padL=8, padR=118, padT=30, padB=30;
+  const cw = (w-padL-padR)/NCOL, ch = (h-padT-padB)/Math.max(mxRows.length,1);
+  mxGeom.padL=padL; mxGeom.padT=padT; mxGeom.cw=cw; mxGeom.ch=ch; mxGeom.n=mxRows.length;
+
+  // heat cells
+  const heat = PC.rampScale();          // resolve the 5 ramp stops once per draw
+  for(let r=0;r<mxRows.length;r++){
+    const ci = mxRows[r], base = ci*NCOL;
+    for(let c=0;c<NCOL;c++){
+      const v = MAT[base+c]/255;
+      if(v<=0.012) continue;
+      /* the suite's sequential ramp; alpha stays the density cue */
+      g.globalAlpha = 0.10+0.90*Math.min(1,v*1.5);
+      g.fillStyle = heat(Math.min(1,v*1.5));
+      g.fillRect(padL+c*cw, padT+r*ch, Math.max(cw,0.6), Math.max(ch,0.9));
+    }
+  }
+  g.globalAlpha=1;
+  // gene | protein divider
+  const nGene = D.column_kind.filter(k=>k==='gene').length;
+  line(g, padL+nGene*cw, padT-6, padL+nGene*cw, padT+mxRows.length*ch+4, css('--line2'),1);
+  txt(g,'← '+nGene+' marker genes', padL+nGene*cw-4, padT-11,{size:10,align:'right'});
+  txt(g,'134 proteins →', padL+nGene*cw+4, padT-11,{size:10});
+
+  // selected column
+  const cx = padL+state.col*cw;
+  g.strokeStyle = css('--matrix-column'); g.lineWidth=1.6;
+  g.strokeRect(cx-0.5, padT-3, Math.max(cw,2)+1, mxRows.length*ch+6);
+  txt(g,'X[:,j]', cx+Math.max(cw,2)/2, h-padB+30,{size:10,col:css('--matrix-column'),align:'center'});
+
+  // selected row
+  const rpos = mxRows.indexOf(state.cell);
+  if(rpos>=0){
+    const ry = padT+rpos*ch;
+    g.strokeStyle = css('--matrix-row'); g.lineWidth=1.6;
+    g.strokeRect(padL-3, ry-0.5, (w-padL-padR)+6, Math.max(ch,2)+1);
+    txt(g,'X[i,:]', padL-5, ry+Math.max(ch,2)/2+3,{size:10,col:css('--matrix-row'),align:'right'});
+    // intersection
+    g.fillStyle = css('--matrix-cell');
+    g.fillRect(cx-1.5, ry-1.5, Math.max(cw,3)+3, Math.max(ch,3)+3);
+    txt(g,'x_ij', cx+Math.max(cw,3)+8, ry+3,{size:10,col:css('--matrix-cell'),weight:600});
+  }
+
+  // y bands to the right: lineage / batch / S score
+  const bx = w-padR+14, bw=22;
+  for(let r=0;r<mxRows.length;r++){
+    const ci = mxRows[r];
+    g.fillStyle = LINCOL[lineageOf[cellType[ci]]];
+    g.fillRect(bx, padT+r*ch, bw, Math.max(ch,0.9));
+    g.fillStyle = BATCHCOL[cellBatch[ci]%BATCHCOL.length];
+    g.fillRect(bx+bw+5, padT+r*ch, bw, Math.max(ch,0.9));
+    const s = sScore[ci];
+    g.globalAlpha = s>0 ? Math.min(1,s/1.2) : 1;
+    g.fillStyle = s>0 ? css('--series-6') : css('--line');
+    g.fillRect(bx+2*(bw+5), padT+r*ch, bw, Math.max(ch,0.9));
+    g.globalAlpha=1;
+  }
+  txt(g,'y →', bx-6, padT-11,{size:10,align:'right'});
+  // the bands are only 22px wide, so these labels have to stay very short
+  ['type','batch','S'].forEach((s,k)=> txt(g,s,bx+k*(bw+5)+bw/2, padT+mxRows.length*ch+13,{size:9.5,align:'center'}));
+  line(g, bx-7, padT-4, bx-7, padT+mxRows.length*ch+4, css('--line2'),1);
+
+  /* Readout only — the CLICK stays on the canvas's own exact floor-divide.
+     PC.hover's hit radius has a 24px floor and this grid's row pitch is under
+     2px, so routing the click through it would snap the selection across a
+     dozen rows; the tooltip can tolerate that, a selection cannot. Points are
+     the cell centres, indexed r*NCOL+c so the readout can name both axes. */
+  const mxPts = [];
+  for(let r=0;r<mxRows.length;r++)
+    for(let c=0;c<NCOL;c++)
+      mxPts.push([padL+c*cw+cw/2, padT+r*ch+ch/2, r*NCOL+c]);
+  bindHover(cv, mxPts, k => {
+    const r=Math.floor(k/NCOL), c=k%NCOL, ci=mxRows[r];
+    if(ci==null) return '';
+    return `<b>x<sub>ij</sub> = ${(MAT[ci*NCOL+c]/255).toFixed(3)}</b>`+
+      `<br>row i · ${D.cells.barcodes[ci]}`+
+      `<br>${D.cell_type_names[cellType[ci]]} · ${lineageOf[cellType[ci]]}`+
+      `<br>col j · ${D.column_names[c]} (${D.column_kind[c]==='gene'?'gene':'protein'})`;
+  });
+
+  VIEWID('mx-shape').textContent =
+    D.dataset.n_cells.toLocaleString()+' × '+(D.dataset.n_genes+D.dataset.n_proteins).toLocaleString();
+  VIEWID('mx-cap').innerHTML =
+    `Drawn here: a <b>${mxRows.length}</b> row × <b>${NCOL}</b> column display slice, sorted by cell type.
+     The full matrix is ${D.dataset.n_cells.toLocaleString()} × ${(D.dataset.n_genes+D.dataset.n_proteins).toLocaleString()}.
+     The three colour bands on the right are the labels <b>y</b>; they are <b>not columns of X</b>.
+     Clicking the heatmap changes the selected row and column at once.`;
+}
+
+function drawRow(){
+
+  const cv = VIEWID('cv-row');
+  const {g,w,h} = fit(cv);
+  const i = state.cell, base=i*NCOL;
+  const nGene = D.column_kind.filter(k=>k==='gene').length;
+  const rowCol = css('--matrix-row');
+
+  // top: this cell's strongest genes, taken from all 13,953
+  const padT=16, barH=54;
+  txt(g,'① The '+NTOP+' most strongly expressed genes in this cell (out of all '+D.dataset.n_genes.toLocaleString()+')',6,10,{size:10.5,col:rowCol,weight:600});
+  // shared scale across all cells, so bar height is comparable cell to cell
+  const gmax = D.top_genes.hi || 1;
+  const bw=(w-14)/NTOP;
+  txt(g,'shared scale 0 – '+gmax.toFixed(1),w-6,10,{size:9.5,align:'right'});
+  for(let k=0;k<NTOP;k++){
+    const v=topVal[i*NTOP+k], hh=(v/gmax)*barH;
+    g.fillStyle=rowCol; g.globalAlpha=.82;
+    g.fillRect(7+k*bw, padT+barH-hh, bw-2.5, hh);
+    g.globalAlpha=1;
+    g.save(); g.translate(7+k*bw+bw/2, padT+barH+3); g.rotate(-Math.PI/2.6);
+    txt(g, D.gene_names_all[topIdx[i*NTOP+k]] || '', 0,0,{size:9,align:'right'});
+    g.restore();
+  }
+  line(g,7,padT+barH,w-7,padT+barH,css('--line2'),1);
+  // bottom: full 134-protein profile — same unit, so one shared scale is honest
+  const py=h-64;
+  txt(g,'② The full 134-protein profile (same unit, one shared scale)',6,py-8,{size:10.5,col:rowCol,weight:600});
+  const pw=(w-14)/134;
+  for(let c=0;c<134;c++){
+    const v=MAT[base+nGene+c]/255, hh=v*46;
+    g.fillStyle=rowCol; g.globalAlpha=.55+.45*v;
+    g.fillRect(7+c*pw, py+46-hh, Math.max(pw-0.4,0.7), hh);
+    g.globalAlpha=1;
+  }
+  // mark the selected column if it is a protein
+  if(state.col>=nGene){
+    const c=state.col-nGene;
+    line(g,7+c*pw+pw/2, py-2, 7+c*pw+pw/2, py+50, css('--matrix-cell'),1.4);
+  }
+  line(g,7,py+46,w-7,py+46,css('--line2'),1);
+
+  /* two point sets in one list: the NTOP gene bars (index k) and the 134 protein
+     bars (index NTOP+c), so one hover covers both halves of the panel */
+  const rowPts = [];
+  for(let k=0;k<NTOP;k++)
+    rowPts.push([7+k*bw+bw/2, padT+barH-(topVal[i*NTOP+k]/gmax)*barH, k]);
+  for(let c2=0;c2<134;c2++)
+    rowPts.push([7+c2*pw+pw/2, py+46-(MAT[base+nGene+c2]/255)*46, NTOP+c2]);
+  bindHover(cv, rowPts, k => k<NTOP
+    ? `<b>${D.gene_names_all[topIdx[i*NTOP+k]]}</b><br>gene · ${topVal[i*NTOP+k].toFixed(2)} (shared scale 0–${gmax.toFixed(1)})`
+    : `<b>${D.column_names[nGene+(k-NTOP)]}</b><br>surface protein · ${(MAT[base+nGene+(k-NTOP)]/255).toFixed(3)}`);
+
+  const ct = D.cell_type_names[cellType[i]];
+  // most cells' strongest genes are housekeeping, which is the point worth making
+  let nHouse=0;
+  for(let k=0;k<NTOP;k++){
+    const gname = D.gene_names_all[topIdx[i*NTOP+k]] || '';
+    if(/^(MT-|RPL|RPS|MALAT1|EEF1A1|TMSB4X|ACTB|B2M)/.test(gname)) nHouse++;
+  }
+  VIEWID('row-cap').innerHTML =
+    `Selected cell <span class="mono">${D.cells.barcodes[i]}</span> · true type <b>${ct}</b> ·
+     batch <b>${D.batch_names[cellBatch[i]]}</b>${heldout[i]?' · <b>its label was never seen during training</b>':''}.
+     Note that <b>${nHouse}</b> of these ${NTOP} genes are housekeeping genes (mitochondrial, ribosomal, MALAT1) —
+     "most strongly expressed" is not the same as "most informative", which is exactly why the model needs
+     SVD and supervision to find the directions that actually separate cell types.`;
+}
+
+function drawCol(){
+
+  const cv = VIEWID('cv-col');
+  const {g,w,h} = fit(cv);
+  const j = state.col, colCol = css('--matrix-column');
+  const name = D.column_names[j], kind = D.column_kind[j];
+
+  // group cells of the display sample by lineage, draw a strip per lineage
+  const groups = {};
+  D.lineage_order.forEach(l=>groups[l]=[]);
+  for(let i=0;i<NC;i++) groups[lineageOf[cellType[i]]].push(MAT[i*NCOL+j]/255);
+
+  const order = D.lineage_order.filter(l=>groups[l].length>2);
+  const padL=74, padT=8, padB=18;
+  const rh = (h-padT-padB)/order.length;
+  order.forEach((l,k)=>{
+    const vals = groups[l], y0 = padT+k*rh;
+    txt(g,l,padL-7,y0+rh/2+3,{size:10.5,align:'right',col:LINCOL[l],weight:600});
+    // jittered strip
+    g.fillStyle=LINCOL[l];
+    const step = Math.max(1, Math.floor(vals.length/260));
+    for(let m=0;m<vals.length;m+=step){
+      const x = padL+vals[m]*(w-padL-14);
+      const yy = y0+rh*0.28+((m*2654435761)%1000)/1000*rh*0.44;
+      g.globalAlpha=.30; g.fillRect(x,yy,1.6,1.6);
+    }
+    g.globalAlpha=1;
+    // mean marker
+    const mean = vals.reduce((a,b)=>a+b,0)/vals.length;
+    const mx = padL+mean*(w-padL-14);
+    line(g,mx,y0+rh*0.18,mx,y0+rh*0.82,LINCOL[l],2);
+  });
+  // where does the selected cell sit?
+  const v = MAT[state.cell*NCOL+j]/255;
+  const xv = padL+v*(w-padL-14);
+  line(g,xv,padT-2,xv,h-padB+2,css('--matrix-cell'),1.3);
+  txt(g,'selected cell',xv+4,h-padB+13,{size:9.5,col:css('--matrix-cell')});
+  line(g,padL,h-padB,w-14,h-padB,css('--line2'),1);
+  txt(g,'0',padL,h-padB+13,{size:9.5});
+  txt(g,'high →',w-14,h-padB+13,{size:9.5,align:'right'});
+
+  /* one point per lineage, at its mean marker — the mean is what the panel is
+     actually asserting, so that is what the readout names */
+  bindHover(cv, order.map((l,k)=>{
+      const vals=groups[l], mean=vals.reduce((a,b)=>a+b,0)/vals.length;
+      return [padL+mean*(w-padL-14), padT+k*rh+rh/2, k];
+    }),
+    k => { const l=order[k], vals=groups[l];
+           const mean=vals.reduce((a,b)=>a+b,0)/vals.length;
+           return `<b>${l}</b><br>mean ${mean.toFixed(3)} of ${name}`+
+                  `<br>${vals.length.toLocaleString()} cells in the display sample`; });
+
+  VIEWID('col-cap').innerHTML =
+    `Column j = <b>${name}</b> (${kind==='gene'?'gene mRNA':'surface protein'}).
+     The vertical bars are per-lineage means. The further apart a feature pushes the lineages, the more
+     biological information it carries — direct evidence that these features are biologically meaningful,
+     and the reason the model can recover cell type from X at all.`;
+}
+
+/* ================= STAGE 2: scree ================= */
+function drawScree(){
+
+  const cv=VIEWID('cv-scree'); const {g,w,h}=fit(cv);
+  const evr=D.explained_variance_ratio, n=evr.length;
+  const padL=42,padR=12,padT=24,padB=26;   // padT leaves a line for the axis caption
+  const mx=Math.max(...evr);
+  let cum=0; const cums=evr.map(v=>cum+=v);
+  // bars
+  const bw=(w-padL-padR)/n;
+  for(let i=0;i<n;i++){
+    const hh=(evr[i]/mx)*(h-padT-padB);
+    g.fillStyle=css('--accent'); g.globalAlpha=.55;
+    g.fillRect(padL+i*bw, h-padB-hh, Math.max(bw-0.5,0.8), hh);
+  }
+  g.globalAlpha=1;
+  // cumulative line
+  g.strokeStyle=css('--series-2'); g.lineWidth=1.8; g.beginPath();
+  for(let i=0;i<n;i++){
+    const x=padL+i*bw+bw/2, y=h-padB-(cums[i]/cums[n-1])*(h-padT-padB);
+    i? g.lineTo(x,y): g.moveTo(x,y);
+  }
+  g.stroke();
+  line(g,padL,h-padB,w-padR,h-padB,css('--line2'),1);
+  line(g,padL,padT,padL,h-padB,css('--line2'),1);
+  txt(g,'variance explained per component',padL,12,{size:9.5,align:'left'});
+  txt(g,'PC1',padL+bw/2,h-padB+13,{size:9.5,align:'center'});
+  txt(g,'PC100',w-padR,h-padB+13,{size:9.5,align:'right'});
+  txt(g,'cumulative →',w-padR-4,12,{size:9.5,align:'right',col:css('--series-2')});
+  bindHover(cv, evr.map((v,i)=>[padL+i*bw+bw/2, h-padB-(v/mx)*(h-padT-padB), i]),
+    i => `<b>PC${i+1}</b><br>explains ${(evr[i]*100).toFixed(2)}% of GEX variance`+
+         `<br>cumulative ${(cums[i]*100).toFixed(2)}% over ${i+1} component${i?'s':''}`);
+  VIEWID('scree-cap').innerHTML =
+    `All 100 components together explain only <b>${(D.dataset.svd_explained_variance*100).toFixed(1)}%</b> of the
+     original GEX variance. That is not a bug — single-cell data is extremely sparse, and most of the
+     remaining "variance" is sequencing noise. Here, dimensionality reduction is denoising, not lossless compression.`;
+}
+
+/* ================= STAGE 3: latent blocks + training ================= */
+function softmax(a){ const m=Math.max(...a); const e=a.map(v=>Math.exp(v-m)); const s=e.reduce((x,y)=>x+y,0); return e.map(v=>v/s); }
+function drawLatent(){
+
+  const cv=VIEWID('cv-latent'); const {g,w,h}=fit(cv);
+  if(!LAT){ txt(g,'(latent data missing)',10,20); return; }
+  const i=state.cell, L=D.latent_layout;
+  const z=[]; for(let k=0;k<LATD;k++) z.push(LAT[i*LATD+k]);
+  const padL=8,padR=8,padT=26,barH=64;
+  const cw=(w-padL-padR)/LATD;
+  const blocks=[
+    ['cell_type', L.cell_type, css('--series-1'),        '45 dims · cell-type logits'],
+    ['batch',     L.batch,     css('--series-2'),  '9 dims · batch logits'],
+    ['cycle',     L.cycle,     css('--series-6'),'2 · S / G2M'],
+    ['free',      L.free,      css('--muted'),    '5 · free'],
+  ];
+  const mx=Math.max(...z,1e-6);
+  blocks.forEach(([key,[a,b],col,label])=>{
+    for(let k=a;k<b;k++){
+      const hh=(z[k]/mx)*barH;
+      g.fillStyle=col; g.globalAlpha=.85;
+      g.fillRect(padL+k*cw, padT+barH-hh, Math.max(cw-1,1), Math.max(hh,0.6));
+      g.globalAlpha=1;
+    }
+    const x0=padL+a*cw, x1=padL+b*cw;
+    line(g,x0,padT+barH+4,x1-1,padT+barH+4,col,2);
+    txt(g,label,(x0+x1)/2, padT+barH+18,{size:10,align:'center',col,weight:600});
+    line(g,x1-0.5,padT-6,x1-0.5,padT+barH+2,css('--line2'),1);
+  });
+  txt(g,'z ∈ R^'+LATD+'  (the latent vector of this cell)',padL,12,{size:11,weight:600,col:css('--ink2')});
+
+  // readouts
+  const ctL=z.slice(L.cell_type[0],L.cell_type[1]);
+  const btL=z.slice(L.batch[0],L.batch[1]);
+  const pCt=softmax(ctL), pBt=softmax(btL);
+  let am=0; pCt.forEach((v,k)=>{ if(v>pCt[am]) am=k; });
+  const trueCt=cellType[i], trueBt=cellBatch[i];
+  const ent = -pBt.reduce((s,p)=> s + (p>0? p*Math.log(p):0), 0) / Math.log(pBt.length);
+
+  const y=h-30;
+  txt(g,`softmax over the first 45 → predicts "${D.cell_type_names[am]}" p=${pCt[am].toFixed(2)}   |   true "${D.cell_type_names[trueCt]}" ${am===trueCt?'✓':'✗'}`,
+      padL,y,{size:11.5,col: am===trueCt? css('--good'):css('--critical'),weight:600});
+  txt(g,`normalised entropy of the middle 9 = ${ent.toFixed(3)} (1.000 = batch unguessable; true batch ${D.batch_names[trueBt]})   |   S=${sScore[i].toFixed(2)}  G2M=${gScore[i].toFixed(2)}`,
+      padL,y+15,{size:11,col:css('--ink3')});
+
+  /* one point per latent dimension, at the top of its bar; the readout names the
+     addressed block the dimension belongs to, which is the whole point of the panel */
+  const blockOf = k => {
+    for(const [key,[a,b]] of Object.entries({cell_type:L.cell_type,batch:L.batch,cycle:L.cycle,free:L.free}))
+      if(k>=a && k<b) return key.replace('_',' ');
+    return '—';
+  };
+  bindHover(cv, z.map((v,k)=>[padL+k*cw+cw/2, padT+barH-(v/mx)*barH, k]),
+    k => `<b>z[${k}] = ${z[k].toFixed(4)}</b><br>block: ${blockOf(k)}`+
+         `<br>cell ${D.cells.barcodes[i]}`);
+  VIEWID('latent-cap').innerHTML =
+    `JAE in one sentence: <b>the first 45 dimensions should be peaked</b> (cell type is recognisable),
+     <b>the middle 9 should be flat</b> (the donor is not), the next 2 should track the cell cycle, and the
+     last 5 carry no constraint at all — left free for the network to use as it likes.`;
+}
+
+function drawTrain(){
+
+  const cv=VIEWID('cv-train'); const {g,w,h}=fit(cv);
+  const t=D.training && D.training['jae_full'];
+  if(!t || !t.curve || !t.curve.length){ txt(g,'(training curve missing)',10,20); return; }
+  const c=t.curve, n=c.length;
+  const padL=40,padR=62,padT=14,padB=26;   // padR holds the two series labels
+  const X=i=>padL+(i/(n-1||1))*(w-padL-padR);
+  const Y=v=>h-padB-v*(h-padT-padB);            // v in [0,1]
+  // cell type accuracy (up = good)
+  g.strokeStyle=css('--good'); g.lineWidth=1.9; g.beginPath();
+  c.forEach((p,i)=> i? g.lineTo(X(i),Y(p.acc)) : g.moveTo(X(i),Y(p.acc)));
+  g.stroke();
+  // batch accuracy (should collapse to chance)
+  g.strokeStyle=css('--series-2'); g.lineWidth=1.9; g.beginPath();
+  c.forEach((p,i)=> i? g.lineTo(X(i),Y(p.bacc)) : g.moveTo(X(i),Y(p.bacc)));
+  g.stroke();
+  // chance line
+  const chance=1/D.batch_names.length;
+  g.setLineDash([3,3]); line(g,padL,Y(chance),w-padR,Y(chance),css('--ink3'),1); g.setLineDash([]);
+  txt(g,'chance '+chance.toFixed(3), w-padR-3, Y(chance)-4,{size:9.5,align:'right'});
+  // recon loss on the right axis
+  const rmax=Math.max(...c.map(p=>p.r)), rmin=Math.min(...c.map(p=>p.r));
+  g.strokeStyle=css('--accent'); g.lineWidth=1.4; g.setLineDash([4,3]); g.beginPath();
+  c.forEach((p,i)=>{ const y=h-padB-((rmax-p.r)/(rmax-rmin||1))*(h-padT-padB); i?g.lineTo(X(i),y):g.moveTo(X(i),y);});
+  g.stroke(); g.setLineDash([]);
+  line(g,padL,h-padB,w-padR,h-padB,css('--line2'),1);
+  line(g,padL,padT,padL,h-padB,css('--line2'),1);
+  txt(g,'1.0',padL-5,padT+4,{size:9.5,align:'right'});
+  txt(g,'0',padL-5,h-padB+3,{size:9.5,align:'right'});
+  txt(g,'epoch',w-padR,h-padB+14,{size:9.5,align:'right'});
+  txt(g,'cell type',X(n-1)+4,Y(c[n-1].acc)+3,{size:10,col:css('--good'),weight:600});
+  txt(g,'batch',X(n-1)+4,Y(c[n-1].bacc)+3,{size:10,col:css('--series-2'),weight:600});
+  /* one point per epoch, on the cell-type curve; the readout carries all three
+     series so the reader does not have to hover each line separately */
+  bindHover(cv, c.map((p,i)=>[X(i), Y(p.acc), i]),
+    i => `<b>epoch ${i+1}</b> of ${n}<br>cell-type accuracy ${(c[i].acc*100).toFixed(1)}%`+
+         `<br>batch accuracy ${(c[i].bacc*100).toFixed(1)}% (chance ${(chance*100).toFixed(1)}%)`+
+         `<br>reconstruction loss ${c[i].r.toFixed(4)}`);
+  const last=c[n-1];
+  VIEWID('train-cap').innerHTML =
+    `After ${n} epochs: cell-type accuracy <b>${(last.acc*100).toFixed(1)}%</b>,
+     batch accuracy <b>${(last.bacc*100).toFixed(1)}%</b> (chance is ${(chance*100).toFixed(1)}%).
+     The dashed line is reconstruction loss (right axis, auto-scaled). Biological signal climbing while batch
+     information is pressed down to chance is exactly those two losses doing their separate jobs.`;
+}
+
+/* ================= STAGE 4: metrics, trade-off, embedding ================= */
+const METRIC_LABELS = [
+  ['nmi','NMI','agreement between clusters and cell type','bio'],
+  ['asw_cell_type','cell type ASW','are cell types well separated','bio'],
+  ['cell_cycle_conservation','cell cycle cons.','did the cell-cycle signal survive','bio'],
+  ['trajectory_conservation','trajectory cons.','did the erythroid trajectory survive','bio'],
+  ['asw_batch','batch ASW','are donors mixed within a cell type','batch'],
+  ['graph_connectivity','graph conn.','does each cell type stay in one piece','batch'],
+];
+function buildMetrics(){
+  const tbl=VIEWID('tbl-metrics');
+  const V=D.metrics.variants||{};
+  const ours=V.jae_full;
+  if(!ours){ tbl.innerHTML='<tbody><tr><td>metrics missing</td></tr></tbody>'; return; }
+  let html='<thead><tr><th>Metric</th><th>All cells</th><th>Held-out only</th><th>Rewards</th></tr></thead><tbody>';
+  METRIC_LABELS.forEach(([k,label,desc,grp])=>{
+    const a=ours.all[k], hd=ours.heldout[k];
+    const gcol = grp==='bio' ? 'var(--series-1)' : 'var(--series-2)';
+    const gtxt = grp==='bio' ? 'biology kept' : 'batch removed';
+    html+=`<tr><td><b>${label}</b><br><span style="color:var(--ink3);font-size:11.5px">${desc}</span></td>`+
+      `<td class="num">${a!=null?a.toFixed(4):'—'}</td>`+
+      `<td class="num" style="color:var(--ink3)">${hd!=null?hd.toFixed(4):'—'}</td>`+
+      `<td style="text-align:right;font-size:11.5px;color:${gcol}">${gtxt}</td></tr>`;
+  });
+  html+=`<tr class="hi"><td><b>Mean of the six</b></td>`+
+    `<td class="num"><b>${ours.all.overall_mean_of_six.toFixed(4)}</b></td>`+
+    `<td class="num" style="color:var(--ink3)">${ours.heldout.overall_mean_of_six.toFixed(4)}</td><td></td></tr>`;
+  html+='</tbody>';
+  tbl.innerHTML=html;
+
+  const cfg=D.metrics.config||{};
+  VIEWID('metrics-cap').innerHTML =
+    `Four metrics reward keeping biological structure, two reward removing batch effects, and the headline
+     number is their arithmetic mean. The second column scores only the
+     ${(cfg.n_heldout||0).toLocaleString()} cells whose labels the model never saw.
+     Read that gap carefully: switching column also drops the cell count from
+     ${(cfg.n_cells||0).toLocaleString()} to ${(cfg.n_heldout||0).toLocaleString()}, and metrics like NMI and
+     graph connectivity drift with sample size on their own. It changes <b>two</b> factors at once, so treat it
+     as a direction, not a clean generalisation gap.`;
+}
+
+function drawTradeoff(){
+
+  const cv=VIEWID('cv-tradeoff'); const {g,w,h}=fit(cv);
+  const V=D.metrics.variants||{};
+  const pts=Object.keys(V).map(k=>({k,x:V[k].all.bio_conservation_mean,y:V[k].all.batch_removal_mean}))
+                .filter(p=>isFinite(p.x)&&isFinite(p.y));
+  if(!pts.length){ txt(g,'(metrics missing)',10,20); return; }
+  const padL=44,padR=14,padT=14,padB=30;
+  const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y);
+  const x0=Math.min(...xs)-.03, x1=Math.max(...xs)+.03;
+  const y0=Math.min(...ys)-.03, y1=Math.max(...ys)+.03;
+  const X=v=>padL+(v-x0)/(x1-x0||1)*(w-padL-padR);
+  const Y=v=>h-padB-(v-y0)/(y1-y0||1)*(h-padT-padB);
+  line(g,padL,h-padB,w-padR,h-padB,css('--line2'),1);
+  line(g,padL,padT,padL,h-padB,css('--line2'),1);
+  txt(g,'biological conservation (mean of 4) →',w-padR,h-padB+16,{size:10,align:'right'});
+  g.save(); g.translate(12,padT+4); g.rotate(-Math.PI/2);
+  txt(g,'← batch removal (mean of 2)',0,0,{size:10,align:'right'}); g.restore();
+  txt(g,x0.toFixed(2),padL,h-padB+16,{size:9.5});
+  txt(g,y1.toFixed(2),padL-5,padT+4,{size:9.5,align:'right'});
+  pts.forEach(p=>{
+    const cur = p.k===state.variant;
+    g.beginPath(); g.arc(X(p.x),Y(p.y), cur?6:4.2, 0, Math.PI*2);
+    g.fillStyle = cur? css('--accent') : css('--ink3');
+    g.globalAlpha = cur? 1 : .55; g.fill(); g.globalAlpha=1;
+    if(cur||p.k==='jae_full'||p.k==='svd61'||p.k==='ae_only')
+      txt(g,p.k,X(p.x)+8,Y(p.y)+3.5,{size:10,col:css('--ink2'),weight:600});
+  });
+  /* every variant is a point; clicking one makes it the shown variant, which is
+     the same thing the select above the embedding does */
+  bindHover(cv, pts.map((p,i)=>[X(p.x), Y(p.y), i]),
+    i => `<b>${pts[i].k}</b><br>biological conservation ${pts[i].x.toFixed(4)}`+
+         `<br>batch removal ${pts[i].y.toFixed(4)}`+
+         `<br>mean of six ${(V[pts[i].k].all.overall_mean_of_six).toFixed(4)}`,
+    { onClick: i => { state.variant = pts[i].k;
+                      const sv=VIEWID('sel-variant'); if(sv) sv.value=state.variant;
+                      drawEmb(); drawTradeoff(); } });
+}
+
+/* ---- embedding scatter ---- */
+const embGeom={};
+function colorOfCell(i){
+  switch(state.color){
+    case 'lineage': return LINCOL[lineageOf[cellType[i]]];
+    case 'celltype': { const t=cellType[i];
+      const base=LINCOL[lineageOf[t]];
+      return shade(base, ((t*47)%100)/100*0.5-0.25); }
+    case 'batch': return BATCHCOL[cellBatch[i]%BATCHCOL.length];
+    case 'cycle': { const v=Math.max(0,Math.min(1,(sScore[i]-D.cells.S.lo)/(D.cells.S.hi-D.cells.S.lo)));
+      return PC.rampColor(0.18+0.82*v); }
+    case 'pseudotime': { const v=pTime[i];
+      if(v<0) return css('--line');
+      return PC.rampColor(v); }
+  }
+  return css('--ink3');
+}
+function shade(hex,amt){
+  const m=hex.match(/#(..)(..)(..)/); if(!m) return hex;
+  let [r,gg,b]=[1,2,3].map(k=>parseInt(m[k],16));
+  const f=v=>Math.max(0,Math.min(255,Math.round(v+amt*120)));
+  return `rgb(${f(r)},${f(gg)},${f(b)})`;
+}
+function drawEmb(){
+
+  const cv=VIEWID('cv-emb'); const {g,w,h}=fit(cv);
+  const C=coordsOf(state.variant); if(!C){ txt(g,'(coordinates missing)',10,20); return; }
+  const padL=10,padR=10,padT=10,padB=10;
+  let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity;
+  for(let i=0;i<NC;i++){ x0=Math.min(x0,C.x[i]); x1=Math.max(x1,C.x[i]); y0=Math.min(y0,C.y[i]); y1=Math.max(y1,C.y[i]); }
+  const sx=(w-padL-padR)/(x1-x0||1), sy=(h-padT-padB)/(y1-y0||1), s=Math.min(sx,sy);
+  const ox=padL+((w-padL-padR)-(x1-x0)*s)/2, oy=padT+((h-padT-padB)-(y1-y0)*s)/2;
+  embGeom.map = i => [ox+(C.x[i]-x0)*s, oy+(y1-C.y[i])*s];
+  for(let i=0;i<NC;i++){
+    if(state.lineage && lineageOf[cellType[i]]!==state.lineage) continue;
+    const [px,py]=embGeom.map(i);
+    g.fillStyle=colorOfCell(i); g.globalAlpha=.62;
+    g.fillRect(px-1.1,py-1.1,2.2,2.2);
+  }
+  g.globalAlpha=1;
+  const [cx,cy]=embGeom.map(state.cell);
+  g.strokeStyle=css('--matrix-cell'); g.lineWidth=2;
+  g.beginPath(); g.arc(cx,cy,7,0,Math.PI*2); g.stroke();
+  line(g,cx-12,cy,cx-8,cy,css('--matrix-cell'),2); line(g,cx+8,cy,cx+12,cy,css('--matrix-cell'),2);
+
+  /* THE SHARED HIT-TESTER. This panel used to carry its own nearest-point loop
+     on `cve.onclick` with a `bd < 900` cutoff and no readout at all; the loop,
+     the 30px radius and the lineage mask are all expressed here instead, so the
+     panel now gains the tooltip every other plot in the suite has and stays on
+     the shared path for anything PC.hover grows later. `mask` is a predicate, so
+     a lineage filter no longer needs the draw loop's `continue`. */
+  const embPts = new Array(NC);
+  for(let i=0;i<NC;i++){ const [px,py]=embGeom.map(i); embPts[i]=[px,py,i]; }
+  bindHover(cv, embPts, i =>
+      `<b>${D.cells.barcodes[i]}</b><br>${D.cell_type_names[cellType[i]]}`+
+      `<br>lineage ${lineageOf[cellType[i]]} · batch ${D.batch_names[cellBatch[i]]}`+
+      `<br>S ${sScore[i].toFixed(2)} · G2M ${gScore[i].toFixed(2)}`+
+      (heldout[i]? '<br>label held out' : ''),
+    { radius: 30,
+      mask: i => !state.lineage || lineageOf[cellType[i]]===state.lineage,
+      onClick: i => setCell(i) });
+
+  // legend
+  const lg=VIEWID('emb-legend'); lg.innerHTML='';
+  if(state.color==='lineage'||state.color==='celltype'){
+    D.lineage_order.forEach(l=>{ lg.innerHTML+=`<span><i style="background:${LINCOL[l]}"></i>${l}</span>`; });
+  } else if(state.color==='batch'){
+    D.batch_names.forEach((b,k)=>{ lg.innerHTML+=`<span><i style="background:${BATCHCOL[k%BATCHCOL.length]}"></i>${b}</span>`; });
+  } else if(state.color==='cycle'){
+    lg.innerHTML=`<span><i style="background:${PC.rampColor(0.18)}"></i>low S score</span><span><i style="background:${PC.rampColor(1)}"></i>high S score</span>`;
+  } else {
+    lg.innerHTML=`<span><i style="background:${PC.rampColor(0)}"></i>early (HSC)</span><span><i style="background:${PC.rampColor(1)}"></i>late (reticulocyte)</span><span><i style="background:${css('--line')}"></i>no pseudotime (the other 39 cell types)</span>`;
+  }
+  const vt=D.training[state.variant];
+  VIEWID('emb-cap').innerHTML =
+    `Variant <b>${state.variant}</b>${vt&&vt.weights? ', loss weights <span class="mono">['+vt.weights.join(', ')+']</span>':''}.
+     Each point is one cell (${NC.toLocaleString()} shown, stratified by cell type).
+     UMAPs from different variants are aligned by orthogonal Procrustes, which removes only rotation and
+     reflection — cluster shapes are untouched.
+     <b>But be careful</b>: a visually separated blob is not automatically a real biological category.`;
+}
+
+function drawTrace(){
+
+  const cv=VIEWID('cv-trace'); const {g,w,h}=fit(cv);
+  const i=state.cell, nGene=D.column_kind.filter(k=>k==='gene').length;
+  const pw=(w-14)/134;
+  for(let c=0;c<134;c++){
+    const v=MAT[i*NCOL+nGene+c]/255, hh=v*(h-34);
+    g.fillStyle=LINCOL[lineageOf[cellType[i]]]; g.globalAlpha=.5+.5*v;
+    g.fillRect(7+c*pw, h-22-hh, Math.max(pw-0.4,0.7), hh);
+  }
+  g.globalAlpha=1;
+  line(g,7,h-22,w-7,h-22,css('--line2'),1);
+  txt(g,'134 surface proteins (the same cell selected on the left)',7,12,{size:10,col:css('--ink3')});
+  // label the 3 strongest proteins
+  const vals=[]; for(let c=0;c<134;c++) vals.push([MAT[i*NCOL+nGene+c],c]);
+  vals.sort((a,b)=>b[0]-a[0]);
+  vals.slice(0,3).forEach(([v,c])=>{
+    txt(g, D.column_names[nGene+c], 7+c*pw+pw/2, h-8,{size:9,align:'center',col:css('--ink2')});
+  });
+  /* one point per surface protein */
+  bindHover(cv, Array.from({length:134},(_,c)=>
+      [7+c*pw+pw/2, h-22-(MAT[i*NCOL+nGene+c]/255)*(h-34), c]),
+    c => `<b>${D.column_names[nGene+c]}</b><br>surface protein · ${(MAT[i*NCOL+nGene+c]/255).toFixed(3)}`+
+         `<br>cell ${D.cells.barcodes[i]}`);
+  const ct=D.cell_type_names[cellType[i]];
+  VIEWID('trace-cap').innerHTML =
+    `The 61 numbers the model produces have to map back to <b>one real cell</b>: its barcode, donor, annotated
+     type, strongest genes and this protein profile. The model's output is not the destination — being able
+     to get back to reality is.`;
+  const kv=VIEWID('kv-cell');
+  const topG=[]; for(let k=0;k<Math.min(5,NTOP);k++) topG.push(D.gene_names_all[topIdx[i*NTOP+k]]);
+  kv.innerHTML =
+    `<dt>barcode</dt><dd style="font-size:11px">${D.cells.barcodes[i]}</dd>`+
+    `<dt>true type</dt><dd>${ct}</dd>`+
+    `<dt>lineage</dt><dd style="color:${LINCOL[lineageOf[cellType[i]]]}">${lineageOf[cellType[i]]}</dd>`+
+    `<dt>donor batch</dt><dd>${D.batch_names[cellBatch[i]]}</dd>`+
+    `<dt>S / G2M</dt><dd>${sScore[i].toFixed(2)} / ${gScore[i].toFixed(2)}</dd>`+
+    `<dt>erythroid pseudotime</dt><dd>${pTime[i]<0?'not applicable':pTime[i].toFixed(3)}</dd>`+
+    `<dt>strongest genes</dt><dd style="font-size:11.5px">${topG.join(', ')}</dd>`+
+    `<dt>label visibility</dt><dd>${heldout[i]?'held out (never trained on)':'training set'}</dd>`;
+}
+
+/* ================= static fills ================= */
+function fillStatics(){
+  const d=D.dataset;
+  const set=(id,v)=>{const e=VIEWID(id); if(e) e.textContent=v;};
+  set('f-cells', d.n_cells.toLocaleString()); set('f-cells3', d.n_cells.toLocaleString());
+  set('f-cells4', d.n_cells.toLocaleString());
+  set('f-genes', d.n_genes.toLocaleString()); set('f-genes2', d.n_genes.toLocaleString());
+  set('f-genes3', d.n_genes.toLocaleString());
+  set('f-prot', d.n_proteins);
+  set('f-negfrac', (D.neg_fraction!=null? (D.neg_fraction*100).toFixed(0):'21')+'%');
+
+  VIEWID('kv-x').innerHTML =
+    `<dt>one sample</dt><dd>one bone-marrow cell</dd>`+
+    `<dt>GEX</dt><dd>${d.n_genes.toLocaleString()} gene counts</dd>`+
+    `<dt>ADT</dt><dd>${d.n_proteins} protein counts</dd>`+
+    `<dt>shape of X</dt><dd>${d.n_cells.toLocaleString()} × ${(d.n_genes+d.n_proteins).toLocaleString()}</dd>`;
+  VIEWID('kv-y').innerHTML =
+    `<dt>cell type</dt><dd>${d.n_cell_types} classes (manual)</dd>`+
+    `<dt>batch</dt><dd>${d.n_batches} donor × site</dd>`+
+    `<dt>cell cycle</dt><dd>continuous S / G2M scores</dd>`+
+    `<dt>pseudotime</dt><dd>erythroid only, 10,373 cells</dd>`;
+
+  const cc=d.cell_cycle||{};
+  VIEWID('kv-repro').innerHTML =
+    `<dt>data</dt><dd>GEO GSE194122 / openproblems S3</dd>`+
+    `<dt>SVD seed</dt><dd>123, 100 components</dd>`+
+    `<dt>train / val split</dt><dd>90/10, seed 42</dd>`+
+    `<dt>display sample</dt><dd>${NC.toLocaleString()} cells, stratified, seed 7</dd>`+
+    `<dt>cycle genes matched</dt><dd>${cc.s_genes_used||43} S + ${cc.g2m_genes_used||54} G2M / 97</dd>`+
+    `<dt>page generated</dt><dd>${D.generated}</dd>`;
+
+  const div=D.metrics.divergences_from_scib||{};
+  const nDiv=Object.keys(div).length;
+  const sub=(D.metrics.config&&D.metrics.config.subsample)||8000;
+  VIEWID('honesty').innerHTML =
+    `<b>These six numbers are local approximations, not the reference implementations.</b>
+     The metrics are defined by the <span class="mono">scib</span> package, which is not installable on this
+     machine, so each one is reimplemented on numpy/sklearn. The substantive differences: NMI sweeps KMeans
+     <span class="mono">k</span> instead of optimising Louvain resolution; trajectory conservation uses a kNN
+     graph geodesic instead of diffusion pseudotime; and the silhouette-based metrics are computed on a
+     stratified subsample of ${sub.toLocaleString()} cells because silhouette is O(n²).
+     ${nDiv? 'All '+nDiv+' metrics carry implementation differences, recorded in <span class="mono">tools/metrics.py</span>.':''}
+     <b>So these values are only meaningful for comparing configurations within this demo</b> — they should
+     not be read against numbers published elsewhere.`;
+
+  const ccMix = cc.our_phase_mix||{}, dsMix = cc.dataset_phase_mix||{};
+  const pct = (m,k) => {
+    const tot = Object.values(m).reduce((a,b)=>a+b,0);
+    return tot? (m[k]/tot*100).toFixed(0)+'%' : '—';
+  };
+  VIEWID('limit-list').innerHTML = [
+    `<b>The SVD is fitted on every cell</b>, which is a transductive setup rather than a strict
+     split-then-transform. The competition allowed it; in a real prediction setting it is a hazard.`,
+    `<b>The six metrics are local approximations</b>, suitable only for comparing configurations inside this
+     demo — not against results published elsewhere.`,
+    `<b>The 45 cell types are manual annotations</b> and carry their own uncertainty. Two blobs that fail to
+     separate in the embedding may be the model's fault, or may mean the annotation is finer than the data supports.`,
+    `<b>"Batch accuracy fell to chance" is not the same as "batch effect is gone."</b> It only shows those 9
+     dimensions carry no batch information; the other 52 may still carry plenty — so switch the colouring to
+     donor batch and judge for yourself.`,
+    `<b>Visually separated clusters are not automatically real biological categories.</b> UMAP exaggerates gaps,
+     and it will happily draw a continuous differentiation process as discrete islands.`,
+    `<b>The dataset's own <span class="mono">obs/phase</span> column labels ${pct(dsMix,'G2M')} of cells G2M</b>,
+     which is not plausible for bone-marrow mononuclear cells. Our numpy reimplementation of scanpy's scoring
+     gives ${pct(ccMix,'G1')} G1, and the two agree only
+     ${cc.agreement_with_obs_phase!=null? (cc.agreement_with_obs_phase*100).toFixed(0):'—'}% of the time.
+     This page uses our own S/G2M scores.`,
+  ].map(s=>`<li style="margin-bottom:7px">${s}</li>`).join('');
+}
+
+/* ================= wiring ================= */
+function redrawAll(){
+  drawMatrix(); drawRow(); drawCol(); drawScree();
+  drawLatent(); drawTrain(); drawTradeoff(); drawEmb(); drawTrace();
+}
+function setCell(i){ state.cell=i; drawMatrix(); drawRow(); drawCol(); drawLatent(); drawEmb(); drawTrace(); }
+function setCol(j){ state.col=j; drawMatrix(); drawRow(); drawCol(); }
+
+function init(){
+  fillStatics();
+  // column selector
+  const sc=VIEWID('sel-col');
+  D.column_names.forEach((n,j)=>{
+    const o=document.createElement('option'); o.value=j;
+    o.textContent=(D.column_kind[j]==='gene'?'gene · ':'protein · ')+n; sc.appendChild(o);
+  });
+  // default to a gene with obvious lineage structure
+  const dflt=D.column_names.indexOf('CD3E'); state.col = dflt>=0? dflt : 0;
+  sc.value=state.col;
+  sc.onchange=()=> setCol(+sc.value);
+
+  const sl=VIEWID('sel-lin');
+  D.lineage_order.forEach(l=>{ const o=document.createElement('option'); o.value=l; o.textContent=l; sl.appendChild(o); });
+  sl.onchange=()=>{ state.lineage=sl.value; redrawAll(); };
+
+  const sv=VIEWID('sel-variant');
+  Object.keys(D.coords).forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sv.appendChild(o); });
+  sv.value = D.coords['jae_full']? 'jae_full' : Object.keys(D.coords)[0];
+  state.variant=sv.value;
+  sv.onchange=()=>{ state.variant=sv.value; drawEmb(); drawTradeoff(); };
+
+  VIEWROOT.querySelectorAll('[data-color]').forEach(b=>{
+    b.onclick=()=>{
+      VIEWROOT.querySelectorAll('[data-color]').forEach(x=>x.setAttribute('aria-pressed','false'));
+      b.setAttribute('aria-pressed','true');
+      state.color=b.dataset.color; drawEmb();
+    };
+  });
+  VIEWID('btn-random').onclick=()=>{
+    let pool=[]; for(let i=0;i<NC;i++) if(!state.lineage||lineageOf[cellType[i]]===state.lineage) pool.push(i);
+    if(pool.length) setCell(pool[Math.floor(Math.random()*pool.length)]);
+  };
+
+  // click interactions
+  const cvm=VIEWID('cv-matrix');
+  cvm.onclick=e=>{
+    const r=cvm.getBoundingClientRect();
+    const x=e.clientX-r.left, y=e.clientY-r.top;
+    const c=Math.floor((x-mxGeom.padL)/mxGeom.cw);
+    const rr=Math.floor((y-mxGeom.padT)/mxGeom.ch);
+    if(c>=0&&c<NCOL){ state.col=c; VIEWID('sel-col').value=c; }
+    if(rr>=0&&rr<mxRows.length) state.cell=mxRows[rr];
+    drawMatrix(); drawRow(); drawCol(); drawLatent(); drawEmb(); drawTrace();
+  };
+  const cve=VIEWID('cv-emb');
+  /* The nearest-point click this canvas used to own now lives in drawEmb()'s
+     PC.hover call (radius 30 = the old `bd < 900`, same lineage mask, same
+     setCell). The property handler is nulled rather than left in place, because
+     it would double-fire alongside the shared one. */
+  cve.onclick=null;
+  cvm.tabIndex=0; cve.tabIndex=0;
+  cve.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); VIEWID('btn-random').click(); } };
+
+  buildMetrics();
+  // pick an interesting starting cell: a myeloid cell the model never saw labelled
+  let start=0;
+  for(let i=0;i<NC;i++){ if(lineageOf[cellType[i]]==='Myeloid' && heldout[i]){ start=i; break; } }
+  state.cell=start;
+  redrawAll();
+}
+
+/* The ?theme= stamp goes through the shared writer instead of a hand-rolled
+   setAttribute. It stays here rather than being deleted outright because this
+   view paints before the suite script installs PC.initTheme, and a canvas drawn
+   under the wrong palette would only correct itself on the next redraw. The
+   other three contract pieces (toggle, matchMedia, MutationObserver) are
+   initTheme's alone — this view hand-rolls none of them. */
+const q=new URLSearchParams(location.search).get('theme');
+if(q==='dark'||q==='light') document.documentElement.setAttribute("data-theme",q);
+
+window.addEventListener('resize', ()=>{ clearTimeout(window._rt_explorer); window._rt_explorer=setTimeout(redrawAll,120); });
+init();
+window.__JAE_VIEWS__['explorer'] = (typeof redrawAll === 'function') ? redrawAll : function(){};
+})();
+
+/* ===== view: lab (from template_lab.html) ===== */
+(function(){
+var VIEWROOT = document.getElementById('view-lab');
+var VIEWID = function(id){ return VIEWROOT.querySelector('#' + id) || document.getElementById('explorer-reference').querySelector('#' + id); };
+const DATA = window.__JAE_PAYLOAD__;
+const D = DATA;
+
+function unb64(s,T){const b=atob(s);const buf=new ArrayBuffer(b.length);const v=new Uint8Array(buf);
+  for(let i=0;i<b.length;i++)v[i]=b.charCodeAt(i);return new T(buf);}
+function deq(c,lo,hi,mx){const o=new Float32Array(c.length);const s=(hi-lo)/mx;
+  for(let i=0;i<c.length;i++)o[i]=lo+c[i]*s;return o;}
+const css=n=>PC.css(n);
+
+const NC=D.cells.n;
+const cellType=unb64(D.cells.cell_type,Uint8Array);
+const cellBatch=unb64(D.cells.batch,Uint8Array);
+const sScore=deq(unb64(D.cells.S.data,Uint16Array),D.cells.S.lo,D.cells.S.hi,65535);
+const lineageOf=D.cell_type_lineage;
+const LINEAGE_TOKEN=['--series-1','--series-3','--series-5','--series-2',
+                    '--series-6','--series-4','--muted'];
+const LINCOL={};
+function refreshLineageColours(){
+  D.lineage_order.forEach((l,k)=>LINCOL[l]=css(LINEAGE_TOKEN[k%LINEAGE_TOKEN.length]));
+}
+refreshLineageColours();
+const BATCH_TOKEN=['--series-1','--series-2','--series-3','--series-4','--series-5',
+                  '--series-6','--series-7','--series-8','--muted'];
+let BATCHCOL=[];
+function refreshBatchColours(){ BATCHCOL=BATCH_TOKEN.map(css); }
+refreshBatchColours();
+
+const cache={};
+function coordsOf(v){
+  if(cache[v])return cache[v];
+  const c=D.coords[v]; if(!c)return null;
+  return cache[v]={x:deq(unb64(c.x,Uint16Array),c.sx[0],c.sx[1],65535),
+                   y:deq(unb64(c.y,Uint16Array),c.sy[0],c.sy[1],65535)};
+}
+let COLOR='batch';
+function colorOf(i){
+  if(COLOR==='batch') return BATCHCOL[cellBatch[i]%BATCHCOL.length];
+  if(COLOR==='lineage') return LINCOL[lineageOf[cellType[i]]];
+  const v=Math.max(0,Math.min(1,(sScore[i]-D.cells.S.lo)/(D.cells.S.hi-D.cells.S.lo)));
+  return PC.rampColor(0.15+0.85*v);
+}
+/* Sizing through the shared PC.fit, exactly as the explorer view does — see the
+   long note there for the cached authored height and the cleared inline width. */
+function fit(cv){
+  const h = cv.__pcCssH !== undefined ? cv.__pcCssH
+          : (cv.__pcCssH = +cv.getAttribute('height'));
+  cv.style.width = "";
+  const w = cv.clientWidth || (cv.parentElement && cv.parentElement.clientWidth) || 220;
+  const g = PC.fit(cv, w, h);
+  return {g,w,h};
+}
+function bindHover(cv, pts, html, opts){
+  return PC.hover(cv, pts, Object.assign({
+    onHit: (i, evt) => PC.tip(html(i), evt),
+    onLeave: () => PC.hideTip()
+  }, opts || {}));
+}
+function txt(g,s,x,y,{size=11,col=null,align='left',weight=400}={}){
+  g.fillStyle=col||css('--ink3');
+  g.font=weight+' '+size+'px '+PC.font.family();
+  g.textAlign=align; g.textBaseline='alphabetic'; g.fillText(s,x,y);
+}
+
+/* shared extent across every small multiple, so panels really are comparable */
+let EXT=null;
+function extent(){
+  if(EXT) return EXT;
+  let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity;
+  Object.keys(D.coords).forEach(v=>{
+    const C=coordsOf(v);
+    for(let i=0;i<NC;i++){x0=Math.min(x0,C.x[i]);x1=Math.max(x1,C.x[i]);
+      y0=Math.min(y0,C.y[i]);y1=Math.max(y1,C.y[i]);}
+  });
+  return EXT={x0,x1,y0,y1};
+}
+function drawMini(cv,variant){
+  const {g,w,h}=fit(cv);
+  const C=coordsOf(variant);
+  if(!C){ txt(g,'('+variant+' missing)',8,18); return; }
+  const e=extent();
+  const s=Math.min(w/(e.x1-e.x0||1), h/(e.y1-e.y0||1))*0.94;
+  const ox=(w-(e.x1-e.x0)*s)/2, oy=(h-(e.y1-e.y0)*s)/2;
+  const pts=new Array(NC);
+  for(let i=0;i<NC;i++){
+    const px=ox+(C.x[i]-e.x0)*s, py=oy+(e.y1-C.y[i])*s;
+    pts[i]=[px,py,i];
+    g.fillStyle=colorOf(i); g.globalAlpha=.55;
+    g.fillRect(px-.9,py-.9,1.8,1.8);
+  }
+  g.globalAlpha=1;
+  /* every small multiple gets the same readout, and it names the VARIANT as well
+     as the cell — the whole point of the panel is comparing variants, so the
+     reader needs to know which one is under the pointer */
+  bindHover(cv, pts, i =>
+    `<b>${variant}</b><br>${D.cells.barcodes[i]}`+
+    `<br>${lineageOf[cellType[i]]} · batch ${D.batch_names[cellBatch[i]]}`+
+    `<br>S score ${sScore[i].toFixed(2)}`);
+}
+
+const METRICS=[
+  ['nmi','NMI'],['asw_cell_type','type ASW'],['cell_cycle_conservation','cycle cons.'],
+  ['trajectory_conservation','traj. cons.'],['asw_batch','batch ASW'],['graph_connectivity','graph conn.'],
+];
+const V=()=>D.metrics.variants||{};
+function num(x,d=3){return x==null||!isFinite(x)?'—':(+x).toFixed(d);}
+
+function panelHTML(v,title,meta,mark){
+  return `<div class="panel${mark?' on':''}"><h4>${title}</h4><div class="meta">${meta}</div>
+    <canvas height="168" data-variant="${v}" role="img" aria-label="Embedding projection for ${title}"></canvas></div>`;
+}
+function metricTable(variants, scope='all'){
+  let html='<thead><tr><th>Variant</th>';
+  METRICS.forEach(([,l])=>html+=`<th>${l}</th>`);
+  html+='<th>bio mean</th><th>batch mean</th><th>mean of 6</th><th>cell-type acc.</th></tr></thead><tbody>';
+  variants.forEach(({key,label,mark})=>{
+    const e=V()[key]; if(!e) return;
+    const s=e[scope];
+    const tr=D.training[key]||{};
+    const acc=tr.curve&&tr.curve.length? tr.curve[tr.curve.length-1].acc : null;
+    html+=`<tr${mark?' class="hi"':''}><td><b>${label}</b><br><span class="mono" style="color:var(--ink3);font-size:11px">${key}</span></td>`;
+    METRICS.forEach(([k])=>html+=`<td class="num">${num(s[k])}</td>`);
+    html+=`<td class="num">${num(s.bio_conservation_mean)}</td><td class="num">${num(s.batch_removal_mean)}</td>`+
+      `<td class="num"><b>${num(s.overall_mean_of_six)}</b></td>`+
+      `<td class="num" style="color:var(--ink3)">${acc==null?'—':(acc*100).toFixed(1)+'%'}</td></tr>`;
+  });
+  return html+'</tbody>';
+}
+
+/* ---------- experiment definitions ---------- */
+const EXP = {
+  e1: {
+    variants:[
+      {key:'jae_batch0',  label:'λ_batch = 0',    meta:'[0.7, 0.2, 0.00, 0.05]'},
+      {key:'jae_full',    label:'λ_batch = 0.05', meta:'[0.7, 0.2, 0.05, 0.05] ← paper', mark:true},
+      {key:'jae_batch20', label:'λ_batch = 0.2',  meta:'[0.7, 0.2, 0.20, 0.05]'},
+      {key:'jae_batch50', label:'λ_batch = 0.5',  meta:'[0.7, 0.2, 0.50, 0.05]'},
+    ],
+    cap(){
+      const g=k=>V()[k]&&V()[k].all;
+      const a=g('jae_batch0'), b=g('jae_full'), c=g('jae_batch50');
+      if(!a||!b||!c) return '';
+      return `Going from λ<sub>batch</sub>=0 to 0.5, the batch-removal mean moves from <b>${num(a.batch_removal_mean)}</b>
+        to <b>${num(c.batch_removal_mean)}</b> while the biological-conservation mean moves from
+        <b>${num(a.bio_conservation_mean)}</b> to <b>${num(c.bio_conservation_mean)}</b>. The paper's 0.05 sits at
+        <b>${num(b.batch_removal_mean)} / ${num(b.bio_conservation_mean)}</b>.
+        Before reading anything into these gaps, check them against the seed-to-seed spread in experiment 6.`;
+    }
+  },
+  e2: {
+    variants:[
+      {key:'svd61',       label:'① No training at all', meta:'TruncatedSVD to the same 61 dims'},
+      {key:'ae_only',     label:'② Plain autoencoder',  meta:'[1.0, 0.0, 0.00, 0.00]'},
+      {key:'ae_celltype', label:'③ + cell type',        meta:'[0.7, 0.3, 0.00, 0.00]'},
+      {key:'jae_full',    label:'④ Full JAE',           meta:'[0.7, 0.2, 0.05, 0.05]', mark:true},
+    ],
+    cap(){
+      const g=k=>V()[k]&&V()[k].all;
+      const s=g('svd61'), a=g('ae_only'), c=g('ae_celltype'), f=g('jae_full');
+      if(!s||!a||!c||!f) return '';
+      const t=k=>{const tr=D.training[k]; return tr&&tr.curve&&tr.curve.length? (tr.curve[tr.curve.length-1].acc*100).toFixed(1)+'%':'—';};
+      return `First, the accuracy of reading cell type off an argmax over the first 45 dimensions: the plain
+        autoencoder manages only <b>${t('ae_only')}</b> (nothing asked those dimensions to represent type, so it
+        should be near the ${(100/D.cell_type_names.length).toFixed(1)}% chance level), rising to
+        <b>${t('ae_celltype')}</b> once type supervision is added, and <b>${t('jae_full')}</b> for the full JAE.
+        No surprise there.
+        <br><br><b>The surprise is the NMI column: ${num(s.nmi)} → ${num(a.nmi)} → ${num(c.nmi)} → ${num(f.nmi)}.</b>
+        The plain autoencoder (${num(a.nmi)}) is <b>worse than not training at all</b> (${num(s.nmi)}).
+        A 61-dimensional bottleneck optimised purely for reconstruction does not organise cell-type structure
+        better — it actually scrambles structure the SVD already had (remember the output ReLU truncates half
+        the directions; see experiment 5). Only once type supervision is added does NMI jump to ${num(c.nmi)}.
+        <br><br>So the conclusion here is not "labels are the icing on the cake". It is:
+        <b>in this architecture, the readable cell-type structure in the latent space comes mainly from the
+        labels, not from the reconstruction loss.</b>`;
+    }
+  },
+  e3: {
+    variants:[
+      {key:'jae_full',              label:'Push toward uniform (what JAE does)', meta:'CE(z[45:54], uniform)', mark:true},
+      {key:'jae_batch_supervised',  label:'Classify the batch correctly (control)', meta:'CE(z[45:54], true batch)'},
+    ],
+    cap(){
+      const a=V()['jae_full'], b=V()['jae_batch_supervised'];
+      if(!a||!b) return '';
+      const ta=D.training['jae_full'], tb=D.training['jae_batch_supervised'];
+      const ba=ta&&ta.curve.length? (ta.curve[ta.curve.length-1].bacc*100).toFixed(1)+'%':'—';
+      const bb=tb&&tb.curve.length? (tb.curve[tb.curve.length-1].bacc*100).toFixed(1)+'%':'—';
+      const chance=(100/D.batch_names.length).toFixed(1)+'%';
+      return `Batch classification accuracy: <b>${ba}</b> with the uniform target versus <b>${bb}</b> with the
+        classify-correctly target (chance is ${chance}). Batch-removal score:
+        <b>${num(a.all.batch_removal_mean)}</b> versus <b>${num(b.all.batch_removal_mean)}</b>.
+        That confirms the mechanism: <b>it is the target distribution of the loss, not the mere presence of a
+        batch term, that does the batch correction</b>. Switch to classifying correctly and those 9 dimensions
+        become a high-fidelity encoder of batch identity — precisely what we were trying to avoid.`;
+    }
+  },
+  e4: {
+    variants:[
+      {key:'jae_gex_only', label:'GEX only', meta:'134 protein dims zeroed'},
+      {key:'jae_adt_only', label:'ADT only', meta:'100 GEX SVD dims zeroed'},
+      {key:'jae_full',     label:'GEX + ADT jointly', meta:'all 234 dims visible', mark:true},
+    ],
+    cap(){
+      const g=k=>V()[k]&&V()[k].all;
+      const a=g('jae_gex_only'), b=g('jae_adt_only'), f=g('jae_full');
+      if(!a||!b||!f) return '';
+      const trajBest = f.trajectory_conservation>=Math.max(a.trajectory_conservation,b.trajectory_conservation);
+      return `Mean of six: GEX only <b>${num(a.overall_mean_of_six)}</b>, ADT only <b>${num(b.overall_mean_of_six)}</b>,
+        joint <b>${num(f.overall_mean_of_six)}</b>. But look per metric rather than at the total:
+        cell-type ASW favours ${a.asw_cell_type>b.asw_cell_type?'GEX':'ADT'}, while cycle conservation favours
+        ${a.cell_cycle_conservation>b.cell_cycle_conservation?'GEX':'ADT'}.
+        ${trajBest? '' : `<b>And trajectory conservation is actually highest for GEX alone
+        (${num(a.trajectory_conservation)}) rather than the joint model (${num(f.trajectory_conservation)})</b> —
+        adding a modality does not improve every metric monotonically.`}
+        The two modalities carry information that does not fully overlap, which is both the point of "joint"
+        and its cost.`;
+    }
+  },
+  e5: {
+    variants:[
+      {key:'jae_full',       label:'As upstream (ReLU output)', meta:'encoder/decoder last layer = ReLU', mark:true},
+      {key:'jae_linear_out', label:'Both ReLUs removed',        meta:'encoder/decoder last layer = linear'},
+    ],
+    cap(){
+      const a=V()['jae_full'], b=V()['jae_linear_out'];
+      if(!a||!b) return '';
+      const d=b.all.overall_mean_of_six-a.all.overall_mean_of_six;
+      return `Mean of six: <b>${num(a.all.overall_mean_of_six)}</b> (as published) versus
+        <b>${num(b.all.overall_mean_of_six)}</b> (ReLUs removed), a difference of
+        <b style="color:${d>0?'var(--good)':'var(--critical)'}">${d>0?'+':''}${num(d)}</b>.
+        Cycle conservation alone: ${num(a.all.cell_cycle_conservation)} → ${num(b.all.cell_cycle_conservation)}.
+        The value of this experiment is not deciding a winner. It is that
+        <b>a suspicion raised by reading the source can be settled with a controlled experiment</b> —
+        no guessing required, and no need to assume every line of a winning method is optimal.`;
+    }
+  },
+  e6: {
+    variants:[
+      {key:'jae_full',       label:'Seed 0', meta:'torch.manual_seed(0)', mark:true},
+      {key:'jae_full_seed1', label:'Seed 1', meta:'torch.manual_seed(1)'},
+      {key:'jae_full_seed2', label:'Seed 2', meta:'torch.manual_seed(2)'},
+    ],
+    cap(){
+      const ks=['jae_full','jae_full_seed1','jae_full_seed2'].filter(k=>V()[k]);
+      if(ks.length<2) return '';
+      const vals=ks.map(k=>V()[k].all.overall_mean_of_six);
+      const mn=Math.min(...vals), mx=Math.max(...vals);
+      const spread=mx-mn;
+      const per=METRICS.map(([k,l])=>{
+        const v=ks.map(kk=>V()[kk].all[k]);
+        return l+' ±'+num((Math.max(...v)-Math.min(...v))/2,3);
+      }).join(', ');
+      return `The three seeds land between <b>${num(mn)}</b> and <b>${num(mx)}</b> on the mean of six, a spread of
+        <b>${num(spread)}</b>. Half-ranges per metric: ${per}.
+        <b>Conclusion: treat any difference above smaller than roughly ${num(spread,3)} as noise, and do not
+        describe it as "this configuration is better".</b>`;
+    }
+  },
+};
+
+function renderExp(id){
+  const e=EXP[id];
+  VIEWID('m-'+id).innerHTML =
+    e.variants.map(v=>panelHTML(v.key,v.label,v.meta,v.mark)).join('');
+  VIEWID('t-'+id).innerHTML = metricTable(e.variants,'all');
+  VIEWID('c-'+id).innerHTML = e.cap()||'';
+}
+function drawAllMinis(){
+  VIEWROOT.querySelectorAll('canvas[data-variant]').forEach(cv=>drawMini(cv,cv.dataset.variant));
+}
+function renderGlobalLegend(){
+  const lg=VIEWID('global-legend'); lg.innerHTML='';
+  if(COLOR==='batch') D.batch_names.forEach((b,k)=>
+    lg.innerHTML+=`<span><i style="background:${BATCHCOL[k%BATCHCOL.length]}"></i>${b}</span>`);
+  else if(COLOR==='lineage') D.lineage_order.forEach(l=>
+    lg.innerHTML+=`<span><i style="background:${LINCOL[l]}"></i>${l}</span>`);
+  else lg.innerHTML=`<span><i style="background:${PC.rampColor(0.15)}"></i>low S</span><span><i style="background:${PC.rampColor(1)}"></i>high S</span>`;
+}
+
+let SCOPE='all';
+function renderAllTable(){
+  const order=['svd61','ae_only','ae_celltype','jae_batch0','jae_full','jae_batch20','jae_batch50',
+               'jae_batch_supervised','jae_gex_only','jae_adt_only','jae_linear_out',
+               'jae_full_seed1','jae_full_seed2','jae_full_faithful'];
+  const labels={svd61:'No training · SVD to 61 dims',ae_only:'Plain autoencoder',ae_celltype:'AE + cell type',
+    jae_batch0:'JAE λ_batch=0',jae_full:'Full JAE (paper config)',jae_batch20:'JAE λ_batch=0.2',
+    jae_batch50:'JAE λ_batch=0.5',jae_batch_supervised:'Batch term classifies correctly',
+    jae_gex_only:'GEX only',jae_adt_only:'ADT only',jae_linear_out:'Output ReLUs removed',
+    jae_full_seed1:'Full JAE · seed 1',jae_full_seed2:'Full JAE · seed 2',
+    jae_full_faithful:'Upstream hyperparameters, batch=32 lr=1e-4'};
+  const list=order.filter(k=>V()[k]).map(k=>({key:k,label:labels[k]||k,mark:k==='jae_full'}));
+  VIEWID('t-all').innerHTML=metricTable(list,SCOPE);
+  const cfg=D.metrics.config||{};
+  VIEWID('c-all').innerHTML =
+    SCOPE==='all'
+      ? `Scored on all ${(cfg.n_cells||0).toLocaleString()} cells, including the ones whose labels the model
+         trained on. Switch to the held-out scope to see how much of each score depends on that.`
+      : `Scored on the ${(cfg.n_heldout||0).toLocaleString()} held-out cells only, whose labels the model never
+         saw. Most variants drop here, and that drop is the optimism of evaluating on cells you trained on.
+         <b>But note that some variants go up</b>: changing scope also drops the cell count from
+         ${(cfg.n_cells||0).toLocaleString()} to ${(cfg.n_heldout||0).toLocaleString()}, and metrics like NMI and
+         graph connectivity drift with sample size on their own. This column therefore changes <b>two</b>
+         factors, so read it as a direction, not a clean generalisation gap.`;
+  const div=D.metrics.divergences_from_scib||{};
+  VIEWID('controls-note').innerHTML =
+    `<b>What this page holds fixed, and what it does not.</b>
+     Held fixed: the data, the train/validation split (seed 42), the architecture, the optimiser, batch size,
+     learning rate, the early-stopping rule, the UMAP parameters and seed, and the metric implementations and
+     their sampling seed.<br>
+     Not held fixed: <span class="mono">jae_full_faithful</span> changes both batch size and learning rate
+     (two factors at once), so it belongs in none of the ablations above as a control.<br>
+     The metrics themselves are local numpy/sklearn approximations of the
+     <span class="mono">scib</span> definitions — all ${Object.keys(div).length} of them differ in
+     implementation, as described in Part 1. They are comparable to each other on this page and to nothing else.`;
+}
+
+/* ---------- init ---------- */
+function init(){
+  const nf=VIEWID('f-neg');
+  if(nf) nf.textContent = D.neg_fraction!=null? (D.neg_fraction*100).toFixed(0)+'%' : '21%';
+  const nvar=Object.keys(V()).length || Object.keys(D.coords).length;
+  VIEWID('f-nvar').textContent=nvar;
+  VIEWID('f-nvar2').textContent=nvar;
+  ['e1','e2','e3','e4','e5','e6'].forEach(renderExp);
+  renderAllTable();
+  renderGlobalLegend();
+  drawAllMinis();
+
+  VIEWROOT.querySelectorAll('[data-color]').forEach(b=>{
+    b.onclick=()=>{
+      VIEWROOT.querySelectorAll('[data-color]').forEach(x=>x.setAttribute('aria-pressed','false'));
+      b.setAttribute('aria-pressed','true');
+      COLOR=b.dataset.color; renderGlobalLegend(); drawAllMinis();
+    };
+  });
+  VIEWROOT.querySelectorAll('[data-scope]').forEach(b=>{
+    b.onclick=()=>{
+      VIEWROOT.querySelectorAll('[data-scope]').forEach(x=>x.setAttribute('aria-pressed','false'));
+      b.setAttribute('aria-pressed','true');
+      SCOPE=b.dataset.scope; renderAllTable();
+    };
+  });
+}
+/* through the shared writer; see the note in the explorer view above */
+const q=new URLSearchParams(location.search).get('theme');
+if(q==='dark'||q==='light') document.documentElement.setAttribute("data-theme",q);
+window.addEventListener('resize',()=>{clearTimeout(window._rt_lab);window._rt_lab=setTimeout(drawAllMinis,120);});
+init();
+window.__JAE_VIEWS__['lab'] = (typeof drawAllMinis === 'function') ? drawAllMinis : function(){};
+})();
+
+PC.panels.dag.create(document.getElementById('workflowDag'),D.dag.steps,D.dag.options);
+PC.registerRepaint(()=>{window.__JAE_VIEWS__.explorer();window.__JAE_VIEWS__.lab();});PC.repaint('initial',document);

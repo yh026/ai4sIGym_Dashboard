@@ -1,0 +1,519 @@
+
+"use strict";
+
+
+
+
+const META=D.meta, CELLS=META.cells, MX=D.matrix, NR=META.n_rows, NC=META.n_cols, SEAM=META.n_half;
+const FACT=D.page_facts, AUD=D.audit, LEG=D.legacy_extensions;
+const FONT=PC.font.family();
+const cellToken=c=>"--cs2-"+c.split("_")[1];
+const cellColor=c=>PC.css(cellToken(c));
+const $=id=>document.getElementById(id);
+const fmt=(v,d=3)=>Number(v).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});
+const integer=v=>Number(v).toLocaleString("en-US");
+const pct=(v,d=1)=>fmt(100*v,d)+"%";
+const esc=value=>String(value==null?"":value).replace(/[&<>\"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+const sum=(arr,fn)=>arr.reduce((a,x)=>a+fn(x),0);
+const totalFiles=sum(CELLS,c=>D.cells[c].n_files);
+const totalLogged=sum(CELLS,c=>D.cells[c].funnel.logged);
+const totalStats=sum(CELLS,c=>D.cells[c].stats_check.n);
+
+const raw=atob(MX.z_b64);
+const Z=new Int8Array(raw.length);
+for(let q=0;q<raw.length;q++)Z[q]=(raw.charCodeAt(q)<<24)>>24;
+const zAt=(i,j)=>Z[i*NC+j]/MX.z_scale;
+const voltAt=(i,j)=>zAt(i,j)*MX.v_std[i]+MX.v_mean[i];
+const cellRows=CELLS.map((_,k)=>{const out=[];for(let i=0;i<NR;i++)if(MX.cell[i]===k)out.push(i);return out});
+const defaultRow=cellRows[0][Math.floor(cellRows[0].length*FACT.default_row_fraction)];
+
+const TOP=[
+  {label:"Data provenance",sub:integer(META.total_samples)+" raw samples"},
+  {label:"Design matrix",sub:integer(NR)+" × "+integer(NC)+" shape values"},
+  {label:"Shape representation",sub:"PCA · UMAP · transfer · ΔQ(V)"},
+  {label:"Conclusions",sub:"what the evidence supports"},
+  {label:"Glossary",sub:"terms used here",role:"glossary-content"}
+];
+const RIBBON=[
+  {stage:1,label:"Preprocess",value:integer(totalFiles)+" files → "+integer(NR)+" rows",note:"deduplicate, segment, validate"},
+  {stage:2,label:"Transform",value:integer(SEAM)+" + "+integer(SEAM)+" → "+integer(NC),note:"normalize time, then z-score"},
+  {stage:3,label:"Model",value:"PC1 "+pct(D.pca.pooled.evr[0]),note:"PCA without age labels"},
+  {stage:4,label:"Evaluate",value:integer(CELLS.length)+" held-out cells",note:"project, correlate, inspect ΔQ(V)"}
+];
+const WFMAP=[
+  {stage:2,anchor:"wf-2",title:"Transformation",desc:"A shape-only row removes level, scale and duration while retaining the curve geometry."},
+  {stage:3,anchor:"wf-3",title:"Modelling & training",desc:"PCA and UMAP organize the rows without seeing cycle number, capacity or cell age."},
+  {stage:4,anchor:"wf-4",title:"Evaluation",desc:"Whole-cell projection and withheld labels test transfer and expose the physical failure mode."}
+];
+
+const STORY_PAINTERS=[
+  function(cv,g){
+    const y=D.full_cycle.v, w=parseFloat(cv.style.width), h=parseFloat(cv.style.height);
+    const lo=Math.min(...y), hi=Math.max(...y), sx=i=>3+i/(y.length-1)*(w-6), sy=v=>h-5-(v-lo)/(hi-lo)*(h-10);
+    g.strokeStyle=PC.css("--cs2-35");g.lineWidth=2;g.lineJoin="round";g.lineCap="round";g.beginPath();
+    y.forEach((v,i)=>i?g.lineTo(sx(i),sy(v)):g.moveTo(sx(i),sy(v)));g.stroke();
+  },
+  function(cv,g){
+    const w=parseFloat(cv.style.width),h=parseFloat(cv.style.height),r0=D.xform_examples[0],r1=D.xform_examples[1];
+    const rows=[r0,r1].map(ex=>MX.cycle.findIndex((c,i)=>c===ex.cycle&&MX.cell[i]===CELLS.indexOf(ex.cell)));
+    const yr=PC.extent(rows.flatMap(i=>Array.from({length:NC},(_,j)=>zAt(i,j))));
+    rows.forEach((ri,k)=>{g.strokeStyle=k?PC.css("--series-2"):PC.css("--series-1");g.lineWidth=1.7;g.beginPath();for(let j=0;j<NC;j++){const x=3+j/(NC-1)*(w-6),y=h-5-(zAt(ri,j)-yr[0])/(yr[1]-yr[0])*(h-10);j?g.lineTo(x,y):g.moveTo(x,y)}g.stroke()});
+  },
+  function(cv,g){
+    const w=parseFloat(cv.style.width),h=parseFloat(cv.style.height),P=D.pca.pooled;
+    const xr=PC.extent(P.s1),yr=PC.extent(P.s2);
+    for(let i=0;i<NR;i+=8){g.fillStyle=cellColor(CELLS[MX.cell[i]]);g.beginPath();g.arc(3+(P.s1[i]-xr[0])/(xr[1]-xr[0])*(w-6),h-4-(P.s2[i]-yr[0])/(yr[1]-yr[0])*(h-8),1.8,0,Math.PI*2);g.fill()}
+  }
+];
+
+const VIEW=PC.createViewState({
+  rawCell:CELLS[0],xf:0,row:defaultRow,col:SEAM+FACT.default_discharge_offset,
+  scoreColor:"cycle",umapColor:"cycle",holdout:CELLS[3],evalView:"transfer",dqCell:CELLS[0]
+},{params:{
+  rawCell:{values:CELLS,param:"raw"},xf:{type:"integer",min:0,max:D.xform_examples.length-1},
+  row:{type:"integer",min:0,max:NR-1},col:{type:"integer",min:0,max:NC-1},
+  scoreColor:{values:["cycle","cell","soh"],param:"scores"},umapColor:{values:["cycle","cell"],param:"umap"},
+  holdout:{values:CELLS,param:"holdout"},evalView:{values:["transfer","dq"],param:"tab"},dqCell:{values:CELLS,param:"dq"}
+}});
+
+function flagHtml(verdict){
+  const key=verdict==="ok"||verdict==="✓"?"ok":verdict==="bad"||verdict==="✗"?"bad":"warn";
+  const glyph=key==="ok"?"✓":key==="bad"?"✗":"⚠";
+  const path=key==="ok"?'<path d="M3 8l3 3 7-8"/>':key==="bad"?'<path d="M4 4l8 8M12 4l-8 8"/>':'<path d="M8 2l6 12H2L8 2zm0 4v4m0 2h.01"/>';
+  return '<span class="flag '+key+'"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2">'+path+'</svg>'+glyph+'</span>';
+}
+function buildProvenance(){
+  const P=D.provenance, claims=P.claims||[];
+  $("provIntro").innerHTML="The source record and the actual CALCE exports are kept separate: the card states the claim, while the parser measures the bytes. The four cells contribute <b>"+integer(AUD.workbook_exports)+"</b> workbook exports; after removing the duplicate final exports, the analysis uses <b>"+integer(AUD.session_files_used)+"</b> sessions and <b>"+integer(AUD.raw_samples)+"</b> samples logged every "+integer(META.protocol.sample_s)+" seconds — roughly "+fmt(AUD.raw_samples/CELLS.length/1000,0)+"k samples per cell. The shipped analysis payload records generation date <b>"+esc(META.generated)+"</b>.";
+  $("provTable").querySelector("tbody").innerHTML=claims.map(c=>'<tr><td>'+esc(c.property)+'</td><td>'+esc(c.card_says)+'</td><td>'+esc(c.file_says)+'</td><td>'+flagHtml(c.verdict)+'</td></tr>').join("");
+  $("provSource").textContent=P.identifier+" · "+P.span+" · "+P.unit+". "+P.licence;
+  $("cellInventory").innerHTML='<thead><tr><th>cell</th><th>recorded samples</th><th>record date span</th><th>retained sessions</th><th>candidate cycles</th><th>rows in X</th><th>Statistics checks</th><th>median relative difference</th><th>over 1%</th></tr></thead><tbody>'+CELLS.map((c,k)=>{const x=D.cells[c],st=x.stats_check;return '<tr><td><span class="cell-dot" style="background:var('+cellToken(c)+')"></span>'+c+'</td><td class="num">'+integer(x.n_samples)+'</td><td>'+esc(x.date_range[0])+' → '+esc(x.date_range[1])+'</td><td class="num">'+integer(x.n_files)+'</td><td class="num">'+integer(x.funnel.logged)+'</td><td class="num">'+integer(cellRows[k].length)+'</td><td class="num">'+integer(st.n)+'</td><td class="num">'+Number(st.median_rel).toExponential(3)+'</td><td class="num">'+integer(st.n_over_1pct)+'</td></tr>'}).join("")+'</tbody>';
+}
+function buildFindings(){
+  const drops={half:sum(CELLS,c=>D.cells[c].funnel.half_missing),protocol:sum(CELLS,c=>D.cells[c].funnel.protocol),truncated:sum(CELLS,c=>D.cells[c].funnel.truncated),resolution:sum(CELLS,c=>D.cells[c].funnel.resolution)};
+  const h=LEG.matrix_hygiene_counterexample, csv=AUD.csv_rebuild_audit, pc=AUD.payload_consistency, dm=pc.design_matrix;
+  const cards=[
+    ["The exports are sessions, not a ready-made cycle table","Internal timestamps determine order; cycle indices restart in every file, and capacity columns accumulate within a file.",integer(totalFiles)+" files · "+integer(totalLogged)+" logged cycles","Reconstruct a monotone cycle index and compute each segment from its own boundary."],
+    ["Duplicate exports would silently double-count real cycles","Two cells repeat their final session under different export dates: the workbook files are byte-different, but the repeated measurement records are identical.",integer(FACT.duplicate_exports)+" duplicate exports · "+integer(FACT.duplicate_cycles_each)+" cycles each","Deduplicate by record content before any modeling."],
+    ["Every excluded cycle has a named reason","Missing halves, protocol mismatch, truncated span and insufficient sampling are counted separately.",integer(drops.half)+" half missing · "+integer(drops.protocol)+" protocol · "+integer(drops.truncated)+" truncated · "+integer(drops.resolution)+" resolution","The final matrix keeps "+integer(NR)+" of "+integer(totalLogged)+" logged cycles."],
+    ["The parser agrees with the cycler’s Statistics sheets","Where an independent per-cycle capacity exists, the median relative difference stays inside the recorded tolerance.",integer(AUD.statistics_checked_cycles)+" checked cycles · max median difference "+Number(AUD.max_median_relative_capacity_difference).toExponential(3),"This independently validates the segment integration to the stated "+FACT.capacity_check_text+" relative bound."],
+    ["The existing payload matches the committed analysis artifacts","The SOH arrays equal the supplied CSV values rounded to five decimals, and every label array, shape row and compact display byte has the expected length.",integer(dm.rows)+" × "+integer(dm.columns)+" CSV = "+integer(dm.shape_columns)+" shape + "+integer(dm.label_columns)+" label columns · "+integer(dm.null_fields)+" nulls · "+integer(dm.duplicate_rows)+" duplicate rows","Maximum SOH rounding error is "+Number(pc.battery_max_absolute_rounding_error).toExponential(4)+"; decoded display bytes are exactly "+integer(pc.display_matrix_decoded_bytes)+" / "+integer(pc.display_matrix_expected_bytes)+" expected."],
+    ["One retained row is a known physical-completeness counterexample",h.cell+" cycle "+h.cycle+" passes the present endpoint, current and gap filters despite an implausible CE and only the minimum charge sampling.","CE "+fmt(h.coulombic_efficiency,4)+" · q_charge "+fmt(h.q_charge_ah,5)+" Ah · q_discharge "+fmt(h.q_discharge_ah,5)+" Ah · "+integer(h.charge_samples)+" charge samples","The matrix is fit to the documented screen; it must not be described as containing only physically complete cycles. Source: "+h.source_file+"."],
+    ["The supplied SOH CSVs are inputs, not an exact rebuild of the current archives","Applying the submitted notebook formula to the current zip contents does not reproduce every per-cell CSV row count exactly.","supplied "+csv.supplied_rows.map(integer).join(" / ")+" · rebuilt "+csv.notebook_formula_rows_from_current_zips.map(integer).join(" / "),"The largest audited CS2_37 pointwise difference is "+fmt(csv.cs2_37_max_pointwise_difference,8)+"; the shape page therefore reports the raw-session pipeline and preserves this mismatch as provenance evidence."]
+  ];
+  $("forensics").innerHTML=cards.map(c=>'<article class="finding"><h4>'+c[0]+'</h4><p>'+c[1]+'</p><div class="ev">'+c[2]+'</div><p class="so">'+c[3]+'</p></article>').join("");
+}
+
+function buildDesignMatrix(){
+  const q=AUD.shape_display_quantisation, h=LEG.matrix_hygiene_counterexample;
+  $("heroValue").textContent=integer(NR)+" × "+integer(NC);
+  $("heroNote").textContent="One row is one validated charge–discharge cycle; one column is one fixed point of normalized half-cycle time.";
+  $("statRow").innerHTML=[
+    [integer(CELLS.length),"cells"],[integer(META.total_samples),"raw samples"],[integer(totalLogged-NR),"cycles excluded"]
+  ].map(x=>'<div class="stat"><span class="v">'+x[0]+'</span><span class="l">'+x[1]+'</span></div>').join("");
+  $("dmRules").innerHTML=[
+    "Order session files by timestamps inside the records, rebuild a monotone cycle index, and remove duplicate exports.",
+    "Locate charge by current above "+fmt(FACT.charge_current_threshold,2)+" A and the contiguous discharge below "+fmt(FACT.discharge_current_threshold,1)+" A; never trust a step number alone.",
+    "Resample charge and discharge separately to "+integer(SEAM)+" points each, so the turnaround is pinned at column "+integer(SEAM)+".",
+    "Z-score each complete row; voltage level, spread, duration, capacity and coulombic efficiency remain labels beside X."
+  ].map(x=>"<li>"+x+"</li>").join("");
+  $("dmHonesty").innerHTML="<b>Display-matrix disclosure.</b> The heatmap and linked row/column views use a compact copy clipped at |z| = <b>"+fmt(q.clip_abs_z,1)+"</b> and quantized at <b>1/"+integer(q.scale)+" z</b>: "+integer(q.clipped_values)+" of "+integer(q.total_values)+" values were clipped, with RMSE "+fmt(q.rmse_against_clipped_matrix,6)+" against that clipped matrix. PCA scores and loadings remain unquantized. Reconstructed volts are a display inverse using each row’s stored mean and spread, not a second feature matrix.";
+  $("fig1Title").textContent="Fig 1 · One full cycle, as the cycler logged it";
+  $("fig2Title").textContent="Fig 2 · The aging story, told by raw discharge curves";
+  $("fig3Title").textContent="Fig 3 · What each filter removed, per cell";
+  $("fig4Title").textContent="Fig 4 · Two cuts and a z-score — one real cycle end to end";
+  $("fig5Title").textContent="Fig 5 · The design matrix, for real";
+  const p=META.protocol;
+  $("fig1Copy").innerHTML='<p class="plot-caption"><b>The CC–CV signature.</b> The cycler charges at '+fmt(p.cc_a,2)+' A until voltage reaches '+fmt(p.cv_v,1)+' V, then holds voltage while current decays to '+fmt(p.cutoff_a,2)+' A. After rest, a '+fmt(Math.abs(p.dis_a),1)+' A discharge follows the LCO slope to '+fmt(p.dis_cutoff_v,1)+' V. The upper panel is the cell response; the lower panel is the imposed current.</p><p class="plot-caption"><b>What the export quietly does.</b> Filenames carry export dates rather than data dates; cycle counters restart; capacity is cumulative within a session; and duplicate final-session exports would each add '+integer(FACT.duplicate_cycles_each)+' false cycles.</p>';
+  $("funnelNote").textContent="Counts are cycles; every drop has one of four named reasons.";
+  $("funnelCopy").innerHTML='<b>The filters, in order.</b> “Half missing” means a file boundary caught only charge or discharge. Because these cells arrived factory-formed, a nominal conditioning-cycle rule was replaced by behavior-based protocol checks; that filter catches only '+integer(AUD.dropped_by_reason.protocol)+' cycles. “Truncated” means the trace fails its own termination span — discharge to at most '+fmt(FACT.truncated_discharge_v,2)+' V and CV taper to at most '+fmt(FACT.truncated_cv_a,2)+' A. “Resolution” means fewer than '+integer(SEAM)+' raw samples in a half, so up-interpolation would invent structure. Coverage therefore ends near SOH '+fmt(FACT.coverage_soh,2)+' by resolution rather than cell failure. Across '+integer(AUD.statistics_checked_cycles)+' independent Statistics-sheet cycles, recomputed capacities agree within a '+FACT.capacity_check_text+' relative bound.';
+  $("transformSteps").innerHTML=[
+    ["Locate the halves","Use current behavior, never a session’s step index."],
+    ["Normalize time","Give each half its own fixed "+integer(SEAM)+"-point clock."],
+    ["Z-score the row","Remove average level and spread so only geometry remains."],
+    ["Keep discarded context","Store mean, spread, durations, capacity and CE as labels."]
+  ].map((x,i)=>'<div class="pipeline-step"><b>'+(i+1)+' · '+x[0]+'</b>'+x[1]+'</div>').join("");
+  $("xfHonesty").innerHTML='<b>Interpolation and alignment disclosure.</b> The retained halves are never upsampled. During CV, current-triggered records may be minutes apart, but voltage is instrument-pinned at '+fmt(p.cv_v,3)+' V; that makes voltage interpolation across those gaps defensible, not current-shape interpolation. Separate half-cycle clocks line up the CC→CV corner and the discharge knee instead of forcing PCA to spend components explaining duration and phase misalignment.';
+  $("matrixNote").textContent="Rows are stacked cell by cell in chronological order. The vertical seam is the charge-to-discharge turnaround in every row.";
+  $("matrixHonesty").innerHTML='<b>Labels are outside X; retention is not a guarantee of physical completeness.</b> Capacity, CE, durations, mean voltage and voltage spread appear in the linked record tables because PCA never receives them. The documented counterexample is '+h.cell+' cycle '+integer(h.cycle)+': CE '+fmt(h.coulombic_efficiency,4)+' from '+fmt(h.q_discharge_ah,5)+' Ah discharged over '+fmt(h.q_charge_ah,5)+' Ah charged, retained with '+integer(h.charge_samples)+' charge samples. Interpret X as rows passing the stated screen, not as a perfect cycle census.';
+  $("matrixCopy").innerHTML='<b>Rows and columns answer different questions.</b> A row is everything PCA knows about one cycle. A column asks how one instant of normalized cycle time changes across life. The selected mid-discharge column already shows age structure; PCA finds the strongest weighted combination of all '+integer(NC)+' column histories.';
+  buildFunnelTable();
+}
+
+function buildFunnelTable(){
+  let totals={files:0,logged:0,half_missing:0,protocol:0,truncated:0,resolution:0,rows:0};
+  const body=CELLS.map(c=>{const f=D.cells[c].funnel;totals.files+=D.cells[c].n_files;Object.keys(f).forEach(k=>totals[k]+=f[k]);return '<tr><td><span class="cell-dot" style="background:var('+cellToken(c)+')"></span>'+c+'</td><td class="num">'+D.cells[c].n_files+'</td><td class="num">'+integer(f.logged)+'</td><td class="num">'+f.half_missing+'</td><td class="num">'+f.protocol+'</td><td class="num">'+f.truncated+'</td><td class="num">'+f.resolution+'</td><td class="num"><b>'+integer(f.rows)+'</b></td><td class="num">'+fmt(100*f.rows/f.logged,1)+'%</td></tr>'}).join("");
+  $("funnelTable").innerHTML='<thead><tr><th>cell</th><th>files</th><th>logged</th><th>half missing</th><th>protocol</th><th>truncated</th><th>resolution</th><th>rows in X</th><th>kept</th></tr></thead><tbody>'+body+'<tr><td><b>total</b></td><td class="num"><b>'+totals.files+'</b></td><td class="num"><b>'+integer(totals.logged)+'</b></td><td class="num"><b>'+totals.half_missing+'</b></td><td class="num"><b>'+totals.protocol+'</b></td><td class="num"><b>'+totals.truncated+'</b></td><td class="num"><b>'+totals.resolution+'</b></td><td class="num"><b>'+integer(totals.rows)+'</b></td><td class="num"><b>'+fmt(100*totals.rows/totals.logged,1)+'%</b></td></tr></tbody>';
+}
+
+function buildAnalysisText(){
+  const li=LEG.li_metal_notes_comparison, grid=LEG.dq_display_grid;
+  $("analysisTransformCopy").innerHTML="Every retained cycle is represented by <b>"+integer(NC)+"</b> row-standardized voltage values: "+integer(SEAM)+" for charge and "+integer(SEAM)+" for discharge. Cycle number, capacity, duration and cell identity remain outside the model.";
+  $("analysisModelCopy").innerHTML="PCA sees only the shape rows and asks which directions explain their covariance. Cycle number and capacity wait outside as an exam key; UMAP supplies a nonlinear second opinion rather than a replacement model.";
+  $("analysisEvalCopy").innerHTML="The hard test fits on three complete cells and projects the fourth. Evaluation then compares the score with cycle and with capacity, neither of which entered X.";
+  $("fig6Title").textContent="Fig 6 · Pooled PCA — one aging axis carries "+fmt(100*D.pca.pooled.evr[0],1)+"% of shape variance";
+  $("fig7Title").textContent="Fig 7 · The same axis, found four times independently";
+  $("fig8Title").textContent="Fig 8 · UMAP, as a second opinion";
+  $("fig9Title").textContent="Fig 9 · Leave one cell out — fit PCA on three, project the fourth";
+  $("fig10Title").textContent="Fig 10 · Shape against capacity, which was never a feature";
+  $("fig11Title").textContent="Fig 11 · ΔQ(V) — Severson’s feature rebuilt from these curves";
+  $("poolingCallout").innerHTML='<b>Pooling is a data-dependent decision.</b> In the trusted legacy Li-metal comparison, different cell types and protocols made pooled PC1 a chemistry detector with η² = '+fmt(li.cell_identity_eta_squared,2)+'. Two truncated cycles shifted the reported rank correlation from '+fmt(li.correlation_before_truncation,2)+' to '+fmt(li.correlation_after_truncation,2)+', which is why endpoint screening matters. Those numbers are comparison context, not estimates from these four LCO cells. Here the nominally identical repeats give η²(cell) on PC1 = <b>'+fmt(D.pca.pooled.eta2_cell.pc1,3)+'</b>, so cell identity explains little of the leading axis.';
+  $("pooledCaption").innerHTML='<b>Read the loading physically.</b> PC1 weights the charge and discharge halves with opposite sign, measuring their growing gap: charging rides higher while discharge sags lower as resistance rises. The same half-to-half asymmetry appeared in both Li-metal chemistries and was recovered in a third chemistry here. Scores sweep early to late along PC1 with the cells overlapping; PC2 carries '+fmt(100*D.pca.pooled.evr[1],1)+'% and mostly within-session waviness.';
+  $("perCellCaption").innerHTML='<b>Four blind fits, one loading.</b> The smallest pairwise absolute cosine similarity is <b>'+fmt(minCosine(),3)+'</b>. CS2_38 finds the same axis but ranks age less cleanly because its polarisation moves reversibly.';
+  $("umapCaption").innerHTML='<b>An age-ordered archipelago with cells interleaved.</b> Every island mixes all four cells, unlike the chemistry-separated Li-metal UMAP. Islands follow test sessions and their rest-recovery shifts. Within-island structure can be read; distances between islands cannot. Parameters are n_neighbors = '+integer(D.umap.params.n_neighbors)+', min_dist = '+fmt(D.umap.params.min_dist,1)+', seed = '+integer(D.umap.params.seed)+'.';
+  $("splitCallout").innerHTML='<b>Split by cell, never by row.</b> Neighboring cycles are near-duplicates. A random row split gives held-out rows twins in training; whole-cell projection is the honest unit.';
+  $("dqIntro").innerHTML='Each discharge is placed on a fixed voltage grid to obtain Q(V), then compared with an early reference: ΔQ(V) = Q<sub>k</sub>(V) − Q<sub>ref</sub>(V). Severson and colleagues used early ΔQ variance across '+integer(FACT.severson_cells)+' LFP cells. These '+integer(CELLS.length)+' LCO cells demonstrate anatomy, not a new lifetime benchmark. <b>Display-grid warning:</b> the payload fields declare v₀ = '+fmt(D.dq.grid_v0,1)+' V, Δv = '+fmt(D.dq.grid_dv,3)+' V and n = '+integer(D.dq.n_grid)+' (the audited contract repeats '+fmt(grid.payload_declared_v0,1)+', '+fmt(grid.payload_declared_dv,3)+', '+integer(grid.payload_declared_n)+'), but each stored curve has only '+integer(grid.stored_curve_length)+' display samples; this page does not present it as the full declared grid.';
+  const pooled=D.pca.pooled;
+  $("pooledPayloadTable").innerHTML='<thead><tr><th>component</th><th>variance</th><th>η²(cell)</th><th>stored loading</th><th>stored scores</th></tr></thead><tbody>'+[1,2,3,4].map(n=>{const load=pooled["load"+n],scores=pooled["s"+n],eta=pooled.eta2_cell["pc"+n];return '<tr><td>PC'+n+'</td><td class="num">'+fmt(100*pooled.evr[n-1],2)+'%</td><td class="num">'+fmt(eta,3)+'</td><td class="num">'+(load?integer(load.length)+' values · '+arrayRange(load,4):'not retained in compact payload')+'</td><td class="num">'+(scores?integer(scores.length)+' values · '+arrayRange(scores,3):'not retained in compact payload')+'</td></tr>'}).join("")+'</tbody>';
+  $("pooledRhoTable").innerHTML='<thead><tr><th>cell</th><th>ρ(PC1, cycle)</th><th>ρ(PC1, capacity)</th><th>ρ(PC2, cycle)</th></tr></thead><tbody>'+CELLS.map(c=>{const q=pooled.rho[c];return '<tr><td><span class="cell-dot" style="background:var('+cellToken(c)+')"></span>'+c+'</td><td class="num">'+fmt(q.rho_pc1_cycle,3)+'</td><td class="num">'+fmt(q.rho_pc1_qdis,3)+'</td><td class="num">'+fmt(q.rho_pc2_cycle,3)+'</td></tr>'}).join("")+'</tbody>';
+  $("perCellPayloadTable").innerHTML='<thead><tr><th>cell</th><th>variance vector (PC1–PC5)</th><th>PC2 loading</th><th>PC1 scores</th><th>PC2 scores</th></tr></thead><tbody>'+CELLS.map(c=>{const q=D.pca.percell[c];return '<tr><td><span class="cell-dot" style="background:var('+cellToken(c)+')"></span>'+c+'</td><td class="num">'+q.evr.map(v=>fmt(100*v,2)+'%').join(' · ')+'</td><td class="num">'+integer(q.load2.length)+' · '+arrayRange(q.load2,4)+'</td><td class="num">'+integer(q.scores1.length)+' · '+arrayRange(q.scores1,3)+'</td><td class="num">'+integer(q.scores2.length)+' · '+arrayRange(q.scores2,3)+'</td></tr>'}).join("")+'</tbody>';
+}
+function minCosine(){let out=Infinity;D.pca.cos_sim_load1.forEach((row,a)=>row.forEach((v,b)=>{if(a!==b)out=Math.min(out,Math.abs(v))}));return out}
+function arrayRange(a,d=3){const e=PC.extent(a);return fmt(e[0],d)+" … "+fmt(e[1],d)}
+
+function buildConclusions(){
+  const P=D.pca.pooled, L=D.pca.loco, d38=D.dq.cells[CELLS[3]];
+  $("conclusionIntro").textContent="Ranked by how much each result should change how the curves are used.";
+  const items=[
+    ["A single, transferable curve-shape axis dominates these cells","PCA receives no cycle or capacity labels, yet its first direction orders most of each cell’s life and reappears under four independent fits.","PC1 variance = "+pct(P.evr[0])+" · minimum loading cosine = "+fmt(minCosine(),3)],
+    ["Whole-cell projection succeeds without row leakage","Components fitted on three cells reproduce the fourth cell’s own PC1 almost exactly; random neighboring-row splits are unnecessary and misleading.","agreement with own-cell PC1 = "+CELLS.map(c=>fmt(L[c].agree_within,3)).join(" · ")],
+    ["The axis recovers withheld capacity, so the association is not built in","Capacity is integrated from current and never enters X. Three cells show a strong inverse rank association; CS2_38 is weaker.","ρ(PC1, capacity) = "+CELLS.map(c=>c+" "+fmt(P.rho[c].rho_pc1_qdis,3)).join(" · ")],
+    ["PC1 measures polarisation rather than a perfect clock","CS2_38’s reversible episode moves shape without reversing capacity fade. The failure mode supports the physical interpretation while limiting age inference.","CS2_38 ρ(PC1, cycle) = "+fmt(L[CELLS[3]].rho_pc1_cycle,3)+" · episode = cycles "+integer(FACT.excursion_start)+"–"+integer(FACT.excursion_end)],
+    ["ΔQ(V) has faithful anatomy but insufficient cross-cell sample size","Difference curves grow most at low voltage and within-cell log variance tracks remaining life, but the lifetime panel contains only four cells.","CS2_38 ρ = "+fmt(d38.rho_log10var_remaining,3)+" · n = "+integer(CELLS.length)],
+    ["The evidential boundary is set by sampling resolution","Rows below the minimum half-cycle resolution are excluded rather than invented by upsampling, so the deepest late life is not represented in X.","matrix rows = "+integer(NR)+" · coverage floor ≈ SOH "+fmt(FACT.coverage_soh,2)]
+  ];
+  $("conclusion-content").innerHTML='<div class="concl">'+items.map(x=>'<div><h4>'+x[0]+'</h4><p>'+x[1]+'</p><p class="num-ev">'+x[2]+'</p></div>').join("")+'</div>';
+  const limits=[
+    ["Coverage ends by resolution, not failure","At the recorded sample interval, a discharge below about "+fmt(FACT.resolution_capacity_ah,2)+" Ah has fewer than "+integer(SEAM)+" points. Conclusions cover life above about SOH "+fmt(FACT.coverage_soh,2)+"."],
+    ["Four cells, one chemistry and one protocol","Transfer means four nominally identical room-temperature, fixed-rate repeats agree. It says nothing about other rates, temperatures, chemistries or schedules."],
+    ["PC1 is polarisation, not time","A reversible episode in CS2_38 displaces PC1 while capacity remains on trend, lowering age rank correlation relative to the other cells."],
+    ["Correlation is the entire claim","PCA is unsupervised; evaluations are rank correlations; and the ΔQ lifetime view has n = "+integer(CELLS.length)+". No supervised lifetime predictor is fitted."],
+    ["Cycle age and calendar age are confounded","The cells cycle over about "+integer(FACT.calendar_months)+" months while both clocks advance, and rest-day recovery shows calendar effects are real."],
+    ["Charge shape leans on sparse CV logging","Voltage is pinned at "+fmt(META.protocol.cv_v,3)+" V during CV, but a future current-shape or dQ feature in that region would inherit genuine time gaps."]
+  ];
+  $("limitations").innerHTML=limits.map(x=>'<div class="limit"><b>'+x[0]+'</b>'+x[1]+'</div>').join("");
+  $("openQuestions").innerHTML=[
+    "Repeat whole-cell transfer across rates, temperatures and chemistries to test whether the loading stays physical rather than protocol-specific.",
+    "Collect many more independent cells and pre-register a grouped predictive objective before claiming early-life lifetime prediction.",
+    "Separate calendar age from cycle count with controlled rest schedules and parallel cells held at matched states.",
+    "Increase late-life sampling density to test whether the shape axis persists below the current resolution boundary.",
+    "Measure impedance or another resistance proxy alongside curves to directly validate the polarisation interpretation.",
+    "Log CV current densely before constructing current-shape or charge-derived features in that phase."
+  ].map(x=>"<li>"+x+"</li>").join("");
+}
+
+const GLOSS=[
+  ["Battery and protocol",[
+    ["LCO","Lithium cobalt oxide, the chemistry of these prismatic CS2 cells. Its discharge voltage slopes continuously rather than staying on a long flat plateau."],
+    ["LFP","Lithium iron phosphate, the flatter-voltage chemistry used in the comparison studies discussed on this page."],
+    ["CC charge","Constant-current charging at the protocol’s fixed current until the upper voltage limit is reached."],
+    ["CV hold","Constant-voltage charging at the upper voltage limit while current tapers to the cutoff."],
+    ["C-rate","Current relative to rated capacity; here the discharge current equals one nominal capacity per hour."],
+    ["Capacity","Charge delivered during discharge, obtained by integrating current. It is a label and never a shape feature here."],
+    ["SOH","State of health: discharge capacity divided by the rated capacity for these cells."],
+    ["CE","Coulombic efficiency: discharged charge relative to charged charge for one cycle; stored as a label."],
+    ["EOL80","The first sustained point at or below eighty percent SOH, with the payload’s multi-cycle persistence rule."],
+    ["Session","One dated instrument export between rest periods. Cycle counters restart within these files."],
+    ["Polarisation","The charge branch riding higher and the discharge branch lower under load, producing a voltage gap associated with resistance."],
+    ["Rest recovery","Partial relaxation of voltage and capacity after idle time, visible as session-aligned sawteeth rather than true rejuvenation."],
+    ["Cyclable-lithium inventory","Lithium still available to shuttle during cycling. Its loss shortens the delivered-capacity span."],
+    ["Internal resistance","Opposition inside the cell that raises charging voltage and lowers discharging voltage under current."]
+  ]],
+  ["Rows and transformations",[
+    ["Cycle curve","The complete recorded round trip of charge, hold, rest and discharge for one cycle."],
+    ["Half-cycle","The behavior-located charge or discharge portion treated separately during time normalization."],
+    ["Normalized time","Position from start to end of one half-cycle, independent of its real duration."],
+    ["Resampling","Interpolation onto the shared normalized-time columns. Retained rows are downsampled, never upsampled."],
+    ["Seam","The fixed boundary between the charge and discharge column blocks in every row."],
+    ["Z-score","For each row, subtract its own mean and divide by its own standard deviation, removing level and scale."],
+    ["Design matrix X","The sample-by-feature array given to PCA: one retained cycle per row and one normalized-time voltage-shape value per column."],
+    ["Feature","A value inside X that the model is allowed to use."],
+    ["Label","Context stored beside X, such as cycle, capacity, duration and cell identity, revealed only for evaluation."],
+    ["Truncated cycle","A record that contains apparent phases but does not reach the protocol’s termination span."],
+    ["Resolution filter","The rule excluding a half-cycle with too few raw samples to fill the shared grid without inventing points."]
+  ]],
+  ["Representation and evaluation",[
+    ["PCA","Principal component analysis, fitted here only to X to find orthogonal directions of greatest shape covariance."],
+    ["Principal component","A weighted direction through the shape columns. PC1 is the leading direction."],
+    ["Loading","A column’s weight in a principal component; its sign pattern shows what curve contrast the component measures."],
+    ["Score","A row’s coordinate after projection onto a component."],
+    ["Explained variance","The share of total shape variance carried by one principal component."],
+    ["η²","The fraction of score variance associated with cell identity; used here to judge whether pooling mostly separates cells."],
+    ["Spearman ρ","Rank correlation used to ask whether scores order cycles or capacity without assuming a straight-line relation."],
+    ["Cosine similarity","Agreement between loading directions after their arbitrary sign is aligned."],
+    ["Leave one cell out","Fit on every row from three cells and project every row from the untouched fourth cell."],
+    ["UMAP","A nonlinear two-dimensional neighborhood view used only as a second opinion. Distances between separated islands are not interpreted."],
+    ["ΔQ(V)","The delivered-capacity curve at a later cycle minus an early reference curve on a shared voltage grid."],
+    ["Log variance","The base-ten logarithm of variance across one ΔQ(V) curve, reducing it to one scalar per cycle."],
+    ["Remaining life","Cycles from the current cycle to the sustained EOL80 crossing in the within-cell ΔQ check."]
+  ]]
+];
+function buildGlossary(){
+  $("glossary-content").innerHTML='<div class="gloss">'+GLOSS.map(group=>'<section><h3>'+group[0]+'</h3>'+group[1].map(t=>'<div class="term"><b>'+t[0]+'</b><p>'+t[1]+'</p></div>').join("")+'</section>').join("")+'</div>';
+}
+
+function buildFooter(){
+  const P=D.provenance;
+  $("footerSource").textContent="Data © CALCE Battery Research Group, University of Maryland · CS2 prismatic LCO cells · "+fmt(META.rated_ah,1)+" Ah";
+  $("footerMethod").textContent="Methodological sibling of the Li-metal curve-shape notes. The shipped numerical analysis (generated "+META.generated+") is precomputed in tools/shape_data.json and tools/design_matrix.csv; this page only selects and draws it.";
+  $("footerReproduce").innerHTML='<b>Pipeline.</b> <code>'+esc(FACT.precompute_command)+'</code>, then <code>'+esc(FACT.build_command)+'</code>. Preprocessing locates charge/discharge halves from behavior, requires at least '+integer(SEAM)+' samples in each half, resamples them separately to '+integer(SEAM)+' + '+integer(SEAM)+' columns with seam '+integer(SEAM)+', row-z-scores voltage, validates termination span, and stores capacity/CE/duration/cell/cycle as labels rather than features. The build injects the existing <code>tools/shape_data.json</code>, <code>tools/contract_data.json</code>, provenance card and shared design assets into <code>shape.html</code>. PCA uses full SVD with fixed sign; UMAP alone uses seed '+integer(META.seed)+'. Versions: numpy '+esc(META.versions.numpy)+', pandas '+esc(META.versions.pandas)+', scikit-learn '+esc(META.versions.sklearn)+', umap-learn '+esc(META.versions.umap)+'. URL controls include <code>?theme=dark</code>, <code>?theme=light</code> and <code>?tab=dq</code>. Offline single file; no network requests.';
+}
+
+function addOptions(select,items){select.innerHTML=items.map(x=>'<option value="'+esc(x[0])+'">'+esc(x[1])+'</option>').join("")}
+function buildControls(){
+  addOptions($("rawCell"),CELLS.map(c=>[c,c]));
+  addOptions($("xfExample"),D.xform_examples.map((e,i)=>[i,(i?"late":"early")+" — cycle "+e.cycle+" (SOH "+fmt(e.soh,2)+")"]));
+  addOptions($("scoreColor"),[["cycle","cycle number"],["cell","cell identity"],["soh","SOH"]]);
+  addOptions($("umapColor"),[["cycle","cycle number"],["cell","cell identity"]]);
+  addOptions($("evalView"),[["transfer","Shape → age transfer"],["dq","ΔQ(V) remaining-life features"]]);
+  addOptions($("holdoutCell"),CELLS.map(c=>[c,"hold out "+c]));
+  addOptions($("dqCell"),CELLS.map(c=>[c,c]));
+  $("dmRowSlider").max=NR-1;$("dmColSlider").max=NC-1;
+  const map={rawCell:"rawCell",xfExample:"xf",scoreColor:"scoreColor",umapColor:"umapColor",evalView:"evalView",holdoutCell:"holdout",dqCell:"dqCell"};
+  Object.entries(map).forEach(([id,key])=>$(id).addEventListener("change",e=>VIEW.set({[key]:key==="xf"?Number(e.target.value):e.target.value},{source:id})));
+  $("dmRowSlider").addEventListener("input",e=>VIEW.set({row:Number(e.target.value)},{source:"row-slider"}));
+  $("dmColSlider").addEventListener("input",e=>VIEW.set({col:Number(e.target.value)},{source:"column-slider"}));
+}
+function syncControls(s){
+  $("rawCell").value=s.rawCell;$("xfExample").value=s.xf;$("scoreColor").value=s.scoreColor;$("umapColor").value=s.umapColor;
+  $("evalView").value=s.evalView;$("holdoutCell").value=s.holdout;$("dqCell").value=s.dqCell;
+  $("dmRowSlider").value=s.row;$("dmColSlider").value=s.col;
+  [["transferView",s.evalView==="transfer"],["dqView",s.evalView==="dq"]].forEach(([id,active])=>{const el=$(id);el.classList.toggle("is-inactive",!active);el.setAttribute("aria-hidden",active?"false":"true")});
+}
+
+function niceTicks(a,b,n=5){
+  const span=b-a;if(!(span>0))return[a];const raw=span/n,mag=Math.pow(10,Math.floor(Math.log10(raw)));
+  const step=[1,2,2.5,5,10].map(v=>v*mag).find(v=>span/v<=n+1)||10*mag,out=[];
+  for(let v=Math.ceil(a/step)*step;v<=b+1e-9;v+=step)out.push(Number(v.toFixed(10)));return out;
+}
+function sizeCanvas(id,height){
+  const cv=$(id),box=cv.parentElement,w=Math.max(180,Math.floor(box.getBoundingClientRect().width));
+  const g=PC.fit(cv,w,height);return{cv,g,w,h:height};
+}
+function plotSetup(id,height,xr,yr,pad){
+  const p=sizeCanvas(id,height),s=PC.scales(p.cv,xr,yr,pad||{l:52,r:12,t:14,b:52});return{...p,s,box:PC.boxOf(s)};
+}
+function drawLine(g,s,xs,ys,color,width=2,alpha=1,dash=null){
+  g.save();g.strokeStyle=color;g.lineWidth=width;g.lineJoin="round";g.lineCap="round";g.globalAlpha=alpha;if(dash)g.setLineDash(dash);g.beginPath();let started=false;
+  for(let i=0;i<xs.length;i++){if(ys[i]==null||!Number.isFinite(ys[i])){started=false;continue}const x=s.x(xs[i]),y=s.y(ys[i]);if(started)g.lineTo(x,y);else{g.moveTo(x,y);started=true}}
+  g.stroke();g.restore();
+}
+function drawPoints(g,s,xs,ys,color,r=4,alpha=.75,selected=-1){
+  g.save();for(let i=0;i<xs.length;i++){if(ys[i]==null||!Number.isFinite(ys[i]))continue;const x=s.x(xs[i]),y=s.y(ys[i]);g.globalAlpha=alpha;g.fillStyle=PC.css("--surface-1");g.beginPath();g.arc(x,y,r+1.5,0,Math.PI*2);g.fill();g.fillStyle=typeof color==="function"?color(i):color;g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.fill();if(i===selected){g.globalAlpha=1;g.strokeStyle=PC.css("--text-primary");g.lineWidth=2;g.beginPath();g.arc(x,y,r+5,0,Math.PI*2);g.stroke()}}
+  g.restore();
+}
+function bindPointTip(cv,points,html,radius=24,onClick=null){
+  PC.hover(cv,points,{radius,onHit:(i,e)=>PC.tip(html(i),e),onLeave:()=>PC.hideTip(),onClick:onClick?(i,e)=>onClick(i,e):undefined});
+}
+function cellLegend(host=CELLS){return host.map(c=>'<span><span class="swatch" style="background:var('+cellToken(c)+')"></span>'+c+'</span>').join("")}
+
+function drawFullCycle(){
+  const fc=D.full_cycle,t=fc.t_h,ir=fc.i;let ch0=null,cc1=t[0],cv1=t[0],d0=null,d1=t[0];
+  for(let i=0;i<ir.length;i++){if(ir[i]>FACT.charge_current_threshold&&ch0==null)ch0=t[i];if(ir[i]>FACT.cc_detection_a)cc1=t[i];if(ir[i]>FACT.charge_current_threshold)cv1=t[i];if(ir[i]<FACT.discharge_current_threshold){if(d0==null)d0=t[i];d1=t[i]}}
+  $("fcNote").textContent=fc.cell+", cycle "+fc.cycle+" · SOH "+fmt(fc.soh,2)+" · "+integer(META.protocol.sample_s)+" s sampling";
+  [["fcV",fc.v,"Voltage (V)",220],["fcI",fc.i,"Current (A)",150]].forEach(([id,y,yLabel,height])=>{
+    const xr=PC.extent(t),base=PC.extent(y),yr=PC.pad10(base),p=plotSetup(id,height,xr,yr,{l:54,r:12,t:20,b:52}),{g,s,box,cv}=p;
+    g.fillStyle=PC.css("--accent-soft");g.fillRect(s.x(ch0),box.top,s.x(cv1)-s.x(ch0),box.bottom-box.top);
+    g.fillStyle=PC.css("--surface-2");g.fillRect(s.x(d0),box.top,s.x(d1)-s.x(d0),box.bottom-box.top);
+    PC.drawAxes(g,box,niceTicks(xr[0],xr[1],6),niceTicks(base[0],base[1],4),s.x,s.y,"Time in cycle (h) →",yLabel,{grid:"y",xFmt:v=>fmt(v,1),yFmt:v=>fmt(v,1)});
+    drawLine(g,s,t,y,id==="fcV"?PC.css("--cs2-35"):PC.css("--series-2"));
+    if(id==="fcV"){g.font=`600 10px ${FONT}`;g.fillStyle=PC.css("--text-secondary");g.fillText("CC "+fmt(META.protocol.cc_a,2)+" A",s.x(ch0)+5,box.top+13);g.fillText("CV "+fmt(META.protocol.cv_v,1)+" V",s.x(cc1)+5,box.top+13);g.fillText("discharge",s.x(d0)+5,box.top+13)}
+    const pts=t.map((v,i)=>[s.x(v),s.y(y[i]),i]);bindPointTip(cv,pts,i=>'<b>t</b> '+fmt(t[i],2)+' h<br><b>V</b> '+fmt(fc.v[i],3)+' V<br><b>I</b> '+fmt(fc.i[i],3)+' A');
+  });
+}
+
+function drawRaw(sv){
+  const cd=D.cells[sv.rawCell],spread=cd.spread,cmax=cd.fade_cycle.at(-1),ramp=PC.rampScale(),colorOf=c=>ramp(.05+.9*c/cmax);
+  [["rawVt","t","Time in discharge (h) →"],["rawVq","q","Delivered capacity (Ah) →"]].forEach(([id,key,xLabel])=>{
+    let xmax=0;spread.forEach(curve=>{xmax=Math.max(xmax,...curve[key])});const p=plotSetup(id,255,[0,xmax*1.03],[2.65,4.15],{l:52,r:12,t:12,b:52}),{g,s,box,cv}=p;
+    PC.drawAxes(g,box,niceTicks(0,xmax,5),[2.8,3.2,3.6,4],s.x,s.y,xLabel,"Voltage (V)",{grid:"y",xFmt:v=>fmt(v,1),yFmt:v=>fmt(v,1)});
+    const hits=[];spread.forEach((curve,ci)=>{drawLine(g,s,curve[key],curve.v,colorOf(curve.cycle),curve.in_matrix?2:1,curve.in_matrix?1:.55,curve.in_matrix?null:[4,3]);for(let i=0;i<curve[key].length;i+=4)hits.push([s.x(curve[key][i]),s.y(curve.v[i]),hits.length,{ci,i}])});
+    bindPointTip(cv,hits,i=>{const h=hits[i][3],c=spread[h.ci];return '<b>cycle</b> '+c.cycle+'<br><b>SOH</b> '+fmt(c.soh,3)+'<br><b>V</b> '+fmt(c.v[h.i],3)+' V'+(c.in_matrix?'':'<br>excluded: under-resolved')});
+  });
+  $("rawLegend").innerHTML=spread.map(c=>'<span><span class="swatch" style="background:'+colorOf(c.cycle)+'"></span>cycle '+c.cycle+(c.in_matrix?'':' · not in X')+'</span>').join("");
+  const yr=[Math.min(...cd.fade_soh)-.03,Math.max(1.05,Math.max(...cd.fade_soh)+.02)],p=plotSetup("rawFade",185,[0,cmax*1.02],yr,{l:52,r:12,t:18,b:52}),{g,s,box,cv}=p;
+  g.fillStyle=PC.css("--accent-soft");let start=null;for(let i=0;i<=cd.fade_cycle.length;i++){const on=i<cd.fade_cycle.length&&cd.fade_in_matrix[i];if(on&&start==null)start=cd.fade_cycle[i];if(!on&&start!=null){g.fillRect(s.x(start),box.top,s.x(cd.fade_cycle[Math.max(0,i-1)])-s.x(start),box.bottom-box.top);start=null}}
+  PC.drawAxes(g,box,niceTicks(0,cmax,6),[.6,.8,1],s.x,s.y,"Cycle →","SOH",{grid:"y",yFmt:v=>fmt(v,1)});
+  g.strokeStyle=PC.css("--axis");g.lineWidth=1;cd.session_starts.forEach(c=>{g.beginPath();g.moveTo(s.x(c),box.top);g.lineTo(s.x(c),box.top+7);g.stroke()});
+  if(cd.eol80){drawLine(g,s,[0,cmax],[.8,.8],PC.css("--critical"),1,1,[4,3]);drawLine(g,s,[cd.eol80,cd.eol80],yr,PC.css("--critical"),1,1,[4,3]);g.font=`600 10px ${FONT}`;g.fillStyle=PC.css("--text-secondary");g.fillText("EOL80 @ "+cd.eol80,s.x(cd.eol80)+5,box.top+13)}
+  drawLine(g,s,cd.fade_cycle,cd.fade_soh,cellColor(sv.rawCell),2);drawPoints(g,s,spread.map(c=>c.cycle),spread.map(c=>c.soh),i=>colorOf(spread[i].cycle),4,1);
+  const hits=cd.fade_cycle.map((c,i)=>[s.x(c),s.y(cd.fade_soh[i]),i]);bindPointTip(cv,hits,i=>'<b>cycle</b> '+cd.fade_cycle[i]+'<br><b>SOH</b> '+fmt(cd.fade_soh[i],3)+(cd.fade_in_matrix[i]?'':'<br>not in X'));
+  $("rawCaption").innerHTML='<b>The curve shrinks and sags.</b> Later discharges are shorter and the sloping middle sits lower. V(Q) diverges earliest at low voltage, anticipating ΔQ(V). Session ticks align with dips and partial rest recoveries; age is monotone only on average. Dashed late curves are complete but have fewer than '+integer(SEAM)+' samples and are deliberately excluded from X.';
+  $("rawTwin").innerHTML='<thead><tr><th>cycle</th><th>SOH</th><th>raw points</th><th>in X</th></tr></thead><tbody>'+spread.map(c=>'<tr><td class="num">'+c.cycle+'</td><td class="num">'+fmt(c.soh,4)+'</td><td class="num">'+c.v.length+'</td><td>'+(c.in_matrix?'yes':'no — resolution')+'</td></tr>').join("")+'</tbody>';
+}
+
+function drawXform(sv){
+  const ex=D.xform_examples[sv.xf],ri=MX.cycle.findIndex((c,i)=>c===ex.cycle&&MX.cell[i]===CELLS.indexOf(ex.cell));
+  const xr=PC.extent(ex.t_h),p=plotSetup("xfReal",230,xr,[2.6,4.3],{l:52,r:12,t:14,b:52}),{g,s,box,cv}=p;
+  g.fillStyle=PC.css("--accent-soft");g.fillRect(s.x(ex.ch_span_h[0]),box.top,s.x(ex.ch_span_h[1])-s.x(ex.ch_span_h[0]),box.bottom-box.top);
+  g.fillStyle=PC.css("--surface-2");g.fillRect(s.x(ex.dis_span_h[0]),box.top,s.x(ex.dis_span_h[1])-s.x(ex.dis_span_h[0]),box.bottom-box.top);
+  PC.drawAxes(g,box,niceTicks(xr[0],xr[1],5),[2.8,3.2,3.6,4],s.x,s.y,"Real time (h) →","Voltage (V)",{grid:"y",xFmt:v=>fmt(v,1),yFmt:v=>fmt(v,1)});drawLine(g,s,ex.t_h,ex.v,cellColor(ex.cell));
+  bindPointTip(cv,ex.t_h.map((t,i)=>[s.x(t),s.y(ex.v[i]),i]),i=>'<b>time</b> '+fmt(ex.t_h[i],3)+' h<br><b>voltage</b> '+fmt(ex.v[i],3)+' V');
+  [["xfGrid",j=>voltAt(ri,j),"Voltage (V)"],["xfZ",j=>zAt(ri,j),"Row z-score"]].forEach(([id,get,yLabel])=>{
+    const vals=Array.from({length:NC},(_,j)=>get(j)),yr=PC.pad10(PC.extent(vals)),q=plotSetup(id,230,[0,NC-1],yr,{l:52,r:12,t:14,b:52}),{g,s,box,cv}=q;
+    PC.drawAxes(g,box,[0,Math.floor(SEAM/2),SEAM,SEAM+Math.floor(SEAM/2),NC-1],niceTicks(yr[0],yr[1],4),s.x,s.y,"Matrix column →",yLabel,{grid:"y",yFmt:v=>fmt(v,yLabel==="Voltage (V)"?1:0)});drawLine(g,s,[SEAM,SEAM],yr,PC.css("--axis"),1,1,[4,3]);drawLine(g,s,vals.map((_,j)=>j),vals,PC.css("--series-2"));
+    bindPointTip(cv,vals.map((v,j)=>[s.x(j),s.y(v),j]),j=>'<b>column</b> '+j+' · '+(j<SEAM?'charge':'discharge')+'<br><b>'+yLabel+'</b> '+fmt(vals[j],3));
+  });
+  const ch=ex.ch_span_h[1]-ex.ch_span_h[0],dis=ex.dis_span_h[1]-ex.dis_span_h[0];
+  $("xfCaption").innerHTML='<b>The same recipe at every age.</b> '+ex.cell+' cycle '+ex.cycle+' has SOH '+fmt(ex.soh,2)+', charge duration '+fmt(ch,2)+' h and discharge duration '+fmt(dis,2)+' h. After resampling both halves still own exactly '+integer(SEAM)+' columns. The row z-score removes mean '+fmt(MX.v_mean[ri],3)+' V and spread '+fmt(MX.v_std[ri],3)+' V; capacity '+fmt(MX.q_dis[ri],3)+' Ah and CE '+fmt(MX.ce[ri],3)+' remain labels.';
+}
+
+let heatOff=null,heatTheme="";
+function buildHeat(){
+  const theme=document.documentElement.getAttribute("data-theme")||String(PC.isDark()),tag=theme+PC.css("--div-mid");if(heatOff&&heatTheme===tag)return;
+  heatTheme=tag;heatOff=document.createElement("canvas");heatOff.width=NC;heatOff.height=NR;const g=heatOff.getContext("2d"),img=g.createImageData(NC,NR),div=PC.divScale();
+  for(let i=0;i<NR;i++)for(let j=0;j<NC;j++){const c=String(div(zAt(i,j)/FACT.heat_z_limit)).match(/\d+/g),o=(i*NC+j)*4;img.data[o]=Number(c[0]);img.data[o+1]=Number(c[1]);img.data[o+2]=Number(c[2]);img.data[o+3]=255}g.putImageData(img,0,0);
+}
+let heatBound=false;
+function drawMatrix(sv){
+  buildHeat();const i=sv.row,j=sv.col,k=MX.cell[i],cell=CELLS[k],p=sizeCanvas("mxHeat",440),{g,w,h,cv}=p,pad={l:66,r:12,t:24,b:40},box={left:pad.l,right:w-pad.r,top:pad.t,bottom:h-pad.b};
+  g.imageSmoothingEnabled=true;g.drawImage(heatOff,box.left,box.top,box.right-box.left,box.bottom-box.top);
+  const rx=r=>box.top+(r+.5)/NR*(box.bottom-box.top),cx=c=>box.left+(c+.5)/NC*(box.right-box.left);
+  g.font=`10px ${FONT}`;let acc=0;CELLS.forEach((c,ci)=>{const n=cellRows[ci].length;if(ci){g.strokeStyle=PC.css("--surface-1");g.lineWidth=2;g.beginPath();g.moveTo(box.left,rx(acc));g.lineTo(box.right,rx(acc));g.stroke()}g.save();g.fillStyle=PC.css("--text-secondary");g.translate(box.left-48,rx(acc+n/2)+18);g.rotate(-Math.PI/2);g.fillText(c,0,0);g.restore();acc+=n});
+  g.strokeStyle=PC.css("--axis");g.lineWidth=1;g.setLineDash([4,3]);g.beginPath();g.moveTo(cx(SEAM),box.top);g.lineTo(cx(SEAM),box.bottom);g.stroke();g.setLineDash([]);g.fillStyle=PC.css("--text-secondary");g.font=`600 10px ${FONT}`;g.fillText("charge",box.left+5,box.top-7);g.fillText("discharge",cx(SEAM)+5,box.top-7);g.fillText("column j →",box.right-62,box.bottom+18);
+  g.strokeStyle=PC.css("--matrix-row");g.lineWidth=2;g.beginPath();g.moveTo(box.left,rx(i));g.lineTo(box.right,rx(i));g.stroke();g.strokeStyle=PC.css("--matrix-column");g.beginPath();g.moveTo(cx(j),box.top);g.lineTo(cx(j),box.bottom);g.stroke();g.fillStyle=PC.css("--matrix-cell");g.beginPath();g.arc(cx(j),rx(i),4,0,Math.PI*2);g.fill();
+  const pick=(x,y)=>x<box.left||x>box.right||y<box.top||y>box.bottom?null:[Math.max(0,Math.min(NR-1,Math.floor((y-box.top)/(box.bottom-box.top)*NR))),Math.max(0,Math.min(NC-1,Math.floor((x-box.left)/(box.right-box.left)*NC)))];
+  cv.__matrixPick=pick;if(!heatBound){heatBound=true;cv.addEventListener("pointermove",e=>{const r=cv.getBoundingClientRect(),q=cv.__matrixPick(e.clientX-r.left,e.clientY-r.top);if(!q){PC.hideTip();return}PC.tip('<b>row</b> '+q[0]+' · '+CELLS[MX.cell[q[0]]]+' cycle '+MX.cycle[q[0]]+'<br><b>column</b> '+q[1]+' · '+(q[1]<SEAM?'charge':'discharge')+'<br><b>x[i,j]</b> '+fmt(zAt(q[0],q[1]),2)+' z · '+fmt(voltAt(q[0],q[1]),3)+' V',e)});cv.addEventListener("pointerleave",()=>PC.hideTip());cv.addEventListener("click",e=>{const r=cv.getBoundingClientRect(),q=cv.__matrixPick(e.clientX-r.left,e.clientY-r.top);if(q)VIEW.set({row:q[0],col:q[1]},{source:"matrix"})})}
+  const vals=Array.from({length:NC},(_,q)=>voltAt(i,q)),yr=PC.pad10(PC.extent(vals)),rplot=plotSetup("mxRow",190,[0,NC-1],yr,{l:48,r:10,t:12,b:48});
+  PC.drawAxes(rplot.g,rplot.box,[0,SEAM,NC-1],niceTicks(yr[0],yr[1],4),rplot.s.x,rplot.s.y,"Matrix column →","Voltage (V)",{grid:"y",yFmt:v=>fmt(v,1)});drawLine(rplot.g,rplot.s,[SEAM,SEAM],yr,PC.css("--axis"),1,1,[4,3]);drawLine(rplot.g,rplot.s,vals.map((_,q)=>q),vals,PC.css("--matrix-row"));drawPoints(rplot.g,rplot.s,[j],[vals[j]],PC.css("--matrix-cell"),4,1);bindPointTip(rplot.cv,vals.map((v,q)=>[rplot.s.x(q),rplot.s.y(v),q]),q=>'<b>column</b> '+q+'<br><b>voltage</b> '+fmt(vals[q],3)+' V<br><b>z</b> '+fmt(zAt(i,q),2));
+  let maxCycle=0;CELLS.forEach(c=>maxCycle=Math.max(maxCycle,D.cells[c].fade_cycle.at(-1)));const all=Array.from({length:NR},(_,r)=>zAt(r,j)),cr=PC.pad10(PC.extent(all)),cplot=plotSetup("mxColumn",190,[0,maxCycle],cr,{l:48,r:10,t:12,b:48});
+  PC.drawAxes(cplot.g,cplot.box,niceTicks(0,maxCycle,5),niceTicks(cr[0],cr[1],4),cplot.s.x,cplot.s.y,"Cycle →","Row z-score",{grid:"y",yFmt:v=>fmt(v,1)});const hits=[];CELLS.forEach((c,ci)=>{const rows=cellRows[ci],xs=rows.map(r=>MX.cycle[r]),ys=rows.map(r=>zAt(r,j));drawPoints(cplot.g,cplot.s,xs,ys,cellColor(c),2.5,ci===k?.8:.3);rows.forEach((r,q)=>{if(q%3===0)hits.push([cplot.s.x(xs[q]),cplot.s.y(ys[q]),hits.length,{r}])})});drawPoints(cplot.g,cplot.s,[MX.cycle[i]],[zAt(i,j)],PC.css("--matrix-cell"),4,1);bindPointTip(cplot.cv,hits,q=>{const r=hits[q][3].r;return '<b>'+CELLS[MX.cell[r]]+'</b> cycle '+MX.cycle[r]+'<br><b>z</b> '+fmt(zAt(r,j),2)});
+  const pos=Math.round((j<SEAM?j/(SEAM-1):(j-SEAM)/(SEAM-1))*100);
+  $("dmRowOut").value=cell+" · cycle "+MX.cycle[i];$("dmColOut").value="j = "+j;$("dmCellReadout").innerHTML='<b>x['+i+','+j+']</b> = '+fmt(zAt(i,j),2)+' z = '+fmt(voltAt(i,j),3)+' V';
+  $("dmRowReadout").innerHTML='<b>X['+i+',:]</b> → '+cell+', cycle '+MX.cycle[i]+'; reconstructed with v_mean '+fmt(MX.v_mean[i],3)+' V and v_std '+fmt(MX.v_std[i],3)+' V.';
+  $("dmColumnReadout").innerHTML='<b>X[:,'+j+']</b> → '+pos+'% through normalized '+(j<SEAM?'charge':'discharge')+' time across '+integer(NR)+' rows.';
+  buildMatrixTableState(sv);buildLabelTable(i);if(dmRowsBinding)dmRowsBinding.refresh();if(dmColsBinding)dmColsBinding.refresh();
+}
+
+let dmRowsBinding=null,dmColsBinding=null;
+function buildMatrixTables(){
+  $("dmRowsTable").querySelector("tbody").innerHTML=Array.from({length:NR},(_,i)=>'<tr data-key="'+i+'"><td class="num">'+i+'</td><td>'+CELLS[MX.cell[i]]+'</td><td class="num">'+MX.cycle[i]+'</td><td class="num">'+fmt(MX.soh[i],3)+'</td><td class="num">'+fmt(MX.q_dis[i],3)+'</td></tr>').join("");
+  dmRowsBinding=PC.bindTableRows("#dmRowsTable",{key:r=>Number(r.dataset.key),selected:()=>VIEW.get().row,onSelect:key=>VIEW.set({row:key},{source:"row-table"})});
+  dmColsBinding=PC.bindTableRows("#dmColumnsTable",{
+    key:r=>Number(r.dataset.key),selected:()=>VIEW.get().col,
+    onSelect:(key,_index,_row,event)=>{
+      VIEW.set({col:key},{source:"column-table"});
+      /* Changing a column rebuilds this 128-row tbody.  Preserve keyboard
+         position on the replacement row after Enter/Space activation. */
+      if(event&&event.type==="keydown")requestAnimationFrame(()=>{
+        const table=$("dmColumnsTable");
+        const replacement=[...table.querySelectorAll("tbody tr")].find(row=>Number(row.dataset.key)===Number(key));
+        if(replacement){replacement.tabIndex=0;replacement.focus()}
+      });
+    }
+  });
+}
+function buildMatrixTableState(sv){
+  const i=sv.row;$("dmColumnsTable").querySelector("tbody").innerHTML=Array.from({length:NC},(_,j)=>{const pos=Math.round((j<SEAM?j/(SEAM-1):(j-SEAM)/(SEAM-1))*100);return '<tr data-key="'+j+'"><td class="num">'+j+'</td><td>'+(j<SEAM?'charge':'discharge')+'</td><td class="num">'+pos+'%</td><td class="num">'+fmt(zAt(i,j),2)+'</td><td class="num">'+fmt(voltAt(i,j),3)+'</td></tr>'}).join("");
+}
+function buildLabelTable(i){
+  const rows=[["cell",CELLS[MX.cell[i]]],["cycle",MX.cycle[i]],["q_dis (Ah)",fmt(MX.q_dis[i],3)],["SOH",fmt(MX.soh[i],3)],["CE",fmt(MX.ce[i],3)],["charge dur (h)",fmt(MX.dur_ch_h[i],2)],["discharge dur (h)",fmt(MX.dur_dis_h[i],2)],["v_mean (V)",fmt(MX.v_mean[i],3)],["v_std (V)",fmt(MX.v_std[i],3)],["v_ptp (V)",fmt(MX.v_ptp[i],3)],["raw pts (min half)",MX.n_min[i]]];
+  $("mxLabelTable").innerHTML='<thead><tr>'+rows.map(r=>'<th>'+r[0]+'</th>').join("")+'</tr></thead><tbody><tr>'+rows.map(r=>'<td>'+r[1]+'</td>').join("")+'</tr></tbody>';
+}
+
+function scoreColorFor(sv,r,ramp){
+  const c=CELLS[MX.cell[r]];
+  if(sv.scoreColor==="cell")return cellColor(c);
+  if(sv.scoreColor==="soh")return ramp(Math.max(0,Math.min(1,(MX.soh[r]-FACT.soh_color_min)/(FACT.soh_color_max-FACT.soh_color_min))));
+  return ramp(.05+.9*MX.cycle[r]/D.cells[c].fade_cycle.at(-1));
+}
+function drawPooled(sv){
+  const P=D.pca.pooled,ramp=PC.rampScale();
+  {
+    const p=plotSetup("scree",230,[.4,P.evr.length+.6],[0,1],{l:54,r:10,t:20,b:48}),{g,s,box,cv}=p,pts=[];
+    PC.drawAxes(g,box,Array.from({length:P.evr.length},(_,i)=>i+1),[0,.25,.5,.75,1],s.x,s.y,"Principal component →","Variance explained",{grid:"y",xFmt:v=>"PC"+v,yFmt:v=>fmt(100*v,0)+"%"});
+    P.evr.forEach((v,i)=>{const x0=s.x(i+.65),x1=s.x(i+1.35),y=s.y(v);g.fillStyle=PC.css("--series-1");g.beginPath();g.roundRect(x0,y,x1-x0,box.bottom-y,[4,4,0,0]);g.fill();pts.push([(x0+x1)/2,y,i]);if(i<3){g.font=`600 10px ${FONT}`;g.fillStyle=PC.css("--text-secondary");g.textAlign="center";g.fillText(fmt(100*v,1)+"%",(x0+x1)/2,y-6);g.textAlign="start"}});
+    bindPointTip(cv,pts,i=>'<b>PC'+(i+1)+'</b><br><b>variance</b> '+fmt(100*P.evr[i],2)+'%');
+  }
+  {
+    const yr=PC.pad10(PC.extent(P.load1.concat(P.load2))),p=plotSetup("loadPooled",230,[0,NC-1],yr,{l:54,r:10,t:16,b:48}),{g,s,box,cv}=p;
+    PC.drawAxes(g,box,[0,Math.floor(SEAM/2),SEAM,SEAM+Math.floor(SEAM/2),NC-1],niceTicks(yr[0],yr[1],4),s.x,s.y,"Matrix column →","Loading",{grid:"y",yFmt:v=>fmt(v,2)});drawLine(g,s,[0,NC-1],[0,0],PC.css("--axis"),1);drawLine(g,s,[SEAM,SEAM],yr,PC.css("--axis"),1,1,[4,3]);drawLine(g,s,P.load1.map((_,i)=>i),P.load1,PC.css("--series-1"));drawLine(g,s,P.load2.map((_,i)=>i),P.load2,PC.css("--series-2"));
+    const pts=[];for(let j=0;j<NC;j++){pts.push([s.x(j),s.y(P.load1[j]),j]);pts.push([s.x(j),s.y(P.load2[j]),NC+j])}bindPointTip(cv,pts,q=>{const pc=q>=NC?2:1,j=q%NC,arr=pc===1?P.load1:P.load2;return '<b>PC'+pc+' column '+j+'</b><br><b>loading</b> '+fmt(arr[j],4)+'<br>'+(j<SEAM?'charge':'discharge')+' half'});
+  }
+  {
+    const xr=PC.pad10(PC.extent(P.s1)),yr=PC.pad10(PC.extent(P.s2)),p=plotSetup("scores",230,xr,yr,{l:52,r:10,t:16,b:50}),{g,s,box,cv}=p;
+    PC.drawAxes(g,box,niceTicks(xr[0],xr[1],5),niceTicks(yr[0],yr[1],4),s.x,s.y,"PC1 ("+fmt(100*P.evr[0],1)+"%) →","PC2 ("+fmt(100*P.evr[1],1)+"%)",{grid:"both",xFmt:v=>fmt(v,0),yFmt:v=>fmt(v,0)});
+    const pts=[];for(let r=0;r<NR;r++){const x=s.x(P.s1[r]),y=s.y(P.s2[r]);g.globalAlpha=.42;g.fillStyle=PC.css("--surface-1");g.beginPath();g.arc(x,y,5.5,0,Math.PI*2);g.fill();g.fillStyle=scoreColorFor(sv,r,ramp);g.beginPath();g.arc(x,y,4,0,Math.PI*2);g.fill();pts.push([x,y,r])}g.globalAlpha=1;
+    const r=sv.row;g.strokeStyle=PC.css("--text-primary");g.lineWidth=2;g.beginPath();g.arc(s.x(P.s1[r]),s.y(P.s2[r]),9,0,Math.PI*2);g.stroke();
+    bindPointTip(cv,pts,r=>'<b>'+CELLS[MX.cell[r]]+'</b> cycle '+MX.cycle[r]+'<br><b>SOH</b> '+fmt(MX.soh[r],3)+'<br><b>PC1</b> '+fmt(P.s1[r],2)+'<br><b>PC2</b> '+fmt(P.s2[r],2),24,r=>VIEW.set({row:r},{source:"scores"}));
+    $("scoresLegend").innerHTML=sv.scoreColor==="cell"?cellLegend():'<span class="ramp-wrap"><span class="rampbar"></span><span class="rampends"><span>'+(sv.scoreColor==="soh"?'lower SOH':'early cycle')+'</span><span>'+(sv.scoreColor==="soh"?'higher SOH':'late cycle')+'</span></span></span>';
+  }
+}
+
+function drawPerCell(){
+  let lo=Infinity,hi=-Infinity;CELLS.forEach(c=>{const e=PC.extent(D.pca.percell[c].load1);lo=Math.min(lo,e[0]);hi=Math.max(hi,e[1])});const yr=PC.pad10([lo,hi]),p=plotSetup("loadCells",245,[0,NC-1],yr,{l:54,r:10,t:16,b:50}),{g,s,box,cv}=p;
+  PC.drawAxes(g,box,[0,Math.floor(SEAM/2),SEAM,SEAM+Math.floor(SEAM/2),NC-1],niceTicks(yr[0],yr[1],4),s.x,s.y,"Matrix column →","PC1 loading",{grid:"y",yFmt:v=>fmt(v,2)});drawLine(g,s,[0,NC-1],[0,0],PC.css("--axis"),1);drawLine(g,s,[SEAM,SEAM],yr,PC.css("--axis"),1,1,[4,3]);
+  const pts=[];CELLS.forEach((c,ci)=>{const a=D.pca.percell[c].load1;drawLine(g,s,a.map((_,j)=>j),a,cellColor(c));for(let j=0;j<NC;j+=2)pts.push([s.x(j),s.y(a[j]),pts.length,{c,j}])});bindPointTip(cv,pts,i=>{const h=pts[i][3];return '<b>'+h.c+'</b> column '+h.j+'<br><b>PC1 loading</b> '+fmt(D.pca.percell[h.c].load1[h.j],4)});
+  $("loadCellsLegend").innerHTML=cellLegend()+'<span>dashed = seam</span>';
+  $("perCellTable").innerHTML='<thead><tr><th>cell (own PCA)</th><th>PC1 variance</th><th>ρ(PC1, cycle)</th><th>ρ(PC1, capacity)</th></tr></thead><tbody>'+CELLS.map(c=>{const q=D.pca.percell[c],weak=Math.abs(q.rho_pc1_cycle)<=FACT.strong_rank_threshold;return '<tr><td><span class="cell-dot" style="background:var('+cellToken(c)+')"></span>'+c+'</td><td class="num">'+fmt(100*q.evr[0],1)+'%</td><td class="num '+(weak?'bad':'good')+'">'+fmt(q.rho_pc1_cycle,3)+(weak?' *':'')+'</td><td class="num">'+fmt(q.rho_pc1_qdis,3)+'</td></tr>'}).join("")+'<tr><td colspan="4">* Same loading, plus a reversible non-aging excursion.</td></tr></tbody>';
+}
+
+function drawUmap(sv){
+  const U=D.umap,xr=PC.pad10(PC.extent(U.x)),yr=PC.pad10(PC.extent(U.y)),p=plotSetup("umapPlot",300,xr,yr,{l:52,r:12,t:16,b:50}),{g,s,box,cv}=p,ramp=PC.rampScale();
+  PC.drawAxes(g,box,niceTicks(xr[0],xr[1],5),niceTicks(yr[0],yr[1],5),s.x,s.y,"UMAP-1 →","UMAP-2",{grid:"both",xFmt:v=>fmt(v,0),yFmt:v=>fmt(v,0)});const pts=[];
+  for(let r=0;r<NR;r++){const c=CELLS[MX.cell[r]],color=sv.umapColor==="cell"?cellColor(c):ramp(.05+.9*MX.cycle[r]/D.cells[c].fade_cycle.at(-1)),x=s.x(U.x[r]),y=s.y(U.y[r]);g.globalAlpha=.42;g.fillStyle=PC.css("--surface-1");g.beginPath();g.arc(x,y,5.5,0,Math.PI*2);g.fill();g.fillStyle=color;g.beginPath();g.arc(x,y,4,0,Math.PI*2);g.fill();pts.push([x,y,r])}g.globalAlpha=1;const r=sv.row;g.strokeStyle=PC.css("--text-primary");g.lineWidth=2;g.beginPath();g.arc(s.x(U.x[r]),s.y(U.y[r]),9,0,Math.PI*2);g.stroke();
+  bindPointTip(cv,pts,r=>'<b>'+CELLS[MX.cell[r]]+'</b> cycle '+MX.cycle[r]+'<br><b>UMAP-1</b> '+fmt(U.x[r],2)+'<br><b>UMAP-2</b> '+fmt(U.y[r],2),24,r=>VIEW.set({row:r},{source:"umap"}));
+}
+
+function drawLoco(sv){
+  const cell=sv.holdout,k=CELLS.indexOf(cell),L=D.pca.loco[cell],rows=cellRows[k],cyc=rows.map(r=>MX.cycle[r]),xr=[0,Math.max(...cyc)*1.02],yr=PC.pad10(PC.extent(L.scores1)),p=plotSetup("locoPlot",300,xr,yr,{l:58,r:12,t:20,b:54}),{g,s,box,cv}=p;
+  if(cell===CELLS[3]){g.fillStyle=PC.css("--surface-2");g.fillRect(s.x(FACT.excursion_start),box.top,s.x(FACT.excursion_end)-s.x(FACT.excursion_start),box.bottom-box.top);g.font=`600 10px ${FONT}`;g.fillStyle=PC.css("--text-secondary");g.fillText("reversible polarisation episode",s.x(FACT.excursion_start)+5,box.top+14)}
+  PC.drawAxes(g,box,niceTicks(0,Math.max(...cyc),6),niceTicks(yr[0],yr[1],5),s.x,s.y,"Cycle number — grading only →","Projected PC1",{grid:"y",yFmt:v=>fmt(v,0)});g.strokeStyle=PC.css("--axis");D.cells[cell].session_starts.forEach(c=>{g.beginPath();g.moveTo(s.x(c),box.bottom-7);g.lineTo(s.x(c),box.bottom);g.stroke()});drawPoints(g,s,cyc,L.scores1,cellColor(cell),4,.55);const pts=rows.map((r,i)=>[s.x(cyc[i]),s.y(L.scores1[i]),i]);bindPointTip(cv,pts,i=>'<b>'+cell+'</b> cycle '+cyc[i]+'<br><b>projected PC1</b> '+fmt(L.scores1[i],2)+'<br><b>SOH</b> '+fmt(MX.soh[rows[i]],3));
+  $("locoLegend").innerHTML='<span><span class="swatch" style="background:var('+cellToken(cell)+')"></span>'+cell+' projected from the other three</span><span>ρ with cycle <b>'+fmt(L.rho_pc1_cycle,3)+'</b></span><span>ρ with capacity <b>'+fmt(L.rho_pc1_qdis,3)+'</b></span>';
+  $("locoTable").innerHTML='<thead><tr><th>held-out cell</th><th>fit PC1 variance</th><th>ρ(PC1, cycle)</th><th>ρ(PC1, capacity)</th><th>|ρ| vs own PC1</th></tr></thead><tbody>'+CELLS.map(c=>{const q=D.pca.loco[c];return '<tr'+(c===cell?' style="background:var(--accent-soft)"':'')+'><td><span class="cell-dot" style="background:var('+cellToken(c)+')"></span>'+c+'</td><td class="num">'+fmt(100*q.evr1_fit,2)+'%</td><td class="num">'+fmt(q.rho_pc1_cycle,3)+'</td><td class="num">'+fmt(q.rho_pc1_qdis,3)+'</td><td class="num good">'+fmt(q.agree_within,3)+'</td></tr>'}).join("")+'</tbody>';
+  $("locoCaption").innerHTML=cell===CELLS[3]?'<b>The honest panel.</b> During cycles '+integer(FACT.excursion_start)+'–'+integer(FACT.excursion_end)+', discharge sits about '+integer(FACT.excursion_discharge_mv)+' mV lower and charge about '+integer(FACT.excursion_charge_mv)+' mV higher before relaxing while capacity stays on trend. Projection faithfully reports that physics, lowering ρ with cycle to '+fmt(L.rho_pc1_cycle,2)+' while the other cells lie near '+fmt(FACT.other_loco_low,2)+'–'+fmt(FACT.other_loco_high,2)+'. Transfer succeeds; the axis is not a clock.':'<b>A cell the components never saw.</b> Only '+cell+' shape rows are plotted; PCA was fitted on the other three. Session-aligned sawteeth are the rest-recovery effect expressed in shape space.';
+}
+
+function drawPc1Q(sv){
+  const P=D.pca.pooled,xr=PC.pad10(PC.extent(MX.q_dis)),yr=PC.pad10(PC.extent(P.s1)),p=plotSetup("pc1qPlot",300,xr,yr,{l:58,r:12,t:16,b:54}),{g,s,box,cv}=p;
+  PC.drawAxes(g,box,niceTicks(xr[0],xr[1],5),niceTicks(yr[0],yr[1],5),s.x,s.y,"Discharge capacity (Ah) — label, never feature →","Pooled PC1",{grid:"both",xFmt:v=>fmt(v,1),yFmt:v=>fmt(v,0)});const pts=[];
+  for(let r=0;r<NR;r++){const x=s.x(MX.q_dis[r]),y=s.y(P.s1[r]);g.globalAlpha=.4;g.fillStyle=PC.css("--surface-1");g.beginPath();g.arc(x,y,5.5,0,Math.PI*2);g.fill();g.fillStyle=cellColor(CELLS[MX.cell[r]]);g.beginPath();g.arc(x,y,4,0,Math.PI*2);g.fill();pts.push([x,y,r])}g.globalAlpha=1;const r=sv.row;g.strokeStyle=PC.css("--text-primary");g.lineWidth=2;g.beginPath();g.arc(s.x(MX.q_dis[r]),s.y(P.s1[r]),9,0,Math.PI*2);g.stroke();bindPointTip(cv,pts,r=>'<b>'+CELLS[MX.cell[r]]+'</b> cycle '+MX.cycle[r]+'<br><b>capacity</b> '+fmt(MX.q_dis[r],3)+' Ah<br><b>PC1</b> '+fmt(P.s1[r],2),24,r=>VIEW.set({row:r},{source:"capacity"}));
+  const three=CELLS.slice(0,3).map(c=>fmt(P.rho[c].rho_pc1_qdis,2)).join(", "),last=P.rho[CELLS[3]].rho_pc1_qdis;
+  $("pc1qCaption").innerHTML='<b>A finding, not a tautology.</b> Capacity was integrated from current and never entered X; row z-scoring also removed voltage level. Even so, the first three cells have ρ = '+three+'. '+CELLS[3]+' falls to '+fmt(last,2)+' because its temporary polarisation event moves PC1 while capacity stays on trend. The axis measures polarisation asymmetry, which aging usually—but not perfectly—drives monotonically.';
+}
+
+function drawDq(sv){
+  const cell=sv.dqCell,k=CELLS.indexOf(cell),Q=D.dq.cells[cell],ramp=PC.rampScale(),cmax=Q.traj_cycle.at(-1),colorOf=c=>ramp(.05+.9*c/cmax);
+  {
+    let lo=0,hi=0;Q.curves.forEach(c=>{const e=PC.extent(c.dq);lo=Math.min(lo,e[0]);hi=Math.max(hi,e[1])});const yr=PC.pad10([lo,hi]),p=plotSetup("dqCurves",255,[D.dq.grid_v0,FACT.dq_display_vmax],yr,{l:58,r:10,t:16,b:52}),{g,s,box,cv}=p,hits=[];
+    PC.drawAxes(g,box,[2.8,3.1,3.4,3.7,4],niceTicks(yr[0],yr[1],4),s.x,s.y,"Voltage (V) →","ΔQ (Ah)",{grid:"y",xFmt:v=>fmt(v,1),yFmt:v=>fmt(v,1)});drawLine(g,s,[D.dq.grid_v0,FACT.dq_display_vmax],[0,0],PC.css("--axis"),1);
+    Q.curves.forEach((c,ci)=>{const xs=c.dq.map((_,i)=>D.dq.grid_v0+i*(FACT.dq_display_vmax-D.dq.grid_v0)/(c.dq.length-1));drawLine(g,s,xs,c.dq,colorOf(c.cycle));for(let i=0;i<xs.length;i+=3)hits.push([s.x(xs[i]),s.y(c.dq[i]),hits.length,{ci,i,x:xs[i]}])});bindPointTip(cv,hits,i=>{const h=hits[i][3],c=Q.curves[h.ci];return '<b>cycle '+c.cycle+' − '+Q.ref_cycle+'</b><br><b>SOH</b> '+fmt(c.soh,3)+'<br><b>voltage</b> '+fmt(h.x,2)+' V<br><b>ΔQ</b> '+fmt(c.dq[h.i],3)+' Ah'});$("dqLegend").innerHTML=Q.curves.map(c=>'<span><span class="swatch" style="background:'+colorOf(c.cycle)+'"></span>'+c.cycle+' · SOH '+fmt(c.soh,2)+'</span>').join("")+'<span>reference '+Q.ref_cycle+'</span>';
+  }
+  {
+    const vals=Q.traj_log10var.filter(v=>v!=null),yr=PC.pad10(PC.extent(vals)),p=plotSetup("dqTrajectory",255,[0,cmax*1.02],yr,{l:54,r:10,t:16,b:52}),{g,s,box,cv}=p;
+    PC.drawAxes(g,box,niceTicks(0,cmax,5),niceTicks(yr[0],yr[1],5),s.x,s.y,"Cycle →","log₁₀ variance",{grid:"y",yFmt:v=>fmt(v,1)});if(Q.eol80){drawLine(g,s,[Q.eol80,Q.eol80],yr,PC.css("--critical"),1,1,[4,3]);g.font=`600 10px ${FONT}`;g.fillStyle=PC.css("--text-secondary");g.fillText("EOL80",s.x(Q.eol80)+4,box.top+13)}drawPoints(g,s,Q.traj_cycle,Q.traj_log10var,cellColor(cell),4,.5);const pts=Q.traj_cycle.map((c,i)=>[s.x(c),Q.traj_log10var[i]==null?-999:s.y(Q.traj_log10var[i]),i]);bindPointTip(cv,pts,i=>'<b>cycle</b> '+Q.traj_cycle[i]+'<br><b>log₁₀ variance</b> '+fmt(Q.traj_log10var[i]||0,2)+(Q.eol80?'<br><b>remaining life</b> '+(Q.eol80-Q.traj_cycle[i])+' cycles':''));
+  }
+  {
+    const S=D.dq.severson,xr=PC.pad10(PC.extent(S.var_100_10)),yr=PC.pad10(PC.extent(S.life)),p=plotSetup("dqSeverson",255,xr,yr,{l:58,r:12,t:18,b:54}),{g,s,box,cv}=p;
+    PC.drawAxes(g,box,niceTicks(xr[0],xr[1],4),niceTicks(yr[0],yr[1],4),s.x,s.y,"log₁₀ var ΔQ: cycle near "+integer(FACT.severson_read_cycle)+" vs reference →","EOL80 (cycles)",{grid:"both",xFmt:v=>fmt(v,1)});drawPoints(g,s,S.var_100_10,S.life,i=>cellColor(S.cells[i]),5,1);g.font=`600 10px ${FONT}`;g.fillStyle=PC.css("--text-secondary");S.cells.forEach((c,i)=>g.fillText(c,s.x(S.var_100_10[i])+8,s.y(S.life[i])+4));g.fillText("n = "+integer(S.cells.length)+" · illustration, not evidence",box.left+8,box.bottom-9);bindPointTip(cv,S.cells.map((_,i)=>[s.x(S.var_100_10[i]),s.y(S.life[i]),i]),i=>'<b>'+S.cells[i]+'</b><br><b>early log variance</b> '+fmt(S.var_100_10[i],3)+'<br><b>EOL80</b> '+S.life[i]);
+  }
+  $("dqTable").innerHTML='<thead><tr><th>cell</th><th>reference cycle</th><th>cycle nearest 100</th><th>EOL80, sustained '+META.sustain+'</th><th>ρ(log variance, remaining life)</th></tr></thead><tbody>'+CELLS.map(c=>{const q=D.dq.cells[c];return '<tr'+(c===cell?' style="background:var(--accent-soft)"':'')+'><td><span class="cell-dot" style="background:var('+cellToken(c)+')"></span>'+c+'</td><td class="num">'+q.ref_cycle+'</td><td class="num">'+q.cycle_at_100+'</td><td class="num">'+q.eol80+'</td><td class="num">'+fmt(q.rho_log10var_remaining,3)+'</td></tr>'}).join("")+'</tbody>';
+  $("dqCaption").innerHTML='<b>The anatomy is faithful; the sample size is not.</b> ΔQ grows fastest below about '+fmt(FACT.dq_low_voltage_v,1)+' V, the same low-voltage region where Severson’s LFP cells lost the most delivered capacity. Within each cell, log variance rises and tracks remaining life near '+fmt(FACT.dq_rho_low,2)+' to '+fmt(FACT.dq_rho_high,2)+', except '+CELLS[3]+' at '+fmt(D.dq.cells[CELLS[3]].rho_log10var_remaining,2)+' because its polarisation event inflates ΔQ early. The right panel contains only '+integer(CELLS.length)+' points, so no cell-lifetime ranking is defended.';
+}
+
+let scoresBinding=null,umapBinding=null,capacityBinding=null;
+function buildAnalysisTables(){
+  const P=D.pca.pooled,U=D.umap;
+  $("scoresTwin").querySelector("tbody").innerHTML=Array.from({length:NR},(_,r)=>'<tr data-key="'+r+'"><td class="num">'+r+'</td><td>'+CELLS[MX.cell[r]]+'</td><td class="num">'+MX.cycle[r]+'</td><td class="num">'+fmt(MX.soh[r],3)+'</td><td class="num">'+fmt(P.s1[r],3)+'</td><td class="num">'+fmt(P.s2[r],3)+'</td></tr>').join("");
+  $("umapTwin").querySelector("tbody").innerHTML=Array.from({length:NR},(_,r)=>'<tr data-key="'+r+'"><td class="num">'+r+'</td><td>'+CELLS[MX.cell[r]]+'</td><td class="num">'+MX.cycle[r]+'</td><td class="num">'+fmt(U.x[r],3)+'</td><td class="num">'+fmt(U.y[r],3)+'</td></tr>').join("");
+  $("capacityTwin").querySelector("tbody").innerHTML=Array.from({length:NR},(_,r)=>'<tr data-key="'+r+'"><td class="num">'+r+'</td><td>'+CELLS[MX.cell[r]]+'</td><td class="num">'+MX.cycle[r]+'</td><td class="num">'+fmt(MX.q_dis[r],3)+'</td><td class="num">'+fmt(P.s1[r],3)+'</td></tr>').join("");
+  const opts=id=>({key:r=>Number(r.dataset.key),selected:()=>VIEW.get().row,onSelect:key=>VIEW.set({row:key},{source:id})});scoresBinding=PC.bindTableRows("#scoresTwin",opts("scores-table"));umapBinding=PC.bindTableRows("#umapTwin",opts("umap-table"));capacityBinding=PC.bindTableRows("#capacityTwin",opts("capacity-table"));
+}
+function refreshAnalysisBindings(){if(scoresBinding)scoresBinding.refresh();if(umapBinding)umapBinding.refresh();if(capacityBinding)capacityBinding.refresh()}
+
+function drawDesign(sv){drawFullCycle();drawRaw(sv);drawXform(sv);drawMatrix(sv)}
+function drawAnalysis(sv){drawPooled(sv);drawPerCell();drawUmap(sv);if(sv.evalView==="transfer"){drawLoco(sv);drawPc1Q(sv)}else drawDq(sv);refreshAnalysisBindings()}
+function redrawVisible(){const s=VIEW.get();if(PCFolds.isOpen(document.getElementById("design-matrix")))drawDesign(s);if(PCFolds.isOpen(document.getElementById("analysis")))drawAnalysis(s)}
+function onShow(i){if(i===1)drawDesign(VIEW.get());else if(i===2)drawAnalysis(VIEW.get())}
+
+function renderState(s){syncControls(s);if(PCFolds.isOpen(document.getElementById("design-matrix")))drawDesign(s);if(PCFolds.isOpen(document.getElementById("analysis")))drawAnalysis(s)}
+
+buildProvenance();buildFindings();buildDesignMatrix();buildAnalysisText();buildConclusions();buildGlossary();buildFooter();buildControls();buildMatrixTables();buildAnalysisTables();
+
+
+if(D.provenance_card)PC.renderProvenance("#provCard",D.provenance_card);
+VIEW.subscribe(renderState,{immediate:true});
+
+PC.panels.dag.create(document.getElementById("workflowDag"), D.dag.steps, D.dag.options);
+PC.registerRepaint(redrawVisible);
+PC.repaint("initial", document);

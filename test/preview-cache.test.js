@@ -34,6 +34,15 @@ test('local previews revalidate changed files and reuse unchanged bytes without 
   const resource = await fetch(base + '/' + asset);
   assert.equal(resource.headers.get('cache-control'), 'private, max-age=31536000, immutable');
   await resource.arrayBuffer();
+  for (const [extension, mime] of [['js', 'text/javascript'], ['css', 'text/css']]) {
+    const runtimePath = 'assets/runtime/' + 'c'.repeat(64) + '.' + extension;
+    fs.mkdirSync(path.dirname(path.join(root, runtimePath)), { recursive: true });
+    fs.writeFileSync(path.join(root, runtimePath), 'exact shared resource bytes');
+    const response = await fetch(base + '/' + runtimePath);
+    assert.equal(response.headers.get('cache-control'), 'private, max-age=31536000, immutable');
+    assert.equal(response.headers.get('content-type'), mime + '; charset=utf-8');
+    assert.equal(await response.text(), 'exact shared resource bytes');
+  }
   for (const extension of ['gif', 'avif']) {
     const imagePath = 'assets/optimized/' + 'b'.repeat(64) + '.' + extension;
     const bytes = Buffer.from('unchanged ' + extension + ' image bytes');
@@ -56,6 +65,7 @@ test('protected preview cache rules target only generated assets; production rul
   const preview = deployHeaders({ audience: 'preview', context: 'branch-deploy' });
   assert.match(preview, /\/assets\/embedded\/\*\n  Cache-Control: private, max-age=31536000, immutable/);
   assert.match(preview, /\/assets\/optimized\/\*\n  Cache-Control: private, max-age=31536000, immutable/);
+  assert.match(preview, /\/assets\/runtime\/\*\n  Cache-Control: private, max-age=31536000, immutable/);
   assert.doesNotMatch(preview, /Cache-Control: public/);
   assert.doesNotMatch(deployHeaders({ audience: 'production', context: 'production' }), /immutable/);
 });

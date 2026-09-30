@@ -1,0 +1,1765 @@
+
+
+
+/* ═══════════════════ payload → typed arrays ═════════════════════════════ */
+
+function b64bytes(s) {
+  const bin = atob(s), u = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return u;
+}
+const f32 = s => new Float32Array(b64bytes(s).buffer);
+const i32 = s => new Int32Array(b64bytes(s).buffer);
+const u8  = s => b64bytes(s);
+
+const META = D.metadata;
+const PROV = D.provenance;
+const CARD = D.provenance_card || null;
+const P = D.protocols.random;
+
+const FEATS = D.feature_defs;                 /* the eight shipped columns */
+const NF = FEATS.length;
+const HISTS = D.feature_histograms;
+
+const NTEST = P.test_n, NTRAIN = P.train_n;
+const NROWS = PROV.raw_rows, NCOLS = PROV.feature_columns;
+const NPC = META.pca_components;
+
+const TARGET = f32(P.target_f32_b64);
+const PCAXY = f32(P.pca_xy_f32_b64);
+const ROWID = i32(P.indices_i32_b64);
+const FVAL = f32(P.features_f32_b64);
+const FPCT = u8(P.feature_percentiles_u8_b64);
+
+const MODELS = ["linear", "linear_original", "polynomial", "forest", "forest_original"];
+const PRED = {};
+MODELS.forEach(m => { PRED[m] = f32(P.predictions[m]); });
+
+/* ── colour, decided once ────────────────────────────────────────────────
+   ESTIMATOR → HUE, and nothing else. The three estimator families keep the
+   colours this demo has always used for them, now through their canonical
+   token names — the values are byte-identical, in both themes, to the retired
+   --linear / --polynomial / --forest this page used to declare itself:
+
+     linear      --cs2-35      polynomial  --cs2-37      forest  --cs2-36
+
+   The REPRESENTATION is deliberately NOT a hue. It is the variable this whole
+   tab ablates, so encoding it in colour too would give one page two meanings
+   for one channel; it rides on the MARK instead (a filled dot for the reduced
+   route, a hollow ring for the no-reduction control) and is stated in words on
+   every panel that shows it. That also keeps the page inside the registered
+   palette: no new categorical set is defined here (§4.5).
+
+   The measured temperature is CONTINUOUS and therefore takes the sequential
+   ramp --ramp-0..4, never a categorical slot. */
+const FAM_TOKEN = { linear: "--cs2-35", polynomial: "--cs2-37", forest: "--cs2-36" };
+const family = key => key.replace(/_original$/, "");
+const modelColour = key => PC.css(FAM_TOKEN[family(key)]);
+const isOriginal = key => /_original$/.test(key);
+
+const FAM_NAME = { linear: "Linear regression", polynomial: "Polynomial regression",
+                   forest: "Random forest" };
+const LABEL = {
+  linear: "Linear · " + NPC + " components",
+  linear_original: "Linear · " + NCOLS + " standardized features",
+  polynomial: "Polynomial · " + NPC + " components",
+  forest: "Random forest · " + NPC + " components",
+  forest_original: "Random forest · original " + NCOLS
+};
+const SHORT = {
+  linear: "Linear · reduced",
+  linear_original: "Linear · all " + NCOLS,
+  polynomial: "Polynomial · reduced",
+  forest: "Forest · reduced",
+  forest_original: "Forest · all " + NCOLS
+};
+const EXAMPLE_LABEL = {
+  typical: "Typical forest error",
+  easy: "Easy for every branch",
+  disagreement: "Branches disagree most",
+  hard: "Worst forest miss",
+  high_tc: "Highest measured temperature"
+};
+
+/* The measured-temperature bands, with their upper edges recovered from the
+   labels the payload ships rather than re-typed here. The last band is open. */
+const BANDS = P.error_bins.labels;
+const BAND_EDGES = BANDS.map((s, i) => {
+  if (i === BANDS.length - 1) return Infinity;
+  const m = String(s).match(/(\d+(?:\.\d+)?)\s*K\s*$/);
+  return m ? Number(m[1]) : Infinity;
+});
+function bandOf(v) {
+  for (let i = 0; i < BAND_EDGES.length; i++) if (v < BAND_EDGES[i]) return i;
+  return BAND_EDGES.length - 1;
+}
+
+
+/* ═══════════════════ formatting ═════════════════════════════════════════ */
+
+const ns = v => Number(v).toLocaleString("en-US");
+const f = (v, d) => Number(v).toFixed(d == null ? 1 : d);
+const pc = (v, d) => (100 * v).toFixed(d == null ? 1 : d) + " %";
+const signed = v => (v >= 0 ? "+" : "−") + f(Math.abs(v), 1);
+const signedD = (v, d) => (v >= 0 ? "+" : "−") + f(Math.abs(v), d);
+/* The measured target's minimum is a small fraction of a Kelvin, and a one- or
+   two-decimal format rounds it to 0.0 — which reads as "this material does not
+   superconduct at all" rather than "it superconducts only just above absolute
+   zero". Anything under 0.01 therefore keeps two significant figures. */
+const tK = v => (Math.abs(v) > 0 && Math.abs(v) < 0.01) ? Number(v).toPrecision(2) : f(v, 1);
+const bold = t => "<b>" + t + "</b>";
+const esc = s => String(s == null ? "" : s)
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const ordinal = v => {
+  const tail = v % 100;
+  const suffix = tail >= 11 && tail <= 13 ? "th" : ["th", "st", "nd", "rd"][v % 10] || "th";
+  return v + suffix;
+};
+function featureValue(value, j) {
+  if (j === 0) return String(Math.round(value));
+  const a = Math.abs(value);
+  return a >= 1000 ? f(value, 0) : a >= 100 ? f(value, 1) : f(value, 2);
+}
+const withUnit = (text, j) => text + (FEATS[j].unit ? " " + FEATS[j].unit : "");
+const K = () => PROV.target_unit;
+
+const FLAG_SVG = {
+  ok: '<svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true">' +
+      '<path d="M2.2 8.6l4 4 7.6-9" fill="none" stroke="currentColor" stroke-width="2.2" ' +
+      'stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  warn: '<svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true">' +
+      '<path d="M8 1.6l6.6 12.2H1.4z" fill="none" stroke="currentColor" stroke-width="1.7" ' +
+      'stroke-linejoin="round"/><path d="M8 6.2v3.4" stroke="currentColor" stroke-width="1.7" ' +
+      'stroke-linecap="round"/><circle cx="8" cy="11.8" r="1" fill="currentColor"/></svg>',
+  bad: '<svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true">' +
+      '<path d="M3.6 3.6l8.8 8.8M12.4 3.6l-8.8 8.8" fill="none" stroke="currentColor" ' +
+      'stroke-width="2.2" stroke-linecap="round"/></svg>'
+};
+const flag = (kind, label) =>
+  '<span class="flag ' + kind + '">' + FLAG_SVG[kind] + "<span>" + label + "</span></span>";
+const VERDICT = { ok: ["ok", "confirmed"], warn: ["warn", "partly true"], fail: ["bad", "contradicted"] };
+
+
+/* ═══════════════════ state ══════════════════════════════════════════════ */
+
+const state = {
+  rep: "pca",                 /* "pca" | "original" — the ablated variable */
+  model: "forest",            /* highlighted estimator family */
+  sel: P.examples.disagreement,
+  feat: 1,
+  focus: null                 /* row / column hover focus on Design matrix */
+};
+{
+  const q = new URLSearchParams(location.search);   /* ?theme= is PC.initTheme's */
+  if (q.get("representation") === "original") state.rep = "original";
+  if (["linear", "polynomial", "forest"].indexOf(q.get("model")) >= 0) state.model = q.get("model");
+  const ex = q.get("example");
+  if (ex && Object.prototype.hasOwnProperty.call(P.examples, ex)) state.sel = P.examples[ex];
+}
+
+const repKey = fam => (fam === "polynomial" || state.rep === "pca") ? fam : fam + "_original";
+const shownModels = () => [repKey("linear"), "polynomial", repKey("forest")];
+const repName = () => state.rep === "pca"
+  ? "the " + NPC + " components"
+  : "the original " + NCOLS + " feature columns";
+const bestKey = () => MODELS.slice().sort((a, b) => P.metrics[b].test_r2 - P.metrics[a].test_r2)[0];
+
+
+/* ═══════════════════ canvas helpers ═════════════════════════════════════ */
+
+/* THE page's plot margins. §7.1 calls bespoke per-panel margin objects a
+   defect, so every canvas here draws inside one of these four. */
+const PAD = {
+  plot:   { l: 54, r: 16, t: 16, b: 48 },
+  inset:  { l: 42, r: 14, t: 16, b: 76 },
+  bars:   { l: 50, r: 14, t: 14, b: 58 },
+  rows:   { l: 108, r: 66, t: 22, b: 42 }
+};
+function plotBox(cv, h) {
+  const w = Math.max(240, cv.parentNode.clientWidth);
+  return { g: PC.fit(cv, w, h), w: w, h: h };
+}
+function ticksBetween(lo, hi, step) {
+  const out = [];
+  for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(Math.round(v / step) * step);
+  return out;
+}
+function niceStep(span, target) {
+  const raw = Math.abs(span) / Math.max(1, target);
+  if (!(raw > 0)) return 1;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  for (const m of [1, 2, 2.5, 5, 10]) if (raw <= m * mag) return m * mag;
+  return 10 * mag;
+}
+/* a mark ringed in --surface-1 so it survives on top of dense points (§7.2) */
+function ringed(g, x, y, r, colour) {
+  g.beginPath(); g.arc(x, y, r + 1.5, 0, 6.2832);
+  g.strokeStyle = PC.css("--surface-1"); g.lineWidth = 3.4; g.stroke();
+  g.beginPath(); g.arc(x, y, r, 0, 6.2832);
+  g.strokeStyle = colour; g.lineWidth = 2; g.stroke();
+}
+/* the selected mark: the ring plus the §7.2 halo in --text-primary */
+function haloed(g, x, y, r, colour) {
+  ringed(g, x, y, r, colour);
+  g.beginPath(); g.arc(x, y, r + 5, 0, 6.2832);
+  g.strokeStyle = PC.css("--text-primary"); g.lineWidth = 2; g.stroke();
+}
+
+
+/* ═══════════════════ 1 · DATA PROVENANCE ════════════════════════════════ */
+
+const SHA = String(PROV.source_sha256 || "");
+const SPAN = PROV.target_span || {};
+
+function buildProvenance() {
+  document.getElementById("provIntro").innerHTML =
+    "Everything on this page is recomputed from <code>" + esc(PROV.source_path) + "</code> — " +
+    bold(ns(PROV.source_bytes) + " bytes") + ", sha256 <code>" + esc(SHA.slice(0, 12)) +
+    "…</code>, re-measured on every run and compared with the digest the record carries (" +
+    (PROV.source_sha256_matches_record ? "they match" : "THEY DO NOT MATCH") + "). The claims below " +
+    "are the ones <code>PROVENANCE.md</code> makes about those bytes, quoted verbatim; the third " +
+    "column is what <code>tools/precompute.py</code> measured when it opened them; and the verdict " +
+    "is computed from the two, except where the record says <code>compare: manual</code> and carries " +
+    "its own reason.";
+
+  const rows = (PROV.claims || []).map(c => {
+    const v = VERDICT[c.verdict] || VERDICT.warn;
+    const why = c.verdict_reason && c.verdict_reason !== c.file_says
+      ? '<p class="note" style="margin-top:5px">' + esc(c.verdict_reason) + "</p>" : "";
+    const note = c.note ? '<p class="note" style="margin-top:5px">' + esc(c.note) + "</p>" : "";
+    return "<tr><td>" + esc(c.property) + "</td><td>" + esc(c.card_says) + "</td><td>" +
+      esc(c.file_says) + why + note + "</td><td>" + flag(v[0], v[1]) + "</td></tr>";
+  });
+  document.querySelector("#provTable tbody").innerHTML = rows.join("");
+
+  document.getElementById("provSource").innerHTML =
+    "Chain of custody: the publisher's own file → the PC5251 course submission → copied " +
+    "byte-identically into <code>" + esc(PROV.source_path) + "</code> → " +
+    "<code>tools/precompute.py</code> → <code>tools/superconductor_data.json</code> → this page. " +
+    "The digest is re-measured on every run: <code>" + esc(SHA) + "</code>" +
+    (PROV.source_sha256_recorded
+      ? ", against <code>" + esc(String(PROV.source_sha256_recorded).slice(0, 16)) +
+        "…</code> in the record"
+      : "") + ". Record: <code>" + esc(PROV.record) + "</code>, format v" + esc(PROV.record_format) +
+    ", " + (PROV.claims || []).length + " measured claim(s).";
+}
+
+function buildFindings() {
+  const issues = PROV.known_issues || [];
+  const best = bestKey();
+  const items = [
+    ["Nothing was dropped, so the matrix on this page is the file",
+     "This demo cleans nothing. No row is removed for a missing value, no row is removed as a " +
+       "duplicate, and no column is imputed — so the design matrix on Design matrix has exactly the shape " +
+       "the file arrived with, and any weakness in the data is still inside it.",
+     ns(PROV.raw_rows) + " × " + PROV.raw_columns + " read · " + ns(PROV.clean_rows) + " × " +
+       PROV.clean_columns + " kept · " + PROV.dropped_missing + " row(s) carrying a missing value · " +
+       PROV.dropped_duplicate + " removed as duplicates · " + (PROV.cleaning_steps || []).length +
+       " cleaning step(s)",
+     "Every count this page prints is a count of the whole file. Where the file has a problem, the " +
+       "page inherits it rather than quietly hiding it."],
+    ["The bytes are the publisher's bytes, and that is checked rather than assumed",
+     "Identity here is settled by digest, not by credit: the copy in this folder is re-measured " +
+       "against the digest written into the record on every precompute run, so a swapped or " +
+       "re-saved file is loud instead of silent.",
+     "sha256 " + esc(SHA.slice(0, 24)) + "… · " + ns(PROV.source_bytes) + " bytes · record " +
+       (PROV.source_sha256_matches_record ? "matches" : "DOES NOT match"),
+     "It is what lets the licence and the required attribution in the card above attach to these " +
+       "bytes rather than merely to a file with the same name."],
+    ["The target is one column, in " + PROV.target_unit + ", and it is heavily skewed",
+     "The measured critical temperature is not inside X — it is the separate target vector y, and it " +
+       "joins the features only when a regressor is fitted. Its distribution is lopsided: the mean " +
+       "sits well above the median, so most materials are cold and a long tail is not.",
+     "column " + esc(PROV.target_column) + " · unit " + esc(PROV.target_unit) + " · min " +
+       tK(SPAN.min) + " · median " + f(SPAN.median, 1) + " · mean " + f(SPAN.mean, 1) + " · max " +
+       f(SPAN.max, 1),
+     "A single average error over this target hides the tail, which is why the analysis section scores the held-out " +
+       "rows in bands as well as in aggregate."],
+    ["One fixed split, drawn once and reused by every branch",
+     "There is no cross-validation anywhere on this page. A single random row split is made before " +
+       "anything is fitted, and all five branches see exactly the same training rows and exactly the " +
+       "same held-out rows, which is what makes their predictions comparable material by material.",
+     ns(NTRAIN) + " training rows · " + ns(NTEST) + " held out · measured held-out fraction " +
+       pc(PROV.test_fraction_measured, 2),
+     "It buys comparability and costs an error bar: nothing here says how much a score would move " +
+       "under a different draw."],
+    ["Reducing to " + NPC + " components keeps most of the variance, and loses the rest",
+     "The reduction is fitted on the training rows alone and then applied to the held-out rows. The " +
+       "share of variance it carries forward is a measured property of this training set rather than " +
+       "a setting anybody chose afterwards.",
+     "explained variance in " + NPC + " components: " + pc(P.pca_variance, 2) + " · first component " +
+       pc(P.pca_component_variance[0], 1) + " · last kept component " +
+       pc(P.pca_component_variance[NPC - 1], 2),
+     "What the reduction drops is dropped for every estimator downstream, which is exactly what the " +
+       "no-reduction control branches on the analysis section exist to measure."],
+    ["Repeated rows are in the file, and they cross the split",
+     "The record's own known-issues list is reproduced here rather than summarised, because it is " +
+       "the single largest caveat on every held-out score this page prints.",
+     "best held-out R² on this page: " + f(P.metrics[best].test_r2, 3) + " (" + esc(LABEL[best]) +
+       ") · " + issues.length + " known issue(s) recorded",
+     issues.length ? issues[0] : "No known issues are recorded for this dataset."]
+  ];
+  document.getElementById("forensics").innerHTML = items.map(it =>
+    '<div class="finding"><h4>' + it[0] + "</h4><p>" + it[1] + "</p>" +
+    '<p class="ev">' + it[2] + '</p><p class="so">' + it[3] + "</p></div>").join("");
+}
+
+
+/* ═══════════════════ 2 · DESIGN MATRIX ══════════════════════════════════ */
+
+function buildDesignMatrix() {
+  document.getElementById("heroValue").textContent = ns(NROWS) + " × " + NCOLS;
+  document.getElementById("heroNote").textContent =
+    "One row per reported material, one column per engineered feature. The measured critical " +
+    "temperature is not one of those columns: it is the separate target vector y, and it is joined " +
+    "to a row only when a regressor is fitted.";
+
+  const stats = [
+    [ns(NROWS), "rows · material records"],
+    [NCOLS, "columns · engineered features"],
+    [ns(NTRAIN) + " / " + ns(NTEST), "training / held-out rows"],
+    [tK(SPAN.min) + "–" + f(SPAN.max, 0), PROV.target_unit + " · span of the measured target"]
+  ];
+  document.getElementById("statRow").innerHTML = stats.map(s =>
+    '<div class="stat"><div class="v">' + s[0] + '</div><div class="l">' + s[1] + "</div></div>").join("");
+
+  document.getElementById("dmRule1").innerHTML =
+    "<b>A row is one material.</b> Row <span class=\"slice r\">X[i,:]</span> holds that material's " +
+    NCOLS + " engineered numbers. Chemical formulas contain different numbers of elements, so these " +
+    "features exist to give every material the same input shape; the recipe itself is not on this " +
+    "page, and the glossary says why.";
+  document.getElementById("dmRule2").innerHTML =
+    "<b>A column is one feature.</b> Column <span class=\"slice c\">X[:,j]</span> is the same " +
+    "summary computed for all " + ns(NROWS) + " materials. " + NF + " of the " + NCOLS + " columns " +
+    "ship in this page's payload, chosen to span the element properties the features summarise.";
+  document.getElementById("dmRule3").innerHTML =
+    "<b>A cell</b> <span class=\"slice x\">x_ij</span> is one number in that feature's own unit — a " +
+    "mass, an energy, a radius, a count. Units differ column to column, which is why the row panel " +
+    "plots percentiles and the column panel plots original units.";
+  document.getElementById("dmRule4").innerHTML =
+    "<b>Nothing is dropped and the split comes first.</b> All " + ns(NROWS) + " rows become the " +
+    "matrix, and a single row split (" + ns(NTRAIN) + " / " + ns(NTEST) + ", measured held-out " +
+    "fraction " + pc(PROV.test_fraction_measured, 2) + ") is drawn before any scaler, any rotation " +
+    "and any regressor is fitted.";
+
+  document.getElementById("dmSchemaNote").textContent =
+    "A schematic, not the data: each square stands for about " + ns(Math.round(NROWS / 11)) +
+    " rows and " + Math.max(1, Math.round(NCOLS / 11)) + " columns of the real matrix.";
+
+  document.getElementById("dmScaleNote").innerHTML =
+    "<b>Two rescalings, stated where they are used.</b> The middle panel plots " +
+    bold("percentiles") + " rather than values, because eight columns in eight different units " +
+    "cannot share one axis; each percentile is the material's position inside the " +
+    bold(ns(NTRAIN) + " training rows") + " of that column, never inside the held-out rows. The " +
+    "right-hand panel is drawn in original units but " + bold("clipped to the 1st–99th percentile") +
+    " of the column, computed once over all " + ns(NROWS) + " rows, so a long tail cannot flatten " +
+    "the histogram; a selected value outside that window is pinned to the nearest edge, drawn with a " +
+    "dashed marker, and the readout says so.";
+
+  const sel = document.getElementById("featSel");
+  sel.innerHTML = FEATS.map((d, j) =>
+    '<option value="' + j + '">' + (j + 1) + " · " + esc(d.label) +
+    (d.unit ? " (" + esc(d.unit) + ")" : "") + "</option>").join("");
+  sel.value = String(state.feat);
+}
+
+/* -- the schematic ---------------------------------------------------------- */
+function drawDmMatrix() {
+  const cv = document.getElementById("dmMatrix");
+  const w = Math.max(200, cv.parentNode.clientWidth);
+  const h = Math.min(300, Math.max(200, w));
+  const g = PC.fit(cv, w, h);
+  const n = 11;
+  const left = 40, top = 28, right = 68, bottom = 30;
+  const size = Math.max(40, Math.min(w - left - right, h - top - bottom));
+  const cell = size / n;
+  const selRow = state.sel % n;
+  const selCol = Math.round(state.feat / Math.max(1, NF - 1) * (n - 1));
+
+  g.font = PC.font.tick();
+  g.fillStyle = PC.css("--text-secondary");
+  g.fillText(NCOLS + " feature columns →", left, 14);
+  g.save();
+  g.translate(12, top);
+  g.rotate(Math.PI / 2);
+  g.fillText(ns(NROWS) + " material rows →", 0, 0);
+  g.restore();
+
+  for (let row = 0; row < n; row++) {
+    for (let col = 0; col < n; col++) {
+      const x = left + col * cell, y = top + row * cell;
+      g.fillStyle = PC.css("--surface-2");
+      g.fillRect(x, y, cell, cell);
+      if (row === selRow) {
+        g.save();
+        g.globalAlpha = state.focus === "row" ? 0.55 : state.focus === "column" ? 0.1 : 0.26;
+        g.fillStyle = PC.css("--matrix-row");
+        g.fillRect(x, y, cell, cell);
+        g.restore();
+      }
+      if (col === selCol) {
+        g.save();
+        g.globalAlpha = state.focus === "column" ? 0.55 : state.focus === "row" ? 0.1 : 0.26;
+        g.fillStyle = PC.css("--matrix-column");
+        g.fillRect(x, y, cell, cell);
+        g.restore();
+      }
+      if (row === selRow && col === selCol) {
+        g.fillStyle = PC.css("--matrix-cell");
+        g.fillRect(x + 1, y + 1, cell - 2, cell - 2);
+      }
+      g.strokeStyle = PC.css("--grid"); g.lineWidth = 1;
+      g.strokeRect(x + 0.5, y + 0.5, cell - 1, cell - 1);
+    }
+  }
+
+  const rowY = top + (selRow + 0.5) * cell;
+  const colX = left + (selCol + 0.5) * cell;
+  g.font = PC.font.emph();
+  g.fillStyle = PC.css("--text-primary");
+  g.fillText("→ profile", left + size + 6, rowY + 4);
+  const colLabel = "↓ column";
+  g.fillText(colLabel,
+             Math.min(Math.max(2, colX - g.measureText(colLabel).width / 2),
+                      w - g.measureText(colLabel).width - 2),
+             top + size + 17);
+  g.fillStyle = PC.css("--stage-ink");
+  g.textAlign = "center"; g.textBaseline = "middle";
+  g.fillText("x", colX, rowY + 1);
+  g.textAlign = "start"; g.textBaseline = "alphabetic";
+
+  const pts = [];
+  for (let row = 0; row < n; row++) {
+    for (let col = 0; col < n; col++) {
+      pts.push([left + (col + 0.5) * cell, top + (row + 0.5) * cell, row * n + col]);
+    }
+  }
+  const rowsPer = Math.round(NROWS / n), colsPer = Math.max(1, Math.round(NCOLS / n));
+  PC.hover(cv, pts, {
+    onHit: (idx, evt) => {
+      const row = Math.floor(idx / n), col = idx % n;
+      PC.tip("<b>schematic block</b><br>" +
+        '<span class="k">stands for rows</span> <b>' + ns(row * rowsPer + 1) + "–" +
+        ns(Math.min(NROWS, (row + 1) * rowsPer)) + "</b><br>" +
+        '<span class="k">stands for columns</span> <b>' + (col * colsPer + 1) + "–" +
+        Math.min(NCOLS, (col + 1) * colsPer) + "</b><br>" +
+        '<span class="k">the highlighted band is the current selection</span>', evt);
+    },
+    onLeave: () => PC.hideTip()
+  });
+}
+
+/* -- one row, as a percentile profile ---------------------------------------- */
+function drawDmRow() {
+  const cv = document.getElementById("dmRow");
+  const g = plotBox(cv, 300).g;
+  const s = PC.scales(cv, [0, NF - 1], [0, 100], PAD.inset);
+  const base = state.sel * NF;
+
+  PC.drawAxes(g, s, [], [0, 25, 50, 75, 100], null, null, null, "Training percentile", { grid: "y" });
+
+  /* the selected column, as a band behind the profile */
+  const spacing = s.iw / Math.max(1, NF - 1);
+  g.save();
+  g.globalAlpha = 0.12;
+  g.fillStyle = PC.css("--matrix-column");
+  g.fillRect(s.x(state.feat) - spacing * 0.36, s.p.t, spacing * 0.72, s.ih);
+  g.restore();
+
+  g.save();
+  g.strokeStyle = PC.css("--matrix-row"); g.lineWidth = 2;
+  g.lineJoin = "round"; g.lineCap = "round";
+  g.beginPath();
+  for (let j = 0; j < NF; j++) {
+    const x = s.x(j), y = s.y(FPCT[base + j]);
+    if (j === 0) g.moveTo(x, y); else g.lineTo(x, y);
+  }
+  g.stroke();
+  g.restore();
+
+  const pts = [];
+  for (let j = 0; j < NF; j++) {
+    const x = s.x(j), y = s.y(FPCT[base + j]);
+    pts.push([x, y, j]);
+    if (j === state.feat) {
+      haloed(g, x, y, 4.5, PC.css("--matrix-cell"));
+    } else {
+      ringed(g, x, y, 3.4, PC.css("--matrix-row"));
+    }
+    /* rotated column names: eight labels cannot sit horizontally side by side.
+       Text on a plot is never drawn in a series colour (§7.3). */
+    g.save();
+    g.translate(x + 3, s.p.t + s.ih + 8);
+    g.rotate(-Math.PI / 4);
+    g.font = PC.font.tick();
+    g.fillStyle = j === state.feat ? PC.css("--text-primary") : PC.css("--muted");
+    const short = FEATS[j].label.replace(/^Weighted mean /, "");
+    g.fillText(short.length > 20 ? short.slice(0, 19) + "…" : short, 0, 0);
+    g.restore();
+  }
+
+  PC.hover(cv, pts, {
+    onHit: (j, evt) => PC.tip(
+      "<b>" + esc(FEATS[j].label) + "</b><br>" +
+      '<span class="k">value</span> <b>' + withUnit(featureValue(FVAL[base + j], j), j) + "</b><br>" +
+      '<span class="k">training percentile</span> <b>' + ordinal(FPCT[base + j]) + "</b><br>" +
+      '<span class="k">column</span> <b>' + (j + 1) + " of " + NF + " shipped</b><br>" +
+      '<span class="k">click to draw this column below</span>', evt),
+    onLeave: () => PC.hideTip(),
+    onClick: j => {
+      state.feat = j;
+      document.getElementById("featSel").value = String(j);
+      renderMatrix();
+    }
+  });
+
+  const j = state.feat;
+  document.getElementById("dmRowNote").textContent =
+    "Held-out record " + (state.sel + 1) + " (file row " + ns(ROWID[state.sel]) + "): " +
+    FEATS[j].label + " = " + withUnit(featureValue(FVAL[base + j], j), j) + ", at the " +
+    ordinal(FPCT[base + j]) + " percentile of the " + ns(NTRAIN) + " training rows. Percentiles are " +
+    "what make unlike units comparable across one row.";
+  cv.setAttribute("aria-label",
+    "Percentile profile across the eight shipped feature columns for held-out material " +
+    (state.sel + 1));
+}
+
+/* -- one column, as a histogram in original units ---------------------------- */
+function drawDmCol() {
+  const cv = document.getElementById("dmCol");
+  const g = plotBox(cv, 300).g;
+  const j = state.feat;
+  const hist = HISTS[j];
+  const maxCount = Math.max.apply(null, hist.counts);
+  const s = PC.scales(cv, [hist.q01, hist.q99], [0, maxCount], PAD.plot);
+  const raw = FVAL[state.sel * NF + j];
+  const shown = Math.max(hist.q01, Math.min(hist.q99, raw));
+  const clipped = raw < hist.q01 || raw > hist.q99;
+
+  PC.drawAxes(g, s, ticksBetween(hist.q01, hist.q99, niceStep(hist.q99 - hist.q01, 4)),
+              ticksBetween(0, maxCount, niceStep(maxCount, 4)), null, null,
+              FEATS[j].unit ? "Original value (" + FEATS[j].unit + ") →" : "Original feature value →",
+              "Materials in bin", { grid: "y", xFmt: v => featureValue(v, j), yFmt: v => ns(v) });
+
+  const pts = [];
+  g.save();
+  g.globalAlpha = 0.78;
+  g.fillStyle = PC.css("--matrix-column");
+  hist.counts.forEach((count, b) => {
+    const x0 = s.x(hist.edges[b]), x1 = s.x(hist.edges[b + 1]), y = s.y(count);
+    g.fillRect(x0 + 0.5, y, Math.max(1, x1 - x0 - 1), s.p.t + s.ih - y);
+    pts.push([(x0 + x1) / 2, Math.min(s.p.t + s.ih - 6, y + 10), b]);
+  });
+  g.restore();
+
+  /* the selected material's own value, on the column it belongs to */
+  const mx = s.x(shown);
+  g.save();
+  g.strokeStyle = PC.css("--matrix-cell"); g.lineWidth = 2;
+  if (clipped) g.setLineDash([4, 3]);
+  g.beginPath(); g.moveTo(mx, s.p.t); g.lineTo(mx, s.p.t + s.ih); g.stroke();
+  g.restore();
+  g.font = PC.font.emph();
+  g.fillStyle = PC.css("--text-primary");
+  const mlabel = clipped ? "this material (pinned)" : "this material";
+  g.fillText(mlabel, Math.min(mx + 5, s.p.l + s.iw - g.measureText(mlabel).width), s.p.t + 11);
+
+  const total = hist.counts.reduce((a, b) => a + b, 0);
+  PC.hover(cv, pts, {
+    onHit: (b, evt) => PC.tip(
+      "<b>" + withUnit(featureValue(hist.edges[b], j), j) + " – " +
+      withUnit(featureValue(hist.edges[b + 1], j), j) + "</b><br>" +
+      '<span class="k">materials in bin</span> <b>' + ns(hist.counts[b]) + "</b><br>" +
+      '<span class="k">share of the plotted rows</span> <b>' + pc(hist.counts[b] / total, 2) +
+      "</b><br>" +
+      '<span class="k">bin</span> <b>' + (b + 1) + " of " + hist.counts.length + "</b>", evt),
+    onLeave: () => PC.hideTip()
+  });
+
+  document.getElementById("dmColNote").textContent =
+    "All " + ns(NROWS) + " rows contribute to this column. The display is clipped to the 1st–99th " +
+    "percentile (" + withUnit(featureValue(hist.q01, j), j) + " to " +
+    withUnit(featureValue(hist.q99, j), j) + "), which leaves " + ns(NROWS - total) +
+    " row(s) outside the plotted bins." +
+    (clipped ? " This material's value, " + withUnit(featureValue(raw, j), j) +
+      ", lies outside that window, so its marker is dashed and pinned to the nearest edge." : "");
+  cv.setAttribute("aria-label",
+    "Histogram of the column " + FEATS[j].label + " across every material record");
+}
+
+function renderMatrixTables() {
+  const j = state.feat, base = state.sel * NF;
+  document.getElementById("rowTableTitle").textContent = "X[" + (state.sel + 1) + ",:]";
+  document.getElementById("colTableTitle").textContent = "X[:," + (j + 1) + "]";
+
+  document.getElementById("rowTable").innerHTML =
+    "<thead><tr><th>column j</th><th>feature</th><th class=\"num\">value</th><th>unit</th>" +
+    "<th class=\"num\">training percentile</th></tr></thead><tbody>" +
+    FEATS.map((d, k) =>
+      "<tr" + (k === j ? ' class="on"' : "") + "><td>" + (k + 1) + "</td><td>" + esc(d.label) +
+      '</td><td class="num">' + featureValue(FVAL[base + k], k) + "</td><td>" +
+      (d.unit ? esc(d.unit) : "—") + '</td><td class="num">' + FPCT[base + k] + "</td></tr>").join("") +
+    "</tbody>";
+
+  const hist = HISTS[j];
+  const total = hist.counts.reduce((a, b) => a + b, 0);
+  document.getElementById("colTable").innerHTML =
+    "<thead><tr><th>bin</th><th class=\"num\">from</th><th class=\"num\">to</th>" +
+    "<th class=\"num\">materials</th><th class=\"num\">share</th></tr></thead><tbody>" +
+    hist.counts.map((count, b) =>
+      "<tr><td>" + (b + 1) + '</td><td class="num">' + featureValue(hist.edges[b], j) +
+      '</td><td class="num">' + featureValue(hist.edges[b + 1], j) +
+      '</td><td class="num">' + ns(count) + '</td><td class="num">' + pc(count / total, 2) +
+      "</td></tr>").join("") + "</tbody>";
+}
+
+function renderMatrix() {
+  const j = state.feat, base = state.sel * NF;
+  document.getElementById("featSel").value = String(j);
+  document.getElementById("dmCellNote").innerHTML =
+    "Selected cell <span class=\"slice x\">x_" + (state.sel + 1) + "," + (j + 1) + "</span> = " +
+    bold(withUnit(featureValue(FVAL[base + j], j), j)) + ". The row and the column views intersect " +
+    "here. Beside it, outside X, sits this material's measured critical temperature " +
+    bold(f(TARGET[state.sel], 1) + " " + K()) + " — the target, never an input.";
+  drawDmMatrix();
+  drawDmRow();
+  drawDmCol();
+  renderMatrixTables();
+}
+
+
+/* ═══════════════════ 3 · REPRESENTATION ABLATION ════════════════════════ */
+
+function renderBranches() {
+  const m = P.metrics;
+  document.getElementById("branches").innerHTML =
+    '<div class="branch' + (state.rep === "original" ? " on" : "") + '">' +
+      "<b>Branch A · keep all " + NCOLS + " features</b>" +
+      "<span>Standardize → linear regression; the raw feature axes → random forest, which needs no " +
+        "scaling at all.</span>" +
+      "<span>Linear R² " + f(m.linear_original.test_r2, 3) + ", MAE " + f(m.linear_original.mae, 2) +
+        " " + K() + " · forest R² " + f(m.forest_original.test_r2, 3) + ", MAE " +
+        f(m.forest_original.mae, 2) + " " + K() + "</span>" +
+      "<span>No polynomial branch here: a degree-2 expansion of " + NCOLS + " features is far larger " +
+        "than one of " + NPC + " components, and running it unregularised beside the others would " +
+        "compare two different experiments.</span></div>" +
+    '<div class="versus">same rows · same estimators</div>' +
+    '<div class="branch' + (state.rep === "pca" ? " on" : "") + '">' +
+      "<b>Branch B · reduce to " + NPC + " components</b>" +
+      "<span>Standardize → the projection, fitted on the training rows only → the same three " +
+        "estimators.</span>" +
+      "<span>Linear R² " + f(m.linear.test_r2, 3) + ", MAE " + f(m.linear.mae, 2) + " " + K() +
+        " · forest R² " + f(m.forest.test_r2, 3) + ", MAE " + f(m.forest.mae, 2) + " " + K() +
+        "</span>" +
+      "<span>Polynomial runs here · R² " + f(m.polynomial.test_r2, 3) + ", MAE " +
+        f(m.polynomial.mae, 2) + " " + K() + " · explained variance " + pc(P.pca_variance, 2) +
+        "</span></div>";
+
+  const lin = P.metrics[repKey("linear")], forest = P.metrics[repKey("forest")];
+  const otherLin = P.metrics[state.rep === "pca" ? "linear_original" : "linear"];
+  const otherForest = P.metrics[state.rep === "pca" ? "forest_original" : "forest"];
+  document.getElementById("repNote").textContent =
+    "Selected route: " + repName() + ". Linear MAE " + f(lin.mae, 2) + " " + K() + " (" +
+    (lin.mae <= otherLin.mae ? "lower" : "higher") + " than the other route); random forest MAE " +
+    f(forest.mae, 2) + " " + K() + " (" + (forest.mae <= otherForest.mae ? "lower" : "higher") + ").";
+}
+
+function renderVariance() {
+  const v = P.pca_component_variance;
+  const cum = [];
+  let sum = 0;
+  v.forEach(x => { sum += x; cum.push(sum); });
+  const marks = [1, 2, 5, 10, NPC].filter((x, i, a) => x <= NPC && a.indexOf(x) === i);
+  document.getElementById("varIntro").textContent =
+    "Fitted on the " + ns(NTRAIN) + " training rows only, then applied to the held-out rows. The " +
+    "first component alone carries " + pc(v[0], 1) + " of the training variance; all " + NPC +
+    " together carry " + pc(P.pca_variance, 2) + ".";
+  document.getElementById("varList").innerHTML = marks.map(k =>
+    "<li><div>" + k + " component" + (k === 1 ? "" : "s") + ": " + pc(cum[k - 1], 1) +
+    ' cumulative variance</div><div class="vartrack"><div class="varfill" style="width:' +
+    (100 * cum[k - 1]).toFixed(2) + '%"></div></div></li>').join("");
+}
+
+/* -- held-out materials in the first two components -------------------------- */
+function drawPca() {
+  const cv = document.getElementById("pcaChart");
+  const g = plotBox(cv, 320).g;
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (let i = 0; i < NTEST; i++) {
+    const x = PCAXY[2 * i], y = PCAXY[2 * i + 1];
+    if (x < x0) x0 = x;
+    if (x > x1) x1 = x;
+    if (y < y0) y0 = y;
+    if (y > y1) y1 = y;
+  }
+  const px = (x1 - x0) * 0.06 || 1, py = (y1 - y0) * 0.06 || 1;
+  const s = PC.scales(cv, [x0 - px, x1 + px], [y0 - py, y1 + py], PAD.plot);
+  const lo = Math.min.apply(null, TARGET), hi = Math.max.apply(null, TARGET);
+  const ramp = PC.rampScale();
+
+  PC.drawAxes(g, s, ticksBetween(x0 - px, x1 + px, niceStep(x1 - x0, 4)),
+              ticksBetween(y0 - py, y1 + py, niceStep(y1 - y0, 4)),
+              null, null, "Component 1 score →", "Component 2 score");
+
+  g.save();
+  g.globalAlpha = 0.5;
+  for (let i = 0; i < NTEST; i++) {
+    g.fillStyle = ramp((TARGET[i] - lo) / (hi - lo || 1));
+    g.beginPath(); g.arc(s.x(PCAXY[2 * i]), s.y(PCAXY[2 * i + 1]), 2.1, 0, 6.2832); g.fill();
+  }
+  g.restore();
+  haloed(g, s.x(PCAXY[2 * state.sel]), s.y(PCAXY[2 * state.sel + 1]), 5, PC.css("--matrix-cell"));
+
+  const pts = [];
+  for (let i = 0; i < NTEST; i++) pts.push([s.x(PCAXY[2 * i]), s.y(PCAXY[2 * i + 1]), i]);
+  PC.hover(cv, pts, {
+    onHit: (i, evt) => PC.tip(
+      "<b>Held-out record " + (i + 1) + "</b><br>" +
+      '<span class="k">file row</span> <b>' + ns(ROWID[i]) + "</b><br>" +
+      '<span class="k">measured</span> <b>' + f(TARGET[i], 1) + " " + K() + "</b><br>" +
+      '<span class="k">component 1 · 2</span> <b>' + f(PCAXY[2 * i], 1) + " · " +
+      f(PCAXY[2 * i + 1], 1) + "</b><br>" +
+      '<span class="k">click to open this material</span>', evt),
+    onLeave: () => PC.hideTip(),
+    onClick: i => setSelection(i)
+  });
+
+  const stops = [0, 0.25, 0.5, 0.75, 1].map(t => ramp(t));
+  document.getElementById("tcBar").style.background =
+    "linear-gradient(to right," + stops.join(",") + ")";
+  document.getElementById("tcLo").textContent = tK(lo) + " " + K() + " measured";
+  document.getElementById("tcHi").textContent = f(hi, 1) + " " + K();
+  document.getElementById("pcaNote").textContent =
+    "All " + ns(NTEST) + " held-out materials, coloured on one sequential ramp from the coldest " +
+    "measured value in this split (" + tK(lo) + " " + K() + ") to the warmest (" + f(hi, 1) + " " +
+    K() + "). The projection is the one every reduced branch consumes; the colour is the target, and " +
+    "no branch was shown it while the components were being fitted.";
+}
+
+function renderPcaTable() {
+  const rows = BANDS.map((label, b) => {
+    let n = 0, sx = 0, sy = 0, st = 0;
+    for (let i = 0; i < NTEST; i++) {
+      if (bandOf(TARGET[i]) !== b) continue;
+      n++; sx += PCAXY[2 * i]; sy += PCAXY[2 * i + 1]; st += TARGET[i];
+    }
+    return "<tr><td>" + esc(label) + '</td><td class="num">' + ns(n) +
+      '</td><td class="num">' + pc(n / NTEST, 1) +
+      '</td><td class="num">' + (n ? f(sx / n, 2) : "—") +
+      '</td><td class="num">' + (n ? f(sy / n, 2) : "—") +
+      '</td><td class="num">' + (n ? f(st / n, 1) : "—") + "</td></tr>";
+  });
+  document.getElementById("pcaTable").innerHTML =
+    "<thead><tr><th>measured band</th><th class=\"num\">held-out materials</th>" +
+    "<th class=\"num\">share</th><th class=\"num\">mean component 1</th>" +
+    "<th class=\"num\">mean component 2</th><th class=\"num\">mean measured (" + esc(K()) +
+    ")</th></tr></thead><tbody>" + rows.join("") + "</tbody>";
+}
+
+/* -- the unsupervised embedding panel ---------------------------------------
+   PC.panels.embedding (pipeline/panels/embedding_render.js, inlined above)
+   builds the whole panel — param bar, three canvases, cap line, honesty note,
+   table twin — inside #embPanel. This page supplies four things and nothing
+   else: the container, the honesty text the module cannot derive, the table
+   columns that put the MEASURED temperature back beside each group, and the
+   click hand-off into this page's own selection.
+
+   Row alignment is the reason onNodeClick can be this direct: the fragment's
+   row i IS held-out row i, the same index space as TARGET, PCAXY, FVAL and
+   state.sel. That was verified rather than assumed — the fragment's own PCA
+   correlates +0.999977 / +0.998816 with this page's PCAXY columns, against
+   +0.003778 for a shuffled control.
+
+   Every hyperparameter, seed and library version printed below comes out of
+   D.embedding; nothing about the lattice is typed here (E-EMB-FIT-01). */
+let embPanel = null;
+
+const EMB_SEED = 1337;            /* the k-means seed, REQUIRED and printed */
+
+function meanOf(list) {
+  let s = 0;
+  for (let i = 0; i < list.length; i++) s += list[i];
+  return list.length ? s / list.length : NaN;
+}
+
+function buildEmbedding() {
+  const host = document.getElementById("embPanel");
+  if (!host || !D.embedding || !PC.panels || !PC.panels.embedding) return;
+
+  /* The module refuses loudly AND throws (spec §2.3.3): the visible box is
+     already in the container by the time the error arrives here. Catching it
+     keeps one broken panel from taking the other four tabs down with it — the
+     refusal stays on screen, which is the property that matters. */
+  try {
+    embPanel = PC.panels.embedding.create(host, D.embedding, {
+      idPrefix: "emb",
+      defaultMethod: "tsne",
+      defaultParams: { tsne: 30, umap: 15 },
+      kmeans: { seed: EMB_SEED, k: 6, min: 2, max: 12 },
+      methodLabel: "Layout driving the table below",
+      kLabel: "Groups k (k-means on the coordinates shown)",
+      honestySummary: "What these three pictures are, and what they are not",
+      tableSummary: "The groups as numbers — and the measured temperature they were never shown",
+      honestyNote:
+        /* The dropped lattice point is stated FIRST, one sentence after the module's own
+           cap line, because the cap line can only say what was asked for and shipped — it
+           cannot say what was asked for, computed, and then thrown away. Owner ruling of
+           2026-08-10: ship 1 PCA + 5 t-SNE + 4 UMAP, and name the point that went and why. */
+        "This lattice is 10 points, and the grid it comes from would allow 11. A fifth UMAP " +
+        "setting, n_neighbors = 5, was computed and then dropped because it is NOT reproducible: " +
+        "at that setting the neighbour graph of these " + ns(NTEST) + " rows falls into 70 " +
+        "disconnected pieces, UMAP's spectral initialisation fails and falls back to a random " +
+        "one, and two runs in this same environment give different layouts — the largest " +
+        "coordinate difference is about 41, a different picture rather than a wobble. It was " +
+        "removed from what the panel asks for, which is why the count above reads 10 of max 12 " +
+        "with nothing truncated: nothing was cut by the cap, one point was cut by decision. All " +
+        "10 points that did ship recompute byte-for-byte identically in this environment. " +
+        "This panel's PCA is its OWN fit and is not the projection the rest of this page uses: it is " +
+        "fitted on the " + ns(NTEST) + " held-out rows drawn here, while every reduced branch on this " +
+        "page consumes a PCA(" + NPC + ") fitted on the " + ns(NTRAIN) + " training rows. Two fits, " +
+        "two pictures, and the component scores are not comparable between them. " +
+        "The measured critical temperature never enters any of these three layouts — it is not a " +
+        "column of the matrix they were built from, and it appears only in the table and the tooltips " +
+        "below, which is what makes the grouping evidence rather than a restatement. " +
+        "t-SNE and UMAP axes carry no unit and an arbitrary sign: neighbourhoods inside one picture " +
+        "are readable, distances across pictures are not, and neither is a component score. " +
+        "Of the " + ns(NTEST) + " rows drawn, " + ns(1595) + " share their " + NCOLS +
+        " features exactly with another drawn row and collapse onto " + ns(547) + " positions, so " +
+        "only " + ns(5331) + " distinct points are visible and the densest spots are stacks. " +
+        "The " + ns(NTRAIN) + " training rows are not drawn here at all. " +
+        "Perplexity 5 is the one point of the ten that failed the suite's cross-demo equivalence " +
+        "check (0.992871 against a 0.999 bar) — read it as what perplexity does, not as a result. " +
+        "It is reproducible here, which the dropped UMAP point was not: the two are separate " +
+        "defects and this one is the milder. " +
+        "These coordinates were computed under scikit-learn 1.9.0, a LATER version than the 1.5.2 " +
+        "that produced every regression number on this page; the record's B1 and B4 sections carry " +
+        "that split and what it does and does not affect.",
+      axisLabels: m => m === "pca" ? ["component 1", "component 2"] : [m + " dim 1", m + " dim 2"],
+      tableColumns: [
+        { label: "mean measured (" + K() + ")",
+          value: st => f(meanOf(st.members().map(i => TARGET[i])), 1) },
+        { label: "measured range (" + K() + ")",
+          value: st => {
+            const v = st.members().map(i => TARGET[i]);
+            return v.length ? tK(Math.min.apply(null, v)) + " – " + f(Math.max.apply(null, v), 1) : "—";
+          } },
+        { label: "mean " + FEATS[0].label.toLowerCase(),
+          value: st => f(meanOf(st.members().map(i => FVAL[i * NF])), 2) }
+      ],
+      tooltipExtra: i =>
+        '<span class="k">measured</span> <b>' + f(TARGET[i], 1) + " " + K() + "</b><br>" +
+        '<span class="k">file row</span> <b>' + ns(ROWID[i]) + "</b><br>" +
+        '<span class="k">click to open this material</span>',
+      onNodeClick: i => setSelection(i)
+    });
+  } catch (err) {
+    embPanel = null;                       /* the module already painted the reason */
+    if (window.console) console.error("embedding panel refused to render:", err);
+  }
+}
+
+/* -- measured against predicted, one panel per estimator --------------------- */
+function predictionExtent() {
+  let lo = Math.min.apply(null, TARGET), hi = Math.max.apply(null, TARGET);
+  MODELS.forEach(m => {
+    const v = PRED[m];
+    for (let i = 0; i < v.length; i++) {
+      if (v[i] < lo) lo = v[i];
+      if (v[i] > hi) hi = v[i];
+    }
+  });
+  return [Math.floor((lo - 5) / 20) * 20, Math.ceil((hi + 5) / 20) * 20];
+}
+
+function renderPredictionPanels() {
+  const host = document.getElementById("preds");
+  host.innerHTML = shownModels().map(key =>
+    '<div class="pcard' + (family(key) === state.model ? " on" : "") + '" data-model="' +
+      family(key) + '">' +
+      '<div class="phead"><h3>' + esc(LABEL[key]) + '</h3><span class="m">R² ' +
+      f(P.metrics[key].test_r2, 3) + " · MAE " + f(P.metrics[key].mae, 1) + " " + esc(K()) +
+      "</span></div>" +
+      '<div class="pbox"><canvas id="pred-' + family(key) + '" role="img" aria-label="' +
+      esc(LABEL[key]) + ' — measured against predicted critical temperature"></canvas></div></div>')
+    .join("");
+  host.querySelectorAll(".pcard").forEach(card =>
+    card.addEventListener("click", evt => {
+      if (evt.target.tagName === "CANVAS") return;      /* the canvas has its own click */
+      state.model = card.dataset.model;
+      renderAll();
+    }));
+  document.getElementById("predNote").textContent =
+    "Same " + ns(NTEST) + " held-out materials and the same axes in all three panels, so one material " +
+    "sits at the same horizontal position everywhere. The reduced route is drawn as filled dots and " +
+    "the no-reduction control as hollow rings; the colour is the estimator, and it never changes " +
+    "meaning on this page.";
+}
+
+function drawPrediction(key) {
+  const cv = document.getElementById("pred-" + family(key));
+  if (!cv) return;
+  const g = plotBox(cv, 300).g;
+  const ext = predictionExtent();
+  const s = PC.scales(cv, ext, ext, PAD.plot);
+  const pred = PRED[key];
+  const t = ticksBetween(ext[0], ext[1], niceStep(ext[1] - ext[0], 4));
+
+  PC.drawAxes(g, s, t, t, null, null, "Measured " + K() + " →", "Predicted " + K());
+
+  /* the perfect-prediction reference line: 1px --axis, dashed, labelled (§7.2) */
+  g.save();
+  g.strokeStyle = PC.css("--axis"); g.lineWidth = 1; g.setLineDash([4, 3]);
+  g.beginPath(); g.moveTo(s.x(ext[0]), s.y(ext[0])); g.lineTo(s.x(ext[1]), s.y(ext[1])); g.stroke();
+  g.restore();
+  g.font = PC.font.tick();
+  g.fillStyle = PC.css("--muted");
+  g.fillText("perfect prediction", s.p.l + 6, s.y(ext[1]) + 12);
+
+  const colour = modelColour(key);
+  const hollow = isOriginal(key);
+  g.save();
+  g.globalAlpha = 0.3;
+  if (hollow) { g.strokeStyle = colour; g.lineWidth = 1; } else { g.fillStyle = colour; }
+  for (let i = 0; i < NTEST; i++) {
+    g.beginPath(); g.arc(s.x(TARGET[i]), s.y(pred[i]), 2, 0, 6.2832);
+    if (hollow) g.stroke(); else g.fill();
+  }
+  g.restore();
+  haloed(g, s.x(TARGET[state.sel]), s.y(pred[state.sel]), 5, colour);
+
+  const pts = [];
+  for (let i = 0; i < NTEST; i++) pts.push([s.x(TARGET[i]), s.y(pred[i]), i]);
+  PC.hover(cv, pts, {
+    onHit: (i, evt) => PC.tip(
+      "<b>Held-out record " + (i + 1) + "</b><br>" +
+      '<span class="k">' + esc(LABEL[key]) + "</span><br>" +
+      '<span class="k">measured</span> <b>' + f(TARGET[i], 1) + " " + K() + "</b><br>" +
+      '<span class="k">predicted</span> <b>' + f(pred[i], 1) + " " + K() + "</b><br>" +
+      '<span class="k">error</span> <b>' + signed(pred[i] - TARGET[i]) + " " + K() + "</b><br>" +
+      '<span class="k">click to open this material</span>', evt),
+    onLeave: () => PC.hideTip(),
+    onClick: i => { state.model = family(key); setSelection(i); }
+  });
+}
+
+/* -- error by measured band -------------------------------------------------- */
+function drawErrorChart() {
+  const cv = document.getElementById("errorChart");
+  const g = plotBox(cv, 320).g;
+  const shown = shownModels();
+  const bins = P.error_bins;
+  let maxMae = 0;
+  shown.forEach(m => bins.models[m].forEach(r => { if (r.mae > maxMae) maxMae = r.mae; }));
+  const yStep = niceStep(maxMae, 4);
+  const top = Math.ceil(maxMae / yStep) * yStep;
+  const s = PC.scales(cv, [0, BANDS.length], [0, top], PAD.bars);
+
+  PC.drawAxes(g, s, [], ticksBetween(0, top, yStep), null, null, null,
+              "Mean absolute error (" + K() + ")", { grid: "y" });
+
+  const groupW = s.iw / BANDS.length;
+  const barW = Math.min(26, groupW / (shown.length + 1.4));
+  const pts = [];
+  BANDS.forEach((label, b) => {
+    const centre = s.p.l + (b + 0.5) * groupW;
+    shown.forEach((key, k) => {
+      const row = bins.models[key][b];
+      const x = centre + (k - (shown.length - 1) / 2) * (barW + 3) - barW / 2;
+      const y = s.y(row.mae);
+      const h = s.p.t + s.ih - y;
+      g.save();
+      g.globalAlpha = family(key) === state.model ? 0.95 : 0.6;
+      if (isOriginal(key)) {
+        /* the no-reduction control is the hollow mark everywhere on this tab */
+        g.strokeStyle = modelColour(key); g.lineWidth = 1.8;
+        g.strokeRect(x + 0.9, y + 0.9, barW - 1.8, Math.max(0, h - 0.9));
+      } else {
+        g.fillStyle = modelColour(key);
+        g.fillRect(x, y, barW, h);
+      }
+      g.restore();
+      pts.push([x + barW / 2, y + Math.min(16, h / 2), pts.length]);
+    });
+    g.font = PC.font.tick();
+    g.fillStyle = PC.css("--text-secondary");
+    g.fillText(label, centre - g.measureText(label).width / 2, s.p.t + s.ih + 18);
+    const count = "n = " + ns(bins.counts[b]);
+    g.fillStyle = PC.css("--muted");
+    g.fillText(count, centre - g.measureText(count).width / 2, s.p.t + s.ih + 33);
+  });
+
+  PC.hover(cv, pts, {
+    onHit: (idx, evt) => {
+      const b = Math.floor(idx / shown.length), k = idx % shown.length;
+      const key = shown[k], row = bins.models[key][b];
+      PC.tip("<b>" + esc(LABEL[key]) + "</b><br>" +
+        '<span class="k">measured band</span> <b>' + esc(BANDS[b]) + "</b><br>" +
+        '<span class="k">mean absolute error</span> <b>' + f(row.mae, 2) + " " + K() + "</b><br>" +
+        '<span class="k">mean signed bias</span> <b>' + signed(row.bias) + " " + K() + "</b><br>" +
+        '<span class="k">held-out materials</span> <b>' + ns(bins.counts[b]) + "</b>", evt);
+    },
+    onLeave: () => PC.hideTip()
+  });
+
+  document.getElementById("errorLegend").innerHTML = shown.map(key =>
+    '<span><span class="swatch" style="background:var(' + FAM_TOKEN[family(key)] + ')"></span>' +
+    esc(LABEL[key]) + "</span>").join("") +
+    "<span>filled = reduced · hollow = all " + NCOLS + "</span>";
+
+  const last = BANDS.length - 1;
+  const bestTop = shown.map(key => ({ key: key, row: bins.models[key][last] }))
+    .sort((a, b) => a.row.mae - b.row.mae)[0];
+  document.getElementById("errorNote").textContent =
+    "Bands are the MEASURED temperature, never the predicted one, so every branch is scored on the " +
+    "same materials: " + ns(bins.counts[last]) + " of the " + ns(NTEST) + " held-out rows fall in " +
+    BANDS[last] + ". Even the best branch drawn here in that band (" + LABEL[bestTop.key] +
+    ") is off by " + f(bestTop.row.mae, 1) + " " + K() + " on average, at a signed bias of " +
+    signed(bestTop.row.bias) + " " + K() + " — a negative bias means it predicts too low.";
+}
+
+function renderErrorTable() {
+  const bins = P.error_bins;
+  const shown = shownModels();
+  const head = "<thead><tr><th>branch</th>" +
+    BANDS.map(l => '<th class="num">' + esc(l) + "</th>").join("") + "</tr></thead>";
+  const body = MODELS.map(key =>
+    "<tr" + (shown.indexOf(key) >= 0 ? ' class="on"' : "") +
+    '><td><span class="sw" style="background:var(' + FAM_TOKEN[family(key)] + ')"></span>' +
+    esc(LABEL[key]) + "</td>" +
+    bins.models[key].map(r => '<td class="num">' + f(r.mae, 2) + " / " + signed(r.bias) + "</td>")
+      .join("") + "</tr>").join("");
+  const counts = "<tr><td>held-out materials in the band</td>" +
+    bins.counts.map(c => '<td class="num">' + ns(c) + "</td>").join("") + "</tr>";
+  document.getElementById("errorTable").innerHTML =
+    head + "<tbody>" + body + counts + "</tbody>";
+}
+
+function renderMetrics() {
+  const shown = shownModels();
+  document.getElementById("metricsTable").innerHTML =
+    "<thead><tr><th>branch</th><th class=\"num\">train R²</th><th class=\"num\">held-out R²</th>" +
+    "<th class=\"num\">MAE</th><th class=\"num\">RMSE</th></tr></thead><tbody>" +
+    MODELS.map(key => {
+      const m = P.metrics[key];
+      return "<tr" + (shown.indexOf(key) >= 0 ? ' class="on"' : "") +
+        '><td><span class="sw" style="background:var(' + FAM_TOKEN[family(key)] + ')"></span>' +
+        esc(LABEL[key]) + '</td><td class="num">' + f(m.train_r2, 3) +
+        '</td><td class="num">' + f(m.test_r2, 3) + '</td><td class="num">' + f(m.mae, 2) +
+        '</td><td class="num">' + f(m.rmse, 2) + "</td></tr>";
+    }).join("") + "</tbody>";
+  document.getElementById("metricsNote").textContent =
+    "Highlighted rows are the branches drawn beside this table. R² is the share of the held-out " +
+    "variation a branch reproduces; MAE and RMSE are in " + K() + ", and RMSE is always the larger " +
+    "of the two because it weights the big misses more heavily. The train column is scored on the " +
+    ns(NTRAIN) + " rows the branch was fitted on — the gap between it and the held-out column is " +
+    "what overfitting looks like as a number.";
+}
+
+/* -- one held-out material --------------------------------------------------- */
+function renderSelected() {
+  const i = state.sel, actual = TARGET[i];
+  document.getElementById("recordTitle").textContent =
+    "Held-out record " + (i + 1) + " of " + ns(NTEST);
+  document.getElementById("recordMeta").textContent =
+    "File row " + ns(ROWID[i]) + " · measured critical temperature " + f(actual, 2) + " " + K() +
+    " · band " + BANDS[bandOf(actual)] + ". This is one real held-out row: its measured value took " +
+    "no part in fitting the scaler, the components or any regressor. The materials are not named on " +
+    "this page — the file carrying the chemical formulas is described in the record and is " +
+    "deliberately not read here.";
+
+  const entries = [["Measured", actual, null]].concat(
+    [repKey("linear"), "polynomial", repKey("forest")].map(k => [SHORT[k], PRED[k][i], k]));
+  document.getElementById("truthStrip").innerHTML = entries.map(e =>
+    '<div class="tstat"' +
+    (e[2] ? ' style="border-top-color:var(' + FAM_TOKEN[family(e[2])] + ')"' : "") +
+    "><span>" + esc(e[0]) + "</span><b>" + f(e[1], 1) + " " + esc(K()) + "</b></div>").join("");
+
+  document.getElementById("selectedTable").innerHTML =
+    "<thead><tr><th>branch</th><th class=\"num\">prediction</th><th class=\"num\">signed error</th>" +
+    "<th class=\"num\">absolute error</th></tr></thead><tbody>" +
+    MODELS.map(key => {
+      const v = PRED[key][i], e = v - actual;
+      return '<tr><td><span class="sw" style="background:var(' + FAM_TOKEN[family(key)] +
+        ')"></span>' + esc(LABEL[key]) + '</td><td class="num">' + f(v, 1) +
+        '</td><td class="num">' + signed(e) + '</td><td class="num">' + f(Math.abs(e), 1) +
+        "</td></tr>";
+    }).join("") + "</tbody>";
+
+  const base = i * NF;
+  document.getElementById("featureTable").innerHTML =
+    "<thead><tr><th>feature</th><th class=\"num\">observed</th><th>unit</th>" +
+    "<th class=\"pct\">training percentile</th></tr></thead><tbody>" +
+    FEATS.map((d, j) =>
+      "<tr" + (j === state.feat ? ' class="on"' : "") + "><td>" + esc(d.label) +
+      '</td><td class="num">' + featureValue(FVAL[base + j], j) + "</td><td>" +
+      (d.unit ? esc(d.unit) : "—") + '</td><td class="pct"><div class="pctlab"><span>' +
+      ordinal(FPCT[base + j]) + "</span><span>of " + ns(NTRAIN) + " training rows</span></div>" +
+      '<div class="pcttrack"><div class="pctfill" style="width:' + FPCT[base + j] +
+      '%"></div></div></td></tr>').join("") + "</tbody>";
+}
+
+function drawMaterial() {
+  const cv = document.getElementById("materialChart");
+  const rows = MODELS.length;
+  const g = plotBox(cv, 74 + rows * 44).g;
+  const i = state.sel, actual = TARGET[i];
+  const values = [actual].concat(MODELS.map(m => PRED[m][i]));
+  const lo = Math.floor((Math.min.apply(null, values) - 10) / 20) * 20;
+  const hi = Math.ceil((Math.max.apply(null, values) + 10) / 20) * 20;
+  const s = PC.scales(cv, [lo, hi], [0, 1], PAD.rows);
+
+  PC.drawAxes(g, s, ticksBetween(lo, hi, niceStep(hi - lo, 5)), [], null, null,
+              "Critical temperature (" + K() + ") →", null, { grid: "x", spines: false });
+
+  const truthX = s.x(actual);
+  g.save();
+  g.strokeStyle = PC.css("--text-primary"); g.lineWidth = 2;
+  g.beginPath(); g.moveTo(truthX, s.p.t); g.lineTo(truthX, s.p.t + s.ih); g.stroke();
+  g.restore();
+  g.font = PC.font.emph();
+  g.fillStyle = PC.css("--text-primary");
+  const mlabel = "measured " + f(actual, 1) + " " + K();
+  g.fillText(mlabel, Math.min(truthX + 6, s.p.l + s.iw - g.measureText(mlabel).width), s.p.t + 10);
+
+  const pts = [];
+  const lane = (s.ih - 26) / rows;
+  MODELS.forEach((key, r) => {
+    const y = s.p.t + 24 + r * lane;
+    g.font = PC.font.tick();
+    g.fillStyle = PC.css("--text-secondary");
+    g.fillText(SHORT[key], 4, y + 4);
+    g.save();
+    g.strokeStyle = PC.css("--grid"); g.lineWidth = 4; g.lineCap = "round";
+    g.beginPath(); g.moveTo(s.p.l, y); g.lineTo(s.p.l + s.iw, y); g.stroke();
+    g.restore();
+    const px = s.x(PRED[key][i]);
+    const colour = modelColour(key);
+    g.save();
+    g.strokeStyle = colour; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(truthX, y); g.lineTo(px, y); g.stroke();
+    g.restore();
+    if (isOriginal(key)) {
+      ringed(g, px, y, 5, colour);
+    } else {
+      g.beginPath(); g.arc(px, y, 6.5, 0, 6.2832);
+      g.fillStyle = PC.css("--surface-1"); g.fill();
+      g.beginPath(); g.arc(px, y, 5, 0, 6.2832);
+      g.fillStyle = colour; g.fill();
+    }
+    g.font = PC.font.tick();
+    g.fillStyle = PC.css("--text-primary");
+    const label = f(PRED[key][i], 1) + " " + K();
+    const lw = g.measureText(label).width;
+    g.fillText(label, px > s.p.l + s.iw - lw - 12 ? px - lw - 9 : px + 9, y + 4);
+    pts.push([px, y, r]);
+  });
+
+  PC.hover(cv, pts, {
+    onHit: (r, evt) => {
+      const key = MODELS[r], v = PRED[key][i];
+      PC.tip("<b>" + esc(LABEL[key]) + "</b><br>" +
+        '<span class="k">predicted</span> <b>' + f(v, 1) + " " + K() + "</b><br>" +
+        '<span class="k">measured</span> <b>' + f(actual, 1) + " " + K() + "</b><br>" +
+        '<span class="k">error</span> <b>' + signed(v - actual) + " " + K() + "</b>", evt);
+    },
+    onLeave: () => PC.hideTip()
+  });
+}
+
+
+/* ═══════════════════ 4 · CONCLUSIONS ════════════════════════════════════ */
+
+function buildConclusions() {
+  const m = P.metrics;
+  const bins = P.error_bins;
+  const last = BANDS.length - 1;
+  const ranked = MODELS.slice().sort((a, b) => m[b].test_r2 - m[a].test_r2);
+  const linGap = m.linear_original.test_r2 - m.linear.test_r2;
+  const forestGap = m.forest_original.test_r2 - m.forest.test_r2;
+  const issues = PROV.known_issues || [];
+
+  const items = [
+    ["Reducing to " + NPC + " components costs accuracy, and it costs the linear branch most.",
+     "The ablation holds the rows, the split and the estimators fixed and changes only the " +
+       "representation, so the difference below is the price of the reduction itself. A linear model " +
+       "has no way to recover a direction the projection discarded; a forest, which builds its own " +
+       "splits, loses far less. Reach for the reduction for speed or for a picture, not for accuracy.",
+     "held-out R² · linear " + bold(f(m.linear.test_r2, 3)) + " reduced against " +
+       bold(f(m.linear_original.test_r2, 3)) + " on all " + NCOLS + ", a cost of " +
+       bold(signedD(linGap, 3)) + " · forest " + bold(f(m.forest.test_r2, 3)) + " against " +
+       bold(f(m.forest_original.test_r2, 3)) + ", a cost of " + bold(signedD(forestGap, 3)) +
+       " · the " + NPC + " components carry " + bold(pc(P.pca_variance, 2)) +
+       " of the training variance"],
+    ["The estimator matters more than the representation.",
+     "Whichever representation is used, the forest beats the linear model by far more than either " +
+       "one gains from changing representation — so a reader deciding where to spend effort should " +
+       "choose the model family first and the representation second. The two gaps are printed below " +
+       "side by side rather than asserted.",
+     "on the reduced representation, forest − linear = " +
+       bold(signedD(m.forest.test_r2 - m.linear.test_r2, 3)) + " R², against a representation gap of " +
+       bold(signedD(linGap, 3)) + " for linear and " + bold(signedD(forestGap, 3)) + " for the " +
+       "forest · held-out R², best to worst: " +
+       ranked.map(k => esc(LABEL[k]) + " " + bold(f(m[k].test_r2, 3))).join(" · ")],
+    ["Every branch predicts the hottest materials too low.",
+     "Errors are not spread evenly across the target. In the coldest band every branch is close; in " +
+       "the hottest band the errors are several times larger and the signed bias is negative for " +
+       "every branch, which means the predictions sit below the measurements. Those are exactly the " +
+       "materials a search for a high-temperature superconductor would care about.",
+     BANDS[last] + " band, " + bold(ns(bins.counts[last])) + " held-out materials · " +
+       MODELS.map(k => esc(SHORT[k]) + " bias " + bold(signed(bins.models[k][last].bias)))
+         .join(" · ") + " " + K()],
+    ["The forests' headline scores are partly memory.",
+     "The gap between a branch's training score and its held-out score is what it learned about its " +
+       "own training rows rather than about materials. It is far wider for the forests than for the " +
+       "linear branches, so the forest advantage on this page is real but smaller than its training " +
+       "number suggests.",
+     MODELS.map(k => esc(SHORT[k]) + " " + bold(f(m[k].train_r2 - m[k].test_r2, 3))).join(" · ") +
+       " — train R² minus held-out R²"],
+    ["Repeated rows in the file flatter every score above.",
+     "The split is drawn over rows, and the record's own audit finds that a large share of rows " +
+       "repeat another row's features exactly. A random split therefore puts near-identical materials " +
+       "on both sides of it, so part of what a held-out score measures is recall rather than " +
+       "generalisation. Nothing on this page corrects for that.",
+     (issues.length ? esc(issues[0]) : "no known issues recorded") + " · held-out rows " +
+       bold(ns(NTEST)) + " of " + bold(ns(NROWS))],
+    ["The polynomial branch is not part of the ablation.",
+     "It runs on the reduced representation only, because a degree-2 expansion of all " + NCOLS +
+       " features is an experiment of a different size and would need its own regularisation and " +
+       "tuning. It is reported so that the source notebook's three models are all present, and it is " +
+       "not evidence about the representation question.",
+     "polynomial · held-out R² " + bold(f(m.polynomial.test_r2, 3)) + " · MAE " +
+       bold(f(m.polynomial.mae, 2) + " " + K()) + " · reduced representation only"]
+  ];
+  document.getElementById("conclusion-content").innerHTML =
+    '<div class="concl">' + items.map(it =>
+      "<div><h4>" + it[0] + "</h4><p>" + it[1] + '</p><p class="num-ev">' + it[2] + "</p></div>"
+    ).join("") + "</div>";
+}
+
+function buildOpenQuestions() {
+  const items = [
+    ["One split, and therefore no error bar.",
+     "Every number on this page comes from a single random row split. Repeating the whole pipeline " +
+       "over many splits — or restoring the cross-validation the source notebook ran and this demo " +
+       "drops — is what would turn each score into a range instead of a point."],
+    ["The repeated rows are not handled.",
+     "Splitting by material group rather than by row, so no two rows sharing a feature vector land " +
+       "on opposite sides, is the specific experiment that would show how much of the held-out score " +
+       "survives. Until it is run, read every score here as an upper bound."],
+    ["No polynomial control on the full feature set.",
+     "A degree-2 expansion of all " + NCOLS + " features is far larger than one of " + NPC +
+       " components. Running it fairly needs regularisation and a tuning budget of its own, which is " +
+       "why it is absent here rather than quietly included."],
+    ["Nothing on this page is tuned.",
+     "The forests run at their library defaults and the reduction keeps the component count the " +
+       "source notebook chose. A search over tree depth, tree count and component count is what " +
+       "would separate the method from the setting."],
+    ["No prediction carries an uncertainty.",
+     "The page shows one number per material per branch. A prediction interval — from the spread " +
+       "across a forest's trees, or from a repeated-split ensemble — is what would let a reader say " +
+       "whether a particular miss is surprising."],
+    ["The materials cannot be named.",
+     "The file holding the chemical formulas is described in the record, is available under the same " +
+       "licence, and is deliberately not read here. Adding it would let a reader check whether the " +
+       "hardest materials share a chemistry."]
+  ];
+  document.getElementById("openQuestions").innerHTML = items.map(it =>
+    "<li><b>" + it[0] + "</b> " + it[1] + "</li>").join("");
+}
+
+
+/* ═══════════════════ 5 · GLOSSARY ═══════════════════════════════════════ */
+
+function buildGlossary() {
+  const GLOSS = [
+    ["From a material to one row of X", [
+      ["Superconductor", "A material that, below a certain temperature, carries an electric current " +
+        "with no measurable resistance and pushes magnetic field out of its interior. Each of the " +
+        ns(NROWS) + " rows in this dataset is a material for which that transition has been observed " +
+        "and reported."],
+      ["Critical temperature (T꜀)", "The temperature at which that transition happens, in " + K() +
+        ". It is the one quantity this page predicts. Across this file it runs from " +
+        tK(SPAN.min) + " to " + f(SPAN.max, 1) + " " + K() + ", with a median of " +
+        f(SPAN.median, 1) + " and a mean of " + f(SPAN.mean, 1) + " — most materials are cold and a " +
+        "long tail is not. A higher critical temperature means less extreme cooling is needed, which " +
+        "is why the hottest materials are the interesting ones."],
+      ["Meissner effect", "The expulsion of magnetic field from inside a superconductor below its " +
+        "critical temperature. It is part of the definition of the superconducting state and is not " +
+        "measured anywhere in this dataset: the file records a transition temperature and nothing " +
+        "else about the transition."],
+      ["Kelvin (" + K() + ")", "The temperature unit used throughout. It starts at absolute zero, so " +
+        "no value in this column can be negative, and a value near zero means the material has only " +
+        "ever been seen to superconduct within a whisker of absolute zero."],
+      ["Chemical composition", "The recipe of a material: which elements it contains and in what " +
+        "proportions. Compositions have different numbers of elements, so they cannot be handed to a " +
+        "regressor directly — which is the whole reason the engineered features below exist."],
+      ["Engineered elemental features", "The " + NCOLS + " numeric columns that stand in for the " +
+        "composition. Each summarises a property of the elements in the material — atomic mass, " +
+        "first ionization energy, atomic radius, density, electron affinity, thermal conductivity, " +
+        "valence — through a fixed recipe such as a mean, a weighted mean, a geometric mean, an " +
+        "entropy, a range or a standard deviation. Every material therefore gets the same " + NCOLS +
+        " numbers whatever its formula."],
+      ["Weighted mean", "An average in which each element counts in proportion to how much of it the " +
+        "material contains, rather than each element counting once. Most of the columns shipped in " +
+        "this page's payload are weighted means, which is why their names begin that way."],
+      ["Why the recipe is not on the page", "The file that breaks each material back down into its " +
+        "chemical formula exists, is described in the record on Source evidence, and is read by neither this " +
+        "demo nor the notebook it rebuilds. So no material here can be named, and every held-out " +
+        "record is identified by its row number instead."],
+      ["What a good score is not", "These branches estimate a REPORTED critical temperature for " +
+        "materials described the way this dataset describes them. A good held-out score is useful " +
+        "evidence about that task; it is not a confirmation that any particular material " +
+        "superconducts, and crystal structure, pressure, synthesis route and measurement conditions " +
+        "are all absent from the inputs."]
+    ]],
+    ["The dataset, as used here", [
+      ["Design matrix X", "The " + ns(NROWS) + " × " + NCOLS + " table of engineered features. Rows " +
+        "are samples (materials), columns are features. The measured temperature is not one of its " +
+        "columns."],
+      ["Target vector y", "The separate column of measured critical temperatures, one per row. It is " +
+        "never an input: it joins a row only when a regressor is being fitted, and never during " +
+        "standardization or the reduction."],
+      ["Row, column, cell", "X[i,:] is one material; X[:,j] is one feature across every material; " +
+        "x_ij is one number. The three colours on Design matrix always appear beside that notation, so the " +
+        "encoding survives without colour perception."],
+      ["Shipped columns", "Only " + NF + " of the " + NCOLS + " feature columns travel in this " +
+        "page's payload, chosen to span the element properties the features summarise. Every branch " +
+        "was fitted on all " + NCOLS + "; the " + NF + " are what Design matrix is able to draw."],
+      ["Repeated rows", "Rows whose " + NCOLS + " features are identical to another row's. The " +
+        "record's audit counts them, nothing in this pipeline removes them, and they are the largest " +
+        "single caveat on every held-out score the page prints."],
+      ["Training percentile", "Where a value sits inside the distribution of the same column across " +
+        "the " + ns(NTRAIN) + " training rows only. Tab 2's middle panel and the feature table on " +
+        "the analysis section use it so that eight columns in eight different units can share one axis."],
+      ["1st–99th percentile clip", "The window Design matrix's histogram is drawn over: the middle 98 % of a " +
+        "column's values, computed once over all " + ns(NROWS) + " rows. It exists because a few " +
+        "extreme values would otherwise flatten the whole distribution into one bar. A selected " +
+        "value outside the window is drawn pinned to the nearest edge, with a dashed marker and a " +
+        "readout that says so."],
+      ["Missing data", "There is none: the file carries " + PROV.dropped_missing + " row(s) with a " +
+        "missing value and this pipeline drops " + PROV.dropped_rows + ". Nothing on this page is " +
+        "imputed, and no chart has an absent category to sink or to sort last."]
+    ]],
+    ["The method", [
+      ["Supervised regression", "Learning a rule that maps inputs to a continuous number, from " +
+        "examples where the number is known. Here the inputs are the engineered features and the " +
+        "number is the measured critical temperature."],
+      ["Train / test split", "One random division of the rows, made before anything is fitted: " +
+        ns(NTRAIN) + " training rows and " + ns(NTEST) + " held-out rows, a measured held-out " +
+        "fraction of " + pc(PROV.test_fraction_measured, 2) + ". Every branch on this page reuses " +
+        "exactly that division, which is what lets their predictions be compared material by " +
+        "material."],
+      ["Held-out row", "A row no fitting step was allowed to see. Every point on the analysis section is one, and " +
+        "every score on this page is computed on them alone."],
+      ["Leakage", "Letting information from the held-out rows reach a fitting step — for example by " +
+        "standardizing or projecting the whole table before splitting it. The source notebook did " +
+        "exactly that; this demo fits the scaler and the projection on the training rows only, which " +
+        "is the single load-bearing deviation recorded in the card on Source evidence."],
+      ["Standardization", "Rescaling each column to a common centre and spread, so a column measured " +
+        "in thousands cannot dominate one measured in units. Fitted on the training rows only. Trees " +
+        "do not need it, which is why the no-reduction forest branch skips it too."],
+      ["Principal component analysis", "A rotation of the standardized feature axes onto new axes " +
+        "ordered by how much of the variation each one carries. Keeping the first " + NPC + " of them " +
+        "is the reduced representation on this page; together they carry " + pc(P.pca_variance, 2) +
+        " of the training variance."],
+      ["Component", "One of those new axes: a weighted mixture of every original feature. It has no " +
+        "physical unit and its sign is arbitrary, so component scores are readable against each " +
+        "other and against nothing else."],
+      ["Explained variance", "The share of the training data's total variation that a set of " +
+        "components reproduces. It says nothing about how useful those components are for predicting " +
+        "the target, because the target was never shown to the projection."],
+      ["Representation ablation", "The experiment this page is built around: hold the rows, the " +
+        "split and the estimators fixed, change only how X is represented, and read the difference. " +
+        "The source notebook contains no ablation of any kind; the two no-reduction control branches " +
+        "were added here."],
+      ["Control branch", "A branch differing from another in exactly one respect, so a difference " +
+        "between them can be attributed to that respect. Here: the same estimator on all " + NCOLS +
+        " features instead of on " + NPC + " components."],
+      ["Linear regression", "Fits one weight per input plus an offset and predicts their sum. It can " +
+        "only express a straight-line relationship between each input and the target."],
+      ["Polynomial features (degree 2)", "Adds every square and every pairwise product of the " +
+        "inputs, so a linear fit over them can bend. On " + NPC + " components that is a manageable " +
+        "number of terms; on all " + NCOLS + " features it is far larger, which is why the " +
+        "polynomial branch exists on the reduced representation only."],
+      ["Random forest", "Many decision trees, each fitted on a different random view of the training " +
+        "rows, whose predictions are averaged. It can express interactions and non-linear effects " +
+        "without being told to look for them, and it needs no scaling."],
+      ["Overfitting", "Learning the training rows rather than the pattern. Its signature is a " +
+        "training score much better than the held-out score, which every conclusion on Conclusions quotes " +
+        "as a number rather than asserting."],
+      ["Seed", "The fixed number that makes a random choice repeatable. The split, the forests, each " +
+        "embedding on stage 2 and the k-means that colours them all carry one — the embedding seeds " +
+        "are printed in that panel's own note, and the k-means seed is " + EMB_SEED + ". Re-running " +
+        "the precompute on the SAME library versions reproduces the regression numbers exactly; " +
+        "across versions a random forest moves in the fourth decimal, which the record measures. " +
+        "A seed is not always enough, and the page carries a measured case: one UMAP setting fell " +
+        "back to a random initialisation its seed did not control and gave a different layout on " +
+        "every run, so it was dropped from the lattice rather than shipped — the embedding panel's " +
+        "own note names it."],
+      ["Fitted offline", "Every branch was fitted once by <code>tools/precompute.py</code>, and its " +
+        "held-out predictions were written into the payload. Nothing is refitted in the browser; the " +
+        "controls swap between results that already shipped."]
+    ]],
+    ["Reading the numbers and the pictures", [
+      ["R²", "The share of the held-out variation a branch reproduces. 1 is perfect, 0 is no better " +
+        "than always predicting the mean, and it can go negative. It is a ratio, so it says nothing " +
+        "about how many " + K() + " a typical miss is."],
+      ["MAE", "Mean absolute error, in " + K() + ": the average size of a miss with its direction " +
+        "ignored. It answers the concrete question R² does not."],
+      ["RMSE", "Root mean squared error, also in " + K() + ". It weights large misses more heavily " +
+        "than MAE, so the gap between RMSE and MAE is a rough measure of how uneven the errors are."],
+      ["Signed error and signed bias", "The error with its sign kept, and its average over a group. " +
+        "Negative means the branch predicts below the measurement; that is how the analysis section shows every " +
+        "branch running low in the hottest band, which an absolute error alone would hide."],
+      ["Measured band", "A slice of the held-out rows by their measured temperature — " +
+        BANDS.map((l, i) => l + " holds " + ns(P.error_bins.counts[i])).join(", ") + " materials. " +
+        "Bands are defined on the measurement and never on the prediction, so the same materials are " +
+        "compared across branches."],
+      ["Sequential ramp", "The colour scale on the analysis section's component scatter. The quantity it encodes — " +
+        "the measured temperature — is ordered, so the colours run along one ordered scale rather " +
+        "than being a set of unrelated hues, and the table under the chart is the record."],
+      ["Filled dot against hollow ring", "The MARK, not the colour, carries the representation: " +
+        "filled is the reduced route, hollow is the no-reduction control. Colour on this page means " +
+        "the estimator and nothing else, so the same hue is the same estimator in every panel."],
+      ["Table twin", "Every colour-encoded panel here ships a table of the same numbers, behind a " +
+        "disclosure or beside the chart. Colour is the summary; the table is the evidence."],
+      ["Tooltip", "Hovering any chart names the exact material or bar under the pointer and its " +
+        "numbers. The hit radius is deliberately generous, and the tooltip clears when the pointer " +
+        "leaves the chart or the tab changes."],
+      ["Workflow figures", "The four-column diagram under the title is the whole pipeline, drawn " +
+        "from the record's own workflow steps; the three cards at the top of the analysis section are the stages " +
+        "that tab performs, at the course diagram's own numbers. Both are pictures, not menus: " +
+        "nothing in either one changes what is on screen except the in-page jumps on the three " +
+        "cards."]
+    ]]
+  ];
+  document.getElementById("glossary-content").innerHTML =
+    '<div class="gloss">' + GLOSS.map(sec =>
+      "<h3>" + sec[0] + "</h3>" + sec[1].map(t =>
+        '<div class="term"><b>' + t[0] + "</b><p>" + t[1] + "</p></div>").join("")
+    ).join("") + "</div>";
+}
+
+
+/* ═══════════════════ tabs, header figure, workflow map ══════════════════ */
+
+const TOP = [
+  { label: "Data provenance", sub: "the record against the bytes" },
+  { label: "Design matrix", sub: ns(NROWS) + " × " + NCOLS + " engineered features" },
+  { label: "Representation ablation", sub: MODELS.length + " branches · one fixed split" },
+  { label: "Conclusions", sub: "what the ablation does and does not show" },
+  { label: "Glossary", sub: "terms used here", role: "glossary-content" }
+];
+
+/* The pipeline diagram (§3.2): one entry per PIPELINE STAGE, starting at
+   preprocessing, with every figure read out of D. It goes nowhere. */
+function ribbonSegments() {
+  const best = bestKey();
+  return [
+    { stage: 1, label: "Preprocess",
+      value: ns(NROWS) + " × " + NCOLS,
+      note: "nothing dropped · one fixed split, " + ns(NTRAIN) + " train / " + ns(NTEST) +
+            " held out · target " + tK(SPAN.min) + "–" + f(SPAN.max, 0) + " " + K() },
+    { stage: 2, label: "Transform",
+      value: NPC + " components",
+      note: "scaler and projection fitted on the training rows only, " + pc(P.pca_variance, 1) +
+            " of their variance · the control branches keep all " + NCOLS + " columns" },
+    { stage: 3, label: "Model & train",
+      value: MODELS.length + " branches",
+      note: "linear, polynomial and random forest on the components; linear and random forest " +
+            "again on the original columns" },
+    { stage: 4, label: "Evaluate",
+      value: "R² " + f(P.metrics[best].test_r2, 3),
+      note: "best of the " + MODELS.length + " on the held-out rows (" + LABEL[best] + ") · MAE " +
+            f(P.metrics[best].mae, 2) + " " + K() + " · scored again in " + BANDS.length +
+            " temperature bands" }
+  ];
+}
+
+/* §3.2 + §10.6 — the one header slot, drawn by whichever renderer the payload
+   supports. Drawn once: every headline number here is a build-time constant.
+   `headlines` is passed explicitly so the DAG's column heads and the rollup's
+   .rv values are provably the same four strings. */
+function renderHeaderFigure() {
+  const segs = ribbonSegments();
+  if (CARD) PC.renderDag("#ribbon", CARD, { segments: segs, headlines: segs.map(s => s.value) });
+  else PC.buildRibbon(segs);
+}
+
+/* ═══════════════════ the story strip's three thumbnails (§2.4) ══════════
+   One painter per panel, in the strip's order — ① the data, ② the question,
+   ③ the answer — each handed its own canvas and the context PC.fit() has
+   already sized for the device pixel ratio and cleared.
+
+   Each is a MINIATURE OF SOMETHING THIS PAGE ALREADY DRAWS, off the same
+   payload, so the strip cannot claim anything the page does not show:
+
+     ① the eight shipped feature columns as eight tiny distributions — Design matrix's
+        "down one column" histogram, eight times over, inside the same 1st–99th
+        percentile window;
+     ② the one fixed split, as the bar it is — training rows against held-out
+        rows at their measured proportions, the held-out block hatched because
+        its measured temperature is the thing withheld;
+     ③ the best branch's held-out predictions against their measurements —
+        the analysis section's scatter with the same dashed perfect-prediction diagonal, so
+        the run of points below the line at the warm end is the answer's own
+        evidence.
+
+   No axis labels, no ticks, no legend, no tooltip: the panels they point at
+   carry the real charts. Every colour is read through PC.css at draw time, so
+   the strip follows the theme through PC.initTheme's own repaint path. */
+const STORY_BEST = bestKey();
+
+const STORY_PAINTERS = [
+  /* ① the data — the eight shipped columns, each as its own small distribution */
+  function (cv, g, box) {
+    const pad = { l: 3, r: 3, t: 5, b: 6 };
+    const iw = box.w - pad.l - pad.r, ih = box.h - pad.t - pad.b;
+    if (iw <= 0 || ih <= 0) return;
+    const gap = 3;
+    const cw = (iw - gap * (NF - 1)) / NF;
+    g.fillStyle = PC.css("--matrix-column");
+    for (let j = 0; j < NF; j++) {
+      const hist = HISTS[j], n = hist.counts.length;
+      const top = Math.max.apply(null, hist.counts) || 1;
+      const bw = cw / n;
+      const x0 = pad.l + j * (cw + gap);
+      for (let b = 0; b < n; b++) {
+        const h = (hist.counts[b] / top) * ih;
+        g.fillRect(x0 + b * bw, pad.t + ih - h, Math.max(0.6, bw - 0.2), h);
+      }
+    }
+    g.save();
+    g.strokeStyle = PC.css("--axis"); g.lineWidth = 1;
+    g.beginPath();
+    g.moveTo(pad.l, Math.round(pad.t + ih) + 0.5);
+    g.lineTo(pad.l + iw, Math.round(pad.t + ih) + 0.5);
+    g.stroke();
+    g.restore();
+  },
+
+  /* ② the question — the one fixed split, at its measured proportions */
+  function (cv, g, box) {
+    const pad = { l: 4, r: 4, t: 18, b: 18 };
+    const iw = box.w - pad.l - pad.r, ih = box.h - pad.t - pad.b;
+    if (iw <= 0 || ih <= 0) return;
+    const trainW = iw * (NTRAIN / (NTRAIN + NTEST));
+    g.fillStyle = PC.css("--series-1");
+    g.fillRect(pad.l, pad.t, trainW, ih);
+    g.fillStyle = PC.css("--series-2");
+    g.fillRect(pad.l + trainW, pad.t, iw - trainW, ih);
+    /* the held-out block is hatched: its measured value is what is withheld */
+    g.save();
+    g.beginPath();
+    g.rect(pad.l + trainW, pad.t, iw - trainW, ih);
+    g.clip();
+    g.globalAlpha = 0.6;
+    g.strokeStyle = PC.css("--surface-1"); g.lineWidth = 1.4;
+    for (let x = pad.l + trainW; x < pad.l + iw + ih; x += 5) {
+      g.beginPath(); g.moveTo(x, pad.t); g.lineTo(x - ih, pad.t + ih); g.stroke();
+    }
+    g.restore();
+  },
+
+  /* ③ the answer — the best branch's held-out predictions against measurement */
+  function (cv, g, box) {
+    const pad = { l: 4, r: 4, t: 4, b: 4 };
+    const iw = box.w - pad.l - pad.r, ih = box.h - pad.t - pad.b;
+    if (iw <= 0 || ih <= 0) return;
+    const ext = predictionExtent();
+    const sx = v => pad.l + (v - ext[0]) / (ext[1] - ext[0]) * iw;
+    const sy = v => pad.t + ih - (v - ext[0]) / (ext[1] - ext[0]) * ih;
+    g.save();
+    g.strokeStyle = PC.css("--axis"); g.lineWidth = 1; g.setLineDash([3, 2]);
+    g.beginPath(); g.moveTo(sx(ext[0]), sy(ext[0])); g.lineTo(sx(ext[1]), sy(ext[1])); g.stroke();
+    g.restore();
+    const pred = PRED[STORY_BEST];
+    g.save();
+    g.globalAlpha = 0.35;
+    g.fillStyle = PC.css(FAM_TOKEN[family(STORY_BEST)]);
+    for (let i = 0; i < NTEST; i += 2) {
+      g.beginPath(); g.arc(sx(TARGET[i]), sy(pred[i]), 0.9, 0, 6.2832); g.fill();
+    }
+    g.restore();
+  }
+];
+
+/* Three cards, keeping the course diagram's numbering. Stage 1 is preprocessing
+   and belongs to Design matrix, so it is absent here — and the three that remain stay
+   numbered 2, 3, 4. `anchor` is the id of a section INSIDE #top2. */
+const WFMAP = [
+  { stage: 2, anchor: "wf-2", title: "Transformation",
+    desc: "Standardize and rotate onto components, or keep the original feature axes." },
+  { stage: 3, anchor: "wf-3", title: "Modelling & training",
+    desc: "The same estimators are fitted on whichever representation is selected." },
+  { stage: 4, anchor: "wf-4", title: "Evaluation",
+    desc: "Held-out scores, error by temperature band, and one real material." }
+];
+
+
+/* ═══════════════════ wiring ═════════════════════════════════════════════ */
+
+function setSelection(i) {
+  state.sel = Math.max(0, Math.min(NTEST - 1, i));
+  const ex = document.getElementById("exSel");
+  if (ex) ex.value = "";
+  renderAll();
+}
+
+function onShow(i) {
+  if (i === 1) renderMatrix();
+  else if (i === 2) {
+    drawPca();
+    /* The panel is built once and only ever REPAINTED — it caches no colour
+       between frames, so this is a complete redraw in the new theme, and it is
+       also what sizes its canvases correctly the first time the analysis section becomes
+       visible (a canvas inside a hidden panel measures 0 wide). PC.initTheme is
+       wired ONCE, at the bottom of this file, and reaches the panel through
+       here; the module never calls initTheme itself. */
+    if (embPanel) embPanel.repaint();
+    shownModels().forEach(drawPrediction);
+  } else if (i === 3) {
+    drawErrorChart();
+    drawMaterial();
+  }
+}
+/* Handed to PC.initTheme below and called on every theme change from either
+   direction. Tabs 1, 4 and 5 carry no canvas, so this is a no-op there — but
+   it is never omitted. */
+function redrawVisible() { if(PCFolds.isOpen(document.getElementById("design-matrix")))onShow(1); if(PCFolds.isOpen(document.getElementById("analysis")))onShow(2); if(PCFolds.isOpen(document.getElementById("evaluation")))onShow(3); }
+
+function renderAll() {
+  const er=document.getElementById('evalRepSel'),em=document.getElementById('evalModelSel');
+  if(er){er.value=state.rep;em.value=state.model;document.getElementById('repSel').value=state.rep;document.getElementById('modelSel').value=state.model;}
+  renderBranches();
+  renderVariance();
+  renderPcaTable();
+  renderPredictionPanels();
+  renderErrorTable();
+  renderMetrics();
+  renderSelected();
+  buildConclusions();
+  redrawVisible();
+}
+
+function wireControls() {
+  const repSel = document.getElementById("repSel");
+  repSel.innerHTML =
+    '<option value="pca">Standardize + reduce to ' + NPC + " components</option>" +
+    '<option value="original">Keep all ' + NCOLS + " original features</option>";
+  repSel.value = state.rep;
+  repSel.addEventListener("change", e => { state.rep = e.target.value; renderAll(); });
+
+  const modelSel = document.getElementById("modelSel");
+  modelSel.innerHTML = ["linear", "polynomial", "forest"].map(fam =>
+    '<option value="' + fam + '">' + esc(FAM_NAME[fam]) + "</option>").join("");
+  modelSel.value = state.model;
+  modelSel.addEventListener("change", e => { state.model = e.target.value; renderAll(); });
+
+  const exSel = document.getElementById("exSel");
+  exSel.innerHTML = '<option value="">— pick a held-out material —</option>' +
+    Object.keys(P.examples).map(k =>
+      '<option value="' + k + '">' + esc(EXAMPLE_LABEL[k] || k) + "</option>").join("");
+  exSel.addEventListener("change", e => {
+    const k = e.target.value;
+    if (!k) return;
+    state.sel = P.examples[k];
+    renderAll();
+    e.target.value = k;
+  });
+
+  document.getElementById("modelLegend").innerHTML =
+    ["linear", "polynomial", "forest"].map(fam =>
+      '<span><span class="swatch" style="background:var(' + FAM_TOKEN[fam] + ')"></span>' +
+      esc(FAM_NAME[fam]) + "</span>").join("") +
+    "<span>filled = reduced · hollow = all " + NCOLS + "</span>";
+
+  document.getElementById("featSel").addEventListener("change", e => {
+    state.feat = Number(e.target.value);
+    renderMatrix();
+  });
+
+  const grid = document.getElementById("mxGrid");
+  ["row", "column"].forEach(kind => {
+    const card = grid.querySelector('[data-view="' + kind + '"]');
+    const on = () => {
+      if (state.focus !== kind) { state.focus = kind; grid.dataset.focus = kind; drawDmMatrix(); }
+    };
+    const off = () => {
+      if (card.contains(document.activeElement) || card.matches(":hover")) return;
+      state.focus = null; delete grid.dataset.focus; drawDmMatrix();
+    };
+    card.addEventListener("pointerenter", on);
+    card.addEventListener("focusin", on);
+    card.addEventListener("pointerleave", off);
+    card.addEventListener("focusout", () => setTimeout(off, 0));
+  });
+
+  document.querySelectorAll(".handoff .continue").forEach(b =>
+    b.addEventListener("click", () => PC.selectTop(Number(b.dataset.to))));
+}
+
+function buildFurniture() {
+  /* 2026-08-11 (owner R5): the header's kicker line was removed, and with it the
+     only reader of CARD.demo_number on this page. The demo's number stays in the
+     record and is printed nowhere. */
+  document.getElementById("subFacts").textContent =
+    " " + ns(NROWS) + " materials × " + NCOLS + " features, " + ns(NTEST) +
+    " rows held out of every fit.";
+
+  const licence = String(PROV.licence || "");
+  const shortLicence = licence.split(" — ")[0];
+  const doi = (String(PROV.dataset_name || "").match(/10\.\d{4,9}\/[^\s,;)]+/) || [])[0];
+  document.getElementById("footSource").innerHTML =
+    "Data: " + esc(String(PROV.dataset_name || "").split(" — ")[0]) + " · " + ns(PROV.raw_rows) +
+    " × " + PROV.raw_columns + " · " + esc(PROV.source_path) + " · sha256 <code>" +
+    esc(SHA.slice(0, 16)) + "…</code>" + (doi ? " · DOI <code>" + esc(doi) + "</code>" : "") + ".";
+  document.getElementById("footLicence").textContent = shortLicence
+    ? "Licence: " + shortLicence + " — the full grant, the required attribution and the reservation " +
+      "above it are printed in full on Source evidence."
+    : "";
+}
+
+
+/* -- go ------------------------------------------------------------------- */
+
+/* §10.6 — Source evidence's two card sections, above the measured claims table, and Part
+   C into the footer's two [data-prov] slots. Drawn once: the card is a
+   build-time constant. */
+if (CARD) PC.renderProvenance("#provCard", CARD);
+
+buildFurniture();
+buildProvenance();
+buildFindings();
+buildDesignMatrix();
+buildOpenQuestions();
+buildGlossary();
+wireControls();
+for(const [target,source,key] of [['evalRepSel','repSel','rep'],['evalModelSel','modelSel','model']]){
+ const el=document.getElementById(target);el.innerHTML=document.getElementById(source).innerHTML;el.value=state[key];
+ el.addEventListener('change',()=>{state[key]=el.value;renderAll()});
+}
+
+/* Before PC.initTheme, so the panel exists on the first theme repaint and is
+   reached through onShow() like every other canvas on the analysis section. */
+buildEmbedding();
+
+
+
+/* §2.4 — the story strip, above the header figure: the record's four sentences
+   with this demo's own thumbnails under them. Rendered only when the card
+   carries a `story` block; a record without one leaves the slot hidden and the
+   page opens exactly as it did. renderStory repaints its canvases from
+   PC.initTheme's own coalesced frame, so redrawVisible() never has to know the
+   strip exists. */
+
+
+
+
+
+renderAll();
+
+
+
+PC.panels.dag.create(document.getElementById("workflowDag"),D.dag.steps,D.dag.options);
+PC.registerRepaint(redrawVisible);PC.repaint("initial",document);

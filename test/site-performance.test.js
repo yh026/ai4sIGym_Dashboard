@@ -15,6 +15,26 @@ function directory(t) {
   return root;
 }
 
+test('Air Quality and Singapore Road are excluded byte-for-byte at every nested page', t => {
+  const root = directory(t);
+  const png = fs.readFileSync(path.join(project, 'site/assets/ais-science-map-v2-lines.png'));
+  const source = '<html><body><img src="data:image/png;base64,' + png.toString('base64') + '"></body></html>';
+  for (const slug of ['air-quality-day-segment-pca-and-amp-umap-by-sensor', 'singapore-road-speed-clusters-umap']) {
+    for (const role of ['index.html', 'dataset.html', 'workflow.html', 'resources/extra.html']) {
+      const file = path.join(root, 'demos', slug, role);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, source);
+    }
+  }
+  const report = optimizeSiteOutput(root);
+  assert.equal(report.assets.length, 0);
+  assert.equal(report.pages.length, 8);
+  for (const page of report.pages) {
+    assert.ok(page.excluded);
+    assert.equal(fs.readFileSync(path.join(root, page.path), 'utf8'), source);
+  }
+});
+
 test('generated resources retain original image bytes and native source files', t => {
   const root = directory(t);
   const png = fs.readFileSync(path.join(project, 'site/assets/ais-science-map-v2-lines.png'));
