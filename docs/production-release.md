@@ -21,6 +21,11 @@ top-level `verified: false` means that it is not a signed preview-hook receipt;
 `source_preview` separately records the signed preview used for this release.
 Archive SHA-256 and the per-file inventory provide reproducible content checks.
 
+Netlify Pretty URLs HTML rewriting is disabled: its post-processing changed
+apostrophe-containing card search attributes into invalid HTML quoting. Native
+page links already point to working files; preserve those links and validate
+the extensionless URLs used by existing bookmarks after each deployment.
+
 ## Prepare another release
 
 1. Finish and review the develop deployment, including its main charts,

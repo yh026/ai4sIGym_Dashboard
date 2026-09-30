@@ -5,6 +5,10 @@
 [build.environment]
   NODE_VERSION = "24"
 
+# Preserve quoted search attributes and the validated scientific HTML verbatim.
+[build.processing.html]
+  pretty_urls = false
+
 [context.production]
   command = "node scripts/build-production-release.cjs"
 
