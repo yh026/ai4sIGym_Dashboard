@@ -1193,6 +1193,13 @@ function deployHeaders(policy) {
     || ['branch-deploy', 'deploy-preview', 'dev', 'local'].includes(policy.context);
   if (isNonProductionDeploy) {
     blocks.push('', '/*', '  X-Robots-Tag: noindex, nofollow');
+    // Content hashes change when bytes change. Cache only within the user's
+    // browser; the protected preview must not become publicly cacheable.
+    for (const directory of ['embedded', 'optimized']) {
+      blocks.push('', '/assets/' + directory + '/*',
+        '  Cache-Control: private, max-age=31536000, immutable',
+        '  X-Content-Type-Options: nosniff');
+    }
   }
   return blocks.join('\n') + '\n';
 }
@@ -2167,6 +2174,14 @@ async function main() {
   fs.writeFileSync(path.join(DIST, 'deploy-receipt.json'), JSON.stringify(
     deployReceipt, null, 2,
   ));
+
+  if (policy.audience === 'preview' || LOCAL) {
+    const performance = require('./lib/site-performance').optimizeSiteOutput(DIST);
+    const saved = performance.pages.reduce((sum, page) => sum + page.inputBytes - page.outputBytes, 0);
+    fs.writeFileSync(path.join(DIST, 'performance-report.json'), JSON.stringify(performance, null, 2));
+    console.log('  lossless delivery: ' + performance.assets.length + ' reusable image assets; '
+      + (saved / 1048576).toFixed(2) + ' MiB removed from HTML');
+  }
 
   console.log('Done: ' + demos.length + ' demos across ' + pluralText(activeDepartments.length, 'active department')
     + ' → ' + path.relative(ROOT, DIST) + '/ (built ' + built + ')');

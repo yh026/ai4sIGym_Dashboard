@@ -1,0 +1,409 @@
+
+(function () {
+  'use strict';
+  const D = JSON.parse(document.getElementById('payload').textContent);
+  const S = JSON.parse(document.getElementById('science-evidence').textContent);
+  const q = (selector, root = document) => root.querySelector(selector);
+  const qa = (selector, root = document) => [...root.querySelectorAll(selector)];
+  const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  const fmt = n => Number(n).toLocaleString('en-US');
+  const palette = ['#2a78d6','#eb6834','#1baf7a','#8a57b5','#b07d18','#0d9488','#a83232','#d06bbc','#687476','#665ba5','#926b35','#426e60','#5c7eae','#994f78'];
+  const colour = i => palette[i % palette.length];
+  const clusterColour = i => `hsl(${(i * 137.508 + 155) % 360} 48% 43%)`;
+  function bytes(o) { return Uint8Array.from(atob(o.b), char => char.charCodeAt(0)); }
+  function floats(o) { return Float32Array.from(new Int16Array(bytes(o).buffer), x => x * o.s); }
+  function announce(text) { q('#insight-status').textContent = text; }
+  function pressed(selector, value, attribute) {
+    qa(selector).forEach(button => button.setAttribute('aria-pressed', String(button.dataset[attribute] === value)));
+  }
+  // These two Insights use the TBB light surfaces, including when an old
+  // bookmark or stored preference requests the retired dark presentation.
+  document.documentElement.dataset.theme = 'light';
+
+  function scatter(canvas, options = {}) {
+    const ctx = canvas.getContext('2d');
+    let model = null, positions = null, target = null, w = 1, h = 1, zoom = 1, panX = 0, panY = 0;
+    let selected = null, drag = null, animation = 0, paint = 0, alpha = 1;
+    let hit = null;
+    const tooltip = q('.il-plot-tooltip', canvas.parentElement);
+    const hint = q('.il-map-hint', canvas.parentElement), defaultHint = hint?.textContent;
+    function normalize(xy) {
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (let i = 0; i < xy.length; i += 2) {
+        x0 = Math.min(x0, xy[i]); x1 = Math.max(x1, xy[i]);
+        y0 = Math.min(y0, xy[i + 1]); y1 = Math.max(y1, xy[i + 1]);
+      }
+      const span = Math.max(x1 - x0, y1 - y0) || 1, xm = (x0 + x1) / 2, ym = (y0 + y1) / 2;
+      return Float32Array.from(xy, (v, i) => i % 2 ? -(v - ym) / span : (v - xm) / span);
+    }
+    function point(i) {
+      const span = Math.max(10, Math.min(w, h) - 72) * zoom;
+      return [w / 2 + positions[i * 2] * span + panX, h / 2 + positions[i * 2 + 1] * span + panY];
+    }
+    function marker(i, radius, colour, label) {
+      if (i == null || i < 0 || i * 2 >= positions.length) return;
+      const [x, y] = point(i);
+      if (x < -radius || y < -radius || x > w + radius || y > h + radius) return;
+      ctx.globalAlpha = 1; ctx.strokeStyle = colour; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.stroke();
+      if (label) {
+        ctx.font = '600 11px system-ui';
+        const tw = ctx.measureText(label).width, bx = Math.max(4, Math.min(w - tw - 22, x + 13));
+        const by = Math.max(20, Math.min(h - 10, y - 13));
+        ctx.fillStyle = css('--surface-1'); ctx.globalAlpha = .94;
+        ctx.fillRect(bx - 5, by - 13, tw + 10, 20); ctx.globalAlpha = 1;
+        ctx.fillStyle = colour; ctx.fillText(label, bx, by);
+      }
+    }
+    function draw() {
+      paint = 0;
+      if (!model || !positions || !canvas.clientWidth) return;
+      const ratio = Math.min(devicePixelRatio || 1, 2);
+      w = canvas.clientWidth; h = canvas.clientHeight;
+      if (canvas.width !== Math.round(w * ratio) || canvas.height !== Math.round(h * ratio)) {
+        canvas.width = Math.round(w * ratio); canvas.height = Math.round(h * ratio);
+      }
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0); ctx.clearRect(0, 0, w, h);
+      for (const layer of model.layers) {
+        ctx.globalAlpha = (layer.alpha ?? .9) * alpha; ctx.fillStyle = layer.color;
+        const radius = (layer.radius ?? 1.7) * Math.min(1.7, Math.pow(zoom, .22));
+        ctx.beginPath();
+        for (const i of layer.indices) {
+          const [x, y] = point(i);
+          if (x < -6 || x > w + 6 || y < -6 || y > h + 6) continue;
+          ctx.moveTo(x + radius, y); ctx.arc(x, y, radius, 0, Math.PI * 2);
+        }
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      if (model.anchor != null) marker(model.anchor, 9, css('--text-primary'), model.anchorLabel);
+      if (selected != null && selected !== model.anchor) marker(selected, 6.5, css('--text-primary'));
+      canvas.dataset.zoom = zoom.toFixed(2);
+      canvas.style.touchAction = zoom > 1 ? 'none' : 'pan-y';
+      if (hint) {
+        const label = matchMedia('(pointer:coarse)').matches ? (zoom > 1 ? 'DRAG TO PAN · TAP TO DISCOVER' : 'TAP A POINT · + TO ZOOM') : defaultHint;
+        if (hint.textContent !== label) hint.textContent = label;
+      }
+      canvas.dataset.selected = selected == null ? '' : String(selected);
+      canvas.dataset.points = String(positions.length / 2);
+      options.onViewport?.(zoom);
+    }
+    function requestDraw() { if (!paint) paint = requestAnimationFrame(draw); }
+    function setData(next, { motion = 'none', reset = false } = {}) {
+      cancelAnimationFrame(animation); animation = 0;
+      const prior = positions;
+      model = next; target = normalize(next.xy);
+      if (reset) { zoom = 1; panX = 0; panY = 0; }
+      if (tooltip) tooltip.hidden = true;
+      if (motion === 'none' || reduceMotion.matches || !prior || prior.length !== target.length) {
+        positions = target; alpha = 1; requestDraw(); return;
+      }
+      const start = performance.now(), from = new Float32Array(prior), duration = motion === 'morph' ? 620 : 230;
+      positions = motion === 'morph' ? new Float32Array(target.length) : target;
+      function tick(now) {
+        const t = Math.min(1, (now - start) / duration), eased = 1 - Math.pow(1 - t, 3);
+        if (motion === 'morph') for (let i = 0; i < target.length; i++) positions[i] = from[i] + (target[i] - from[i]) * eased;
+        alpha = motion === 'fade' ? .25 + .75 * eased : 1;
+        draw();
+        if (t < 1) animation = requestAnimationFrame(tick);
+        else { positions = target; animation = 0; }
+      }
+      animation = requestAnimationFrame(tick);
+    }
+    function select(i, notify = false) {
+      selected = i; requestDraw();
+      if (notify && i != null) options.onSelect?.(i);
+    }
+    function zoomBy(factor) {
+      zoom = Math.max(1, Math.min(8, zoom * factor));
+      if (zoom === 1) { panX = 0; panY = 0; }
+      requestDraw();
+    }
+    function reset() { zoom = 1; panX = 0; panY = 0; requestDraw(); }
+    function nearest(event) {
+      if (!model || !positions) return null;
+      const rect = canvas.getBoundingClientRect(), x = event.clientX - rect.left, y = event.clientY - rect.top;
+      let best = 144, found = null;
+      const indices = model.hitIndices || Array.from({ length: positions.length / 2 }, (_, i) => i);
+      for (const i of indices) {
+        const p = point(i), d = (p[0] - x) ** 2 + (p[1] - y) ** 2;
+        if (d < best) { best = d; found = i; }
+      }
+      return found;
+    }
+    canvas.addEventListener('pointerdown', event => {
+      if (event.button !== 0) return;
+      drag = { x: event.clientX, y: event.clientY, px: panX, py: panY, moved: false, canPan: event.pointerType === 'mouse' || zoom > 1 };
+      if (drag.canPan) canvas.setPointerCapture(event.pointerId);
+    });
+    canvas.addEventListener('pointermove', event => {
+      if (drag) {
+        const dx = event.clientX - drag.x, dy = event.clientY - drag.y;
+        if (Math.hypot(dx, dy) > 5) drag.moved = true;
+        if (drag.canPan && drag.moved) {
+          panX = drag.px + dx; panY = drag.py + dy;
+          canvas.classList.add('is-dragging'); requestDraw();
+          if (tooltip) tooltip.hidden = true;
+        }
+        return;
+      }
+      hit = nearest(event);
+      if (!tooltip) return;
+      if (hit == null) { tooltip.hidden = true; return; }
+      tooltip.textContent = options.describe?.(hit) || String(hit + 1);
+      tooltip.hidden = false;
+    });
+    canvas.addEventListener('pointerup', event => {
+      if (drag && !drag.moved) { const i = nearest(event); if (i != null) select(i, true); }
+      drag = null; canvas.classList.remove('is-dragging');
+      if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    });
+    canvas.addEventListener('pointercancel', () => { drag = null; canvas.classList.remove('is-dragging'); });
+    canvas.addEventListener('pointerleave', () => { if (tooltip) tooltip.hidden = true; });
+    canvas.addEventListener('wheel', event => {
+      if (!event.ctrlKey && !event.metaKey) return;
+      event.preventDefault(); zoomBy(Math.exp(-event.deltaY * .008));
+    }, { passive: false });
+    canvas.addEventListener('keydown', event => {
+      const keys = ['ArrowRight', 'ArrowLeft', '+', '=', '-', 'Home'];
+      if (!keys.includes(event.key) || !model) return;
+      event.preventDefault();
+      if (event.key === 'Home') reset();
+      else if (event.key === '-' || event.key === '+' || event.key === '=') zoomBy(event.key === '-' ? 1 / 1.4 : 1.4);
+      else {
+        const list = model.keyboardIndices || Array.from({ length: positions.length / 2 }, (_, i) => i);
+        const at = list.indexOf(selected), step = event.key === 'ArrowRight' ? 1 : -1;
+        select(list[(at + step + list.length) % list.length], true);
+      }
+    });
+    const observer = new ResizeObserver(requestDraw); observer.observe(canvas);
+    document.addEventListener('insight:theme', requestDraw);
+    return { setData, select, zoomBy, reset, repaint: requestDraw };
+  }
+  function plotControls(root, plot) {
+    qa('[data-zoom]', root).forEach(button => button.addEventListener('click', () => {
+      if (button.dataset.zoom === 'reset') plot.reset();
+      else plot.zoomBy(button.dataset.zoom === 'in' ? 1.5 : 1 / 1.5);
+    }));
+  }
+  window.IL = { D, S, q, qa, css, colour, clusterColour, fmt, bytes, floats, scatter, plotControls, pressed, announce, reduceMotion };
+})();
+
+(function () {
+  'use strict';
+  const { D, S, q, qa, css, clusterColour, fmt, scatter, plotControls, pressed, announce, reduceMotion } = IL;
+  const A = D.analysis, stages = ['incipient', 'moderate', 'severe'];
+  const title = s => s.charAt(0).toUpperCase() + s.slice(1);
+  const all = Array.from({ length: D.dataset.n_probes }, (_, i) => i);
+  const positions = Object.fromEntries(stages.map(stage => [stage, Float32Array.from(A.maps[stage].xy_q, n => n * A.maps[stage].xy_step)]));
+  const firstShared = anchor => {
+    const example = S.results[anchor].candidates.find(c => c.positive_all_omissions && c.control.loo_min > 0);
+    return A.evidence_table[anchor].find(c => c.index === example?.index) || A.evidence_table[anchor][0];
+  };
+  const state = { anchor: 'PLD2', stage: 'incipient', colour: 'anchor', focus: false, endpoint: 'either', candidate: firstShared('PLD2'), selected: firstShared('PLD2').index };
+  const cv = q('#cvMap');
+  const gene = i => A.lookup.gene_names[i] || 'Unannotated probe';
+  const candidates = () => A.evidence_table[state.anchor];
+  const evidence = index => S.results[state.anchor].candidates.find(row => row.index === index);
+  const anchorIndex = () => A.anchors[state.anchor].index;
+  const describe = i => `${gene(i)} · ${A.lookup.probe_ids[i]} · cluster ${A.maps[state.stage].labels[i]}`;
+  const plot = scatter(cv, { describe, onSelect: inspectProbe });
+  plotControls(q('#insight-explorer'), plot);
+  function openEvidence(key, scroll = true) {
+    const drawer = key === 'map' ? q('#insight-explorer') : q('#evidence-' + key);
+    qa('.il-evidence-drawer').forEach(item => { item.open = item === drawer; });
+    if (scroll) {
+      (key === 'map' ? cv : q('summary', drawer)).focus({ preventScroll: true });
+      drawer.scrollIntoView({ behavior: reduceMotion.matches ? 'instant' : 'smooth', block: 'start' });
+    }
+  }
+  qa('[data-open-evidence]').forEach(button => button.addEventListener('click', () => openEvidence(button.dataset.openEvidence)));
+  qa('.il-evidence-drawer').forEach(drawer => drawer.addEventListener('toggle', () => {
+    if (!drawer.open) return;
+    qa('.il-evidence-drawer').forEach(other => { if (other !== drawer) other.open = false; });
+  }));
+  function renderMap(motion = 'none', reset = false) {
+    const candidateIds = A.results[state.anchor].candidate_indices, candidateSet = new Set(candidateIds), anchor = anchorIndex();
+    const labels = A.maps[state.stage].labels, anchorCluster = labels[anchor], layers = [];
+    if (!state.focus) {
+      if (state.colour === 'neighbourhood') {
+        const clusters = new Map();
+        for (const i of all) { const label = labels[i]; if (!clusters.has(label)) clusters.set(label, []); clusters.get(label).push(i); }
+        for (const [label, indices] of clusters) layers.push({ indices, color: clusterColour(label), alpha: .52, radius: 1.2 });
+      } else {
+        layers.push({ indices: all.filter(i => labels[i] !== anchorCluster), color: css('--muted'), alpha: .26, radius: 1 });
+        layers.push({ indices: all.filter(i => labels[i] === anchorCluster && !candidateSet.has(i) && i !== anchor), color: css('--neighbour'), alpha: .64, radius: 1.55 });
+      }
+    }
+    layers.push({ indices: candidateIds, color: css('--accent'), alpha: .98, radius: 3.1 });
+    layers.push({ indices: [anchor], color: css('--text-primary'), alpha: 1, radius: 3.6 });
+    plot.setData({ xy: positions[state.stage], layers, anchor, anchorLabel: state.anchor, hitIndices: state.focus ? [...candidateIds, anchor] : all, keyboardIndices: candidateIds }, { motion, reset });
+    cv.dataset.anchor = state.anchor; cv.dataset.stage = state.stage; cv.dataset.focus = String(state.focus);
+    q('#map-tag').textContent = `${state.anchor} · ${candidateIds.length} recurring candidates`;
+    pressed('[data-anchor]', state.anchor, 'anchor'); pressed('[data-stage]', state.stage, 'stage'); pressed('[data-colour]', state.colour, 'colour');
+    q('#focus-candidates').setAttribute('aria-pressed', String(state.focus));
+    q('#focus-candidates').firstChild.textContent = state.focus ? 'Show context ' : 'Isolate shortlist ';
+    const key = q('#map-key>span:last-child');
+    key.lastChild.textContent = state.focus ? 'Context hidden' : state.colour === 'anchor' ? 'This stage’s neighbours' : A.stages[state.stage].cluster_counts.length + ' fitted clusters';
+    q('i', key).style.background = state.focus ? css('--muted') : state.colour === 'anchor' ? css('--neighbour') : 'conic-gradient(#2a78d6,#eb6834,#1baf7a,#8a57b5,#2a78d6)';
+    updateReadout(); plot.select(state.selected);
+  }
+  function updateReadout() {
+    const index = state.selected, inList = candidates().some(c => c.index === index);
+    const strong = document.createElement('strong'); strong.textContent = gene(index);
+    const probe = document.createElement('span'); probe.textContent = A.lookup.probe_ids[index];
+    const status = document.createElement('span'); status.className = 'il-probe-meta';
+    status.textContent = index === anchorIndex() ? 'Anchor probe' : inList ? 'Retained in all 3 stages' : 'Outside this shortlist';
+    q('#probe-selected').replaceChildren(strong, probe, status); q('#probe-selected').dataset.probe = String(index);
+    const notice = q('#comparison-state'); notice.hidden = inList;
+    if (!inList) notice.textContent = `${gene(index)} is ${index === anchorIndex() ? 'the anchor' : 'outside the recurring shortlist'}. The comparison below still shows ${state.candidate.gene}; choose a blue candidate to update it.`;
+  }
+  function inspectProbe(index) {
+    state.selected = index;
+    const candidate = candidates().find(c => c.index === index);
+    if (candidate) { state.candidate = candidate; renderDetail(); markSelectedLink(); }
+    updateReadout(); plot.select(index);
+  }
+  function renderPicker() {
+    const picker = q('#hero-candidate');
+    if (picker.dataset.anchor !== state.anchor) {
+      picker.replaceChildren(); picker.dataset.anchor = state.anchor;
+      for (const candidate of candidates()) {
+        const option = document.createElement('option'); option.value = candidate.index;
+        option.textContent = (candidate.gene || 'Unannotated') + ' · ' + candidate.probe_id;
+        picker.append(option);
+      }
+    }
+  }
+  function markSelectedLink() {
+    qa('#shared-links button').forEach(button => button.setAttribute('aria-pressed', String(Number(button.dataset.index) === state.candidate.index)));
+  }
+  function renderDetail() {
+    const candidate = state.candidate;
+    q('#hero-candidate').value = candidate.index;
+    const detail = evidence(candidate.index);
+    q('#candidate-gene').textContent = candidate.gene || 'Unannotated'; q('#candidate-probe').textContent = candidate.probe_id;
+    q('#correlation-anchor').textContent = state.anchor; q('#correlation-bars').replaceChildren();
+    for (const stage of ['control', ...stages]) {
+      const sensitivity = stage === 'control' ? detail.control : detail.stages[stage];
+      const value = sensitivity.r, row = document.createElement('div'); row.className = 'il-correlation-row'; row.dataset.current = String(stage === state.stage);
+      const label = document.createElement('span'); label.textContent = title(stage);
+      const track = document.createElement('div'); track.className = 'il-correlation-track'; track.setAttribute('aria-hidden', 'true');
+      const bar = document.createElement('span'); bar.style.left = (value < 0 ? 50 + value * 50 : 50) + '%'; bar.style.width = Math.abs(value) * 50 + '%'; track.append(bar);
+      const range = document.createElement('i'); range.className = 'il-correlation-range';
+      range.style.left = (sensitivity.loo_min + 1) * 50 + '%'; range.style.width = (sensitivity.loo_max - sensitivity.loo_min) * 50 + '%';
+      track.append(range); row.title = `Leave-one-out r: ${sensitivity.loo_min.toFixed(2)} to ${sensitivity.loo_max.toFixed(2)} (${sensitivity.n} omissions)`;
+      const number = document.createElement('strong'); number.textContent = (value >= 0 ? '+' : '') + value.toFixed(2); number.title = String(value);
+      row.append(label, track, number); q('#correlation-bars').append(row);
+    }
+    document.dispatchEvent(new CustomEvent('insight:candidate'));
+  }
+  function renderEvidence() {
+    const counts = S.results[state.anchor].counts;
+    q('#evidence-counts').replaceChildren();
+    for (const [key, label] of [['all', 'Recurring candidates'], ['sign_stable', 'Stable in disease groups'], ['stable_in_control_too', 'Also stable in controls']]) {
+      const item = document.createElement('div'); item.className = 'gs-ad-evidence-step'; item.dataset.check = key;
+      const value = document.createElement('strong'); value.textContent = counts[key];
+      const heading = document.createElement('span'); heading.textContent = label;
+      item.append(value, heading); q('#evidence-counts').append(item);
+    }
+    const answer = document.createElement('strong'); answer.textContent = `${counts.stable_in_control_too} of ${counts.sign_stable} stable ${state.anchor} links are also stable in controls. `;
+    q('#ad-story-answer').replaceChildren(answer, document.createTextNode('A shared cluster alone does not establish a disease-specific connection.'));
+    q('#control-conclusion').textContent = `${counts.stable_in_control_too} of ${counts.sign_stable} stable ${state.anchor} links also remain positive in every control omission.`;
+    const shared = q('#shared-links'); shared.replaceChildren();
+    const stable = S.results[state.anchor].candidates.filter(c => c.positive_all_omissions)
+      .sort((a, b) => Number(b.control.loo_min > 0) - Number(a.control.loo_min > 0) || a.gene.localeCompare(b.gene));
+    for (const candidate of stable) {
+      const button = document.createElement('button'); button.type = 'button';
+      button.dataset.shared = String(candidate.control.loo_min > 0); button.dataset.probe = candidate.probe_id; button.dataset.index = candidate.index;
+      button.title = `${candidate.gene} · ${candidate.probe_id}: ${candidate.control.loo_min > 0 ? 'also stable in controls' : 'not stable in every control omission'}`;
+      button.setAttribute('aria-label', button.title + '. Inspect this candidate on the map.');
+      button.addEventListener('click', () => { IL.ad.select(state.anchor, candidate.index); openEvidence('map'); });
+      shared.append(button);
+    }
+    shared.setAttribute('aria-label', `${counts.sign_stable} stable ${state.anchor} links. ${counts.stable_in_control_too} also stable in controls. Each mark is one candidate; select to inspect.`);
+    markSelectedLink();
+  }
+  qa('[data-anchor]').forEach(button => button.addEventListener('click', () => {
+    state.anchor = button.dataset.anchor; state.candidate = firstShared(state.anchor); state.selected = state.candidate.index;
+    renderPicker(); renderDetail(); renderEvidence(); renderMap('fade', true);
+    announce(`${state.anchor}: ${candidates().length} candidates shared across all three stages.`);
+  }));
+  qa('[data-stage]').forEach(button => button.addEventListener('click', () => {
+    state.stage = button.dataset.stage; renderDetail(); renderMap('fade', true);
+    announce(title(state.stage) + ' stage. Independently fitted map; the shortlist is unchanged.');
+  }));
+  qa('[data-colour]').forEach(button => button.addEventListener('click', () => { state.colour = button.dataset.colour; state.focus = false; renderMap(); }));
+  q('#focus-candidates').addEventListener('click', () => {
+    state.focus = !state.focus;
+    if (state.focus) state.selected = state.candidate.index;
+    renderMap(); announce(state.focus ? 'Only the recurring candidates and their anchor are shown.' : 'All probes restored.');
+  });
+  q('#locate-candidate').addEventListener('click', () => {
+    openEvidence('map', false);
+    state.selected = state.candidate.index; plot.reset(); inspectProbe(state.selected);
+    q('#insight-explorer').scrollIntoView({ behavior: reduceMotion.matches ? 'instant' : 'smooth', block: 'start' }); cv.focus({ preventScroll: true });
+  });
+  document.addEventListener('insight:theme', () => renderMap());
+  IL.ad = {
+    state, evidence,
+    select(anchor, index) {
+      const changed = state.anchor !== anchor; state.anchor = anchor;
+      state.candidate = candidates().find(c => c.index === index); state.selected = index;
+      renderPicker(); renderDetail(); renderEvidence(); renderMap(changed ? 'fade' : 'none', changed);
+    }
+  };
+  renderPicker(); renderDetail(); renderEvidence(); renderMap();
+})();
+
+(function () {
+  'use strict';
+  const { S, q, qa, fmt, pressed, announce } = IL;
+  const app = IL.ad, genome = S.genome_wide;
+  const shortlist = [...new Map(Object.values(S.results).flatMap(r => r.candidates).map(c => [c.probe_id, c])).values()];
+  const passes = (candidate, endpoint) => endpoint === 'either'
+    ? candidate.clinical.mmse.q < .05 || candidate.clinical.nft.q < .05
+    : candidate.clinical[endpoint].q < .05;
+  function render() {
+    const endpoint = app.state.endpoint;
+    const allPassing = endpoint === 'either' ? genome.passing_unique_probe_sets : genome.endpoints[endpoint].passing;
+    const candidatePassing = shortlist.filter(c => passes(c, endpoint)).length;
+    const scope = endpoint === 'either' ? 'either measure' : endpoint === 'mmse' ? 'cognition (MMSE)' : 'pathology (NFT)';
+    const result = document.createElement('strong'); result.textContent = `${candidatePassing} of ${shortlist.length} shortlisted probes pass q < 0.05`;
+    q('#clinical-summary-reading').replaceChildren(result, document.createTextNode(` for ${scope}.`));
+    const chart = q('#clinical-pass-bars'); chart.replaceChildren(); chart.dataset.measure = endpoint;
+    for (const [key, label, passing, total] of [['all', 'All measured probes', allPassing, genome.n_probe_sets], ['shortlist', 'Both shortlists', candidatePassing, shortlist.length]]) {
+      const percent = 100 * passing / total, row = document.createElement('div'); row.className = 'gs-ad-pass-row';
+      row.dataset.set = key; row.dataset.passing = passing; row.dataset.total = total;
+      const name = document.createElement('div'); name.textContent = label;
+      const count = document.createElement('small'); count.textContent = `${fmt(passing)} / ${fmt(total)} pass`; name.append(count);
+      const track = document.createElement('div'); track.className = 'gs-ad-pass-track'; track.setAttribute('aria-hidden', 'true');
+      const fill = document.createElement('i'); fill.style.width = percent + '%'; track.append(fill);
+      const number = document.createElement('strong'); number.textContent = percent ? percent.toFixed(1) + '%' : '0%';
+      row.append(name, track, number); chart.append(row);
+    }
+    const candidate = app.evidence(app.state.candidate.index);
+    const endpoints = endpoint === 'either' ? ['mmse', 'nft'] : [endpoint];
+    q('#clinical-candidate-result').textContent = `${candidate.gene} · ${candidate.probe_id}: ` + endpoints.map(key => `${key.toUpperCase()} q = ${candidate.clinical[key].q.toFixed(3)}`).join(' · ');
+    q('#clinical-candidate-result').dataset.probe = candidate.probe_id;
+    pressed('button[data-endpoint]', endpoint, 'endpoint');
+  }
+  qa('button[data-endpoint]').forEach(button => button.addEventListener('click', () => {
+    app.state.endpoint = button.dataset.endpoint; render(); announce(q('#clinical-summary-reading').textContent);
+  }));
+  document.addEventListener('insight:candidate', render);
+  render();
+})();
+
+(function () {
+  'use strict';
+  const { q, qa } = IL;
+  qa('.gs-drawer').forEach(drawer => drawer.addEventListener('toggle', () => {
+    if (!drawer.open) return;
+    qa('.gs-drawer').forEach(other => { if (other !== drawer) other.open = false; });
+  }));
+  if (!IL.ad) return;
+  q('#hero-candidate').addEventListener('change', event => IL.ad.select(IL.ad.state.anchor, Number(event.target.value)));
+})();
+

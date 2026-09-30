@@ -1,0 +1,258 @@
+{
+  "schema": 1,
+  "date": "2026-09-30",
+  "status": "passed",
+  "scope": "Independent static verification of frozen before/after build trees. No browser execution or browser automation was used.",
+  "trees": {
+    "before": "local-content/performance-20260930/before",
+    "after": "local-content/performance-20260930/after"
+  },
+  "checks": {
+    "pageSet": {
+      "count": 46,
+      "identical": true
+    },
+    "htmlBytes": {
+      "before": 97600176,
+      "after": 81147616,
+      "saved": 16452560
+    },
+    "generatedImageReferences": {
+      "occurrences": 55,
+      "allResolve": true,
+      "allFilenamesMatchFileSha256": true
+    },
+    "embeddedImages": {
+      "references": 28,
+      "uniqueFiles": 24,
+      "bytes": 7660016,
+      "allExactlyMatchOriginalDecodedBase64Bytes": true,
+      "allReferencesMatchOriginalImagesFromSamePage": true
+    },
+    "optimizedExistingImages": {
+      "byteIdenticalCopies": 13,
+      "losslessMapFiles": 1
+    },
+    "scripts": {
+      "classicProgramsBeforeAndAfterCompiled": 147,
+      "jsonProgramsBeforeAndAfterParsed": 39,
+      "classicProgramsPreservedAfterImageUrlNormalization": 144,
+      "classicProgramsWithOnlyImageUrlChanges": 4,
+      "reviewedStartupPrograms": 3,
+      "jsonProgramsWithOnlyImageUrlChanges": 3,
+      "allJsonSourceTextPreservedAfterImageUrlNormalization": true,
+      "externalLocalScriptFilesCompiled": 0
+    },
+    "existingNonHtmlFiles": {
+      "count": 40,
+      "byteIdentical": true
+    },
+    "localMarkupAssetReferences": {
+      "occurrences": 45,
+      "uniqueFiles": 32,
+      "missing": [],
+      "allResolve": true,
+      "scope": "HTML src/href asset attributes and inline CSS url(); external sites and navigation anchors excluded."
+    },
+    "homeMapIndependentPixelVerification": {
+      "width": 1536,
+      "height": 1024,
+      "rgbaBytes": 6291456,
+      "sourceRgbaSha256": "7ce383c4790291cc6ef31817161b10b61ab86bc1d346ccf8ba8952493a01865a",
+      "outputRgbaSha256": "7ce383c4790291cc6ef31817161b10b61ab86bc1d346ccf8ba8952493a01865a",
+      "pixelsIdentical": true,
+      "sourceFileBytes": 3503166,
+      "outputFileBytes": 2306222
+    },
+    "numericalEquivalence": {
+      "mode": "Node VM execution of reviewed pure initialization blocks with actual before/after scientific payloads; all deferred views subsequently accessed.",
+      "totalComparedValues": 980885,
+      "pages": [
+        {
+          "page": "demos/tbb-cluster-explorer-2/index.html",
+          "comparedValues": 778635,
+          "exactTypedArrayBytes": true,
+          "initializationCounts": {
+            "beforeParse": 2,
+            "afterParse": 1,
+            "beforeDecode": 12,
+            "afterDecode": 1,
+            "beforeConvert": 0,
+            "afterConvert": 0
+          }
+        },
+        {
+          "page": "demos/from-twenty-thousand-genes-to-fourteen-cell-types/index.html",
+          "comparedValues": 68552,
+          "exactTypedArrayBytes": true,
+          "initializationCounts": {
+            "beforeParse": 0,
+            "afterParse": 0,
+            "beforeDecode": 7,
+            "afterDecode": 4,
+            "beforeConvert": 4,
+            "afterConvert": 0
+          }
+        },
+        {
+          "page": "demos/alzheimer-s-gene-co-expression-explorer/index.html",
+          "comparedValues": 133698,
+          "exactTypedArrayBytes": true,
+          "initializationCounts": {
+            "beforeParse": 0,
+            "afterParse": 0,
+            "beforeDecode": 0,
+            "afterDecode": 0,
+            "beforeConvert": 3,
+            "afterConvert": 0
+          }
+        }
+      ]
+    },
+    "lazyGetterConsumerReview": {
+      "status": "passed",
+      "findings": [
+        "TBB EMB is read by the embedding selector; no assignments, descriptor inspection, or eager value enumeration was found.",
+        "Single Cell views and Alzheimer positions are read by selected view/stage; no mutation or descriptor inspection was found.",
+        "The reviewed shared TBB program declares its page-global D once and does not mutate it.",
+        "Numerical tests access every deferred view, compare exact typed-array bytes, and verify cached identity and one-time conversion.",
+        "Unknown program checksums and altered shared runtimes skip optimization."
+      ],
+      "limitation": "Static consumer review and isolated VM checks do not validate DOM/canvas interaction in a browser."
+    },
+    "focusedOptimizerTests": {
+      "passed": 6,
+      "failed": 0,
+      "command": "node --test test/page-startup-optimization.test.js"
+    }
+  },
+  "startupPrograms": [
+    {
+      "page": "demos/alzheimer-s-gene-co-expression-explorer/index.html",
+      "script": 2,
+      "originalSha256": "56a6fc8a68073673ab44c806cc4bd096743c525331e7bdfc680096cc5be4b6b3",
+      "optimizedSha256": "550e07de25507c97c4d42a00cec4e034845d520de2e225004f5b07e4993105d8",
+      "transformations": [
+        "alzheimer-defer-stage-decode"
+      ]
+    },
+    {
+      "page": "demos/from-twenty-thousand-genes-to-fourteen-cell-types/index.html",
+      "script": 2,
+      "originalSha256": "0baafc117d84048a61679dfdce761e8fe00142c60f4ab61150621e965c1bd95e",
+      "optimizedSha256": "e44e5fb0c02542ac2569384c6f41ff51c5434885681fdbbd30457b271f03422d",
+      "transformations": [
+        "single-cell-defer-view-decode"
+      ]
+    },
+    {
+      "page": "demos/tbb-cluster-explorer-2/index.html",
+      "script": 4,
+      "originalSha256": "ead45819f55c4990ce14cdff6716ace0dac3ee4df2ee215219f6ddf2ed661aaa",
+      "optimizedSha256": "ca5987c0378d9edbbe3ac3c700a2ce9aeaf5b1aaa15c47c5f1a437190dad9aae",
+      "transformations": [
+        "tbb-share-payload-parse",
+        "tbb-defer-embedding-decode",
+        "tbb-local-basemap-compatible"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "path": "demos/alzheimer-s-gene-co-expression-explorer/index.html",
+      "inputBytes": 1977088,
+      "outputBytes": 1977623,
+      "classicScripts": 1,
+      "jsonScripts": 2
+    },
+    {
+      "path": "demos/from-twelve-thousand-numbers-to-a-codebook/index.html",
+      "inputBytes": 8378864,
+      "outputBytes": 4054810,
+      "classicScripts": 4,
+      "jsonScripts": 1
+    },
+    {
+      "path": "demos/from-twelve-thousand-numbers-to-a-codebook/workflow.html",
+      "inputBytes": 14364692,
+      "outputBytes": 6049998,
+      "classicScripts": 4,
+      "jsonScripts": 1
+    },
+    {
+      "path": "demos/from-twenty-thousand-genes-to-fourteen-cell-types/index.html",
+      "inputBytes": 2490086,
+      "outputBytes": 2490679,
+      "classicScripts": 1,
+      "jsonScripts": 2
+    },
+    {
+      "path": "demos/galaxy2-does-rotation-augmentation-help/dataset.html",
+      "inputBytes": 1477891,
+      "outputBytes": 426240,
+      "classicScripts": 4,
+      "jsonScripts": 1
+    },
+    {
+      "path": "demos/galaxy2-does-rotation-augmentation-help/index.html",
+      "inputBytes": 1782580,
+      "outputBytes": 914635,
+      "classicScripts": 5,
+      "jsonScripts": 1
+    },
+    {
+      "path": "demos/galaxy2-does-rotation-augmentation-help/workflow.html",
+      "inputBytes": 2448688,
+      "outputBytes": 1193067,
+      "classicScripts": 5,
+      "jsonScripts": 1
+    },
+    {
+      "path": "demos/tbb-cluster-explorer-2/index.html",
+      "inputBytes": 3225184,
+      "outputBytes": 2584563,
+      "classicScripts": 4,
+      "jsonScripts": 1
+    },
+    {
+      "path": "domains/ai-mathematics-data/index.html",
+      "inputBytes": 54386,
+      "outputBytes": 54449,
+      "classicScripts": 1,
+      "jsonScripts": 0
+    },
+    {
+      "path": "domains/biology-genomics/index.html",
+      "inputBytes": 54233,
+      "outputBytes": 54283,
+      "classicScripts": 1,
+      "jsonScripts": 0
+    },
+    {
+      "path": "domains/chemistry-materials/index.html",
+      "inputBytes": 54694,
+      "outputBytes": 54817,
+      "classicScripts": 1,
+      "jsonScripts": 0
+    },
+    {
+      "path": "domains/space-astronomy/index.html",
+      "inputBytes": 57360,
+      "outputBytes": 57489,
+      "classicScripts": 1,
+      "jsonScripts": 0
+    },
+    {
+      "path": "index.html",
+      "inputBytes": 102781,
+      "outputBytes": 103314,
+      "classicScripts": 1,
+      "jsonScripts": 0
+    }
+  ],
+  "limitations": [
+    "No browser rendering, visual interaction, network waterfall, Core Web Vitals, or end-to-end speed measurements were performed.",
+    "Compilation checks JavaScript syntax. It does not execute full DOM/canvas page behavior.",
+    "Initialization counters are taken before first view access in the isolated startup block; they are not full-page call counts or measured milliseconds."
+  ]
+}

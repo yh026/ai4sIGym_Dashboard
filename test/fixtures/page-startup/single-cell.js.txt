@@ -1,0 +1,505 @@
+
+(function () {
+  'use strict';
+  const D = JSON.parse(document.getElementById('payload').textContent);
+  const S = JSON.parse(document.getElementById('science-evidence').textContent);
+  const q = (selector, root = document) => root.querySelector(selector);
+  const qa = (selector, root = document) => [...root.querySelectorAll(selector)];
+  const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  const fmt = n => Number(n).toLocaleString('en-US');
+  const palette = ['#2a78d6','#eb6834','#1baf7a','#8a57b5','#b07d18','#0d9488','#a83232','#d06bbc','#687476','#665ba5','#926b35','#426e60','#5c7eae','#994f78'];
+  const colour = i => palette[i % palette.length];
+  const clusterColour = i => `hsl(${(i * 137.508 + 155) % 360} 48% 43%)`;
+  function bytes(o) { return Uint8Array.from(atob(o.b), char => char.charCodeAt(0)); }
+  function floats(o) { return Float32Array.from(new Int16Array(bytes(o).buffer), x => x * o.s); }
+  function announce(text) { q('#insight-status').textContent = text; }
+  function pressed(selector, value, attribute) {
+    qa(selector).forEach(button => button.setAttribute('aria-pressed', String(button.dataset[attribute] === value)));
+  }
+  // These two Insights use the TBB light surfaces, including when an old
+  // bookmark or stored preference requests the retired dark presentation.
+  document.documentElement.dataset.theme = 'light';
+
+  function scatter(canvas, options = {}) {
+    const ctx = canvas.getContext('2d');
+    let model = null, positions = null, target = null, w = 1, h = 1, zoom = 1, panX = 0, panY = 0;
+    let selected = null, drag = null, animation = 0, paint = 0, alpha = 1;
+    let hit = null;
+    const tooltip = q('.il-plot-tooltip', canvas.parentElement);
+    const hint = q('.il-map-hint', canvas.parentElement), defaultHint = hint?.textContent;
+    function normalize(xy) {
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (let i = 0; i < xy.length; i += 2) {
+        x0 = Math.min(x0, xy[i]); x1 = Math.max(x1, xy[i]);
+        y0 = Math.min(y0, xy[i + 1]); y1 = Math.max(y1, xy[i + 1]);
+      }
+      const span = Math.max(x1 - x0, y1 - y0) || 1, xm = (x0 + x1) / 2, ym = (y0 + y1) / 2;
+      return Float32Array.from(xy, (v, i) => i % 2 ? -(v - ym) / span : (v - xm) / span);
+    }
+    function point(i) {
+      const span = Math.max(10, Math.min(w, h) - 72) * zoom;
+      return [w / 2 + positions[i * 2] * span + panX, h / 2 + positions[i * 2 + 1] * span + panY];
+    }
+    function marker(i, radius, colour, label) {
+      if (i == null || i < 0 || i * 2 >= positions.length) return;
+      const [x, y] = point(i);
+      if (x < -radius || y < -radius || x > w + radius || y > h + radius) return;
+      ctx.globalAlpha = 1; ctx.strokeStyle = colour; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.stroke();
+      if (label) {
+        ctx.font = '600 11px system-ui';
+        const tw = ctx.measureText(label).width, bx = Math.max(4, Math.min(w - tw - 22, x + 13));
+        const by = Math.max(20, Math.min(h - 10, y - 13));
+        ctx.fillStyle = css('--surface-1'); ctx.globalAlpha = .94;
+        ctx.fillRect(bx - 5, by - 13, tw + 10, 20); ctx.globalAlpha = 1;
+        ctx.fillStyle = colour; ctx.fillText(label, bx, by);
+      }
+    }
+    function draw() {
+      paint = 0;
+      if (!model || !positions || !canvas.clientWidth) return;
+      const ratio = Math.min(devicePixelRatio || 1, 2);
+      w = canvas.clientWidth; h = canvas.clientHeight;
+      if (canvas.width !== Math.round(w * ratio) || canvas.height !== Math.round(h * ratio)) {
+        canvas.width = Math.round(w * ratio); canvas.height = Math.round(h * ratio);
+      }
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0); ctx.clearRect(0, 0, w, h);
+      for (const layer of model.layers) {
+        ctx.globalAlpha = (layer.alpha ?? .9) * alpha; ctx.fillStyle = layer.color;
+        const radius = (layer.radius ?? 1.7) * Math.min(1.7, Math.pow(zoom, .22));
+        ctx.beginPath();
+        for (const i of layer.indices) {
+          const [x, y] = point(i);
+          if (x < -6 || x > w + 6 || y < -6 || y > h + 6) continue;
+          ctx.moveTo(x + radius, y); ctx.arc(x, y, radius, 0, Math.PI * 2);
+        }
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      if (model.anchor != null) marker(model.anchor, 9, css('--text-primary'), model.anchorLabel);
+      if (selected != null && selected !== model.anchor) marker(selected, 6.5, css('--text-primary'));
+      canvas.dataset.zoom = zoom.toFixed(2);
+      canvas.style.touchAction = zoom > 1 ? 'none' : 'pan-y';
+      if (hint) {
+        const label = matchMedia('(pointer:coarse)').matches ? (zoom > 1 ? 'DRAG TO PAN · TAP TO DISCOVER' : 'TAP A POINT · + TO ZOOM') : defaultHint;
+        if (hint.textContent !== label) hint.textContent = label;
+      }
+      canvas.dataset.selected = selected == null ? '' : String(selected);
+      canvas.dataset.points = String(positions.length / 2);
+      options.onViewport?.(zoom);
+    }
+    function requestDraw() { if (!paint) paint = requestAnimationFrame(draw); }
+    function setData(next, { motion = 'none', reset = false } = {}) {
+      cancelAnimationFrame(animation); animation = 0;
+      const prior = positions;
+      model = next; target = normalize(next.xy);
+      if (reset) { zoom = 1; panX = 0; panY = 0; }
+      if (tooltip) tooltip.hidden = true;
+      if (motion === 'none' || reduceMotion.matches || !prior || prior.length !== target.length) {
+        positions = target; alpha = 1; requestDraw(); return;
+      }
+      const start = performance.now(), from = new Float32Array(prior), duration = motion === 'morph' ? 620 : 230;
+      positions = motion === 'morph' ? new Float32Array(target.length) : target;
+      function tick(now) {
+        const t = Math.min(1, (now - start) / duration), eased = 1 - Math.pow(1 - t, 3);
+        if (motion === 'morph') for (let i = 0; i < target.length; i++) positions[i] = from[i] + (target[i] - from[i]) * eased;
+        alpha = motion === 'fade' ? .25 + .75 * eased : 1;
+        draw();
+        if (t < 1) animation = requestAnimationFrame(tick);
+        else { positions = target; animation = 0; }
+      }
+      animation = requestAnimationFrame(tick);
+    }
+    function select(i, notify = false) {
+      selected = i; requestDraw();
+      if (notify && i != null) options.onSelect?.(i);
+    }
+    function zoomBy(factor) {
+      zoom = Math.max(1, Math.min(8, zoom * factor));
+      if (zoom === 1) { panX = 0; panY = 0; }
+      requestDraw();
+    }
+    function reset() { zoom = 1; panX = 0; panY = 0; requestDraw(); }
+    function nearest(event) {
+      if (!model || !positions) return null;
+      const rect = canvas.getBoundingClientRect(), x = event.clientX - rect.left, y = event.clientY - rect.top;
+      let best = 144, found = null;
+      const indices = model.hitIndices || Array.from({ length: positions.length / 2 }, (_, i) => i);
+      for (const i of indices) {
+        const p = point(i), d = (p[0] - x) ** 2 + (p[1] - y) ** 2;
+        if (d < best) { best = d; found = i; }
+      }
+      return found;
+    }
+    canvas.addEventListener('pointerdown', event => {
+      if (event.button !== 0) return;
+      drag = { x: event.clientX, y: event.clientY, px: panX, py: panY, moved: false, canPan: event.pointerType === 'mouse' || zoom > 1 };
+      if (drag.canPan) canvas.setPointerCapture(event.pointerId);
+    });
+    canvas.addEventListener('pointermove', event => {
+      if (drag) {
+        const dx = event.clientX - drag.x, dy = event.clientY - drag.y;
+        if (Math.hypot(dx, dy) > 5) drag.moved = true;
+        if (drag.canPan && drag.moved) {
+          panX = drag.px + dx; panY = drag.py + dy;
+          canvas.classList.add('is-dragging'); requestDraw();
+          if (tooltip) tooltip.hidden = true;
+        }
+        return;
+      }
+      hit = nearest(event);
+      if (!tooltip) return;
+      if (hit == null) { tooltip.hidden = true; return; }
+      tooltip.textContent = options.describe?.(hit) || String(hit + 1);
+      tooltip.hidden = false;
+    });
+    canvas.addEventListener('pointerup', event => {
+      if (drag && !drag.moved) { const i = nearest(event); if (i != null) select(i, true); }
+      drag = null; canvas.classList.remove('is-dragging');
+      if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    });
+    canvas.addEventListener('pointercancel', () => { drag = null; canvas.classList.remove('is-dragging'); });
+    canvas.addEventListener('pointerleave', () => { if (tooltip) tooltip.hidden = true; });
+    canvas.addEventListener('wheel', event => {
+      if (!event.ctrlKey && !event.metaKey) return;
+      event.preventDefault(); zoomBy(Math.exp(-event.deltaY * .008));
+    }, { passive: false });
+    canvas.addEventListener('keydown', event => {
+      const keys = ['ArrowRight', 'ArrowLeft', '+', '=', '-', 'Home'];
+      if (!keys.includes(event.key) || !model) return;
+      event.preventDefault();
+      if (event.key === 'Home') reset();
+      else if (event.key === '-' || event.key === '+' || event.key === '=') zoomBy(event.key === '-' ? 1 / 1.4 : 1.4);
+      else {
+        const list = model.keyboardIndices || Array.from({ length: positions.length / 2 }, (_, i) => i);
+        const at = list.indexOf(selected), step = event.key === 'ArrowRight' ? 1 : -1;
+        select(list[(at + step + list.length) % list.length], true);
+      }
+    });
+    const observer = new ResizeObserver(requestDraw); observer.observe(canvas);
+    document.addEventListener('insight:theme', requestDraw);
+    return { setData, select, zoomBy, reset, repaint: requestDraw };
+  }
+  function plotControls(root, plot) {
+    qa('[data-zoom]', root).forEach(button => button.addEventListener('click', () => {
+      if (button.dataset.zoom === 'reset') plot.reset();
+      else plot.zoomBy(button.dataset.zoom === 'in' ? 1.5 : 1 / 1.5);
+    }));
+  }
+  window.IL = { D, S, q, qa, css, colour, clusterColour, fmt, bytes, floats, scatter, plotControls, pressed, announce, reduceMotion };
+})();
+
+(function () {
+  'use strict';
+  const { D, S, q, qa, css, colour, clusterColour, fmt, bytes, floats, scatter, plotControls, pressed, announce, reduceMotion } = IL;
+  const labels = bytes(D.cells.labels), donors = bytes(D.cells.donor);
+  const assignments = { hdbscan: new Int16Array(bytes(D.clustering.hdbLabels.mcs5).buffer), dbscan: new Int16Array(bytes(D.clustering.dbLabels.best).buffer) };
+  const pc = floats(D.cells.pcs), pcWidth = D.cells.pcs.shape[1];
+  const views = { umap: floats(D.embeddings.umap['nn15_md0.1']), tsne: floats(D.embeddings.tsne.perp30), pca: Float32Array.from({ length: labels.length * 2 }, (_, i) => pc[Math.floor(i / 2) * pcWidth + i % 2]) };
+  const all = Array.from({ length: labels.length }, (_, i) => i);
+  const best = rows => rows.reduce((a, b) => a.ari > b.ari ? a : b);
+  const scores = { dbscan: best(D.clustering.dbscanMetrics), hdbscan: best(D.clustering.hdbMetrics) };
+  const state = { metric: 'ari', lens: 'type', model: 'hdbscan', view: 'umap', filter: null, clusterFocus: null, selected: null };
+  const pretty = value => value.replace(/_/g, ' ');
+  const category = i => state.lens === 'donor' ? donors[i] : state.lens === 'cluster' ? assignments[state.model][i] : labels[i];
+  const name = c => state.lens === 'donor' ? D.meta.donors[c] : state.lens === 'type' ? pretty(D.cells.types[c]) : c < 0 ? 'Unassigned / noise' : 'Cluster ' + c;
+  const color = c => c < 0 ? css('--muted') : state.lens === 'cluster' ? clusterColour(c) : colour(c);
+  const cv = q('#gene-map'), legend = q('#gene-legend'), menu = q('.il-group-menu');
+  const describe = i => `Cell ${fmt(i + 1)} · ${pretty(D.cells.types[labels[i]])} · ${D.meta.donors[donors[i]]}` + (state.lens === 'cluster' ? ' · ' + name(category(i)) : '');
+  const plot = scatter(cv, { describe, onSelect: selectCell });
+  plotControls(q('#insight-explorer'), plot);
+  function selectCell(index, notify = true) {
+    state.selected = index; q('#gene-cell').value = index === null ? '' : index + 1;
+    if (index === null) {
+      q('#gene-selected').textContent = 'All cells shown. Select a point to inspect its group.';
+      q('#gene-selected').dataset.cell = ''; plot.select(null);
+      if (notify) document.dispatchEvent(new CustomEvent('insight:overview'));
+      return;
+    }
+    const dot = document.createElement('i'); dot.className = 'il-dot'; dot.style.background = color(category(index)); dot.setAttribute('aria-hidden', 'true');
+    const label = document.createElement('span'); label.textContent = describe(index);
+    q('#gene-selected').replaceChildren(dot, label); q('#gene-selected').dataset.cell = String(index + 1);
+    plot.select(index);
+    if (notify) document.dispatchEvent(new CustomEvent('insight:cell', { detail: { index, type: labels[index], cluster: assignments[state.model][index], model: state.model } }));
+  }
+  function groups() {
+    const result = new Map();
+    for (const i of all) { const c = category(i); if (!result.has(c)) result.set(c, []); result.get(c).push(i); }
+    return [...result].sort((a, b) => a[0] - b[0]);
+  }
+  function redraw(motion = 'none') {
+    const grouped = groups();
+    const active = all.filter(i => (state.filter === null || category(i) === state.filter) && (state.clusterFocus === null || assignments[state.model][i] === state.clusterFocus));
+    const activeSet = new Set(active), layers = [];
+    if (active.length < all.length) layers.push({ indices: all.filter(i => !activeSet.has(i)), color: css('--muted'), radius: 1.25, alpha: .16 });
+    for (const [c, indices] of grouped) layers.push({ indices: indices.filter(i => activeSet.has(i)), color: color(c), radius: 1.8, alpha: .9 });
+    plot.setData({ xy: views[state.view], layers, hitIndices: active, keyboardIndices: active }, { motion, reset: motion === 'morph' });
+    cv.dataset.lens = state.lens; cv.dataset.model = state.model; cv.dataset.view = state.view; cv.dataset.filter = state.filter === null ? '' : String(state.filter);
+    cv.dataset.clusterFocus = state.clusterFocus === null ? '' : String(state.clusterFocus);
+    const mode = state.lens === 'type' ? `All ${fmt(all.length)} cells · 14 annotated types` : state.lens === 'donor' ? 'Four donors · one population' : state.model.toUpperCase() + ` · ${scores[state.model].n_clusters} clusters + noise`;
+    q('#map-tag').textContent = state.filter === null ? mode : name(state.filter) + ' · ' + fmt(active.length) + ' cells';
+    if (state.clusterFocus !== null) q('#map-tag').textContent = `HDBSCAN cluster ${state.clusterFocus} · ${fmt(active.length)} cells · ${state.lens === 'type' ? 'coloured by identity' : state.lens === 'donor' ? 'coloured by donor' : 'one fitted group'}`;
+    const display = state.view === 'umap' ? 'UMAP · 15 neighbours · min_dist 0.1.' : state.view === 'tsne' ? 't-SNE · perplexity 30.' : 'PCA · PC1 × PC2.';
+    q('#gene-view-note').textContent = display + ' Clustering is fitted in 50-PC space; changing the display does not refit it.';
+    pressed('[data-lens]', state.lens, 'lens');
+    pressed('[data-model]', state.lens === 'cluster' ? state.model : '', 'model');
+    selectCell(state.selected, false);
+  }
+  function rebuildLegend() {
+    legend.replaceChildren();
+    for (const [c, indices] of groups()) {
+      const button = document.createElement('button'); button.type = 'button'; button.dataset.group = c;
+      button.setAttribute('aria-pressed', String(state.filter === c));
+      const dot = document.createElement('i'); dot.className = 'il-dot'; dot.style.background = color(c); dot.setAttribute('aria-hidden', 'true');
+      const label = document.createElement('span'); label.textContent = name(c);
+      const count = document.createElement('small'); count.textContent = fmt(indices.length);
+      button.append(dot, label, count);
+      button.addEventListener('click', () => {
+        state.clusterFocus = null;
+        state.filter = state.filter === c ? null : c;
+        if (state.filter !== null && (state.selected === null || category(state.selected) !== c)) state.selected = indices[0];
+        qa('button', legend).forEach(b => b.setAttribute('aria-pressed', String(state.filter !== null && Number(b.dataset.group) === state.filter)));
+        updateMenuLabel(); redraw(); selectCell(state.selected); announce(state.filter === null ? 'All groups shown.' : name(c) + ', ' + fmt(indices.length) + ' cells highlighted.');
+      });
+      legend.append(button);
+    }
+    updateMenuLabel();
+  }
+  function updateMenuLabel() {
+    const arrow = document.createElement('span'); arrow.textContent = '⌄';
+    q('#group-menu-label').replaceChildren(document.createTextNode(state.filter === null ? 'Highlight a group' : name(state.filter)), arrow);
+  }
+  function changeLens(lens) {
+    const previousModel = cv.dataset.model;
+    state.lens = lens; state.filter = null; menu.open = false; rebuildLegend(); redraw();
+    if (lens === 'cluster') document.dispatchEvent(new CustomEvent('insight:model', { detail: state.model }));
+    if (state.selected !== null && previousModel !== state.model) selectCell(state.selected);
+  }
+  function updateScores() {
+    const metric = state.metric, db = scores.dbscan[metric], hd = scores.hdbscan[metric];
+    q('#score-db').textContent = db.toFixed(3); q('#score-hd').textContent = hd.toFixed(3);
+    q('#bar-db').style.width = db * 100 + '%'; q('#bar-hd').style.width = hd * 100 + '%';
+    pressed('[data-metric]', metric, 'metric');
+    q('#score-verdict').textContent = metric === 'ari' ? 'DBSCAN leads on overall agreement in the selected runs.' : 'HDBSCAN recovers more cell types: 12 / 14 vs. 4 / 14 above F1 0.5.';
+    q('#score-explanation').textContent = metric === 'ari' ? 'Best-ARI runs from 72 DBSCAN and 6 HDBSCAN settings; this is not general method performance.' : 'Equal weight per type. The cutoff is descriptive; several types can share one best cluster.';
+  }
+  qa('[data-metric]').forEach(button => button.addEventListener('click', () => {
+    state.clusterFocus = null;
+    state.metric = button.dataset.metric; state.model = state.metric === 'ari' ? 'dbscan' : 'hdbscan';
+    updateScores(); changeLens('cluster'); announce(q('#score-verdict').textContent + ' The map now shows ' + state.model.toUpperCase() + '.');
+  }));
+  qa('[data-model]').forEach(button => button.addEventListener('click', () => { state.clusterFocus = null; state.model = button.dataset.model; changeLens('cluster'); }));
+  qa('[data-lens]').forEach(button => button.addEventListener('click', () => changeLens(button.dataset.lens)));
+  q('#gene-view').addEventListener('change', event => { state.view = event.target.value; redraw('morph'); });
+  q('#gene-cell').addEventListener('change', event => {
+    if (event.target.value === '') return;
+    const index = Math.max(0, Math.min(all.length - 1, (parseInt(event.target.value, 10) || 1) - 1));
+    if (state.clusterFocus !== null && assignments[state.model][index] !== state.clusterFocus) { state.clusterFocus = null; rebuildLegend(); redraw(); }
+    if (state.filter !== null && category(index) !== state.filter) { state.filter = null; rebuildLegend(); redraw(); }
+    selectCell(index);
+  });
+  const showAll = () => { state.filter = null; state.clusterFocus = null; state.selected = null; menu.open = false; rebuildLegend(); redraw(); plot.reset(); selectCell(null); announce('All groups shown. Select any cell to inspect its cluster.'); };
+  q('#clear-group').addEventListener('click', showAll);
+  q('#show-all-cells').addEventListener('click', showAll);
+  q('#reveal-donors').addEventListener('click', () => {
+    state.clusterFocus = null;
+    changeLens('donor'); q('#insight-explorer').scrollIntoView({ behavior: reduceMotion.matches ? 'instant' : 'smooth', block: 'start' });
+    cv.focus({ preventScroll: true }); announce('Map coloured by the four donors.');
+  });
+  document.addEventListener('click', event => { if (!menu.contains(event.target)) menu.open = false; });
+  menu.addEventListener('keydown', event => { if (event.key === 'Escape') { menu.open = false; q('summary', menu).focus(); } });
+  document.addEventListener('insight:theme', () => { rebuildLegend(); redraw(); });
+  IL.focusCellType = index => {
+    state.clusterFocus = null;
+    changeLens('type'); state.filter = index;
+    if (state.selected === null || labels[state.selected] !== index) state.selected = all.find(i => labels[i] === index);
+    rebuildLegend(); redraw(); selectCell(state.selected);
+    q('#insight-explorer').scrollIntoView({ behavior: reduceMotion.matches ? 'instant' : 'smooth', block: 'start' });
+    cv.focus({ preventScroll: true });
+  };
+  IL.chooseClusterModel = model => { state.clusterFocus = null; state.model = model; changeLens('cluster'); };
+  IL.focusCluster = (model, cluster, type) => {
+    state.clusterFocus = null;
+    state.model = model; changeLens('cluster'); state.filter = cluster;
+    state.selected = all.find(i => assignments[model][i] === cluster && (type === undefined || labels[i] === type)) ?? all.find(i => assignments[model][i] === cluster);
+    rebuildLegend(); redraw(); selectCell(state.selected);
+    q('#insight-explorer').scrollIntoView({ behavior: reduceMotion.matches ? 'instant' : 'smooth', block: 'start' });
+    cv.focus({ preventScroll: true });
+  };
+  IL.showMixedCluster = () => {
+    state.model = 'hdbscan'; state.clusterFocus = S.mixed_cluster.id; state.filter = null;
+    state.selected = all.find(i => assignments.hdbscan[i] === state.clusterFocus && D.cells.types[labels[i]] === 'delta');
+    changeLens('cluster'); selectCell(state.selected); plot.reset();
+    announce('Mixed HDBSCAN cluster highlighted. Choose Cell identities to see its annotated populations.');
+  };
+  q('#reset-mixed').addEventListener('click', IL.showMixedCluster);
+  updateScores(); rebuildLegend(); redraw();
+})();
+
+(function () {
+  'use strict';
+  const { D, S, q, qa, fmt, bytes, colour, pressed } = IL;
+  let selected = S.types.find(row => row.name === 'delta');
+  let model = 'hdbscan', cluster = S.mixed_cluster.id;
+  let typeSelected = S.types.find(row => row.name === 'ductal');
+  const labels = bytes(D.cells.labels), names = D.cells.markerNames;
+  const packed = D.cells.markers, values = bytes(packed), width = packed.shape[1];
+  const assignments = { dbscan: new Int16Array(bytes(D.clustering.dbLabels.best).buffer), hdbscan: new Int16Array(bytes(D.clustering.hdbLabels.mcs5).buffer) };
+  const groups = Object.fromEntries(Object.entries(assignments).map(([key, a]) => {
+    const ids = [...new Set(a)].sort((a, b) => a - b);
+    const members = new Map(ids.map(id => [id, []]));
+    a.forEach((id, i) => members.get(id).push(i));
+    return [key, { members }];
+  }));
+  const pretty = value => value.replace(/_/g, ' ');
+  const groupName = id => id < 0 ? 'Unassigned cells' : 'Cluster ' + id;
+  for (const gene of names) {
+    const option = document.createElement('option'); option.value = gene; option.textContent = gene;
+    q('#cluster-marker').append(option);
+  }
+  q('#cluster-marker').value = 'SST';
+
+  function showOverview() {
+    q('#atlas-overview').hidden = false; q('#cluster-inspector').hidden = true;
+    q('#group-result-title').textContent = 'All cell types';
+    q('#group-result-description').textContent = `${fmt(labels.length)} cells across ${S.types.length} annotated types.`;
+  }
+  function showInspector() {
+    q('#atlas-overview').hidden = true; q('#cluster-inspector').hidden = false;
+    q('#group-result-title').textContent = 'Inside the selected cluster';
+    q('#group-result-description').textContent = 'Compare its cell identities and marker expression.';
+  }
+  for (const row of [...S.types].sort((a, b) => b.count - a.count)) {
+    const segment = document.createElement('i'); segment.style.width = row.count / labels.length * 100 + '%';
+    segment.style.background = colour(row.index); q('#atlas-type-share').append(segment);
+    const item = document.createElement('li'); item.dataset.type = row.index; item.dataset.count = row.count;
+    const dot = document.createElement('i'); dot.className = 'il-dot'; dot.style.background = colour(row.index); dot.setAttribute('aria-hidden', 'true');
+    const label = document.createElement('span'); label.textContent = pretty(row.name);
+    const count = document.createElement('strong'); count.textContent = fmt(row.count);
+    item.append(dot, label, count); q('#atlas-type-list').append(item);
+  }
+  function select(type, id, changeMarker = true) {
+    selected = S.types[type]; cluster = id;
+    if (changeMarker) q('#cluster-marker').value = selected.marker.gene;
+    showInspector(); renderCluster();
+  }
+  function renderCluster() {
+    const g = groups[model], members = g.members.get(cluster);
+    const inspector = q('#cluster-inspector');
+    inspector.dataset.model = model; inspector.dataset.cluster = cluster; inspector.dataset.type = selected.index;
+    const composition = S.types.map(row => ({ row, indices: members.filter(i => labels[i] === row.index) })).filter(r => r.indices.length).sort((a, b) => b.indices.length - a.indices.length);
+    const overlap = composition.find(r => r.row.index === selected.index)?.indices.length || 0;
+    q('#cluster-heading').textContent = groupName(cluster) + ' · ' + fmt(members.length) + ' cells';
+    q('#matrix-selection').textContent = `${fmt(overlap)} of ${fmt(selected.count)} ${pretty(selected.name)} cells are here (${(100 * overlap / selected.count).toFixed(1)}%). ` + (cluster < 0 ? '“Unassigned” is an outcome, not a biological cell type.' : `${composition.length} annotated types share this cluster.`);
+    const root = q('#cluster-composition'); root.replaceChildren();
+    for (const { row, indices } of composition) {
+      const button = document.createElement('button'); button.type = 'button'; button.style.setProperty('--type-color', colour(row.index));
+      const percent = 100 * indices.length / members.length;
+      button.textContent = `${pretty(row.name)} · ${fmt(indices.length)} · ${percent < .1 ? '<0.1' : percent.toFixed(1)}%`;
+      button.setAttribute('aria-pressed', String(row.index === selected.index));
+      button.addEventListener('click', () => select(row.index, cluster)); root.append(button);
+    }
+    const gene = q('#cluster-marker').value, index = names.indexOf(gene);
+    const bars = composition.map(({ row, indices }) => ({ row, n: indices.length,
+      mean: indices.reduce((sum, i) => sum + values[i * width + index] * packed.s[index] / 255, 0) / indices.length }));
+    const max = Math.max(...bars.map(r => r.mean), .01);
+    const chart = q('#cluster-marker-bars'); chart.replaceChildren(); chart.dataset.gene = gene;
+    for (const b of bars) {
+      const line = document.createElement('div'); line.className = 'il-mix-marker-row'; line.dataset.type = b.row.name; line.dataset.mean = b.mean;
+      const label = document.createElement('span'); label.textContent = pretty(b.row.name) + ' · n=' + fmt(b.n);
+      const track = document.createElement('div'), fill = document.createElement('i'); fill.style.width = b.mean / max * 100 + '%'; fill.style.background = colour(b.row.index); track.append(fill);
+      const value = document.createElement('strong'); value.textContent = b.mean.toFixed(2);
+      line.title = `${gene} in ${b.n} ${pretty(b.row.name)} cells: mean ${b.mean.toFixed(3)}`;
+      line.append(label, track, value); chart.append(line);
+    }
+  }
+  function renderType() {
+    const row = typeSelected, marker = row.marker;
+    q('#recovery-type').value = String(row.index);
+    q('#recovery-reading').textContent = `${fmt(row.hdbscan.noise_count)} of ${fmt(row.count)} ${pretty(row.name)} cells remain unassigned by HDBSCAN (${(row.hdbscan.noise_fraction * 100).toFixed(1)}%).`;
+    const bars = q('#type-recovery-bars'); bars.replaceChildren(); bars.dataset.type = row.name;
+    for (const key of ['dbscan', 'hdbscan']) {
+      const score = row[key], line = document.createElement('div'); line.className = 'gs-recovery-row';
+      line.dataset.model = key; line.dataset.f1 = score.f1; line.dataset.noise = score.noise_count;
+      const label = document.createElement('span'); label.textContent = key.toUpperCase();
+      const comparison = document.createElement('div'); comparison.className = 'gs-recovery-score';
+      const track = document.createElement('div'), fill = document.createElement('i');
+      fill.style.width = score.f1 * 100 + '%'; fill.style.background = key === 'dbscan' ? 'var(--db)' : 'var(--hd)'; track.append(fill);
+      const f1 = document.createElement('strong'); f1.textContent = score.f1.toFixed(3);
+      comparison.append(track, f1);
+      const noise = document.createElement('span'); noise.textContent = (100 * score.noise_fraction).toFixed(1) + '%';
+      line.title = `${key.toUpperCase()}: F1 ${score.f1.toFixed(3)}; ${fmt(score.noise_count)} of ${fmt(row.count)} cells unassigned.`;
+      line.append(label, comparison, noise); bars.append(line);
+    }
+    const higher = marker.donors.filter(d => d.mean > d.other_mean).length;
+    q('#marker-reading').textContent = `${marker.gene} is higher in annotated ${pretty(row.name)} cells than in other cells in ${higher} of ${marker.donors.length} donors.`;
+    const maximum = Math.max(...marker.donors.flatMap(d => [d.mean, d.other_mean])) * 1.06;
+    q('#marker-donors').replaceChildren();
+    for (const donor of marker.donors) {
+      const group = document.createElement('div'); group.className = 'il-marker-donor';
+      const title = document.createElement('span'); title.textContent = donor.donor;
+      const count = document.createElement('small'); count.textContent = 'n = ' + fmt(donor.count);
+      const tracks = document.createElement('div'); tracks.className = 'il-marker-tracks';
+      for (const [key, label] of [['mean', pretty(row.name)], ['other_mean', 'Other cells']]) {
+        const track = document.createElement('div'); track.className = 'il-marker-track';
+        const bar = document.createElement('i'); bar.style.width = donor[key] / maximum * 100 + '%';
+        if (key === 'other_mean') bar.className = 'il-marker-other';
+        const value = document.createElement('span'); value.textContent = donor[key].toFixed(2);
+        track.title = label + ': ' + value.textContent + ' mean log-normalized expression';
+        track.append(bar, value); tracks.append(track);
+      }
+      const heading = document.createElement('div'); heading.append(title, count);
+      group.append(heading, tracks); q('#marker-donors').append(group);
+    }
+    q('#marker-donors').dataset.type = row.name;
+    q('#marker-donors').dataset.gene = marker.gene;
+  }
+  for (const row of S.types) {
+    const option = document.createElement('option'); option.value = row.index;
+    option.textContent = `${pretty(row.name)} · ${fmt(row.count)} cells`; q('#recovery-type').append(option);
+  }
+  q('#recovery-type').addEventListener('change', event => { typeSelected = S.types[Number(event.target.value)]; renderType(); });
+  qa('[data-type-view]').forEach(button => button.addEventListener('click', () => {
+    const view = button.dataset.typeView;
+    pressed('[data-type-view]', view, 'typeView');
+    q('#type-recovery-view').hidden = view !== 'recovery'; q('#type-marker-view').hidden = view !== 'marker';
+  }));
+  q('#locate-cell-type').addEventListener('click', () => IL.focusCellType(typeSelected.index));
+  q('#locate-cluster').addEventListener('click', () => IL.focusCluster(model, cluster, selected.index));
+  q('#cluster-marker').addEventListener('change', renderCluster);
+  document.addEventListener('insight:model', event => {
+    if (model === event.detail) return;
+    model = event.detail; cluster = selected[model].cluster ?? -1; renderCluster();
+  });
+  document.addEventListener('insight:cell', event => {
+    const cell = event.detail;
+    model = cell.model;
+    select(cell.type, cell.cluster);
+  });
+  document.addEventListener('insight:overview', showOverview);
+  const ductal = S.types.find(r => r.name === 'ductal');
+  ductal.donor_counts.forEach((n, i) => {
+    const missed = ductal.hdbscan.donor_noise_counts[i], percent = 100 * missed / n;
+    const box = document.createElement('div'); box.className = 'gs-donor-bar'; box.dataset.donor = D.meta.donors[i]; box.dataset.unassigned = missed; box.dataset.total = n;
+    const label = document.createElement('div'); label.textContent = D.meta.donors[i];
+    const count = document.createElement('small'); count.textContent = `${missed} / ${n}`; count.title = 'Unassigned / total ductal cells'; label.append(count);
+    const track = document.createElement('div'); track.className = 'gs-donor-track';
+    const fill = document.createElement('i'); fill.style.width = percent + '%'; track.append(fill);
+    const value = document.createElement('strong'); value.textContent = percent.toFixed(1) + '%';
+    box.append(label, track, value); q('#ductal-donor-gaps').append(box);
+  });
+  renderType(); renderCluster(); showOverview();
+})();
+
+(function () {
+  'use strict';
+  const { q, qa } = IL;
+  qa('.gs-drawer').forEach(drawer => drawer.addEventListener('toggle', () => {
+    if (!drawer.open) return;
+    qa('.gs-drawer').forEach(other => { if (other !== drawer) other.open = false; });
+  }));
+  if (!IL.ad) return;
+  q('#hero-candidate').addEventListener('change', event => IL.ad.select(IL.ad.state.anchor, Number(event.target.value)));
+})();
+
