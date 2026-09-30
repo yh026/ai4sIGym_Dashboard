@@ -1,0 +1,886 @@
+[
+  {
+    "brightness": 1.0,
+    "time": 0.0
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.01
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.02
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.03
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.04
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.05
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.06
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.07
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.08
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.09
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.1
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.11
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.12
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.13
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.14
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.15
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.16
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.17
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.18
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.19
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.2
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.21
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.22
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.23
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.24
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.25
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.26
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.27
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.28
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.29
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.3
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.31
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.32
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.33
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.34
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.35000000000000003
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.36
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.37
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.38
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.39
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.4
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.41000000000000003
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.42
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.43
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.44
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.45
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.46
+  },
+  {
+    "brightness": 0.9371428571428573,
+    "time": 0.47000000000000003
+  },
+  {
+    "brightness": 0.8742857142857147,
+    "time": 0.48
+  },
+  {
+    "brightness": 0.8114285714285718,
+    "time": 0.49
+  },
+  {
+    "brightness": 0.78,
+    "time": 0.5
+  },
+  {
+    "brightness": 0.78,
+    "time": 0.51
+  },
+  {
+    "brightness": 0.78,
+    "time": 0.52
+  },
+  {
+    "brightness": 0.78,
+    "time": 0.53
+  },
+  {
+    "brightness": 0.78,
+    "time": 0.54
+  },
+  {
+    "brightness": 0.78,
+    "time": 0.55
+  },
+  {
+    "brightness": 0.78,
+    "time": 0.56
+  },
+  {
+    "brightness": 0.78,
+    "time": 0.5700000000000001
+  },
+  {
+    "brightness": 0.78,
+    "time": 0.58
+  },
+  {
+    "brightness": 0.78,
+    "time": 0.59
+  },
+  {
+    "brightness": 0.78,
+    "time": 0.6
+  },
+  {
+    "brightness": 0.811428571428571,
+    "time": 0.61
+  },
+  {
+    "brightness": 0.874285714285714,
+    "time": 0.62
+  },
+  {
+    "brightness": 0.9371428571428568,
+    "time": 0.63
+  },
+  {
+    "brightness": 0.9999999999999998,
+    "time": 0.64
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.65
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.66
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.67
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.68
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.6900000000000001
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.7000000000000001
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.71
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.72
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.73
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.74
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.75
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.76
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.77
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.78
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.79
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.8
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.81
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.8200000000000001
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.8300000000000001
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.84
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.85
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.86
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.87
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.88
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.89
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.9
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.91
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.92
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.93
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.9400000000000001
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.9500000000000001
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.96
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.97
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.98
+  },
+  {
+    "brightness": 1.0,
+    "time": 0.99
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.0
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.01
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.02
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.03
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.04
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.05
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.06
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.07
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.08
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.09
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.1
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.11
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.12
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.1300000000000001
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.1400000000000001
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.1500000000000001
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.16
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.17
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.18
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.19
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.2
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.21
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.22
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.23
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.24
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.25
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.26
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.27
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.28
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.29
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.3
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.31
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.32
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.33
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.34
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.35
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.36
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.37
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.3800000000000001
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.3900000000000001
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.4000000000000001
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.41
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.42
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.43
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.44
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.45
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.46
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.47
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.48
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.49
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.5
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.51
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.52
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.53
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.54
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.55
+  },
+  {
+    "brightness": 0.9999999999999991,
+    "time": 1.56
+  },
+  {
+    "brightness": 0.9371428571428562,
+    "time": 1.57
+  },
+  {
+    "brightness": 0.8742857142857133,
+    "time": 1.58
+  },
+  {
+    "brightness": 0.8114285714285704,
+    "time": 1.59
+  },
+  {
+    "brightness": 0.78,
+    "time": 1.6
+  },
+  {
+    "brightness": 0.78,
+    "time": 1.61
+  },
+  {
+    "brightness": 0.78,
+    "time": 1.62
+  },
+  {
+    "brightness": 0.78,
+    "time": 1.6300000000000001
+  },
+  {
+    "brightness": 0.78,
+    "time": 1.6400000000000001
+  },
+  {
+    "brightness": 0.78,
+    "time": 1.6500000000000001
+  },
+  {
+    "brightness": 0.78,
+    "time": 1.6600000000000001
+  },
+  {
+    "brightness": 0.78,
+    "time": 1.67
+  },
+  {
+    "brightness": 0.78,
+    "time": 1.68
+  },
+  {
+    "brightness": 0.78,
+    "time": 1.69
+  },
+  {
+    "brightness": 0.78,
+    "time": 1.7
+  },
+  {
+    "brightness": 0.8114285714285718,
+    "time": 1.71
+  },
+  {
+    "brightness": 0.8742857142857147,
+    "time": 1.72
+  },
+  {
+    "brightness": 0.9371428571428576,
+    "time": 1.73
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.74
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.75
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.76
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.77
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.78
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.79
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.8
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.81
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.82
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.83
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.84
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.85
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.86
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.87
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.8800000000000001
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.8900000000000001
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.9000000000000001
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.9100000000000001
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.92
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.93
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.94
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.95
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.96
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.97
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.98
+  },
+  {
+    "brightness": 1.0,
+    "time": 1.99
+  },
+  {
+    "brightness": 1.0,
+    "time": 2.0
+  },
+  {
+    "brightness": 1.0,
+    "time": 2.0100000000000002
+  },
+  {
+    "brightness": 1.0,
+    "time": 2.02
+  },
+  {
+    "brightness": 1.0,
+    "time": 2.0300000000000002
+  },
+  {
+    "brightness": 1.0,
+    "time": 2.04
+  },
+  {
+    "brightness": 1.0,
+    "time": 2.05
+  },
+  {
+    "brightness": 1.0,
+    "time": 2.06
+  },
+  {
+    "brightness": 1.0,
+    "time": 2.07
+  },
+  {
+    "brightness": 1.0,
+    "time": 2.08
+  },
+  {
+    "brightness": 1.0,
+    "time": 2.09
+  },
+  {
+    "brightness": 1.0,
+    "time": 2.1
+  },
+  {
+    "brightness": 1.0,
+    "time": 2.11
+  },
+  {
+    "brightness": 1.0,
+    "time": 2.12
+  },
+  {
+    "brightness": 1.0,
+    "time": 2.13
+  },
+  {
+    "brightness": 1.0,
+    "time": 2.14
+  },
+  {
+    "brightness": 1.0,
+    "time": 2.15
+  },
+  {
+    "brightness": 1.0,
+    "time": 2.16
+  },
+  {
+    "brightness": 1.0,
+    "time": 2.17
+  },
+  {
+    "brightness": 1.0,
+    "time": 2.18
+  },
+  {
+    "brightness": 1.0,
+    "time": 2.19
+  },
+  {
+    "brightness": 1.0,
+    "time": 2.2
+  }
+]

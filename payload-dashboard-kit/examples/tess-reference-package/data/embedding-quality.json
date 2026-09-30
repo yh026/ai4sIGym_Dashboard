@@ -1,0 +1,182 @@
+[
+  {
+    "k": 5,
+    "score": 0.92581,
+    "series": "UMAP trust"
+  },
+  {
+    "k": 10,
+    "score": 0.92938,
+    "series": "UMAP trust"
+  },
+  {
+    "k": 20,
+    "score": 0.93318,
+    "series": "UMAP trust"
+  },
+  {
+    "k": 40,
+    "score": 0.91774,
+    "series": "UMAP trust"
+  },
+  {
+    "k": 60,
+    "score": 0.9147,
+    "series": "UMAP trust"
+  },
+  {
+    "k": 80,
+    "score": 0.90684,
+    "series": "UMAP trust"
+  },
+  {
+    "k": 5,
+    "score": 0.9377,
+    "series": "UMAP continuity"
+  },
+  {
+    "k": 10,
+    "score": 0.93923,
+    "series": "UMAP continuity"
+  },
+  {
+    "k": 20,
+    "score": 0.93968,
+    "series": "UMAP continuity"
+  },
+  {
+    "k": 40,
+    "score": 0.92862,
+    "series": "UMAP continuity"
+  },
+  {
+    "k": 60,
+    "score": 0.92713,
+    "series": "UMAP continuity"
+  },
+  {
+    "k": 80,
+    "score": 0.91301,
+    "series": "UMAP continuity"
+  },
+  {
+    "k": 5,
+    "score": 0.91591,
+    "series": "t-SNE trust"
+  },
+  {
+    "k": 10,
+    "score": 0.91592,
+    "series": "t-SNE trust"
+  },
+  {
+    "k": 20,
+    "score": 0.91647,
+    "series": "t-SNE trust"
+  },
+  {
+    "k": 40,
+    "score": 0.91224,
+    "series": "t-SNE trust"
+  },
+  {
+    "k": 60,
+    "score": 0.90595,
+    "series": "t-SNE trust"
+  },
+  {
+    "k": 80,
+    "score": 0.89082,
+    "series": "t-SNE trust"
+  },
+  {
+    "k": 5,
+    "score": 0.89209,
+    "series": "t-SNE continuity"
+  },
+  {
+    "k": 10,
+    "score": 0.8925,
+    "series": "t-SNE continuity"
+  },
+  {
+    "k": 20,
+    "score": 0.89651,
+    "series": "t-SNE continuity"
+  },
+  {
+    "k": 40,
+    "score": 0.89527,
+    "series": "t-SNE continuity"
+  },
+  {
+    "k": 60,
+    "score": 0.88224,
+    "series": "t-SNE continuity"
+  },
+  {
+    "k": 80,
+    "score": 0.87229,
+    "series": "t-SNE continuity"
+  },
+  {
+    "k": 5,
+    "score": 0.84975,
+    "series": "PCA-2 trust"
+  },
+  {
+    "k": 10,
+    "score": 0.85211,
+    "series": "PCA-2 trust"
+  },
+  {
+    "k": 20,
+    "score": 0.85976,
+    "series": "PCA-2 trust"
+  },
+  {
+    "k": 40,
+    "score": 0.85492,
+    "series": "PCA-2 trust"
+  },
+  {
+    "k": 60,
+    "score": 0.83941,
+    "series": "PCA-2 trust"
+  },
+  {
+    "k": 80,
+    "score": 0.83607,
+    "series": "PCA-2 trust"
+  },
+  {
+    "k": 5,
+    "score": 0.95104,
+    "series": "PCA-2 continuity"
+  },
+  {
+    "k": 10,
+    "score": 0.95512,
+    "series": "PCA-2 continuity"
+  },
+  {
+    "k": 20,
+    "score": 0.96323,
+    "series": "PCA-2 continuity"
+  },
+  {
+    "k": 40,
+    "score": 0.95152,
+    "series": "PCA-2 continuity"
+  },
+  {
+    "k": 60,
+    "score": 0.94007,
+    "series": "PCA-2 continuity"
+  },
+  {
+    "k": 80,
+    "score": 0.93868,
+    "series": "PCA-2 continuity"
+  }
+]

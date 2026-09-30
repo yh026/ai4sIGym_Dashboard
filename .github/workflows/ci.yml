@@ -34,3 +34,6 @@ jobs:
 
       - name: Run test suite
         run: node --test --test-concurrency=1
+
+      - name: Validate frozen production release
+        run: node scripts/build-production-release.cjs --local --output "$RUNNER_TEMP/ais-production-release"

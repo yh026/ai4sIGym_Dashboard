@@ -1,0 +1,20 @@
+{
+  "name": "payload-dashboard-kit",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "payload-dashboard": "./scripts/payload.mjs"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "payload": "node scripts/payload.mjs",
+    "init": "node scripts/payload.mjs init",
+    "capabilities": "node scripts/payload.mjs capabilities",
+    "conformance": "node scripts/payload.mjs conformance",
+    "generate:tess": "node scripts/generate-tess-reference-package.mjs",
+    "render": "node render.mjs",
+    "validate": "node render.mjs --validate-only"
+  }
+}

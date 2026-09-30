@@ -1,0 +1,248 @@
+[
+  {
+    "region": "Orbit",
+    "vertex_order": 0,
+    "x": 1.55,
+    "y": 0
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 1,
+    "x": 1.53092,
+    "y": 0.08604
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 2,
+    "x": 1.47414,
+    "y": 0.16996
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 3,
+    "x": 1.38106,
+    "y": 0.24969
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 4,
+    "x": 1.25398,
+    "y": 0.32328
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 5,
+    "x": 1.09602,
+    "y": 0.38891
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 6,
+    "x": 0.91107,
+    "y": 0.44496
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 7,
+    "x": 0.70369,
+    "y": 0.49005
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 8,
+    "x": 0.47898,
+    "y": 0.52308
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 9,
+    "x": 0.24247,
+    "y": 0.54323
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 10,
+    "x": 0,
+    "y": 0.55
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 11,
+    "x": -0.24247,
+    "y": 0.54323
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 12,
+    "x": -0.47898,
+    "y": 0.52308
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 13,
+    "x": -0.70369,
+    "y": 0.49005
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 14,
+    "x": -0.91107,
+    "y": 0.44496
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 15,
+    "x": -1.09602,
+    "y": 0.38891
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 16,
+    "x": -1.25398,
+    "y": 0.32328
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 17,
+    "x": -1.38106,
+    "y": 0.24969
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 18,
+    "x": -1.47414,
+    "y": 0.16996
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 19,
+    "x": -1.53092,
+    "y": 0.08604
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 20,
+    "x": -1.55,
+    "y": 0
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 21,
+    "x": -1.53092,
+    "y": -0.08604
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 22,
+    "x": -1.47414,
+    "y": -0.16996
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 23,
+    "x": -1.38106,
+    "y": -0.24969
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 24,
+    "x": -1.25398,
+    "y": -0.32328
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 25,
+    "x": -1.09602,
+    "y": -0.38891
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 26,
+    "x": -0.91107,
+    "y": -0.44496
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 27,
+    "x": -0.70369,
+    "y": -0.49005
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 28,
+    "x": -0.47898,
+    "y": -0.52308
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 29,
+    "x": -0.24247,
+    "y": -0.54323
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 30,
+    "x": 0,
+    "y": -0.55
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 31,
+    "x": 0.24247,
+    "y": -0.54323
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 32,
+    "x": 0.47898,
+    "y": -0.52308
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 33,
+    "x": 0.70369,
+    "y": -0.49005
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 34,
+    "x": 0.91107,
+    "y": -0.44496
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 35,
+    "x": 1.09602,
+    "y": -0.38891
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 36,
+    "x": 1.25398,
+    "y": -0.32328
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 37,
+    "x": 1.38106,
+    "y": -0.24969
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 38,
+    "x": 1.47414,
+    "y": -0.16996
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 39,
+    "x": 1.53092,
+    "y": -0.08604
+  },
+  {
+    "region": "Orbit",
+    "vertex_order": 40,
+    "x": 1.55,
+    "y": 0
+  }
+]

@@ -1,0 +1,40 @@
+{
+  "purpose": "Smaller home-page background with identical decoded RGBA pixels.",
+  "source": {
+    "path": "site/assets/ais-science-map-v2-lines.png",
+    "bytes": 3503166,
+    "sha256": "2d182cc22436c381297d7906001180c4de63a00464298306e6441a6060c44ace",
+    "mode": "RGB",
+    "metadata_keys": []
+  },
+  "output": {
+    "path": "site/assets/ais-science-map-v2-lines.lossless.webp",
+    "bytes": 2306222,
+    "sha256": "85871b10996520bdfa8ec4d8217d7e945d758c49ce62a140d18325a66c99a46e",
+    "format": "WebP lossless"
+  },
+  "verification": {
+    "width": 1536,
+    "height": 1024,
+    "decoded_format": "RGBA, 8 bits per channel, row-major order",
+    "source_rgba_sha256": "7ce383c4790291cc6ef31817161b10b61ab86bc1d346ccf8ba8952493a01865a",
+    "output_rgba_sha256": "7ce383c4790291cc6ef31817161b10b61ab86bc1d346ccf8ba8952493a01865a",
+    "dimensions_identical": true,
+    "pixels_identical": true,
+    "source_preserved": true,
+    "preserved_metadata_keys": []
+  },
+  "bytes_saved": 1196944,
+  "percent_smaller": 34.17,
+  "encoder": {
+    "pillow": "12.3.0",
+    "libwebp": "1.6.0",
+    "settings": {
+      "lossless": true,
+      "quality": 100,
+      "method": 6,
+      "exact": true
+    }
+  },
+  "reproduce": "python3 scripts/optimize-home-map.py (requires Pillow with WebP support)"
+}

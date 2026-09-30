@@ -1,0 +1,163 @@
+{
+  "schema_version": "3.0.0",
+  "renderer_contract": {"name": "render-payload-dashboard", "version": "3.0.0", "strict": true},
+  "report": {
+    "title": "季度销售概览",
+    "subtitle": "通用中文页面示例",
+    "summary": "展示上游已经计算完成的月度收入和目标值。",
+    "claim": "网页严格展示 payload 声明的数据和画图方式。",
+    "final_verdict": "示例数据仅用于验证中文页面与通用主题。"
+  },
+  "run": {"id": "sales-run", "label": "季度汇总", "status": "complete"},
+  "dataset": {
+    "id": "monthly-sales",
+    "title": "月度销售汇总",
+    "description": "用于渲染验证的虚构汇总数据。",
+    "row_count": 3,
+    "feature_count": 3
+  },
+  "provenance": {
+    "generator": {"name": "sales-summary-example", "version": "1.0.0"},
+    "inputs": [{"id": "synthetic-sales", "kind": "dataset", "description": "虚构的月度汇总值。"}]
+  },
+  "theme": {
+    "name": "generic",
+    "mode": "light",
+    "palette": "colorblind-safe",
+    "density": "compact",
+    "tokens": {
+      "accent": "#146C94",
+      "accent_contrast": "#FFFFFF",
+      "background": "#F5F7FA",
+      "surface": "#FFFFFF",
+      "surface_muted": "#EEF3F7",
+      "text": "#17212B",
+      "muted_text": "#566575",
+      "border": "#CCD6E0",
+      "radius": 8,
+      "max_width": 1280
+    }
+  },
+  "presentation": {
+    "locale": "zh-CN",
+    "section_prefix": "步骤",
+    "show_section_numbers": true,
+    "show_figure_titles": true,
+    "show_figure_descriptions": true,
+    "show_coverage": true,
+    "show_build_footer": true,
+    "labels": {
+      "fold_all": "全部收起",
+      "unfold_all": "全部展开",
+      "report_claim": "报告结论",
+      "coverage": "内容导航",
+      "concepts_used": "使用概念",
+      "reports": "报告内容",
+      "minimises": "降低风险",
+      "uses": "使用输入",
+      "produces": "产生结果",
+      "note": "说明",
+      "top": "返回顶部",
+      "javascript_required": "需要启用 JavaScript 才能显示图表。",
+      "standalone_package": "离线单文件报告",
+      "schema": "数据规范",
+      "figures": "图表",
+      "seed": "随机种子",
+      "payload_sha256": "Payload 校验值",
+      "renderer": "渲染器",
+      "reset": "重置",
+      "status_pass": "通过",
+      "status_warn": "警告",
+      "status_fail": "失败",
+      "status_not_applicable": "不适用"
+    }
+  },
+  "data": [
+    {
+      "id": "revenue-series",
+      "semantic_type": "sales.monthly-revenue",
+      "title": "月度收入",
+      "fields": [
+        {"name": "month", "type": "string", "role": "dimension", "label": "月份"},
+        {"name": "revenue", "type": "number", "role": "measure", "label": "收入", "unit": "万元"},
+        {"name": "target", "type": "number", "role": "measure", "label": "目标", "unit": "万元"}
+      ],
+      "storage": {
+        "kind": "inline",
+        "format": "rows",
+        "rows": [
+          {"month": "一月", "revenue": 86, "target": 90},
+          {"month": "二月", "revenue": 94, "target": 92},
+          {"month": "三月", "revenue": 103, "target": 96}
+        ]
+      }
+    }
+  ],
+  "sections": [
+    {
+      "id": "monthly-overview",
+      "number": 1,
+      "title": "月度趋势",
+      "short_label": "趋势",
+      "concepts": ["收入与目标使用相同数值尺度进行比较。"],
+      "summary": "折线和散点使用同一份声明数据。",
+      "figure_ids": ["revenue-trend"],
+      "findings": ["三月的示例收入高于声明目标。"],
+      "method_notes": [
+        {"kind": "uses", "label": "输入", "text": "上游生成的月度聚合数据。"},
+        {"kind": "produces", "label": "输出", "text": "收入趋势与目标参照线。"}
+      ],
+      "initial_state": "open"
+    }
+  ],
+  "figures": [
+    {
+      "id": "revenue-trend",
+      "title": "收入与目标",
+      "description": "收入使用折线与散点，目标使用另一条声明折线。",
+      "caption": "单位：万元。",
+      "recipe": "generic.figure@1",
+      "layout": {"type": "single", "columns": 1, "gap": 16},
+      "panels": [
+        {
+          "id": "monthly-lines",
+          "title": "月度收入趋势",
+          "data_ref": "revenue-series",
+          "coordinate": {"type": "cartesian"},
+          "layers": [
+            {
+              "id": "revenue-line",
+              "mark": {"type": "line", "stroke_width": 3},
+              "encoding": {
+                "x": {"field": "month", "type": "ordinal", "axis": {"title": "月份"}},
+                "y": {"field": "revenue", "type": "quantitative", "axis": {"title": "收入（万元）", "grid": true}},
+                "color": {"value": "revenue", "type": "nominal", "scale_role": "semantic"},
+                "tooltip": {"field": "revenue", "type": "quantitative", "title": "收入"}
+              }
+            },
+            {
+              "id": "revenue-points",
+              "mark": {"type": "point", "point_size": 52},
+              "encoding": {
+                "x": {"field": "month", "type": "ordinal"},
+                "y": {"field": "revenue", "type": "quantitative"},
+                "color": {"value": "revenue", "type": "nominal", "scale_role": "semantic"},
+                "tooltip": {"field": "month", "type": "nominal", "title": "月份"}
+              }
+            },
+            {
+              "id": "target-line",
+              "mark": {"type": "line", "role": "reference", "stroke_width": 2},
+              "encoding": {
+                "x": {"field": "month", "type": "ordinal"},
+                "y": {"field": "target", "type": "quantitative"},
+                "color": {"value": "target", "type": "nominal", "scale_role": "semantic"},
+                "tooltip": {"field": "target", "type": "quantitative", "title": "目标"}
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

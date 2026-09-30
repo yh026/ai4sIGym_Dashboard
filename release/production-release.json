@@ -1,0 +1,684 @@
+{
+  "schema": 1,
+  "archive": {
+    "path": "production-release.tar.gz",
+    "sha256": "fe5ec225805e4d422d9f0dec43d41c4e64f1924b9916bbb50604d30603a77bb8"
+  },
+  "source": {
+    "verified": true,
+    "commit_ref": "6a56afde35bb966255350d9108d51213b4e7438e",
+    "registry_revision": "sha256:725f60dde65b3d72b82dcd59a1ae1fa82b9f11ac37ea007fe4a9f86489694355",
+    "deploy_id": "6abcd9a85bfd9b000843743b",
+    "receipt_sha256": "7b947ddee67735095ba2d1f2948494785cefd6ec2c7401e04fc4633f93749f1b",
+    "site_id": "2fe21bb6-70b5-47c6-a810-18f6bd8f4973",
+    "build_id": "6abcd9a8095a5e766bf6986d",
+    "registry_instance": "ais-backend-sandbox-20260923"
+  },
+  "demo_slugs": [
+    "air-quality-day-segment-pca-and-amp-umap-by-sensor",
+    "alzheimer-s-gene-co-expression-explorer",
+    "battery-curve-shape-explorer",
+    "ceemdan-battery-forecasting",
+    "from-twelve-thousand-numbers-to-a-codebook",
+    "from-twenty-thousand-genes-to-fourteen-cell-types",
+    "galaxy2-does-rotation-augmentation-help",
+    "jae-joint-embedding-how-one-cell-becomes-61-numbers",
+    "pleiades-membership-explorer",
+    "singapore-road-speed-clusters-umap",
+    "soh-battery",
+    "superconductor-regression-explorer",
+    "tbb-cluster-explorer-2"
+  ],
+  "files": [
+    {
+      "path": "assets/ais-science-map-v2-lines.lossless.webp",
+      "size": 2306222,
+      "sha256": "85871b10996520bdfa8ec4d8217d7e945d758c49ce62a140d18325a66c99a46e"
+    },
+    {
+      "path": "assets/ais-science-map-v2-lines.png",
+      "size": 3503166,
+      "sha256": "2d182cc22436c381297d7906001180c4de63a00464298306e6441a6060c44ace"
+    },
+    {
+      "path": "assets/cards/air-quality-day-segment-pca-and-amp-umap-by-sensor.jpg",
+      "size": 367498,
+      "sha256": "f2bbf5b4b3be4651f82259224f97051b08cdc9305e3ed16396f9c347c7687200"
+    },
+    {
+      "path": "assets/cards/alzheimer-s-gene-co-expression-explorer.jpg",
+      "size": 310086,
+      "sha256": "a7cbdd0e58a3db6c38148a9120cf88595270ae964bb120b9cd217fe390098765"
+    },
+    {
+      "path": "assets/cards/battery-curve-shape-explorer.jpg",
+      "size": 37519,
+      "sha256": "3fc8d15fb7897919592db7181feed01a0905fa151d3f792eedae3b49e5dd6494"
+    },
+    {
+      "path": "assets/cards/ceemdan-battery-forecasting.jpg",
+      "size": 271965,
+      "sha256": "4dfb9bb882e39a960933bb52d7f51dd5bbafd15d9ea0a08bf53956725b77c2e6"
+    },
+    {
+      "path": "assets/cards/from-twelve-thousand-numbers-to-a-codebook.jpg",
+      "size": 285580,
+      "sha256": "dd08f7153e2b0319b9dc1510e34f3a435be8715f7270fefc073fbe03bb3efe0b"
+    },
+    {
+      "path": "assets/cards/from-twenty-thousand-genes-to-fourteen-cell-types.jpg",
+      "size": 285703,
+      "sha256": "3f2ed72eefd2bd672f0b5050397d7666772271a1b61c6d2df9f686377cb9845c"
+    },
+    {
+      "path": "assets/cards/galaxy2-does-rotation-augmentation-help.jpg",
+      "size": 234128,
+      "sha256": "6ee7564ac67474f49c5430854bf1ed79354b8331c2bb194bad42c73d051fe6cd"
+    },
+    {
+      "path": "assets/cards/jae-joint-embedding-how-one-cell-becomes-61-numbers.jpg",
+      "size": 159017,
+      "sha256": "78971ecd6a3aac97cb96068e7c81af087cf59462002a4bcb7bb326ed866b1a5a"
+    },
+    {
+      "path": "assets/cards/pleiades-membership-explorer.jpg",
+      "size": 231812,
+      "sha256": "f68fe028fec66c4b7fb3e67537041162ed4254f66ed01bb99b3910a0fc1b1f29"
+    },
+    {
+      "path": "assets/cards/singapore-road-speed-clusters-umap.jpg",
+      "size": 393228,
+      "sha256": "a1c83b7257eca9ee9a834d01c2c3a1d7ab45d1a63809df7789e018bba674e3ee"
+    },
+    {
+      "path": "assets/cards/soh-battery.jpg",
+      "size": 186125,
+      "sha256": "abbef4d820b1f33d4a7ee5922857ce46e15d6ea51d1cc568553f61e3f92e393d"
+    },
+    {
+      "path": "assets/cards/superconductor-regression-explorer.jpg",
+      "size": 366043,
+      "sha256": "3a11c25c9cac115d54a8f335e3f00af4b4b907531b47a7d47892e6e9006cfbcf"
+    },
+    {
+      "path": "assets/cards/tbb-cluster-explorer-2.jpg",
+      "size": 351340,
+      "sha256": "71185bbd29bdd6997ba7b95f008b6bdc865287c7c11132b49b56425c0f962b63"
+    },
+    {
+      "path": "assets/embedded/009aed3a229b2428f13fd33f08c868039082df7930b4171587c3bcc36c44b2ff.png",
+      "size": 70484,
+      "sha256": "009aed3a229b2428f13fd33f08c868039082df7930b4171587c3bcc36c44b2ff"
+    },
+    {
+      "path": "assets/embedded/048c82065831a8e2210c090d3e43a67341da90259e052449047d4ac3dd5cf018.png",
+      "size": 80766,
+      "sha256": "048c82065831a8e2210c090d3e43a67341da90259e052449047d4ac3dd5cf018"
+    },
+    {
+      "path": "assets/embedded/09517b1ce225f27ddb9f29868d8cb15f6012b2bd3f68ccfa774bf6f6323cb019.png",
+      "size": 99929,
+      "sha256": "09517b1ce225f27ddb9f29868d8cb15f6012b2bd3f68ccfa774bf6f6323cb019"
+    },
+    {
+      "path": "assets/embedded/11263a3b3ef75d40e986c662c12280dbbde9e687bebd4f260fff774d42f9c31b.webp",
+      "size": 1282284,
+      "sha256": "11263a3b3ef75d40e986c662c12280dbbde9e687bebd4f260fff774d42f9c31b"
+    },
+    {
+      "path": "assets/embedded/1d3e1b9304d166aa16fea7633f9a8f2b645b879656308b30d6fa8c4fa93323e6.png",
+      "size": 26989,
+      "sha256": "1d3e1b9304d166aa16fea7633f9a8f2b645b879656308b30d6fa8c4fa93323e6"
+    },
+    {
+      "path": "assets/embedded/1d8fd9dc73899d2663c6a0957a6f6dd666ad858c0cdff221914018f7fe23498e.png",
+      "size": 69667,
+      "sha256": "1d8fd9dc73899d2663c6a0957a6f6dd666ad858c0cdff221914018f7fe23498e"
+    },
+    {
+      "path": "assets/embedded/1e2eee3d609d36725ed43d910f65bd5189a5adf0b30073ac99fe9ed450eadaa7.png",
+      "size": 18955,
+      "sha256": "1e2eee3d609d36725ed43d910f65bd5189a5adf0b30073ac99fe9ed450eadaa7"
+    },
+    {
+      "path": "assets/embedded/2550383a1cd1c1b348d80807087c9c3b57daaff789b932bcaf2a2472b54d0dcc.jpg",
+      "size": 480860,
+      "sha256": "2550383a1cd1c1b348d80807087c9c3b57daaff789b932bcaf2a2472b54d0dcc"
+    },
+    {
+      "path": "assets/embedded/2707ca57a3f48f59a52c9a5709985a48da9aabe2618d708aae575b44cf5954b5.png",
+      "size": 100603,
+      "sha256": "2707ca57a3f48f59a52c9a5709985a48da9aabe2618d708aae575b44cf5954b5"
+    },
+    {
+      "path": "assets/embedded/3346ac3dd4cad3b5da69ecce04d42e132171ced3eec98759da5d26fb1f333902.png",
+      "size": 69217,
+      "sha256": "3346ac3dd4cad3b5da69ecce04d42e132171ced3eec98759da5d26fb1f333902"
+    },
+    {
+      "path": "assets/embedded/4c36c504b44cd528d3b71a99fe3e097be80610feb5b45586a3d6e070f9036421.png",
+      "size": 101073,
+      "sha256": "4c36c504b44cd528d3b71a99fe3e097be80610feb5b45586a3d6e070f9036421"
+    },
+    {
+      "path": "assets/embedded/62c289d5219b9533fab9a6548fa9bd569bb418c9af4acc47432d018518833ecf.jpg",
+      "size": 776266,
+      "sha256": "62c289d5219b9533fab9a6548fa9bd569bb418c9af4acc47432d018518833ecf"
+    },
+    {
+      "path": "assets/embedded/63dcf8bb6aa93a29de18c9b8c412525ac801325e6237aa6f728909fb984b3c55.png",
+      "size": 39679,
+      "sha256": "63dcf8bb6aa93a29de18c9b8c412525ac801325e6237aa6f728909fb984b3c55"
+    },
+    {
+      "path": "assets/embedded/818d858c270b4f306839a45ea43ed32a0e8a20553011f5bc9f948cd78a5a84fb.jpg",
+      "size": 153022,
+      "sha256": "818d858c270b4f306839a45ea43ed32a0e8a20553011f5bc9f948cd78a5a84fb"
+    },
+    {
+      "path": "assets/embedded/89ffb75f086a6b8bf13b97335b5521f09f7c175e022efa993dce1c7bea6647e3.png",
+      "size": 46427,
+      "sha256": "89ffb75f086a6b8bf13b97335b5521f09f7c175e022efa993dce1c7bea6647e3"
+    },
+    {
+      "path": "assets/embedded/910aa62466f7ab54413cd6e5351661e543dc10e92cb4d582c2790748e040e417.png",
+      "size": 26352,
+      "sha256": "910aa62466f7ab54413cd6e5351661e543dc10e92cb4d582c2790748e040e417"
+    },
+    {
+      "path": "assets/embedded/9f1d237d1c8ff366fe604441277d58da4a5a302403fff646a8743660edbef096.png",
+      "size": 5300,
+      "sha256": "9f1d237d1c8ff366fe604441277d58da4a5a302403fff646a8743660edbef096"
+    },
+    {
+      "path": "assets/embedded/b236f6a15c4b0413407ac15a4a939b752226b1ddfa935fc1ec960a452249ff22.png",
+      "size": 41274,
+      "sha256": "b236f6a15c4b0413407ac15a4a939b752226b1ddfa935fc1ec960a452249ff22"
+    },
+    {
+      "path": "assets/embedded/c9c68baf693a29b3bd6df6f4a3fc8cdf2131c77361e034a01d3192df4d66e667.png",
+      "size": 95248,
+      "sha256": "c9c68baf693a29b3bd6df6f4a3fc8cdf2131c77361e034a01d3192df4d66e667"
+    },
+    {
+      "path": "assets/embedded/ccbc4010f62ef184d9d9df5df58b4c69dce637753ce1d38b0e8b67ef5391abd2.jpg",
+      "size": 3243085,
+      "sha256": "ccbc4010f62ef184d9d9df5df58b4c69dce637753ce1d38b0e8b67ef5391abd2"
+    },
+    {
+      "path": "assets/embedded/d58d33abc1026d87e1a479853677713b335752110c717be2652b4919c7af3256.webp",
+      "size": 651006,
+      "sha256": "d58d33abc1026d87e1a479853677713b335752110c717be2652b4919c7af3256"
+    },
+    {
+      "path": "assets/embedded/db6842136a8c4d62b22e20727fe3deca97c7f538e96ac3ab56a6231413a80818.png",
+      "size": 18000,
+      "sha256": "db6842136a8c4d62b22e20727fe3deca97c7f538e96ac3ab56a6231413a80818"
+    },
+    {
+      "path": "assets/embedded/e6ff4429e5ccc79e2cd7ddd599be9c41308b2dc68782865c53463d35cea0b147.png",
+      "size": 25704,
+      "sha256": "e6ff4429e5ccc79e2cd7ddd599be9c41308b2dc68782865c53463d35cea0b147"
+    },
+    {
+      "path": "assets/embedded/ed37ab9c16e4ad773882a589d781881c02456f9f5ee91b0b8b44041eb5e5efb2.jpg",
+      "size": 137826,
+      "sha256": "ed37ab9c16e4ad773882a589d781881c02456f9f5ee91b0b8b44041eb5e5efb2"
+    },
+    {
+      "path": "assets/optimized/3a11c25c9cac115d54a8f335e3f00af4b4b907531b47a7d47892e6e9006cfbcf.jpg",
+      "size": 366043,
+      "sha256": "3a11c25c9cac115d54a8f335e3f00af4b4b907531b47a7d47892e6e9006cfbcf"
+    },
+    {
+      "path": "assets/optimized/3f2ed72eefd2bd672f0b5050397d7666772271a1b61c6d2df9f686377cb9845c.jpg",
+      "size": 285703,
+      "sha256": "3f2ed72eefd2bd672f0b5050397d7666772271a1b61c6d2df9f686377cb9845c"
+    },
+    {
+      "path": "assets/optimized/3fc8d15fb7897919592db7181feed01a0905fa151d3f792eedae3b49e5dd6494.jpg",
+      "size": 37519,
+      "sha256": "3fc8d15fb7897919592db7181feed01a0905fa151d3f792eedae3b49e5dd6494"
+    },
+    {
+      "path": "assets/optimized/4dfb9bb882e39a960933bb52d7f51dd5bbafd15d9ea0a08bf53956725b77c2e6.jpg",
+      "size": 271965,
+      "sha256": "4dfb9bb882e39a960933bb52d7f51dd5bbafd15d9ea0a08bf53956725b77c2e6"
+    },
+    {
+      "path": "assets/optimized/6ee7564ac67474f49c5430854bf1ed79354b8331c2bb194bad42c73d051fe6cd.jpg",
+      "size": 234128,
+      "sha256": "6ee7564ac67474f49c5430854bf1ed79354b8331c2bb194bad42c73d051fe6cd"
+    },
+    {
+      "path": "assets/optimized/71185bbd29bdd6997ba7b95f008b6bdc865287c7c11132b49b56425c0f962b63.jpg",
+      "size": 351340,
+      "sha256": "71185bbd29bdd6997ba7b95f008b6bdc865287c7c11132b49b56425c0f962b63"
+    },
+    {
+      "path": "assets/optimized/78971ecd6a3aac97cb96068e7c81af087cf59462002a4bcb7bb326ed866b1a5a.jpg",
+      "size": 159017,
+      "sha256": "78971ecd6a3aac97cb96068e7c81af087cf59462002a4bcb7bb326ed866b1a5a"
+    },
+    {
+      "path": "assets/optimized/85871b10996520bdfa8ec4d8217d7e945d758c49ce62a140d18325a66c99a46e.webp",
+      "size": 2306222,
+      "sha256": "85871b10996520bdfa8ec4d8217d7e945d758c49ce62a140d18325a66c99a46e"
+    },
+    {
+      "path": "assets/optimized/a1c83b7257eca9ee9a834d01c2c3a1d7ab45d1a63809df7789e018bba674e3ee.jpg",
+      "size": 393228,
+      "sha256": "a1c83b7257eca9ee9a834d01c2c3a1d7ab45d1a63809df7789e018bba674e3ee"
+    },
+    {
+      "path": "assets/optimized/a7cbdd0e58a3db6c38148a9120cf88595270ae964bb120b9cd217fe390098765.jpg",
+      "size": 310086,
+      "sha256": "a7cbdd0e58a3db6c38148a9120cf88595270ae964bb120b9cd217fe390098765"
+    },
+    {
+      "path": "assets/optimized/abbef4d820b1f33d4a7ee5922857ce46e15d6ea51d1cc568553f61e3f92e393d.jpg",
+      "size": 186125,
+      "sha256": "abbef4d820b1f33d4a7ee5922857ce46e15d6ea51d1cc568553f61e3f92e393d"
+    },
+    {
+      "path": "assets/optimized/dd08f7153e2b0319b9dc1510e34f3a435be8715f7270fefc073fbe03bb3efe0b.jpg",
+      "size": 285580,
+      "sha256": "dd08f7153e2b0319b9dc1510e34f3a435be8715f7270fefc073fbe03bb3efe0b"
+    },
+    {
+      "path": "assets/optimized/f2bbf5b4b3be4651f82259224f97051b08cdc9305e3ed16396f9c347c7687200.jpg",
+      "size": 367498,
+      "sha256": "f2bbf5b4b3be4651f82259224f97051b08cdc9305e3ed16396f9c347c7687200"
+    },
+    {
+      "path": "assets/optimized/f68fe028fec66c4b7fb3e67537041162ed4254f66ed01bb99b3910a0fc1b1f29.jpg",
+      "size": 231812,
+      "sha256": "f68fe028fec66c4b7fb3e67537041162ed4254f66ed01bb99b3910a0fc1b1f29"
+    },
+    {
+      "path": "assets/previews/air-quality-day-segment-pca-and-amp-umap-by-sensor.jpg",
+      "size": 124245,
+      "sha256": "83eb94134ec189f9795fc59dd02175d257b186b931412f6ad64ba5c28d2bc91d"
+    },
+    {
+      "path": "assets/previews/alzheimer-s-gene-co-expression-explorer.jpg",
+      "size": 107290,
+      "sha256": "fd0a162de796b3f094d1b9adc89c59afcfdb0678612854284dba0e96c5fdec61"
+    },
+    {
+      "path": "assets/previews/ceemdan-battery-forecasting.jpg",
+      "size": 34587,
+      "sha256": "3903b37bc1dbfd1df247f3aea3d5d97ba9d302afade3d2fbdcae247977d0369e"
+    },
+    {
+      "path": "assets/previews/forest-microclimate-does-canopy-buffer-the-day.jpg",
+      "size": 47739,
+      "sha256": "c9a63ed75d8922e4109e388a2beff4b0c946055cb5eaa2544d620191d8445c29"
+    },
+    {
+      "path": "assets/previews/from-twelve-thousand-numbers-to-a-codebook.jpg",
+      "size": 149454,
+      "sha256": "7f989cf3d81dfa74458aea4c34c268d5b2990d8057fd9d68019d16f4c5142684"
+    },
+    {
+      "path": "assets/previews/from-twenty-thousand-genes-to-fourteen-cell-types.jpg",
+      "size": 99572,
+      "sha256": "d85765ee9cd9fcb90bfb2a4939f656523dea192d952530c528ae892e7cd68a8c"
+    },
+    {
+      "path": "assets/previews/galaxy2-does-rotation-augmentation-help.jpg",
+      "size": 123671,
+      "sha256": "ba56c6e44916fb3bd5ceec768b84712342f488dafae6fa62735ffb5cf9fabbfb"
+    },
+    {
+      "path": "assets/previews/jae-joint-embedding-how-one-cell-becomes-61-numbers.jpg",
+      "size": 151702,
+      "sha256": "84fece480a06af5b495cd9cf69a332880e07d0533b0c97ee626fc03282d4d5ef"
+    },
+    {
+      "path": "assets/previews/jae-regularisation-lab-what-each-loss-actually-does.jpg",
+      "size": 31987,
+      "sha256": "54664a5e9be4e0210fcdae5c0a2cf5faa68fe855af6ea28a08d10b3fcf5d857a"
+    },
+    {
+      "path": "assets/previews/pleiades-membership-explorer.jpg",
+      "size": 65073,
+      "sha256": "fd4d2aa28efeea288b326d45843fb5b9a033aba479fd7859b5779ccae8b263a6"
+    },
+    {
+      "path": "assets/previews/singapore-road-speed-clusters-umap.jpg",
+      "size": 34245,
+      "sha256": "d093c432ba6e9bd48cec10deba7d078675547e118158df2a5d975a666583394e"
+    },
+    {
+      "path": "assets/previews/soh-battery.jpg",
+      "size": 39789,
+      "sha256": "efee515edce6502efa2f19d8601961133d1e5ccde30906b109999344cd72e7a2"
+    },
+    {
+      "path": "assets/previews/superconductor-regression-explorer.jpg",
+      "size": 70962,
+      "sha256": "c613540915ffb3db601c6524f4368fe89e3b0b8513336b1d8023f2d32d40fccd"
+    },
+    {
+      "path": "assets/previews/tbb-cluster-explorer.jpg",
+      "size": 36657,
+      "sha256": "e8e2c08632963f4e9a180fa6a9f1a50b6f8b14ad159da701d45d3f489d6d7adc"
+    },
+    {
+      "path": "assets/runtime/74a28279cc8c43884190ce0175d64c40a570bb426f58994b963bfdbd50ce3b5e.css",
+      "size": 92617,
+      "sha256": "74a28279cc8c43884190ce0175d64c40a570bb426f58994b963bfdbd50ce3b5e"
+    },
+    {
+      "path": "assets/runtime/8aa04ef572442fe8fbdd5489e2c4d39087e87f47ee0c5b219f05beb4cb2ae2cc.js",
+      "size": 50232,
+      "sha256": "8aa04ef572442fe8fbdd5489e2c4d39087e87f47ee0c5b219f05beb4cb2ae2cc"
+    },
+    {
+      "path": "assets/runtime/8f546e5c891889fc74f34b2c2cc733a04d5da8a14aed8263cad2c1b931a59773.js",
+      "size": 42164,
+      "sha256": "8f546e5c891889fc74f34b2c2cc733a04d5da8a14aed8263cad2c1b931a59773"
+    },
+    {
+      "path": "assets/runtime/9e722dd7e402fc0eaaea700d86f2f26bd5cb1f2683de849be1eda2967ac2dd6a.css",
+      "size": 94296,
+      "sha256": "9e722dd7e402fc0eaaea700d86f2f26bd5cb1f2683de849be1eda2967ac2dd6a"
+    },
+    {
+      "path": "assets/runtime/b59a5e70083fab63d3d97c580539ca144547f8e45bcc3447e3dcba8f62b147ad.js",
+      "size": 82342,
+      "sha256": "b59a5e70083fab63d3d97c580539ca144547f8e45bcc3447e3dcba8f62b147ad"
+    },
+    {
+      "path": "assets/runtime/c4499890c2c5a73943b6c24884d1540c09b4a67ea5e9553a6578932cacce2200.js",
+      "size": 50221,
+      "sha256": "c4499890c2c5a73943b6c24884d1540c09b4a67ea5e9553a6578932cacce2200"
+    },
+    {
+      "path": "assets/runtime/f0631e74d84e9887c4d8c3627c5b18597e795608c37e6afda6d7c90837ce6a95.js",
+      "size": 42267,
+      "sha256": "f0631e74d84e9887c4d8c3627c5b18597e795608c37e6afda6d7c90837ce6a95"
+    },
+    {
+      "path": "datasets/gse1297-hippocampus/index.html",
+      "size": 3210760,
+      "sha256": "2976c8e9509bd2c32dcbc10d3c74da3d549bfe216b84623524d9fb783fae0e0f"
+    },
+    {
+      "path": "datasets/gse84133-human-pancreas/index.html",
+      "size": 4994695,
+      "sha256": "31bc92c622176e874243ce398ce34877c7ce4d08c6bcb4dfbd5c129240ba3386"
+    },
+    {
+      "path": "datasets/himawari-9-ahi/index.html",
+      "size": 2546764,
+      "sha256": "37eff54c6d674a3f6859f58602cd4e120f3d7746c4567cb2b21e709bf75d354e"
+    },
+    {
+      "path": "demos/air-quality-day-segment-pca-and-amp-umap-by-sensor/index.html",
+      "size": 437891,
+      "sha256": "f3496e450c7b18c9e264d6d05592b2d261309117063ee255c1262ec0dc77c32e"
+    },
+    {
+      "path": "demos/alzheimer-s-gene-co-expression-explorer/index.html",
+      "size": 1977623,
+      "sha256": "44cf69e097409358b25141b65bfc4d051b9a1665d6c989fa37a59b2f60f1683e"
+    },
+    {
+      "path": "demos/alzheimer-s-gene-co-expression-explorer/workflow.html",
+      "size": 1985708,
+      "sha256": "969169d7cb0ec4b11dbd842bec79597d33580733f5a607f0d9308c4e82387a59"
+    },
+    {
+      "path": "demos/battery-curve-shape-explorer/dataset.html",
+      "size": 963992,
+      "sha256": "506e82d6f24664417a00e47c7586253166fb0365bedd5da85118b4e84203312b"
+    },
+    {
+      "path": "demos/battery-curve-shape-explorer/index.html",
+      "size": 795538,
+      "sha256": "1105f187daa5bd95dbc543d6ac166189a991329e0540c18b19e0b4e45029f2a4"
+    },
+    {
+      "path": "demos/battery-curve-shape-explorer/workflow.html",
+      "size": 1276080,
+      "sha256": "9d010bee7cbb7be4892a9699aa655bac306613268b5105481e1ce0fe09c8cf9a"
+    },
+    {
+      "path": "demos/ceemdan-battery-forecasting/dataset.html",
+      "size": 206737,
+      "sha256": "56c6c15f3f0aa1d6dc6d6695bb258bd92a057d7ed17f0a15c6f93c0eb1f3708a"
+    },
+    {
+      "path": "demos/ceemdan-battery-forecasting/index.html",
+      "size": 66341,
+      "sha256": "e73a5f9bc81a0e9e0386c87f786a3c52c217d60ddb7e930ff46d48d90487333b"
+    },
+    {
+      "path": "demos/ceemdan-battery-forecasting/workflow.html",
+      "size": 203822,
+      "sha256": "148b7f69b4bd6eb6b492aa1834962fd8a4c66f55b8e9d429063a173c50274e1d"
+    },
+    {
+      "path": "demos/from-twelve-thousand-numbers-to-a-codebook/dataset.html",
+      "size": 566142,
+      "sha256": "b468f2d833e965d64cca5090ea001add03633a690865cbddcddc0dcb08f135b8"
+    },
+    {
+      "path": "demos/from-twelve-thousand-numbers-to-a-codebook/index.html",
+      "size": 4054810,
+      "sha256": "1b92a0aed7df8802705dab3fe828e257aaf3de86a742de0f0f817bcdc74e553e"
+    },
+    {
+      "path": "demos/from-twelve-thousand-numbers-to-a-codebook/workflow.html",
+      "size": 6049998,
+      "sha256": "16701f3df5b1d79d35bb18cf0a2e44a696539f86104e9153f41644dff6d24fc2"
+    },
+    {
+      "path": "demos/from-twenty-thousand-genes-to-fourteen-cell-types/index.html",
+      "size": 2490679,
+      "sha256": "d517704d0dfdffe02cd089c426e7568e76c753fce9d6e54a449019153aea3480"
+    },
+    {
+      "path": "demos/from-twenty-thousand-genes-to-fourteen-cell-types/workflow.html",
+      "size": 2722909,
+      "sha256": "6a78646fcb1073764216cfbaa76c3b0d5223842fbe22a79a0efe64bac512625f"
+    },
+    {
+      "path": "demos/galaxy2-does-rotation-augmentation-help/dataset.html",
+      "size": 426240,
+      "sha256": "e1da7bd69d921351bb59f4dc24f37de1ce8a827473d5df8dad6bb3e60b5b3500"
+    },
+    {
+      "path": "demos/galaxy2-does-rotation-augmentation-help/index.html",
+      "size": 914635,
+      "sha256": "dc5736a5f8f40a70b8e3988c98585fe0baa3047c0c40d3492c6886693371c079"
+    },
+    {
+      "path": "demos/galaxy2-does-rotation-augmentation-help/workflow.html",
+      "size": 1193067,
+      "sha256": "22a81cc40a6788f60af4fd8e3c6bfed52d39a6a7bc71496c7a3f83a4c7102712"
+    },
+    {
+      "path": "demos/jae-joint-embedding-how-one-cell-becomes-61-numbers/dataset.html",
+      "size": 1204348,
+      "sha256": "e8795c37b4b74e0458f8dea90286e7e4381b3876c6fcaf6cc52b1f2e905e9576"
+    },
+    {
+      "path": "demos/jae-joint-embedding-how-one-cell-becomes-61-numbers/index.html",
+      "size": 621012,
+      "sha256": "b26259a648da0835e1a01d66ae62ca3f9e515587e7a7afa057aba44eebfc2107"
+    },
+    {
+      "path": "demos/jae-joint-embedding-how-one-cell-becomes-61-numbers/workflow.html",
+      "size": 2767637,
+      "sha256": "114a9d9c0774d126a92b880f3eea978db347b1f6857fa3ac3c2650af57d5524d"
+    },
+    {
+      "path": "demos/pleiades-membership-explorer/dataset.html",
+      "size": 1661259,
+      "sha256": "f5e94e0b06d9b3cbfa4e603109c70998a8a409dd2882e4b5bbc14d675c048861"
+    },
+    {
+      "path": "demos/pleiades-membership-explorer/index.html",
+      "size": 1154286,
+      "sha256": "4f7d925bea436434c9a028bf9ea83727c862abf1685c98f5647e7bbe2c6c0c6e"
+    },
+    {
+      "path": "demos/pleiades-membership-explorer/workflow.html",
+      "size": 6905288,
+      "sha256": "8f09f10368836c7f175542f8fd50b834fd413115477e95ec0af9f961011551f0"
+    },
+    {
+      "path": "demos/singapore-road-speed-clusters-umap/index.html",
+      "size": 8859736,
+      "sha256": "9a53bab0a48665fc636d3f3e10792d03ed84536f05eba14419ae0afba18b32a9"
+    },
+    {
+      "path": "demos/soh-battery/dataset.html",
+      "size": 505211,
+      "sha256": "650ec2388b189c707560ec923df57df20f03c8f4992b24bcd55df44dbc1406db"
+    },
+    {
+      "path": "demos/soh-battery/index.html",
+      "size": 252175,
+      "sha256": "da432822ff3b6849da1ed13d51acefe41980e472b3a1f49439973f6affafdc6a"
+    },
+    {
+      "path": "demos/soh-battery/workflow.html",
+      "size": 1119272,
+      "sha256": "36958f327918747904f13c23b32c2f38d857e234f3ed8a8b12539759f82998a1"
+    },
+    {
+      "path": "demos/superconductor-regression-explorer/dataset.html",
+      "size": 2995580,
+      "sha256": "b45d067f983c59032d7abf225544d5ba756f0d8a9fba3c50c1c30000ac69582d"
+    },
+    {
+      "path": "demos/superconductor-regression-explorer/index.html",
+      "size": 735810,
+      "sha256": "0c5f7a4a766358fb84cc170949df6a35eb9e6853d4573b6eeaacb17c2afc74be"
+    },
+    {
+      "path": "demos/superconductor-regression-explorer/workflow.html",
+      "size": 1693356,
+      "sha256": "1279e1eee551c54fb3df1f753dfac03ab7ab621ecd871d9022a5072ae360ad4f"
+    },
+    {
+      "path": "demos/tbb-cluster-explorer-2/index.html",
+      "size": 2584563,
+      "sha256": "9d43c2e69b427d43521c0bb62086df50293908c3a6447e4bc0ba6710169b7112"
+    },
+    {
+      "path": "demos/tbb-cluster-explorer-2/resources/aisgym.ipynb",
+      "size": 21632895,
+      "sha256": "a3c0def25a022be2b3a0708ad0f7d371093b68bfe70a7d57179f5b7735822c00"
+    },
+    {
+      "path": "demos/tbb-cluster-explorer-2/resources/skills/tbb-cluster-workflow-skill.zip",
+      "size": 4266,
+      "sha256": "3b584a1218504832467b3234693f4694b41c379b89afdd3e3b33f5095ed717f7"
+    },
+    {
+      "path": "demos/tbb-cluster-explorer-2/resources/skills/tbb-kmeans-skill.zip",
+      "size": 1674,
+      "sha256": "d6c98ec3aeb61ecf367ada1a3f74028139ad7d27bff975daafd6e69e4d10f80b"
+    },
+    {
+      "path": "demos/tbb-cluster-explorer-2/resources/skills/tbb-pca-skill.zip",
+      "size": 1528,
+      "sha256": "cde71536aa51b292a392659d61fe92238d962f924d15d35cd71a938ca136322e"
+    },
+    {
+      "path": "demos/tbb-cluster-explorer-2/resources/skills/tbb-tsne-skill.zip",
+      "size": 1661,
+      "sha256": "bc9312273bb28233fa7a2d7168795affbef4e21de0fc7dec492b31faf0a94951"
+    },
+    {
+      "path": "demos/tbb-cluster-explorer-2/resources/skills/tbb-umap-skill.zip",
+      "size": 1630,
+      "sha256": "ab0a08f2e2c42802797f8298e7715d3be20ca11230b2f95389803a842fa60aa7"
+    },
+    {
+      "path": "demos/tbb-cluster-explorer-2/resources/tbb-analysis-skills.zip",
+      "size": 6953,
+      "sha256": "24c0378f3163142861e3c18831f1a92ee7d53d8b252c52510f9cf1031b0442d7"
+    },
+    {
+      "path": "demos/tbb-cluster-explorer-2/resources/tbb-notebook.zip",
+      "size": 22314567,
+      "sha256": "4b1647c0da05a8389bebd06e50d1c127e2f952c2d4961790b7f1fbc81ace5936"
+    },
+    {
+      "path": "demos/tbb-cluster-explorer-2/workflow-resources.html",
+      "size": 3423169,
+      "sha256": "87c2dd748c3b928d4605315a98fbcb1d879f4734a3ab565e901ee7daf367dd9b"
+    },
+    {
+      "path": "demos/tbb-cluster-explorer-2/workflow.html",
+      "size": 3454487,
+      "sha256": "7b6c05d332d79822a319b1d9071136925557e52cd86d72117dc38fbd5b13a8e9"
+    },
+    {
+      "path": "domains/ai-mathematics-data/index.html",
+      "size": 54449,
+      "sha256": "7527c0f2b24cfd2c491e2496af2f6e6e9af9f539ac971ea2f09acfd8e6272112"
+    },
+    {
+      "path": "domains/biology-genomics/index.html",
+      "size": 54283,
+      "sha256": "4f1f7067b7f0a482e8c60e160e817b10751569b5f8ec444234bdc13c3a78bdc6"
+    },
+    {
+      "path": "domains/chemistry-materials/index.html",
+      "size": 54817,
+      "sha256": "988419fa5199a54842a7560eb2c7e1a5016ec27d05667996b915c28736554300"
+    },
+    {
+      "path": "domains/earth-climate/index.html",
+      "size": 563,
+      "sha256": "9846c90201bbce3c7780e7c5b9cb3761c6daac34e997753f7a29254f11dec657"
+    },
+    {
+      "path": "domains/food-science-technology/index.html",
+      "size": 48376,
+      "sha256": "90295e5ca6340751efa640dc30b6ca06d55d2a0e5aa1c5d2e78750fcef5744d7"
+    },
+    {
+      "path": "domains/mathematics/index.html",
+      "size": 48241,
+      "sha256": "17d63a36cd0d1a89ae18a1cca42040beef207c233cae63fcde055b93bc4514fe"
+    },
+    {
+      "path": "domains/pharmacy-biomedical/index.html",
+      "size": 48430,
+      "sha256": "12a4c2b287b737bb3c02d81cdbcc5d425d4f86281c1f27026f05ab028eba4008"
+    },
+    {
+      "path": "domains/physics-simulation/index.html",
+      "size": 518,
+      "sha256": "f34d58ed49cef1ce1094fd049b1499ea96ce2cbd3d68f7a33f8dd8c4248a48bf"
+    },
+    {
+      "path": "domains/space-astronomy/index.html",
+      "size": 57489,
+      "sha256": "95d0b1cf1c51781f18735dd0a529fad49a01fe8f719536ea2effb9d1b80be965"
+    },
+    {
+      "path": "index.html",
+      "size": 103314,
+      "sha256": "9cbb6a323d72c2bc4f9010b7b60c97e8ff80cc1c0aacdb5891dc4dba9a8b6776"
+    },
+    {
+      "path": "manifest.json",
+      "size": 47470,
+      "sha256": "991ffd8346219d3fcfe990c63f18279bfc9d5dcb9b71e38cea623bb513acc582"
+    },
+    {
+      "path": "performance-report.json",
+      "size": 53538,
+      "sha256": "16a9c38919be4f3b069ea14eed016f4303a1bdd7b3860106342bc18c878f2ea8"
+    }
+  ]
+}

@@ -1,0 +1,196 @@
+{
+  "schema_version": "3.0.0",
+  "renderer_contract": {
+    "name": "render-payload-dashboard",
+    "version": "3.0.0",
+    "strict": true
+  },
+  "report": {
+    "title": "Model validation composite",
+    "subtitle": "Payload v3 golden fixture",
+    "summary": "ROC, confusion, calibration, and learning-curve evidence are declared as one versioned recipe."
+  },
+  "run": {
+    "id": "golden-model-validation",
+    "label": "Payload v3 model-validation golden fixture",
+    "status": "complete",
+    "seed": 5102
+  },
+  "dataset": {
+    "id": "toy-binary-classification",
+    "title": "Toy binary classification cohort",
+    "description": "A compact deterministic dataset used only to exercise validation visuals.",
+    "row_count": 200,
+    "feature_count": 8,
+    "target": "class"
+  },
+  "provenance": {
+    "generator": {
+      "name": "payload-v3-fixture-author",
+      "version": "1.0.0"
+    },
+    "inputs": [
+      {
+        "id": "toy-binary-classification",
+        "kind": "dataset",
+        "description": "Synthetic values committed with the fixture."
+      },
+      {
+        "id": "toy-logistic-model",
+        "kind": "model",
+        "description": "A deterministic illustrative classifier."
+      }
+    ]
+  },
+  "theme": {
+    "name": "tess",
+    "mode": "light",
+    "palette": "colorblind-safe",
+    "density": "comfortable",
+    "semantic_colors": {
+      "train": "#2F6B8A",
+      "validation": "#D97941",
+      "positive": "#2E8B57",
+      "negative": "#8A8F98"
+    }
+  },
+  "data": [
+    {
+      "id": "validation-roc",
+      "semantic_type": "classification.roc",
+      "description": "Receiver operating characteristic coordinates.",
+      "fields": [
+        {"name": "fpr", "type": "number", "role": "measure", "label": "False-positive rate", "unit": "fraction"},
+        {"name": "tpr", "type": "number", "role": "measure", "label": "True-positive rate", "unit": "fraction"},
+        {"name": "model", "type": "string", "role": "label"}
+      ],
+      "storage": {
+        "kind": "inline",
+        "format": "rows",
+        "rows": [
+          {"fpr": 0.00, "tpr": 0.00, "model": "logistic"},
+          {"fpr": 0.08, "tpr": 0.54, "model": "logistic"},
+          {"fpr": 0.19, "tpr": 0.78, "model": "logistic"},
+          {"fpr": 0.42, "tpr": 0.92, "model": "logistic"},
+          {"fpr": 1.00, "tpr": 1.00, "model": "logistic"}
+        ]
+      }
+    },
+    {
+      "id": "validation-confusion",
+      "semantic_type": "classification.confusion-matrix",
+      "description": "Confusion counts in tidy form.",
+      "fields": [
+        {"name": "actual", "type": "string", "role": "dimension"},
+        {"name": "predicted", "type": "string", "role": "dimension"},
+        {"name": "count", "type": "integer", "role": "measure"}
+      ],
+      "storage": {
+        "kind": "inline",
+        "format": "rows",
+        "rows": [
+          {"actual": "negative", "predicted": "negative", "count": 78},
+          {"actual": "negative", "predicted": "positive", "count": 12},
+          {"actual": "positive", "predicted": "negative", "count": 18},
+          {"actual": "positive", "predicted": "positive", "count": 92}
+        ]
+      }
+    },
+    {
+      "id": "validation-calibration",
+      "semantic_type": "classification.calibration",
+      "description": "Mean predicted and observed positive frequency by probability bin.",
+      "fields": [
+        {"name": "predicted_probability", "type": "number", "role": "measure", "unit": "fraction"},
+        {"name": "observed_frequency", "type": "number", "role": "measure", "unit": "fraction"},
+        {"name": "model", "type": "string", "role": "label"}
+      ],
+      "storage": {
+        "kind": "inline",
+        "format": "rows",
+        "rows": [
+          {"predicted_probability": 0.10, "observed_frequency": 0.08, "model": "logistic"},
+          {"predicted_probability": 0.30, "observed_frequency": 0.27, "model": "logistic"},
+          {"predicted_probability": 0.50, "observed_frequency": 0.55, "model": "logistic"},
+          {"predicted_probability": 0.70, "observed_frequency": 0.73, "model": "logistic"},
+          {"predicted_probability": 0.90, "observed_frequency": 0.86, "model": "logistic"}
+        ]
+      }
+    },
+    {
+      "id": "validation-learning-curve",
+      "semantic_type": "classification.learning-curve",
+      "description": "Train and validation scores with deterministic uncertainty bands.",
+      "fields": [
+        {"name": "training_rows", "type": "integer", "role": "dimension"},
+        {"name": "score", "type": "number", "role": "measure", "unit": "fraction"},
+        {"name": "lower", "type": "number", "role": "uncertainty", "unit": "fraction"},
+        {"name": "upper", "type": "number", "role": "uncertainty", "unit": "fraction"},
+        {"name": "split", "type": "string", "role": "label"}
+      ],
+      "storage": {
+        "kind": "inline",
+        "format": "rows",
+        "rows": [
+          {"training_rows": 40, "score": 0.90, "lower": 0.87, "upper": 0.93, "split": "train"},
+          {"training_rows": 80, "score": 0.88, "lower": 0.85, "upper": 0.91, "split": "train"},
+          {"training_rows": 120, "score": 0.86, "lower": 0.84, "upper": 0.88, "split": "train"},
+          {"training_rows": 160, "score": 0.85, "lower": 0.83, "upper": 0.87, "split": "train"},
+          {"training_rows": 40, "score": 0.68, "lower": 0.62, "upper": 0.74, "split": "validation"},
+          {"training_rows": 80, "score": 0.74, "lower": 0.69, "upper": 0.79, "split": "validation"},
+          {"training_rows": 120, "score": 0.78, "lower": 0.74, "upper": 0.82, "split": "validation"},
+          {"training_rows": 160, "score": 0.80, "lower": 0.77, "upper": 0.83, "split": "validation"}
+        ]
+      }
+    }
+  ],
+  "sections": [
+    {
+      "id": "model-validation-section",
+      "title": "Held-out model validation",
+      "short_label": "Validation",
+      "summary": "Discrimination, error structure, calibration, and sample-size behavior are presented together.",
+      "narrative": ["The four panels are generated from a closed recipe registry; the payload supplies only typed bindings and precomputed values."],
+      "metrics": [
+        {"name": "held-out rows", "value": 200},
+        {"name": "accuracy", "value": 0.85, "unit": "fraction"}
+      ],
+      "checks": [
+        {"id": "held-out-only", "label": "Metrics computed on held-out rows", "result": "pass"}
+      ],
+      "caveats": ["The fixture values are illustrative and are not a model claim."],
+      "figure_ids": ["model-validation"],
+      "initial_state": "open"
+    }
+  ],
+  "figures": [
+    {
+      "id": "model-validation",
+      "title": "Model validation evidence",
+      "caption": "A recipe expands four typed data bindings into a deterministic 2 × 2 composite.",
+      "recipe": "model.validation@1",
+      "recipe_config": {
+        "bindings": {
+          "roc": {"data": "validation-roc", "fpr": "fpr", "tpr": "tpr", "series": "model"},
+          "confusion": {"data": "validation-confusion", "actual": "actual", "predicted": "predicted", "value": "count"},
+          "calibration": {"data": "validation-calibration", "predicted": "predicted_probability", "observed": "observed_frequency", "series": "model"},
+          "learning_curve": {"data": "validation-learning-curve", "size": "training_rows", "score": "score", "lower": "lower", "upper": "upper", "series": "split"}
+        },
+        "params": {}
+      },
+      "layout": {
+        "type": "grid",
+        "columns": 2,
+        "rows": 2,
+        "gap": 16
+      },
+      "panels": [],
+      "interactions": [
+        {"id": "roc-tooltip", "type": "tooltip", "targets": ["roc/roc-line"], "fields": ["model", "fpr", "tpr"], "mode": "nearest"},
+        {"id": "confusion-tooltip", "type": "tooltip", "targets": ["confusion-matrix/cells"], "fields": ["actual", "predicted", "count"], "mode": "nearest"},
+        {"id": "calibration-tooltip", "type": "tooltip", "targets": ["calibration/observed-points"], "fields": ["model", "predicted_probability", "observed_frequency"], "mode": "nearest"},
+        {"id": "learning-tooltip", "type": "tooltip", "targets": ["learning-curve/score-points"], "fields": ["split", "training_rows", "score"], "mode": "nearest"}
+      ]
+    }
+  ]
+}

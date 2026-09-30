@@ -1,0 +1,46 @@
+[
+  {
+    "feature": "pl_orbper",
+    "missing_fraction": 0.013836136733586543
+  },
+  {
+    "feature": "pl_trandurh",
+    "missing_fraction": 0.0
+  },
+  {
+    "feature": "pl_trandep",
+    "missing_fraction": 0.0
+  },
+  {
+    "feature": "pl_rade",
+    "missing_fraction": 0.06565382528486163
+  },
+  {
+    "feature": "pl_insol",
+    "missing_fraction": 0.021161150298426478
+  },
+  {
+    "feature": "st_tmag",
+    "missing_fraction": 0.0
+  },
+  {
+    "feature": "st_dist",
+    "missing_fraction": 0.0286218122626153
+  },
+  {
+    "feature": "st_teff",
+    "missing_fraction": 0.019533369506239826
+  },
+  {
+    "feature": "st_logg",
+    "missing_fraction": 0.11096039066739012
+  },
+  {
+    "feature": "st_rad",
+    "missing_fraction": 0.06565382528486163
+  },
+  {
+    "feature": "pm_total",
+    "missing_fraction": 0.017227346717308734
+  }
+]

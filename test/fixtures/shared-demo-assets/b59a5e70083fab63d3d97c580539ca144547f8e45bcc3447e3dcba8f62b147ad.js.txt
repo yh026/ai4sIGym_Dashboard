@@ -1,0 +1,1826 @@
+/* PC5251 panel: workflow DAG.
+   Owns the complete validated DAG component and the single routing/geometry
+   implementation. It consumes a workflow-steps array directly and keeps
+   PC.renderDag, PC.repaintDags and PC.dagTopo as aliases to that implementation. */
+
+(function (global) {
+  "use strict";
+
+  var suite = global.PC;
+  if (!suite || typeof suite.css !== "function" ||
+      typeof suite.debounce !== "function" ||
+      typeof suite.registerThemePainter !== "function") {
+    throw new Error("E-DAG-LIB-01: design/charts.js core must be loaded before dag_render.js");
+  }
+  var css = suite.css;
+  var debounce = suite.debounce;
+
+  /* Workflow DAG renderer and ROUTING_SPEC geometry publisher. */
+
+  var STAGE_TITLES = ["Preprocess", "Transform", "Model & train", "Evaluate"];
+  var SVG_NS = "http://www.w3.org/2000/svg";
+  var dags = [];                         // live figures, repainted on every theme change
+  var dagBound = false;
+
+  function hostOf(x) {
+    if (!x) return null;
+    if (typeof x !== "string") return x;
+    return /^[#.\[]/.test(x) ? document.querySelector(x) : document.getElementById(x);
+  }
+  function mk(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function svgMk(tag) { return document.createElementNS(SVG_NS, tag); }
+  function r1(v) { return Math.round(v * 10) / 10; }
+
+  /* ── extension ── Kahn's algorithm. The create() contract rejects cycles,
+     but if a caller uses the lower-level alias with hand-built workflow steps,
+     leftovers are appended in declaration order rather than dropped: a figure that
+     silently omits a step is worse than one that draws it out of order. ───── */
+  function dagTopo(steps) {
+    var order = [], needs = {}, indeg = {}, ready = [], done = [], i;
+    for (i = 0; i < steps.length; i++) {
+      order.push(steps[i].id);
+      needs[steps[i].id] = (steps[i].needs || []).slice();
+    }
+    order.forEach(function (id) { indeg[id] = needs[id].length; });
+    order.forEach(function (id) { if (!indeg[id]) ready.push(id); });
+    while (ready.length) {
+      var id = ready.shift();
+      done.push(id);
+      order.forEach(function (other) {
+        if (needs[other].indexOf(id) >= 0 && --indeg[other] === 0) ready.push(other);
+      });
+    }
+    order.forEach(function (id) { if (done.indexOf(id) < 0) done.push(id); });
+    return done;
+  }
+
+  /* The four column heads. `opts.segments` is the page's RIBBON array — the
+     stage name and the headline number the rollup already carries — so the
+     figure and its narrow fallback cannot say different things. `stageNames` /
+     `headlines` / `notes` override it per position for a page that has no
+     RIBBON to hand. */
+  function dagColumns(opts) {
+    var segs = opts.segments || [];
+    function seg(stage) {
+      for (var i = 0; i < segs.length; i++) {
+        if (Number(segs[i].stage) === stage) return segs[i];
+      }
+      return null;
+    }
+    return [1, 2, 3, 4].map(function (stage, i) {
+      var s = seg(stage);
+      var names = opts.stageNames || [], heads = opts.headlines || [], notes = opts.notes || [];
+      return {
+        stage: stage,
+        name: names[i] != null ? names[i] : (s && s.label != null ? s.label : STAGE_TITLES[i]),
+        head: heads[i] != null ? heads[i] : (s && s.value != null ? s.value : ""),
+        note: notes[i] != null ? notes[i] : (s && s.note != null ? s.note : "")
+      };
+    });
+  }
+
+  function dagHead(col) {
+    var h = mk("div", "dagcol-h");
+    h.appendChild(mk("span", "dagn", String(col.stage)));
+    h.appendChild(mk("span", "dagl", String(col.name)));
+    h.appendChild(mk("span", "dagv", col.head === "" ? "—" : String(col.head)));
+    if (col.note !== "" && col.note != null) h.appendChild(mk("span", "dagnote", String(col.note)));
+    return h;
+  }
+
+  /* The narrow fallback IS the old rollup: same .ribbon markup, same
+     stylesheet block (components.css § 3), so nothing new has to be designed
+     for the small screen and the two can never disagree. Both halves live in
+     the DOM at once and one media query decides which is displayed — a
+     display:none subtree is hidden from assistive tech too, so the figure is
+     never announced twice. */
+  function dagRollup(cols) {
+    var roll = mk("div", "ribbon dagroll");
+    cols.forEach(function (c, i) {
+      if (i) {
+        var sep = mk("span", "rsep", "→");
+        sep.setAttribute("aria-hidden", "true");
+        roll.appendChild(sep);
+      }
+      var d = mk("div", "rseg");
+      d.dataset.stage = c.stage;
+      d.appendChild(mk("span", "rl", String(c.name)));
+      d.appendChild(mk("span", "rv", c.head === "" ? "—" : String(c.head)));
+      d.appendChild(mk("span", "rn", String(c.note == null ? "" : c.note)));
+      roll.appendChild(d);
+    });
+    return roll;
+  }
+
+  /* ══ DAG edge layer — the routing grammar ════════════════════════════════
+     ── rewritten 2026-08-06 to ROUTING_SPEC v2 (the owner's four rules,
+     approved 2026-08-05): R1 ports + arrows, R2 channels + lanes, R3
+     three-layer confluence, R4 determinism + disclosure. Every edge is an
+     orthogonal polyline whose every segment lies in an enumerated CHANNEL —
+     the gutters between the card bands (V channels), and each column's
+     seams plus its top/bottom bands (H channels). Final x positions come
+     from ONE lane registry per gutter and final y positions from ONE
+     capacity-checked registry per column — never from a card edge plus a
+     fixed inset. Arrowheads are explicit triangles pointing only → (into a
+     left edge) or ↓ (into a top edge). The finished plan is published twice
+     from the same arrays: as the SVG and as a geometry JSON contract
+     (<script class="dag-geometry"> + inst.geometry) the design gate asserts
+     invariants on. Replaces the cubic-Bézier forward paths, the same-column
+     detour bows, the shared SVG marker arrowheads and the fixed-inset bus
+     of the five-patch era wholesale. ────────────────────────────────────── */
+  var EDGE_W = 1.5;                      // px — plain edge / stub stroke
+  var BUS_W = 2.5;                       // px — bars and trunk; w ≥ 2 is a "thick obstacle"
+  var ARROW_LEN = 5.5;                   // px — nominal head length (1:1 aspect kept)
+  var ARROW_MIN = 3;                     // px — smallest readable head in a tight slot
+  var TIP_GAP = 1;                       // px — tip short of the entered edge
+  var LANE_CLEAR = 6;                    // px — min clear between spans sharing a grid x
+  var LANE_XSEP = 2;                     // px — min x between lanes of different requests
+  var SEAM_MIN = 8;                      // px — a regular H channel's minimum clear height
+  var SEAM_HARD = 4;                     // px — forced-channel floor (RS-5 / RS-7 use only)
+  var SEAM_M = 6;                        // px — clearance between a run and the cards beside it
+  var SEAM_PITCH = 3;                    // px — H-channel line spacing; drops to 2, never 1
+  var NUDGE_TOL = 0.2;                   // px — collinearity tolerance
+  var FANIN_BUS_SRC = 2;                 // full bus: shared source set at least this big …
+  var FANIN_BUS_TGT = 2;                 // … feeding at least this many targets
+  var FANIN_COLLECT = 3;                 // collector fan-in threshold for a single target
+  var LANE_TIERS = [                     // gutter lane ladder: pitch, S inset, T inset.
+    { P: 6, S: 4, T: 8.5 },              // Tier-0 T = ARROW_LEN + TIP_GAP + 2 = 8.5 (BAR_CLR):
+    { P: 4, S: 4, T: 6 },                // a bar on the T lane leaves its arrows a full
+    { P: 2, S: 2, T: 4 },                // 8.5px slot, so bus/fan heads keep their nominal
+    { P: 2, S: 2, T: 2 }                 // size. (The 5th tier — exact even division on one
+  ];                                     // shared grid line — lives in allocGutter.)
+
+  function rectIn(el, box) {
+    var r = el.getBoundingClientRect();
+    return { l: r.left - box.left, t: r.top - box.top,
+             r: r.right - box.left, b: r.bottom - box.top };
+  }
+
+  /* Measure the live figure — paint time, zero cache: card rects with their
+     (column, row) positions, the card BANDS (x-union per non-empty stage),
+     the V channels between them (an empty stage merges its space into one
+     wider gutter, E2) and each band's H channels: the seams between stacked
+     cards, the band above the stack — below the column head, whose y band
+     no line may enter — and the band below it. The old nearest-seam
+     preference lives on in chanNear; the old obstacle-column enumeration
+     survives as the bands themselves. */
+  function dagMeasure(inst, box) {
+    var m = { w: box.width, h: box.height, nodes: {}, ids: [],
+              bands: [], gutters: [], bandOf: {} };
+    var heads = {}, colEls = inst.wide.querySelectorAll(".dagcol"), i;
+    for (i = 0; i < colEls.length; i++) {
+      var hd = colEls[i].querySelector(".dagcol-h");
+      if (hd) heads[Number(colEls[i].dataset.stage)] = rectIn(hd, box).b;
+    }
+    var byId = {};
+    inst.steps.forEach(function (s) { byId[String(s.id)] = s; });
+    var rowN = {};
+    inst.order.forEach(function (id) {
+      var el = inst.nodes[id], s = byId[id];
+      if (!el || !s) return;
+      var col = Number(s.stage);
+      rowN[col] = rowN[col] || 0;
+      m.nodes[id] = { id: id, col: col, row: rowN[col]++, rect: rectIn(el, box) };
+      m.ids.push(id);
+    });
+    [1, 2, 3, 4].forEach(function (stage) {
+      var rows = [];
+      m.ids.forEach(function (id) {
+        if (m.nodes[id].col === stage) rows.push(m.nodes[id].rect);
+      });
+      if (!rows.length) return;
+      rows.sort(function (a, b) { return a.t - b.t; });
+      var l = Infinity, r = -Infinity;
+      rows.forEach(function (q) { l = Math.min(l, q.l); r = Math.max(r, q.r); });
+      m.bands.push({ stage: stage, l: l, r: r, rows: rows,
+                     headB: heads[stage] || 0, chans: [] });
+    });
+    m.bands.sort(function (a, b) { return a.l - b.l; });
+    m.bands.forEach(function (b, k) { m.bandOf[b.stage] = k; });
+    for (i = 0; i <= m.bands.length; i++) {
+      m.gutters.push({ idx: i,
+                       l: i === 0 ? 0 : m.bands[i - 1].r,
+                       r: i === m.bands.length ? box.width : m.bands[i].l });
+    }
+    m.bands.forEach(function (b) {
+      var rows = b.rows, last = rows[rows.length - 1];
+      if (rows[0].t - b.headB >= SEAM_MIN && rows[0].t - SEAM_M >= b.headB + 2) {
+        b.chans.push({ kind: "top", lo: b.headB + 2, hi: rows[0].t - 2,
+                       anchor: rows[0].t - SEAM_M, forced: false });
+      }
+      for (i = 1; i < rows.length; i++) {
+        var raw = rows[i].t - rows[i - 1].b;
+        if (raw < SEAM_HARD) continue;                 // no channel at all below 4px
+        b.chans.push({ kind: "seam", above: i - 1,
+                       lo: rows[i - 1].b + 2, hi: rows[i].t - 2,
+                       anchor: (rows[i - 1].b + rows[i].t) / 2,
+                       forced: raw < SEAM_MIN });
+      }
+      if (m.h - last.b >= SEAM_MIN && last.b + SEAM_M <= m.h - 2) {
+        b.chans.push({ kind: "bottom", lo: last.b + 2, hi: m.h - 2,
+                       anchor: last.b + SEAM_M, forced: false });
+      }
+      b.chans.forEach(function (ch, k) {
+        ch.key = b.stage + ":" + ch.kind + ":" + k;
+        ch.entries = [];
+      });
+    });
+    return m;
+  }
+
+  /* R3 — three-layer confluence (ROUTING_SPEC 1.5), replacing the old
+     whole-needs-set confluence grouping: (1) a FULL BUS for every set of ≥2
+     targets sharing one identical cross-column source set of ≥2; (2) a
+     COLLECTOR FAN-IN for a lone target with ≥3 cross-column sources — the
+     onion-ring of stacked heads becomes N stubs into one bar and ONE arrow;
+     (3) a plain edge for everything else. Same-column and reverse edges
+     never join a group. Group names double as the geometry JSON keys. */
+  function dagGroups(m, steps) {
+    var out = [], needsL = {}, rest = [], seen = {};
+    steps.forEach(function (s) {
+      var vid = String(s.id), v = m.nodes[vid];
+      if (!v) return;
+      var L = [], had = {};
+      (s.needs || []).map(String).forEach(function (uid) {
+        var u = m.nodes[uid];
+        if (!u || had[uid]) return;
+        had[uid] = true;
+        if (u.col < v.col) L.push(uid);
+        else rest.push({ u: uid, v: vid });            // same-column or reverse: plain
+      });
+      if (L.length) needsL[vid] = L.sort();
+    });
+    var buckets = {};
+    Object.keys(needsL).forEach(function (vid) {
+      if (needsL[vid].length < FANIN_BUS_SRC) return;
+      var key = needsL[vid].join("\u0001");
+      (buckets[key] = buckets[key] || []).push(vid);
+    });
+    var grouped = {};
+    Object.keys(buckets).sort().forEach(function (key) {
+      if (buckets[key].length < FANIN_BUS_TGT) return;
+      var tgts = buckets[key].sort(), srcs = key.split("\u0001");
+      out.push({ kind: "bus", name: "bus:" + srcs.join("+") + "=>" + tgts.join("+"),
+                 sources: srcs, targets: tgts });
+      tgts.forEach(function (t) { grouped[t] = true; });
+    });
+    Object.keys(needsL).sort().forEach(function (vid) {
+      if (grouped[vid]) return;
+      if (needsL[vid].length >= FANIN_COLLECT) {
+        out.push({ kind: "fan", name: "fan:" + vid,
+                   sources: needsL[vid].slice(), targets: [vid] });
+        grouped[vid] = true;
+      }
+    });
+    Object.keys(needsL).sort().forEach(function (vid) {
+      if (grouped[vid]) return;
+      needsL[vid].forEach(function (uid) { rest.push({ u: uid, v: vid }); });
+    });
+    rest.forEach(function (e) {
+      var name = "e:" + e.u + "->" + e.v;
+      if (seen[name]) return;
+      seen[name] = true;
+      out.push({ kind: "edge", name: name, sources: [e.u], targets: [e.v] });
+    });
+    var RANK = { bus: 0, fan: 1, edge: 2 };
+    out.sort(function (a, b) {
+      return RANK[a.kind] - RANK[b.kind] ||
+             (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+    });
+    return out;
+  }
+
+  /* R1 — ports (1.3). A card edge with n ports spaces them at (i+1)/(n+1)
+     of its length, ordered by the far end's (column, row, id); a bus or fan
+     stub is keyed by its group's minimal-key far card. Cross-column edges
+     leave the RIGHT edge and enter the LEFT edge; same-column and reverse
+     edges leave the BOTTOM edge and enter the TOP edge — the only four port
+     walls in the grammar, which is what pins every arrow to → or ↓. */
+  function dagPorts(m, groups) {
+    var lists = {}, vwall = {};
+    function listFor(id, side) {
+      var l = lists[id] = lists[id] || { R: [], L: [] };
+      return l[side];
+    }
+    /* The B and T walls are ONE corridor per COLUMN, not one per card. A
+       same-column edge leaves a card's bottom and enters another card's top,
+       so two of them anchored on their own cards' centres come out on the
+       SAME x and fuse into one line in the seam between — the battery pages'
+       two interleaved skip edges, both at x = r1(269.5/2) = 134.8, which no
+       lane shift can separate because neither stub rides a lane (D1). Their
+       anchors are therefore dealt from ONE deterministic ladder per band,
+       ordered by (near row, far row, group name); a same-column edge keeps
+       ONE fraction for BOTH of its ends, so the RS-4 neighbour's straight
+       stub stays straight, and each end is clamped into its own card's span
+       in case the column's cards are not all the band's width. A column with
+       a single such edge still lands on the card centre, exactly as before. */
+    function vwallFor(bi) { return (vwall[bi] = vwall[bi] || []); }
+    function portX(node, xb) {
+      var r = node.rect;
+      return r1(Math.min(Math.max(xb, r.l + 2), r.r - 2));
+    }
+    function keyOf(id) {
+      var n = m.nodes[id];
+      return [n.col, n.row, id];
+    }
+    function cmpKey(a, b) {
+      return a[0] - b[0] || a[1] - b[1] || (a[2] < b[2] ? -1 : a[2] > b[2] ? 1 : 0);
+    }
+    function minKey(ids) {
+      var best = null;
+      ids.forEach(function (id) {
+        var k = keyOf(id);
+        if (!best || cmpKey(k, best) < 0) best = k;
+      });
+      return best;
+    }
+    groups.forEach(function (g) {
+      if (g.kind === "edge") {
+        var u = m.nodes[g.sources[0]], v = m.nodes[g.targets[0]];
+        if (u.col < v.col) {
+          listFor(u.id, "R").push({ key: keyOf(v.id), set: function (c) { g.exitY = c; } });
+          listFor(v.id, "L").push({ key: keyOf(u.id), set: function (c) { g.entryY = c; } });
+        } else if (u.col === v.col) {
+          vwallFor(m.bandOf[u.col]).push({ key: [u.row, v.row, g.name],
+            set: function (xb) { g.exitX = portX(u, xb); g.entryX = portX(v, xb); } });
+        } else {
+          vwallFor(m.bandOf[u.col]).push({ key: [u.row, v.row, g.name],
+            set: function (xb) { g.exitX = portX(u, xb); } });
+          vwallFor(m.bandOf[v.col]).push({ key: [v.row, u.row, g.name],
+            set: function (xb) { g.entryX = portX(v, xb); } });
+        }
+      } else {
+        var repT = minKey(g.targets), repS = minKey(g.sources);
+        g.srcY = {}; g.tgtY = {};
+        g.sources.forEach(function (uid) {
+          listFor(uid, "R").push({ key: repT, set: function (c) { g.srcY[uid] = c; } });
+        });
+        g.targets.forEach(function (vid) {
+          listFor(vid, "L").push({ key: repS, set: function (c) { g.tgtY[vid] = c; } });
+        });
+      }
+    });
+    Object.keys(lists).forEach(function (id) {
+      var r = m.nodes[id].rect;
+      ["R", "L"].forEach(function (side) {
+        var items = lists[id][side];
+        if (!items.length) return;
+        items.sort(function (a, b) { return cmpKey(a.key, b.key); });
+        items.forEach(function (item, i) {
+          item.set(r1(r.t + (r.b - r.t) * ((i + 1) / (items.length + 1))));
+        });
+      });
+    });
+    Object.keys(vwall).sort(function (a, b) { return Number(a) - Number(b); })
+      .forEach(function (k) {
+        var band = m.bands[Number(k)], items = vwall[k];
+        items.sort(function (a, b) { return cmpKey(a.key, b.key); });
+        items.forEach(function (item, i) {
+          item.set(band.l + (band.r - band.l) * ((i + 1) / (items.length + 1)));
+        });
+      });
+  }
+
+  /* R2 — one capacity-checked horizontal registry per column (1.4-H). Every
+     channel has an anchor, a spread direction and a CAPACITY; a crossing
+     takes the nearest unfilled regular seam (forced sub-SEAM_MIN seams are
+     reserved for RS-5/RS-7), overflows into the top/bottom band, and when
+     every channel of a column is full the plan raises `overflow` — the
+     explicit error path the gate FAILs on (I0) instead of a silent
+     collinear pile-up. Line spacing q starts at SEAM_PITCH and a filling
+     channel drops to 2px — still above the 1.5px stroke — before it is
+     full; a channel forced past that relays by exact even division. */
+  function chanCap(ch, q) {
+    if (ch.kind === "seam") return 2 * Math.floor(((ch.hi - ch.lo) / 2) / q) + 1;
+    if (ch.kind === "top") return Math.floor((ch.anchor - ch.lo) / q) + 1;
+    return Math.floor((ch.hi - ch.anchor) / q) + 1;
+  }
+  function chanY(ch, idx) {
+    if (ch.mode === "even") {
+      var pitch = Math.max(0.2, (ch.hi - ch.lo) / ((ch.total || ch.entries.length) + 1));
+      return r1(ch.lo + (idx + 1) * pitch);
+    }
+    if (ch.kind === "top") return r1(ch.anchor - idx * ch.q);
+    if (ch.kind === "bottom") return r1(ch.anchor + idx * ch.q);
+    var n = (idx + 1) >> 1;                            // 0, +q, −q, +2q, −2q … (+ first)
+    return r1(ch.anchor + (idx === 0 ? 0 : (idx % 2 ? n : -n) * ch.q));
+  }
+  function chanFull(ch) {
+    return ch.mode !== "even" && ch.entries.length >= chanCap(ch, 2);
+  }
+  function chanRegister(ch, group) {
+    var idx = ch.entries.length;
+    ch.entries.push(group ? group.name : "");
+    return { ch: ch, idx: idx, y: chanY(ch, idx) };
+  }
+  function chanNear(plan, band, yWant, forcedOk, group) {
+    var seams = [], tb = [];
+    band.chans.forEach(function (ch) {
+      if (chanFull(ch) || (ch.forced && !forcedOk)) return;
+      (ch.kind === "seam" ? seams : tb).push(ch);
+    });
+    function nearest(list, tieTop) {
+      var best = null, d0 = Infinity;
+      list.forEach(function (ch) {
+        var d = Math.abs(yWant - ch.anchor);
+        if (d < d0 - 1e-9) { best = ch; d0 = d; return; }
+        if (best && d <= d0 + 1e-9) {
+          if (tieTop ? (ch.kind === "top" && best.kind !== "top")
+                     : ch.anchor < best.anchor) { best = ch; d0 = d; }
+        }
+      });
+      return best;
+    }
+    var ch = nearest(seams, false) || nearest(tb, true);
+    if (!ch) {
+      /* every channel of this column is full — the explicit overflow path */
+      plan.overflow = true;
+      var bd = Infinity;
+      band.chans.forEach(function (c2) {
+        if (c2.forced && !forcedOk) return;
+        var d = Math.abs(yWant - c2.anchor);
+        if (d < bd) { bd = d; ch = c2; }
+      });
+      if (!ch) {                                       // a column with no channel at all
+        ch = { kind: "seam", lo: band.headB + 2, hi: plan.h - 2,
+               anchor: (band.headB + plan.h) / 2, forced: false,
+               entries: [], key: band.stage + ":void:0",
+               q: SEAM_PITCH, mode: null, total: 0 };
+        band.chans.push(ch);
+      }
+      ch.mode = "even";
+    }
+    return chanRegister(ch, group);
+  }
+
+  /* ── the plan, Phase A (ROUTING_SPEC 1.6) ── walk the groups in the global
+     order (bus < fan < edge, then group name) and fix every horizontal y:
+     source stubs, then the collector's span, the trunk, the target stubs,
+     the distributor's span — each y a port, an arrow line or a registered
+     channel line. Every vertical becomes a LANE REQUEST whose x Phase B
+     settles. H-channel spacing converges by re-running the pass with the
+     previous pass's per-channel verdicts (a drop to q=2, or even-division
+     overflow) until nothing changes — input-driven, bounded, and the same
+     for every paint of the same geometry (I4). */
+  var LANE_ORD = { barC: 0, barD: 1, trunk: 2, mid: 2, src: 3, tgt: 4 };
+
+  function planPass(inst, m, groups, memo) {
+    var plan = { h: m.h, w: m.w, overflow: false, qChanged: false,
+                 lanes: [], routes: [], bars: [], arrows: [] };
+    m.bands.forEach(function (b) {
+      b.chans.forEach(function (ch) {
+        var mm = memo[ch.key];
+        ch.entries = [];
+        ch.q = mm ? mm.q : SEAM_PITCH;
+        ch.mode = mm ? mm.mode : null;
+        ch.total = mm ? mm.total : 0;
+        if (ch.mode === "even") plan.overflow = true;
+      });
+    });
+    var seq = 0;
+    function laneReq(gutter, side, ord, group, ya, yb) {
+      var rq = { g: gutter, side: side, ord: ord, seq: seq++, group: group,
+                 y1: Math.min(ya, yb), y2: Math.max(ya, yb), x: null };
+      plan.lanes.push(rq);
+      return rq;
+    }
+    function route(group, w, cat, pts, arrow) {
+      var rt = { group: group, w: w, cat: cat, pts: pts, arrow: arrow || null };
+      plan.routes.push(rt);
+      if (arrow) plan.arrows.push(arrow);
+      return rt;
+    }
+    /* west→east orthogonal run (RS-1/2/3): out of x0/y0, across every band
+       strictly between bandFrom and gutterTo through that band's H registry,
+       bending in M lanes; an optional final bend brings it to yGoal. */
+    function runEast(group, ord, x0, y0, bandFrom, gutterTo, yGoal, wantFn) {
+      var pts = [{ x: x0, y: y0 }], curY = y0, k, got, rq;
+      for (k = bandFrom + 1; k < gutterTo; k++) {
+        got = chanNear(plan, m.bands[k], wantFn ? wantFn(k, curY) : curY, false, group);
+        if (r1(got.y) !== r1(curY)) {
+          rq = laneReq(k, "M", ord, group, curY, got.y);
+          pts.push({ x: rq, y: curY });
+          pts.push({ x: rq, y: got.y });
+          curY = got.y;
+        }
+      }
+      if (yGoal != null && r1(yGoal) !== r1(curY)) {
+        rq = laneReq(gutterTo, "M", ord, group, curY, yGoal);
+        pts.push({ x: rq, y: curY });
+        pts.push({ x: rq, y: yGoal });
+        curY = yGoal;
+      }
+      return { pts: pts, y: curY };
+    }
+    function seamBetween(band, above) {
+      for (var k = 0; k < band.chans.length; k++) {
+        if (band.chans[k].kind === "seam" && band.chans[k].above === above) return band.chans[k];
+      }
+      return null;
+    }
+    function chanOf(band, kind) {
+      for (var k = 0; k < band.chans.length; k++) {
+        if (band.chans[k].kind === kind) return band.chans[k];
+      }
+      return null;
+    }
+    function headOnly(g, v) {
+      g.degenerate = true;                             // RS-5/RS-7 ladder floor: head, no shaft
+      route(g, EDGE_W, 2, [],
+            { group: g, dir: "down", tip: { x: g.entryX, y: v.rect.t - TIP_GAP }, node: v });
+    }
+    /* R3-1 — the full bus (1.5): collector bar on the S lane east of the
+       last source band, trunk, distributor bar on the T lane west of the
+       first target band (whose 8.5px tier-0 inset IS the arrows' slot),
+       stubs in and arrowed stubs out. Bar spans cover ARRIVAL ys, so a
+       source or target a column further off (E4) still meets its bar after
+       crossing the cards in between through their seams. */
+    function buildBus(g) {
+      var cB = -1, dB = Infinity;
+      g.sources.forEach(function (id) { cB = Math.max(cB, m.bandOf[m.nodes[id].col]); });
+      g.targets.forEach(function (id) { dB = Math.min(dB, m.bandOf[m.nodes[id].col]); });
+      var cG = cB + 1, dG = dB;
+      var barC = { group: g, gutter: cG, side: "S", w: BUS_W, req: null };
+      var barD = { group: g, gutter: dG, side: "T", w: BUS_W, req: null };
+      var arr = [];
+      g.sources.forEach(function (uid) {
+        var u = m.nodes[uid];
+        var run = runEast(g, LANE_ORD.src, u.rect.r, g.srcY[uid], m.bandOf[u.col], cG, null, null);
+        run.pts.push({ x: barC, y: run.y });
+        arr.push(run.y);
+        route(g, EDGE_W, 2, run.pts, null);
+      });
+      barC.y1 = Math.min.apply(null, arr);
+      barC.y2 = Math.max.apply(null, arr);
+      var midY = r1((barC.y1 + barC.y2) / 2), trunkY = midY;
+      if (cG === dG) {
+        route(g, BUS_W, 1, [{ x: barC, y: midY }, { x: barD, y: midY }], null);
+      } else {
+        var tr = runEast(g, LANE_ORD.trunk, barC, midY, cG - 1, dG, null, null);
+        tr.pts.push({ x: barD, y: tr.y });
+        trunkY = tr.y;
+        route(g, BUS_W, 1, tr.pts, null);
+      }
+      var dep = [trunkY];
+      g.targets.forEach(function (vid) {
+        var v = m.nodes[vid], j = m.bandOf[v.col], portY = g.tgtY[vid];
+        var ys = [], curY = portY, k, rq;
+        for (k = j - 1; k >= dG; k--) {                // registered backwards from the port
+          ys.unshift(chanNear(plan, m.bands[k], curY, false, g).y);
+          curY = ys[0];
+        }
+        var y0 = ys.length ? ys[0] : portY;
+        var pts = [{ x: barD, y: y0 }], cy = y0;
+        for (k = dG + 1; k < j; k++) {
+          if (r1(ys[k - dG]) !== r1(cy)) {
+            rq = laneReq(k, "M", LANE_ORD.tgt, g, cy, ys[k - dG]);
+            pts.push({ x: rq, y: cy });
+            pts.push({ x: rq, y: ys[k - dG] });
+            cy = ys[k - dG];
+          }
+        }
+        if (r1(portY) !== r1(cy)) {
+          rq = laneReq(j, "M", LANE_ORD.tgt, g, cy, portY);
+          pts.push({ x: rq, y: cy });
+          pts.push({ x: rq, y: portY });
+          cy = portY;
+        }
+        dep.push(y0);
+        route(g, EDGE_W, 3, pts,
+              { group: g, dir: "right", tip: { x: v.rect.l - TIP_GAP, y: portY }, node: v });
+      });
+      barD.y1 = Math.min.apply(null, dep);
+      barD.y2 = Math.max.apply(null, dep);
+      barC.req = laneReq(cG, "S", LANE_ORD.barC, g, barC.y1, barC.y2);
+      barD.req = laneReq(dG, "T", LANE_ORD.barD, g, barD.y1, barD.y2);
+      plan.bars.push(barC, barD);
+    }
+    /* R3-2 — collector fan-in (1.5): half a bus for a single target with
+       FANIN_COLLECT+ cross-column sources. N stubs into one bar on the T
+       lane west of the target, ONE arrow out — the onion-ring of stacked
+       heads (tbb kmeans) is gone by construction. */
+    function buildFan(g) {
+      var vid = g.targets[0], v = m.nodes[vid], bG = m.bandOf[v.col];
+      var bar = { group: g, gutter: bG, side: "T", w: BUS_W, req: null };
+      var ys = [];
+      g.sources.forEach(function (uid) {
+        var u = m.nodes[uid];
+        var run = runEast(g, LANE_ORD.src, u.rect.r, g.srcY[uid], m.bandOf[u.col], bG, null, null);
+        run.pts.push({ x: bar, y: run.y });
+        ys.push(run.y);
+        route(g, EDGE_W, 2, run.pts, null);
+      });
+      var exitY = g.tgtY[vid];
+      ys.push(exitY);
+      bar.y1 = Math.min.apply(null, ys);
+      bar.y2 = Math.max.apply(null, ys);
+      bar.req = laneReq(bG, "T", LANE_ORD.barC, g, bar.y1, bar.y2);
+      plan.bars.push(bar);
+      route(g, EDGE_W, 3, [{ x: bar, y: exitY }],
+            { group: g, dir: "right", tip: { x: v.rect.l - TIP_GAP, y: exitY }, node: v });
+    }
+    /* RS-7 — reverse / stray edges (E10, card-data errors that must still be
+       drawn, I5): bottom edge out, through the nearest available H channel
+       and the INTERNAL gutters' M lanes, into the H channel just above the
+       target, ↓ arrow into its top edge. Never touches the possibly
+       zero-width outer gutters, so an edge into column 1 or out of column 4
+       stays on the canvas. */
+    function buildReverse(g, u, v) {
+      var bu = m.bandOf[u.col], bv = m.bandOf[v.col];
+      var bandU = m.bands[bu], bandV = m.bands[bv];
+      var sOut = seamBetween(bandU, u.row) || chanOf(bandU, "bottom") ||
+                 (u.row > 0 ? seamBetween(bandU, u.row - 1) : null) || chanOf(bandU, "top");
+      var sIn = (v.row > 0 ? seamBetween(bandV, v.row - 1) : null) || chanOf(bandV, "top");
+      if (!sOut || !sIn) return headOnly(g, v);
+      var o1 = chanRegister(sOut, g);
+      var pts = [{ x: g.exitX, y: u.rect.b }, { x: g.exitX, y: o1.y }];
+      var curY = o1.y, k, got, rq;
+      if (bu === bv) {                                 // same column, inverted rows
+        var gl = m.gutters[bu], gr = m.gutters[bu + 1];
+        var right = (gr.r - gr.l) >= (gl.r - gl.l);
+        var o2 = chanRegister(sIn, g);
+        rq = laneReq(right ? bu + 1 : bu, right ? "S" : "T", LANE_ORD.mid, g, o1.y, o2.y);
+        pts.push({ x: rq, y: o1.y });
+        pts.push({ x: rq, y: o2.y });
+        curY = o2.y;
+      } else {                                         // strictly westward
+        for (k = bu - 1; k > bv; k--) {
+          got = chanNear(plan, m.bands[k], curY, true, g);
+          if (r1(got.y) !== r1(curY)) {
+            rq = laneReq(k + 1, "M", LANE_ORD.mid, g, curY, got.y);
+            pts.push({ x: rq, y: curY });
+            pts.push({ x: rq, y: got.y });
+            curY = got.y;
+          }
+        }
+        var o3 = chanRegister(sIn, g);
+        if (r1(o3.y) !== r1(curY)) {
+          rq = laneReq(bv + 1, "M", LANE_ORD.mid, g, curY, o3.y);
+          pts.push({ x: rq, y: curY });
+          pts.push({ x: rq, y: o3.y });
+          curY = o3.y;
+        }
+      }
+      pts.push({ x: g.entryX, y: curY });
+      route(g, EDGE_W, 2, pts,
+            { group: g, dir: "down", tip: { x: g.entryX, y: v.rect.t - TIP_GAP }, node: v });
+    }
+    function buildEdge(g) {
+      var u = m.nodes[g.sources[0]], v = m.nodes[g.targets[0]];
+      var bu = m.bandOf[u.col], bv = m.bandOf[v.col];
+      if (u.col < v.col) {                             // RS-1/2/3 — forward cross-column
+        var x0 = u.rect.r, x3 = v.rect.l, y0 = g.exitY, y3 = g.entryY;
+        var run = runEast(g, LANE_ORD.mid, x0, y0, bu, bv, y3, function (k) {
+          var t = ((m.bands[k].l + m.bands[k].r) / 2 - x0) / Math.max(1, x3 - x0);
+          return y0 + (y3 - y0) * t;
+        });
+        route(g, EDGE_W, 2, run.pts,
+              { group: g, dir: "right", tip: { x: v.rect.l - TIP_GAP, y: y3 }, node: v });
+        return;
+      }
+      if (u.col === v.col && v.row === u.row + 1) {    // RS-4 — same-column neighbours
+        var band = m.bands[bv];
+        var pts = [{ x: g.exitX, y: u.rect.b }];
+        if (r1(g.exitX) !== r1(g.entryX)) {
+          var sj = seamBetween(band, u.row);
+          if (!sj) return headOnly(g, v);              // no seam to jog across in
+          var got2 = chanRegister(sj, g);
+          pts.push({ x: g.exitX, y: got2.y });
+          pts.push({ x: g.entryX, y: got2.y });
+        }
+        route(g, EDGE_W, 2, pts,
+              { group: g, dir: "down", tip: { x: g.entryX, y: v.rect.t - TIP_GAP }, node: v });
+        return;
+      }
+      if (u.col === v.col && v.row > u.row + 1) {      // RS-5 — same-column skip, around
+        var band2 = m.bands[bv];
+        var sOut = seamBetween(band2, u.row), sIn = seamBetween(band2, v.row - 1);
+        if (!sOut || !sIn) return headOnly(g, v);
+        var gl = m.gutters[bv], gr = m.gutters[bv + 1];
+        var right = (gr.r - gr.l) >= (gl.r - gl.l);    // wider side wins; ties go right
+        var o1 = chanRegister(sOut, g), o2 = chanRegister(sIn, g);
+        var rq = laneReq(right ? bv + 1 : bv, right ? "S" : "T", LANE_ORD.mid, g, o1.y, o2.y);
+        route(g, EDGE_W, 2,
+              [{ x: g.exitX, y: u.rect.b }, { x: g.exitX, y: o1.y },
+               { x: rq, y: o1.y }, { x: rq, y: o2.y },
+               { x: g.entryX, y: o2.y }],
+              { group: g, dir: "down", tip: { x: g.entryX, y: v.rect.t - TIP_GAP }, node: v });
+        return;
+      }
+      buildReverse(g, u, v);                           // RS-7 (E10)
+    }
+    groups.forEach(function (g) {
+      g.degenerate = false;
+      if (g.kind === "bus") buildBus(g);
+      else if (g.kind === "fan") buildFan(g);
+      else buildEdge(g);
+    });
+    /* settle each channel's verdict for the next pass (or accept) */
+    m.bands.forEach(function (b) {
+      b.chans.forEach(function (ch) {
+        var n = ch.entries.length, want;
+        if (ch.mode === "even" || n > chanCap(ch, 2)) want = { q: 2, mode: "even", total: n };
+        else if (n > chanCap(ch, SEAM_PITCH)) want = { q: 2, mode: null, total: n };
+        else want = { q: SEAM_PITCH, mode: null, total: n };
+        var mm = memo[ch.key] || { q: SEAM_PITCH, mode: null, total: 0 };
+        if (mm.q !== want.q || mm.mode !== want.mode ||
+            (want.mode === "even" && mm.total !== want.total)) {
+          memo[ch.key] = want;
+          plan.qChanged = true;
+        }
+      });
+    });
+    return plan;
+  }
+
+  /* ── the plan, Phase B (1.4-V) ── ONE unified lane registry per gutter:
+     S lanes grow in from the left band, T lanes in from the right band (the
+     first a full 8.5px out — a bar's arrow slot), M lanes spread from the
+     centre, + first. ANY two requests whose y spans come within LANE_CLEAR
+     of touching get x at least LANE_XSEP apart, whatever their sides; a
+     gutter that cannot seat everyone drops down the tier ladder, to exact
+     even division on one shared grid line at the bottom, where two lanes
+     colliding is impossible by construction. This registry — not a column
+     edge plus a fixed inset — is what keeps two buses in one gutter on two
+     different x. */
+  function laneSeq(G, side, T) {
+    var lo = G.l + 2, hi = G.r - 2, out = [], i, x;
+    if (hi - lo < -1e-9) return out;
+    if (side === "S") {
+      for (i = 0; i <= 400; i++) {
+        x = r1(G.l + T.S + i * T.P);
+        if (x > hi + 1e-9) break;
+        if (x >= lo - 1e-9) out.push(x);
+      }
+    } else if (side === "T") {
+      for (i = 0; i <= 400; i++) {
+        x = r1(G.r - T.T - i * T.P);
+        if (x < lo - 1e-9) break;
+        if (x <= hi + 1e-9) out.push(x);
+      }
+    } else {
+      var c = (G.l + G.r) / 2;
+      x = r1(c);
+      if (x >= lo - 1e-9 && x <= hi + 1e-9) out.push(x);
+      for (i = 1; i <= 400; i++) {
+        var a = r1(c + i * T.P), b = r1(c - i * T.P), any = false;
+        if (a <= hi + 1e-9) { out.push(a); any = true; }
+        if (b >= lo - 1e-9) { out.push(b); any = true; }
+        if (!any) break;
+      }
+    }
+    return out;
+  }
+  function allocGutter(G, reqs) {
+    var tier, i, k, o;
+    G.reqs = reqs;
+    for (tier = 0; tier < LANE_TIERS.length; tier++) {
+      var T = LANE_TIERS[tier], occ = [], ok = true;
+      for (i = 0; i < reqs.length && ok; i++) {
+        var rq = reqs[i], x = null, seqX = laneSeq(G, rq.side, T);
+        for (k = 0; k < seqX.length && x == null; k++) {
+          var clash = false;
+          for (o = 0; o < occ.length && !clash; o++) {
+            if (Math.abs(seqX[k] - occ[o].x) < LANE_XSEP &&
+                rq.y1 - LANE_CLEAR <= occ[o].y2 + LANE_CLEAR &&
+                occ[o].y1 - LANE_CLEAR <= rq.y2 + LANE_CLEAR) clash = true;
+          }
+          if (!clash) x = seqX[k];
+        }
+        if (x == null) { ok = false; break; }
+        rq.x = x;
+        occ.push({ x: x, y1: rq.y1, y2: rq.y2 });
+      }
+      if (ok) { G.tierUsed = tier; return; }
+    }
+    G.tierUsed = LANE_TIERS.length;                    // tier 4: one shared grid line
+    var RANKS = { S: 0, M: 1, T: 2 };
+    var sorted = reqs.slice().sort(function (a, b) {
+      return RANKS[a.side] - RANKS[b.side] || a.y1 - b.y1 || a.y2 - b.y2 ||
+             (a.group.name < b.group.name ? -1 : a.group.name > b.group.name ? 1 : 0);
+    });
+    var pitch = Math.max(0.2, (G.r - G.l - 4) / (sorted.length + 1));
+    sorted.forEach(function (rq, j) { rq.x = r1(G.l + 2 + (j + 1) * pitch); });
+  }
+  function phaseB(plan, m, groups) {
+    var orderOf = {}, byG = {};
+    groups.forEach(function (g, i) { orderOf[g.name] = i; });
+    plan.lanes.forEach(function (rq) { (byG[rq.g] = byG[rq.g] || []).push(rq); });
+    Object.keys(byG).sort(function (a, b) { return Number(a) - Number(b); }).forEach(function (k) {
+      var reqs = byG[k];
+      reqs.sort(function (a, b) {
+        return orderOf[a.group.name] - orderOf[b.group.name] || a.ord - b.ord || a.seq - b.seq;
+      });
+      reqs.forEach(function (rq, i) { rq.index = i; });
+      allocGutter(m.gutters[Number(k)], reqs);
+    });
+  }
+
+  function rx(x) {
+    if (typeof x === "number") return x;
+    if (x.req) return x.req.x;                         // a bar
+    return x.x;                                        // a lane request
+  }
+
+  /* R1 — arrowheads (1.3): explicit triangles, → into left edges, ↓ into
+     top edges, nothing else anywhere in the figure. Size is clamped by the
+     SLOT — the distance from the entered edge back along the axis to the
+     nearest THICK obstacle: a card, or a planned w ≥ 2 segment (1.5px lines
+     are not obstacles) — with the old head-clamp semantics kept verbatim:
+     nominal 5.5, floor 3, hard-capped at slot − 1 so no part of a head is
+     ever under a card; a slot too small for the shaft carries the head
+     alone. The gate recomputes the same formula from the JSON (I2d). */
+  function finalizeArrows(plan, m) {
+    var tV = [], tH = [], i;
+    plan.bars.forEach(function (b) {
+      tV.push({ x: b.req.x, y1: b.y1, y2: b.y2 });
+    });
+    plan.routes.forEach(function (rt) {
+      if (rt.w < 2) return;
+      for (i = 1; i < rt.pts.length; i++) {
+        var a = rt.pts[i - 1], b = rt.pts[i];
+        var ax = rx(a.x), bx = rx(b.x);
+        if (Math.abs(ax - bx) < 0.05) tV.push({ x: ax, y1: Math.min(a.y, b.y), y2: Math.max(a.y, b.y) });
+        else if (Math.abs(a.y - b.y) < 0.05) tH.push({ y: a.y, x1: Math.min(ax, bx), x2: Math.max(ax, bx) });
+      }
+    });
+    plan.arrows.forEach(function (ar) {
+      var slot;
+      if (ar.dir === "right") {
+        var edge = ar.tip.x + TIP_GAP, west = 0;
+        Object.keys(m.nodes).forEach(function (id) {
+          var r = m.nodes[id].rect;
+          if (r.r <= edge - 0.05 && ar.tip.y > r.t && ar.tip.y < r.b && r.r > west) west = r.r;
+        });
+        tV.forEach(function (s) {
+          if (s.x <= edge - 0.05 && ar.tip.y >= s.y1 - 0.1 && ar.tip.y <= s.y2 + 0.1 && s.x > west) west = s.x;
+        });
+        slot = edge - west;
+      } else {
+        var edge2 = ar.tip.y + TIP_GAP, north = 0;
+        Object.keys(m.nodes).forEach(function (id) {
+          var r = m.nodes[id].rect;
+          if (r.b <= edge2 - 0.05 && ar.tip.x > r.l && ar.tip.x < r.r && r.b > north) north = r.b;
+        });
+        tH.forEach(function (s) {
+          if (s.y <= edge2 - 0.05 && ar.tip.x >= s.x1 - 0.1 && ar.tip.x <= s.x2 + 0.1 && s.y > north) north = s.y;
+        });
+        slot = edge2 - north;
+      }
+      ar.size = r1(Math.min(Math.max(ARROW_MIN, Math.min(ARROW_LEN, slot - 2)),
+                            Math.max(1, slot - 1)));
+    });
+  }
+
+  /* Resolve every x, close each route on its arrow's base, r1-quantise and
+     merge collinear runs. After this the plan is pure numbers. */
+  function materialize(plan) {
+    plan.routes.forEach(function (rt) {
+      var pts = rt.pts.slice();
+      if (rt.arrow) {
+        pts.push(rt.arrow.dir === "right"
+          ? { x: rt.arrow.tip.x - rt.arrow.size, y: rt.arrow.tip.y }
+          : { x: rt.arrow.tip.x, y: rt.arrow.tip.y - rt.arrow.size });
+      }
+      var out = [];
+      pts.forEach(function (p) {
+        var q = [r1(rx(p.x)), r1(p.y)], n = out.length;
+        if (n && Math.abs(q[0] - out[n - 1][0]) < 0.05 && Math.abs(q[1] - out[n - 1][1]) < 0.05) return;
+        if (n >= 2) {
+          var a = out[n - 2], b = out[n - 1];
+          if ((Math.abs(a[0] - b[0]) < 0.05 && Math.abs(b[0] - q[0]) < 0.05) ||
+              (Math.abs(a[1] - b[1]) < 0.05 && Math.abs(b[1] - q[1]) < 0.05)) out.pop();
+        }
+        out.push(q);
+      });
+      rt.xy = out.length > 1 ? out : [];
+    });
+  }
+
+  /* Phase-B-end backstop (1.4-G): find any two horizontal segments of
+     different groups sharing a y within NUDGE_TOL over a real overlap —
+     port- and arrow-anchored ys are immovable and can collide across
+     registries, so the remedy moves an X: the later-planned group's
+     adjoining LANE is walked to the next free grid point in the direction
+     that SHORTENS its conflicting run (thin lanes only — a bar or a trunk
+     jog is a thick obstacle whose x the arrows already priced in). A trunk's
+     own leading run, the one movable horizontal, is nudged down its
+     collector span instead. Grid points are finite and every step strictly
+     shortens or separates, so the loop terminates; anything still colliding
+     is flagged on the plan. */
+  function checkCollinear(plan, m, groups) {
+    var orderOf = {}, barMoved = false;
+    groups.forEach(function (g, i) { orderOf[g.name] = i; });
+    /* A bar is a lane too: it is drawn on its OWN lane request (`bar.req`),
+       so a stub that ends on a bar can be given way through that request.
+       Excluding every object carrying `.req` kept the whole inbound-bar
+       class out of the yield mechanism (D1 finding 1, second class) — a
+       bus/fan stub whose other end is a card edge or an arrow base had no
+       movable endpoint at all. Moving a bar moves a THICK obstacle, so
+       whenever one moves the arrow slots are re-priced before the plan is
+       re-materialised; a thin lane is invisible to finalizeArrows and needs
+       no such round. */
+    function laneOf(x) {
+      if (!x || typeof x !== "object" || !x.side) return null;
+      return x.req || x;
+    }
+    function isBarReq(rq) {
+      for (var k = 0; k < plan.bars.length; k++) if (plan.bars[k].req === rq) return true;
+      return false;
+    }
+    function laneShift(rt, orient, coord) {
+      /* find the bend lane adjoining this route's run at coord */
+      var pts = rt.pts.slice(), i, rq = null, fixedX = null;
+      if (rt.arrow) {
+        pts.push(rt.arrow.dir === "right"
+          ? { x: rt.arrow.tip.x - rt.arrow.size, y: rt.arrow.tip.y }
+          : { x: rt.arrow.tip.x, y: rt.arrow.tip.y - rt.arrow.size });
+      }
+      for (i = 1; i < pts.length; i++) {
+        var a = pts[i - 1], b = pts[i];
+        var ax = rx(a.x), bx = rx(b.x);
+        if (orient === "h") {
+          if (Math.abs(a.y - b.y) >= 0.05 || Math.abs(a.y - coord) >= 0.05) continue;
+        } else {
+          if (Math.abs(ax - bx) >= 0.05 || Math.abs(ax - coord) >= 0.05) continue;
+        }
+        var aLane = laneOf(a.x), bLane = laneOf(b.x);
+        if (aLane && !bLane) { rq = aLane; fixedX = bx; break; }
+        if (bLane && !aLane) { rq = bLane; fixedX = ax; break; }
+        if (bLane && aLane) { rq = bLane; fixedX = ax; break; }
+      }
+      if (!rq || fixedX == null) return false;
+      var G = m.gutters[rq.g];
+      if (G.tierUsed == null || G.tierUsed >= LANE_TIERS.length) return false;
+      var dir = fixedX > rq.x ? 1 : -1;
+      /* The request's own tier is searched first, which is the previous
+         behaviour verbatim. Only when that ladder is exhausted — every point
+         in the shortening direction either taken or inside LANE_XSEP of a
+         seated request — does the search drop to the finer tiers, the same
+         ladder allocGutter itself descends when a gutter cannot seat
+         everyone. Without it a bar has nowhere to go the moment it becomes
+         movable: an S/T ladder is a coarse 6px grid pinned to the gutter
+         edge, and in a full gutter it sits a fixed 1.5px off every M lane,
+         so every tier-0 candidate is blocked by construction. Thresholds are
+         untouched; this only widens the set of grid points offered. */
+      for (var tier = G.tierUsed; tier < LANE_TIERS.length; tier++) {
+        var cands = laneSeq(G, rq.side, LANE_TIERS[tier])
+          .filter(function (x) { return (x - rq.x) * dir > 0.05; })
+          .sort(function (a, b) { return Math.abs(a - rq.x) - Math.abs(b - rq.x); });
+        for (var c = 0; c < cands.length; c++) {
+          var ok = true;
+          (G.reqs || []).forEach(function (other) {
+            if (other === rq || other.x == null) return;
+            if (Math.abs(cands[c] - other.x) < LANE_XSEP &&
+                rq.y1 - LANE_CLEAR <= other.y2 + LANE_CLEAR &&
+                other.y1 - LANE_CLEAR <= rq.y2 + LANE_CLEAR) ok = false;
+          });
+          if (ok) { rq.x = cands[c]; if (isBarReq(rq)) barMoved = true; return true; }
+        }
+      }
+      return false;
+    }
+    for (var guard = 0; guard < 8; guard++) {
+      var hs = [];
+      barMoved = false;
+      plan.routes.forEach(function (rt) {
+        (rt.xy || []).forEach(function (p, i) {
+          if (!i) return;
+          var a = rt.xy[i - 1];
+          if (Math.abs(a[1] - p[1]) < 0.05 && Math.abs(a[0] - p[0]) >= 0.05) {
+            hs.push({ type: "h", y: a[1], x1: Math.min(a[0], p[0]), x2: Math.max(a[0], p[0]), rt: rt });
+          } else if (Math.abs(a[0] - p[0]) < 0.05 && Math.abs(a[1] - p[1]) >= 0.05) {
+            hs.push({ type: "v", x: a[0], y1: Math.min(a[1], p[1]), y2: Math.max(a[1], p[1]), rt: rt });
+          }
+        });
+      });
+      var moved = false, anyClash = false;
+      clash_loop:
+      for (var i = 0; i < hs.length; i++) {
+        for (var j = i + 1; j < hs.length; j++) {
+          if (hs[i].rt.group === hs[j].rt.group) continue;
+          if (hs[i].type !== hs[j].type) continue;
+          if (hs[i].type === "h") {
+            if (!(Math.abs(hs[i].y - hs[j].y) < NUDGE_TOL &&
+                  Math.min(hs[i].x2, hs[j].x2) - Math.max(hs[i].x1, hs[j].x1) > NUDGE_TOL)) continue;
+          } else {
+            if (!(Math.abs(hs[i].x - hs[j].x) < NUDGE_TOL &&
+                  Math.min(hs[i].y2, hs[j].y2) - Math.max(hs[i].y1, hs[j].y1) > NUDGE_TOL)) continue;
+          }
+          anyClash = true;
+          var clash = [hs[i], hs[j]];
+          clash.sort(function (a, b) {
+            return orderOf[a.rt.group.name] - orderOf[b.rt.group.name];
+          });
+          if (clash[1].rt.w < 2 && laneShift(clash[1].rt, clash[1].type, clash[1].type === "h" ? clash[1].y : clash[1].x)) {
+            moved = true; break clash_loop;
+          }
+          if (clash[0].rt.w < 2 && laneShift(clash[0].rt, clash[0].type, clash[0].type === "h" ? clash[0].y : clash[0].x)) {
+            moved = true; break clash_loop;
+          }
+        }
+      }
+      if (!anyClash) { plan.clash = false; return; }
+      if (!moved) {
+        for (var i2 = 0; i2 < hs.length && !moved; i2++) {
+          for (var j2 = i2 + 1; j2 < hs.length && !moved; j2++) {
+            if (hs[i2].rt.group === hs[j2].rt.group) continue;
+            if (hs[i2].type !== hs[j2].type) continue;
+            if (hs[i2].type === "h") {
+              if (!(Math.abs(hs[i2].y - hs[j2].y) < NUDGE_TOL &&
+                    Math.min(hs[i2].x2, hs[j2].x2) - Math.max(hs[i2].x1, hs[j2].x1) > NUDGE_TOL)) continue;
+            } else {
+              if (!(Math.abs(hs[i2].x - hs[j2].x) < NUDGE_TOL &&
+                    Math.min(hs[i2].y2, hs[j2].y2) - Math.max(hs[i2].y1, hs[j2].y1) > NUDGE_TOL)) continue;
+            }
+            var clash = [hs[i2], hs[j2]];
+            clash.sort(function (a, b) {
+              return orderOf[a.rt.group.name] - orderOf[b.rt.group.name];
+            });
+            clash.forEach(function (seg) {
+              if (moved || seg.rt.cat !== 1) return;
+              var pts = seg.rt.pts, y0 = pts[0].y;
+              for (var k = 0; k < pts.length && Math.abs(pts[k].y - y0) < 0.05; k++) pts[k].y = y0 + 1.5;
+              moved = true;
+            });
+          }
+        }
+      }
+      if (!moved) { plan.clash = true; return; }
+      if (barMoved) finalizeArrows(plan, m);       // a thick obstacle changed x
+      materialize(plan);
+    }
+    plan.clash = true;
+  }
+
+  /* R4 — emission. SVG and geometry JSON are read from the same plan
+     arrays, in the same order (groups in global order; within one: bars →
+     trunk → source stubs → target stubs), so the drawing and the contract
+     cannot drift. Fixed JSON key order + r1 everywhere = two paints of one
+     geometry are byte-identical (I4). */
+  function groupPieces(plan, g) {
+    var bars = [], routes = [];
+    plan.bars.forEach(function (b) { if (b.group === g) bars.push(b); });
+    plan.routes.forEach(function (rt) { if (rt.group === g) routes.push(rt); });
+    routes.sort(function (a, b) { return a.cat - b.cat; });
+    return { bars: bars, routes: routes };
+  }
+  function buildGeometry(plan, m, groups) {
+    var nodes = m.ids.slice().sort(function (a, b) {
+      var na = m.nodes[a], nb = m.nodes[b];
+      return na.col - nb.col || na.row - nb.row;
+    }).map(function (id) {
+      var n = m.nodes[id];
+      return { id: n.id, col: n.col, row: n.row,
+               x: r1(n.rect.l), y: r1(n.rect.t),
+               w: r1(n.rect.r - n.rect.l), h: r1(n.rect.b - n.rect.t) };
+    });
+    var segments = [], arrows = [], groupsObj = {};
+    groups.forEach(function (g) {
+      var go = { kind: g.kind, sources: g.sources.slice(), targets: g.targets.slice() };
+      if (g.degenerate) go.degenerate = true;
+      groupsObj[g.name] = go;
+      var pieces = groupPieces(plan, g);
+      pieces.bars.forEach(function (b) {
+        segments.push({ group: g.name, x1: r1(b.req.x), y1: r1(b.y1),
+                        x2: r1(b.req.x), y2: r1(b.y2), w: BUS_W });
+      });
+      pieces.routes.forEach(function (rt) {
+        (rt.xy || []).forEach(function (p, i) {
+          if (!i) return;
+          var a = rt.xy[i - 1];
+          if (Math.abs(a[0] - p[0]) < 0.05 && Math.abs(a[1] - p[1]) < 0.05) return;
+          segments.push({ group: g.name,
+                          x1: Math.min(a[0], p[0]), y1: Math.min(a[1], p[1]),
+                          x2: Math.max(a[0], p[0]), y2: Math.max(a[1], p[1]), w: rt.w });
+        });
+      });
+      plan.arrows.forEach(function (ar) {
+        if (ar.group !== g) return;
+        arrows.push({ group: g.name, x: r1(ar.tip.x), y: r1(ar.tip.y),
+                      dir: ar.dir, size: ar.size });
+      });
+    });
+    var lanes = [];
+    plan.lanes.slice().sort(function (a, b) {
+      return a.g - b.g || (a.index || 0) - (b.index || 0);
+    }).forEach(function (rq) {
+      if (rq.x == null) return;
+      lanes.push({ gutter: rq.g, side: rq.side, index: rq.index || 0, x: rq.x,
+                   group: rq.group.name, y1: r1(rq.y1), y2: r1(rq.y2) });
+    });
+    return { v: 1, hidden: false, overflow: !!plan.overflow, clash: !!plan.clash,
+             figure: { w: r1(m.w), h: r1(m.h) },
+             nodes: nodes, segments: segments, arrows: arrows,
+             groups: groupsObj, lanes: lanes };
+  }
+  function writeGeometry(inst, geo) {
+    inst.geometry = geo;
+    var el = inst.el.querySelector("script.dag-geometry");
+    if (!el) {
+      el = document.createElement("script");
+      el.setAttribute("type", "application/json");
+      el.setAttribute("class", "dag-geometry");
+      inst.el.appendChild(el);
+    }
+    var txt = JSON.stringify(geo);
+    if (el.textContent !== txt) el.textContent = txt;
+  }
+  function dagPlan(inst, box) {
+    var m = dagMeasure(inst, box);
+    var groups = dagGroups(m, inst.steps);
+    dagPorts(m, groups);
+    var memo = {}, plan = null, pass;
+    for (pass = 0; pass < 4; pass++) {
+      plan = planPass(inst, m, groups, memo);
+      if (!plan.qChanged) break;
+    }
+    phaseB(plan, m, groups);
+    finalizeArrows(plan, m);
+    materialize(plan);
+    checkCollinear(plan, m, groups);
+    plan.geometry = buildGeometry(plan, m, groups);
+    plan.groups = groups;
+    return plan;
+  }
+  function dagEmit(inst, plan, stroke) {
+    var CLS = { edge: "dagedge", fan: "dagfan", bus: "dagbus" };
+    plan.groups.forEach(function (g) {
+      var pieces = groupPieces(plan, g);
+      var el = svgMk("g");
+      el.setAttribute("class", CLS[g.kind]);
+      el.setAttribute("data-group", g.name);
+      el.setAttribute("style", "pointer-events:auto");
+      /* One native <title> per group — the same disclosure mechanism the
+         node cards use, and (since the owner's 2026-08-05 call to drop the
+         on-trunk text label) the group's ONLY naming. */
+      var name = svgMk("title");
+      if (g.kind === "bus") {
+        name.textContent = g.targets.join(", ") + " each read all " + g.sources.length +
+          " of these steps: " + g.sources.join(", ") + ".";
+      } else if (g.kind === "fan") {
+        name.textContent = g.targets[0] + " reads all " + g.sources.length +
+          " of these steps: " + g.sources.join(", ") + ".";
+      } else {
+        name.textContent = g.sources[0] + " → " + g.targets[0] + " — " +
+          g.targets[0] + " needs " + g.sources[0];
+      }
+      el.appendChild(name);
+      function path(d, w) {
+        var p = svgMk("path");
+        p.setAttribute("d", d);
+        p.setAttribute("fill", "none");
+        p.setAttribute("stroke", stroke);
+        p.setAttribute("stroke-width", String(w));
+        p.setAttribute("stroke-linecap", "round");
+        p.setAttribute("stroke-linejoin", "round");
+        el.appendChild(p);
+      }
+      pieces.bars.forEach(function (b) {
+        path("M" + r1(b.req.x) + " " + r1(b.y1) + " L" + r1(b.req.x) + " " + r1(b.y2), BUS_W);
+      });
+      pieces.routes.forEach(function (rt) {
+        if (!rt.xy || rt.xy.length < 2) return;
+        var d = "M" + rt.xy[0][0] + " " + rt.xy[0][1], i;
+        for (i = 1; i < rt.xy.length; i++) d += " L" + rt.xy[i][0] + " " + rt.xy[i][1];
+        path(d, rt.w);
+      });
+      plan.arrows.forEach(function (ar) {
+        if (ar.group !== g) return;
+        var t = svgMk("path"), s = ar.size, x = r1(ar.tip.x), y = r1(ar.tip.y), d;
+        if (ar.dir === "right") {
+          d = "M" + x + " " + y + " L" + r1(x - s) + " " + r1(y - s / 2) +
+              " L" + r1(x - s) + " " + r1(y + s / 2) + " z";
+        } else {
+          d = "M" + x + " " + y + " L" + r1(x - s / 2) + " " + r1(y - s) +
+              " L" + r1(x + s / 2) + " " + r1(y - s) + " z";
+        }
+        t.setAttribute("d", d);
+        t.setAttribute("fill", stroke);
+        el.appendChild(t);
+      });
+      inst.svg.appendChild(el);
+    });
+  }
+
+  function paintDag(inst) {
+    var svg = inst.svg, wide = inst.wide;
+    while (svg.firstChild) svg.removeChild(svg.firstChild);   // full clear — no <defs> to keep
+    if (getComputedStyle(wide).display === "none") {          // the rollup is showing
+      writeGeometry(inst, { v: 1, hidden: true });            // the contract says so, explicitly
+      return inst;
+    }
+    var box = wide.getBoundingClientRect();
+    if (!box.width || !box.height) return inst;               // pre-layout; the rAF pass returns
+
+    svg.setAttribute("width", r1(box.width));
+    svg.setAttribute("height", r1(box.height));
+    svg.setAttribute("viewBox", "0 0 " + r1(box.width) + " " + r1(box.height));
+
+    /* Edges are structure, not data, so they take the spine token — the same
+       one drawAxes() gives the bottom and left spines. Read here, at draw
+       time: a colour cached at build time would keep the old theme.
+
+       ACCEPTED BY DESIGN, and this is where the decision is recorded: --axis
+       measures ~1.7:1 against the page in both themes, under the 3:1 WCAG 1.4.11
+       asks of a MEANINGFUL graphical object. These edges are not meaningful in
+       that sense. The SVG is aria-hidden, and every dependency it draws is also
+       written into the nodes' own text — each node's title carries "· needs: …"
+       (see renderDag below) — so the drawing is a second, redundant view of a
+       relation the text layer already states in full. Raising the stroke to 3:1
+       would lay a hairline lattice at text contrast across the header and pull
+       the eye off the cards that hold the content. The exemption is conditional:
+       if the edges ever become the only place the `needs` relation lives, it
+       expires with that change and the stroke has to earn 3:1. */
+    var stroke = css("--axis") || css("--grid");
+
+    var plan = dagPlan(inst, box);
+    dagEmit(inst, plan, stroke);
+    writeGeometry(inst, plan.geometry);
+    return inst;
+  }
+
+  function repaintDags() {
+    for (var i = 0; i < dags.length; i++) {
+      if (dags[i].el.isConnected) paintDag(dags[i]);
+      else { dags.splice(i, 1); i--; }
+    }
+  }
+
+  function renderDag(container, steps, opts) {
+    var el = hostOf(container);
+    if (!el || Object.prototype.toString.call(steps) !== "[object Array]" || !steps.length) {
+      return null;
+    }
+    opts = opts || {};
+
+    var cols = dagColumns(opts);
+    var order = dagTopo(steps);
+    var byId = {};
+    steps.forEach(function (s) { byId[s.id] = s; });
+
+    el.classList.remove("ribbon");          // the rollup's own class moves to the fallback
+    el.classList.add("dagfig");
+    el.setAttribute("role", "figure");
+    el.setAttribute("aria-label", opts.label || el.getAttribute("aria-label") || "Analysis workflow");
+    el.removeAttribute("aria-current");
+    el.innerHTML = "";
+
+    var wide = mk("div", "dagwide");
+    var svg = svgMk("svg");
+    svg.setAttribute("class", "dagedges");
+    svg.setAttribute("aria-hidden", "true");        // the nodes carry the meaning
+    /* No <defs>/<marker>: arrowheads are explicit per-edge triangles now
+       (ROUTING_SPEC 1.3) — a marker cannot resize per slot, and the SVG
+       holds nothing but the plan's output, cleared whole every paint. */
+    wide.appendChild(svg);
+
+    var grid = mk("div", "dagcols");
+    /* ── extension ── block-centred columns (owner-selected 2026-08-05). The
+       stylesheet's .dagcols keeps align-items:start; this inline override
+       stretches every column to the tallest one's height, so the step stacks
+       below the heads share one step area to centre in. */
+    grid.style.alignItems = "stretch";
+    var nodes = {};
+    cols.forEach(function (c) {
+      var col = mk("div", "dagcol");
+      col.dataset.stage = c.stage;
+      col.appendChild(dagHead(c));
+      var body = mk("div", "dagnodes");
+      /* The stage head stays put at the top; the card stack below it rides as
+         ONE block to the vertical middle of the column's step area (the
+         tallest column's cards fill theirs exactly). Card gaps are untouched —
+         this is justify-content on the stack, not spacing inside it — and
+         every edge and bus route reads live geometry in paintDag, so the
+         routes follow the cards wherever the centring puts them. The <720px
+         rollup is a display:none sibling and never sees any of this. */
+      body.style.flex = "1 1 auto";
+      body.style.justifyContent = "center";
+      order.forEach(function (id) {
+        var s = byId[id];
+        if (!s || Number(s.stage) !== c.stage) return;
+        var n = mk("div", "dagnode");
+        n.dataset.stage = c.stage;
+        n.appendChild(mk("span", "dagid", id));
+        n.appendChild(mk("span", "dagstep", String(s.step == null ? "" : s.step)));
+        /* The `needs` relation rides in the node's own text, not only in the
+           drawing. The edge layer is aria-hidden, so without this a reader on
+           assistive tech got the steps in topological order and nothing about
+           which feeds which — the whole reason this is a DAG and not a list.
+           A step with no parents says so rather than staying silent, because
+           "no upstream" is itself part of the lineage. */
+        var needs = (s.needs || []).map(String);
+        n.title = id + " — " + String(s.step == null ? "" : s.step)
+          + " · needs: " + (needs.length ? needs.join(", ") : "nothing (source step)");
+        body.appendChild(n);
+        nodes[id] = n;
+      });
+      if (!body.childNodes.length) body.appendChild(mk("p", "dagempty", "no step at this stage"));
+      col.appendChild(body);
+      grid.appendChild(col);
+    });
+    wide.appendChild(grid);
+    el.appendChild(wide);
+    el.appendChild(dagRollup(cols));
+
+    var inst = { el: el, wide: wide, svg: svg, marker: null, arrow: null,
+                 nodes: nodes, steps: steps, order: order, columns: cols };
+    inst.repaint = function () { return paintDag(inst); };
+    el.__pcDag = inst;
+    for (var i = dags.length - 1; i >= 0; i--) if (dags[i].el === el) dags.splice(i, 1);
+    dags.push(inst);
+
+    paintDag(inst);
+    /* Once more after layout settles: the first pass runs before the fallback
+       font has been swapped, and a node that grows by a line moves every
+       endpoint below it. */
+    (global.requestAnimationFrame || function (f) { return setTimeout(f, 16); })(inst.repaint);
+    if (!dagBound) {
+      dagBound = true;
+      global.addEventListener("resize", debounce(repaintDags, 120));
+      global.addEventListener("load", repaintDags);
+    }
+    return inst;
+  }
+
+  var VERSION = "2.0.0";
+  var STAGES = [1, 2, 3, 4];
+
+  var CONSUMES = {
+    panel: "dag",
+    source: "workflow steps fragment",
+    payload_keys: ["workflow[]"],
+    required: ["id", "stage", "step"],
+    optional: ["needs"],
+    options: ["segments", "label", "stageNames", "headlines", "notes"]
+  };
+
+  function elem(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function isArray(v) { return Object.prototype.toString.call(v) === "[object Array]"; }
+  function text(v) { return v == null ? "" : String(v).trim(); }
+
+  /* ══ refusal — a visible box in the container AND a thrown Error ═══════ */
+  function paintError(host, code, message) {
+    if (!host || !host.appendChild) return;
+    var box = elem("div", "callout warn");
+    box.setAttribute("data-dag", "error");
+    box.setAttribute("role", "alert");
+    box.style.cssText =
+      "background:var(--surface-2);border:1px solid var(--border);" +
+      "border-left:3px solid var(--warning);border-radius:7px;padding:11px 14px;" +
+      "margin-top:16px;font-size:13px;color:var(--text-primary)";
+    box.appendChild(elem("b", null, "Workflow figure refused to render — " + code + ". "));
+    box.appendChild(document.createTextNode(message));
+    host.appendChild(box);
+  }
+  function refuse(host, code, message) {
+    paintError(host, code, message);
+    var err = new Error(code + ": " + message);
+    err.code = code;
+    throw err;
+  }
+
+  /* ══ the step schema — this file's own contribution, no geometry in it ══ */
+
+  function checkSteps(steps) {
+    var problems = [], seen = {}, ids = {};
+    steps.forEach(function (s, i) {
+      var at = "workflow[" + i + "]";
+      if (!s || typeof s !== "object") { problems.push(at + " is not an object"); return; }
+      var id = text(s.id);
+      if (!id) problems.push(at + " has no id");
+      else if (seen[id]) problems.push(at + " repeats the id " + JSON.stringify(id) +
+        " (already used by workflow[" + seen[id].i + "])");
+      else { seen[id] = { i: i }; ids[id] = true; }
+      var stage = Number(s.stage);
+      if (!(stage === Math.floor(stage)) || STAGES.indexOf(stage) < 0) {
+        problems.push(at + (id ? " (" + id + ")" : "") + " has stage " +
+          JSON.stringify(s.stage) + "; the four pipeline stages are 1..4");
+      }
+      if (!text(s.step)) {
+        problems.push(at + (id ? " (" + id + ")" : "") + " has no step sentence");
+      }
+      if (s.needs != null && !isArray(s.needs)) {
+        problems.push(at + (id ? " (" + id + ")" : "") + " has needs of type " +
+          typeof s.needs + "; needs is an array of ids (omit it for a source step)");
+      }
+    });
+    steps.forEach(function (s, i) {
+      if (!s || typeof s !== "object" || !isArray(s.needs)) return;
+      s.needs.forEach(function (n) {
+        if (!ids[text(n)]) {
+          problems.push("workflow[" + i + "] (" + text(s.id) + ") needs " +
+            JSON.stringify(String(n)) + ", which is not a step id in this workflow");
+        }
+      });
+    });
+    return problems;
+  }
+
+  /* Kahn, for VALIDATION ONLY — the drawing order stays this component's dagTopo,
+     which appends a cycle's leftovers rather than dropping
+     them. This returns the ids that never became ready, i.e. the cycle. */
+  function cycleIds(steps) {
+    var indeg = {}, needs = {}, order = [], ready = [], done = {};
+    steps.forEach(function (s) {
+      var id = text(s.id);
+      order.push(id);
+      needs[id] = (isArray(s.needs) ? s.needs : []).map(text);
+    });
+    order.forEach(function (id) { indeg[id] = needs[id].length; });
+    order.forEach(function (id) { if (!indeg[id]) ready.push(id); });
+    while (ready.length) {
+      var id = ready.shift();
+      done[id] = true;
+      order.forEach(function (other) {
+        var k = needs[other].indexOf(id);
+        if (k >= 0 && --indeg[other] === 0) ready.push(other);
+      });
+    }
+    return order.filter(function (id) { return !done[id]; });
+  }
+
+  function checkSegments(segments) {
+    var problems = [];
+    segments.forEach(function (s, i) {
+      if (!s || typeof s !== "object") { problems.push("segments[" + i + "] is not an object"); return; }
+      var stage = Number(s.stage);
+      if (STAGES.indexOf(stage) < 0) {
+        problems.push("segments[" + i + "] has stage " + JSON.stringify(s.stage) + "; 1..4");
+      }
+      if (!text(s.label)) problems.push("segments[" + i + "] has no label");
+    });
+    return problems;
+  }
+
+  /* ══ the factory ════════════════════════════════════════════════════════ */
+
+  function create(container, workflow, options) {
+    options = options || {};
+
+    var host = typeof container === "string" ? document.querySelector(container) : container;
+    if (!host || !host.appendChild) {
+      var e0 = new Error("E-DAG-HOST-01: container is not an element (expected the " +
+                         "#ribbon slot, skeleton.html:129)");
+      e0.code = "E-DAG-HOST-01";
+      throw e0;
+    }
+
+    /* -- direct workflow fragment contract ------------------------------- */
+    var wf = workflow;
+    if (!isArray(wf) || !wf.length) {
+      refuse(host, "E-DAG-STEPS-01", "no workflow to draw: this factory takes " +
+        "a direct workflow steps array and it is " +
+        (wf == null ? "absent" : isArray(wf) ? "empty" : "a " + typeof wf) +
+        ". The lower-level PC.renderDag API answers this with a bare `return null`, which " +
+        "leaves the slot silently empty; a page with no workflow calls PC.buildRibbon " +
+        "instead (skeleton.html:117-125).");
+    }
+    var problems = checkSteps(wf);
+    if (problems.length) {
+      refuse(host, "E-DAG-STEPS-01", "the workflow does not satisfy the step schema " +
+        "{id unique, stage 1..4, step, needs[] resolving to known ids}: " +
+        problems.join("; ") + ".");
+    }
+    var cyc = cycleIds(wf);
+    if (cyc.length) {
+      refuse(host, "E-DAG-CYCLE-01", "the `needs` relation has a cycle through " +
+        cyc.join(" → ") + ". A workflow is a DAG; the direct PC.dagTopo API would " +
+        "append these steps in declaration order rather than report them, so the figure " +
+        "would draw a lineage that does not exist.");
+    }
+
+    /* -- the page's own ribbon, so figure and rollup cannot disagree ------- */
+    var segments = options.segments;
+    var stageNames = options.stageNames;
+    if (segments != null && !isArray(segments)) {
+      refuse(host, "E-DAG-SEGMENTS-01", "options.segments is a " + typeof segments +
+        "; it is the page's RIBBON array [{stage, label, value, note}].");
+    }
+    if ((!segments || !segments.length) && (!isArray(stageNames) || !stageNames.length)) {
+      refuse(host, "E-DAG-SEGMENTS-01", "no options.segments and no options.stageNames: " +
+        "the column heads would fall back to the library's generic stage titles and could " +
+        "then disagree with the rollup the same page prints under 720px. Pass the page's " +
+        "RIBBON as `segments` (or, for a page with no RIBBON, `stageNames`).");
+    }
+    if (segments && segments.length) {
+      var segProblems = checkSegments(segments);
+      if (segProblems.length) {
+        refuse(host, "E-DAG-SEGMENTS-01", "options.segments is not a RIBBON: " +
+          segProblems.join("; ") + ".");
+      }
+    }
+
+    var state = {
+      segments: segments || null,
+      label: options.label || null,
+      stageNames: isArray(stageNames) ? stageNames : null,
+      headlines: isArray(options.headlines) ? options.headlines : null,
+      notes: isArray(options.notes) ? options.notes : null
+    };
+
+    var inst = null;
+
+    function dagOpts() {
+      var o = {};
+      if (state.segments) o.segments = state.segments;
+      if (state.label) o.label = state.label;
+      if (state.stageNames) o.stageNames = state.stageNames;
+      if (state.headlines) o.headlines = state.headlines;
+      if (state.notes) o.notes = state.notes;
+      return o;
+    }
+
+    /* The node titles are the text half of the `needs` relation and the reason
+       the edge layer may stay under 3:1. If they ever stop
+       arriving, the exemption is void and this panel says so instead of shipping
+       an inaccessible figure. */
+    function checkTitles() {
+      var nodes = host.querySelectorAll(".dagnode");
+      var bare = [];
+      for (var i = 0; i < nodes.length; i++) {
+        var t = nodes[i].getAttribute("title") || "";
+        if (t.indexOf("needs:") < 0) {
+          bare.push(text(nodes[i].querySelector(".dagid") && nodes[i].querySelector(".dagid").textContent)
+                    || ("node " + (i + 1)));
+        }
+      }
+      if (bare.length) {
+        refuse(host, "E-DAG-TITLES-01", "the built figure has node(s) with no `needs` in " +
+          "their title: " + bare.join(", ") + ". The edge SVG is aria-hidden, so the node " +
+          "title is the only place the lineage is stated in text; without it the ~1.7:1 " +
+          "edge-stroke exemption from WCAG 1.4.11 expires.");
+      }
+    }
+
+    function render() {
+      host.innerHTML = "";
+      inst = renderDag(host, wf, dagOpts());
+      if (!inst) {
+        refuse(host, "E-DAG-STEPS-01", "renderDag declined a workflow this panel had " +
+          "already accepted (panels/dag_render.js).");
+      }
+      checkTitles();
+      return inst.el;
+    }
+
+    /* The library instance's own repaint — re-exposed, not re-implemented. */
+    function repaint() { return inst ? inst.repaint() : null; }
+
+    function setState(patch) {
+      patch = patch || {};
+      var known = ["segments", "label", "stageNames", "headlines", "notes"];
+      var unknown = Object.keys(patch).filter(function (k) { return known.indexOf(k) < 0; });
+      if (unknown.length) {
+        refuse(host, "E-DAG-SEGMENTS-01", "setState does not accept " + unknown.join(", ") +
+          "; this panel's state is the page's ribbon and labels — the workflow steps are immutable.");
+      }
+      if (patch.segments != null) {
+        var p = isArray(patch.segments) ? checkSegments(patch.segments)
+                                        : ["segments is a " + typeof patch.segments];
+        if (p.length) refuse(host, "E-DAG-SEGMENTS-01", p.join("; ") + ".");
+        state.segments = patch.segments;
+      }
+      known.forEach(function (k) {
+        if (k !== "segments" && patch[k] !== undefined) state[k] = patch[k];
+      });
+      render();
+      return api.state;
+    }
+
+    function destroy() {
+      host.innerHTML = "";
+      host.classList.remove("dagfig");
+      host.classList.add("ribbon");             // back to the slot's default state
+      try { delete host.__pcDag; } catch (e) { host.__pcDag = undefined; }
+      inst = null;
+    }
+
+    var api = {
+      version: VERSION,
+      consumes: CONSUMES,
+      render: render,
+      repaint: repaint,
+      setState: setState,
+      destroy: destroy,
+      get root() { return inst ? inst.el : null; },
+      /* the library's published geometry contract, handed straight back out */
+      get geometry() { return inst ? inst.geometry : null; },
+      get state() {
+        var geo = inst ? inst.geometry : null;
+        return {
+          steps: wf.length,
+          stages: wf.map(function (s) { return Number(s.stage); })
+                    .filter(function (v, i, a) { return a.indexOf(v) === i; }).sort(),
+          order: inst ? inst.order.slice() : [],
+          segments: state.segments ? state.segments.length : 0,
+          label: state.label,
+          hidden: geo ? !!geo.hidden : null,
+          geometry_v: geo ? geo.v : null
+        };
+      }
+    };
+
+    render();
+    return api;
+  }
+
+  /* Public catalog factory plus compatibility aliases for templates that call
+     the renderer directly. The implementation above remains the only router. */
+  suite.panels = suite.panels || {};
+  suite.panels.dag = { create: create, version: VERSION };
+  suite.renderDag = renderDag;
+  suite.repaintDags = repaintDags;
+  suite.dagTopo = dagTopo;
+  suite.registerThemePainter(repaintDags);
+})(typeof globalThis !== "undefined" ? globalThis : this);
+
+/* PC5251 panel: provenance card.
+   Owns source/licence, notebook-lineage and provenance-footer rendering.
+   Supplied record values are written as text; PC.renderProvenance remains the
+   direct compatibility API used by existing templates. */
+
+(function (global) {
+  "use strict";
+
+  var suite = global.PC;
+  if (!suite) throw new Error("E-PROVENANCE-LIB-01: design/charts.js core must be loaded before provenance_render.js");
+
+  function hostOf(x) {
+    if (!x) return null;
+    if (typeof x !== "string") return x;
+    return /^[#.\[]/.test(x) ? document.querySelector(x) : document.getElementById(x);
+  }
+  function mk(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  /* ── extension ── tab 1's opening sections, generated from the same card.
+     Values are written with textContent, never innerHTML: they are prose a
+     contributor typed into PROVENANCE.md, and the page must render it rather
+     than execute it. ─────────────────────────────────────────────────────── */
+
+  function truthy(v) {
+    if (typeof v === "string") return /^\s*(yes|true|y|1)\s*$/i.test(v);
+    return !!v;
+  }
+  function usageChip(label, allowed) {
+    /* Icon AND label, never colour alone — the same contract .flag keeps. */
+    var s = mk("span", "uchip " + (allowed ? "yes" : "no"));
+    s.appendChild(mk("span", "uicon", allowed ? "✓" : "✗"));
+    s.appendChild(mk("span", "ulabel", label));
+    return s;
+  }
+  function bullets(items) {
+    var ul = mk("ul", "tight");
+    (items || []).forEach(function (t) { ul.appendChild(mk("li", null, String(t))); });
+    return ul;
+  }
+  function provRow(dl, term, value) {
+    if (value == null || value === "") return null;
+    var row = mk("div", "provrow");
+    row.appendChild(mk("dt", null, term));
+    var dd = mk("dd");
+    if (typeof value === "object" && value.nodeType) dd.appendChild(value);
+    else dd.textContent = String(value);
+    row.appendChild(dd);
+    dl.appendChild(row);
+    return dd;
+  }
+
+  /* Part C is the page's own provenance, so it belongs in the page's own
+     footer rather than in a tab: whoever built this file, and the commands
+     that rebuild it. Filled by selector so a page that omits either slot
+     simply does not get it. */
+  function provFooter(card) {
+    var by = document.querySelector('[data-prov="built-by"]');
+    if (by) {
+      var bits = [];
+      if (card.built_by) bits.push("Built by " + card.built_by);
+      if (card.built) bits.push(String(card.built));
+      by.textContent = bits.join(" · ");
+    }
+    var re = document.querySelector('[data-prov="regenerate"]');
+    if (re && card.regenerate) {
+      re.innerHTML = "";
+      re.appendChild(mk("summary", null, "Regenerate this page"));
+      re.appendChild(mk("pre", "provcmd", String(card.regenerate).replace(/\s+$/, "")));
+    }
+  }
+
+  function renderProvenance(container, card, opts) {
+    var el = hostOf(container);
+    if (!el || !card) return null;
+    opts = opts || {};
+    el.innerHTML = "";
+    var ds = card.dataset || {}, nb = card.notebook || {};
+    var compact = document.documentElement.getAttribute('data-page-role') === 'workflow';
+    function notebookNames(value) {
+      var matches = String(value || '').match(/[^\\/\s,;]+\.ipynb/gi);
+      return matches ? Array.from(new Set(matches)).join(', ') : 'Notebook filename not recorded';
+    }
+
+
+    /* Part A — where the bytes came from, before anything is measured. The
+       claims table under it is the measured half; this is the card half. */
+    if (compact) {
+      var source = mk('p', 'workflow-source-summary');
+      source.appendChild(mk('strong', null, 'Data source. '));
+      source.appendChild(document.createTextNode(String(ds.dataset_name || 'See the Dataset record.').split('. ')[0] + '. Detailed dataset provenance and usage conditions are on the Dataset page.'));
+      el.appendChild(source);
+    } else {
+    var a = mk("section", "card provcard");
+    a.appendChild(mk("h2", null, opts.titleA || "Where this data comes from"));
+    var dlA = mk("dl", "provlist");
+    provRow(dlA, "Dataset name", ds.dataset_name);
+    provRow(dlA, "Created by", ds.created_by);
+    provRow(dlA, "Collection", ds.collection);
+    provRow(dlA, "Obtained from", ds.obtained_from);
+    if (ds.licence != null || ds.usage) {
+      var lic = mk("div", "provlic");
+      if (ds.licence != null) lic.appendChild(mk("p", "proval", String(ds.licence)));
+      if (ds.usage) {
+        var chips = mk("div", "uchips");
+        chips.appendChild(usageChip("internal teaching", truthy(ds.usage.internal_teaching)));
+        chips.appendChild(usageChip("public page", truthy(ds.usage.public_page)));
+        chips.appendChild(usageChip("raw redistribution", truthy(ds.usage.raw_redistribution)));
+        lic.appendChild(chips);
+      }
+      provRow(dlA, "Licence", lic);
+    }
+    provRow(dlA, "Source type", ds.source_type);
+    provRow(dlA, "Contents", ds.contents);
+    provRow(dlA, "Prior processing", ds.prior_processing);
+    if ((ds.known_issues || []).length) {
+      provRow(dlA, "Known issues", bullets(ds.known_issues));
+    }
+    a.appendChild(dlA);
+    el.appendChild(a);
+
+    }
+
+    /* Part B — whose method this is. Not the notebook's numbers: §10.3 keeps
+       those off the page, because a local approximation printed beside
+       someone else's benchmark invites the false equivalence §7.6 forbids. */
+    var b = mk("section", "card provcard");
+    b.appendChild(mk("h2", null, opts.titleB || "Notebook lineage"));
+    var dlB = mk("dl", "provlist");
+    provRow(dlB, "Author", nb.author);
+    provRow(dlB, "Source / context", nb.context);
+    if (nb.file) provRow(dlB, "Notebook", notebookNames(nb.file) + (nb.dated ? " · " + (/^\d{4}-\d{2}-\d{2}$/.test(String(nb.dated)) ? nb.dated : "date not established") : ""));
+    if (!compact) provRow(dlB, "Methods & key settings", nb.methods);
+    var changes = nb.our_changes || [];
+    if (changes.length) {
+      var det = mk("details", "provchanges");
+      det.appendChild(mk("summary", null, "Our changes — " + changes.length + " deviation"
+        + (changes.length === 1 ? "" : "s") + " from the notebook"));
+      det.appendChild(bullets(changes));
+      provRow(dlB, "Our changes", det);
+    }
+    b.appendChild(dlB);
+    el.appendChild(b);
+
+    if (opts.foot !== false) provFooter(card);
+    return el;
+  }
+
+  var VERSION = "1.0.0";
+  function create(container, card, options) {
+    var host = hostOf(container);
+    if (!host || !host.appendChild) {
+      var hostError = new Error("E-PROVENANCE-HOST-01: container is not an element");
+      hostError.code = "E-PROVENANCE-HOST-01";
+      throw hostError;
+    }
+    if (!card || typeof card !== "object") {
+      var cardError = new Error("E-PROVENANCE-CARD-01: provenance card must be an object");
+      cardError.code = "E-PROVENANCE-CARD-01";
+      throw cardError;
+    }
+    var root = renderProvenance(host, card, options || {});
+    return {
+      version: VERSION,
+      root: root,
+      repaint: function () { return root; },
+      destroy: function () { host.innerHTML = ""; root = null; },
+      get state() { return { rendered: !!root }; }
+    };
+  }
+
+  suite.panels = suite.panels || {};
+  suite.panels.provenance = { create: create, version: VERSION };
+  suite.renderProvenance = renderProvenance;
+})(typeof globalThis !== "undefined" ? globalThis : this);

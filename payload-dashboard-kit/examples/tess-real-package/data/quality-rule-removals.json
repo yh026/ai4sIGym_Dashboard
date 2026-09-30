@@ -1,0 +1,22 @@
+[
+  {
+    "removed": 0,
+    "rule": "Exact duplicate"
+  },
+  {
+    "removed": 0,
+    "rule": "Duration >= period"
+  },
+  {
+    "removed": 1,
+    "rule": "st_rad > 100 R_sun"
+  },
+  {
+    "removed": 5,
+    "rule": "st_teff > 20,000 K"
+  },
+  {
+    "removed": 2,
+    "rule": "Missing disposition"
+  }
+]

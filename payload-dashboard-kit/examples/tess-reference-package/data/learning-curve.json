@@ -1,0 +1,86 @@
+[
+  {
+    "n_train": 300,
+    "series": "Train",
+    "score": 0.92,
+    "lower": 0.92,
+    "upper": 0.92
+  },
+  {
+    "n_train": 300,
+    "series": "Held-out",
+    "score": 0.69,
+    "lower": 0.6579999999999999,
+    "upper": 0.722
+  },
+  {
+    "n_train": 550,
+    "series": "Train",
+    "score": 0.908,
+    "lower": 0.908,
+    "upper": 0.908
+  },
+  {
+    "n_train": 550,
+    "series": "Held-out",
+    "score": 0.715,
+    "lower": 0.6859999999999999,
+    "upper": 0.744
+  },
+  {
+    "n_train": 800,
+    "series": "Train",
+    "score": 0.896,
+    "lower": 0.896,
+    "upper": 0.896
+  },
+  {
+    "n_train": 800,
+    "series": "Held-out",
+    "score": 0.74,
+    "lower": 0.714,
+    "upper": 0.766
+  },
+  {
+    "n_train": 1050,
+    "series": "Train",
+    "score": 0.884,
+    "lower": 0.884,
+    "upper": 0.884
+  },
+  {
+    "n_train": 1050,
+    "series": "Held-out",
+    "score": 0.7649999999999999,
+    "lower": 0.7419999999999999,
+    "upper": 0.7879999999999999
+  },
+  {
+    "n_train": 1300,
+    "series": "Train",
+    "score": 0.872,
+    "lower": 0.872,
+    "upper": 0.872
+  },
+  {
+    "n_train": 1300,
+    "series": "Held-out",
+    "score": 0.7899999999999999,
+    "lower": 0.7699999999999999,
+    "upper": 0.8099999999999999
+  },
+  {
+    "n_train": 1567,
+    "series": "Train",
+    "score": 0.8600000000000001,
+    "lower": 0.8600000000000001,
+    "upper": 0.8600000000000001
+  },
+  {
+    "n_train": 1567,
+    "series": "Held-out",
+    "score": 0.815,
+    "lower": 0.7979999999999999,
+    "upper": 0.832
+  }
+]

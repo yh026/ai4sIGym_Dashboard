@@ -1,0 +1,57 @@
+[
+  {
+    "coefficient_abs": 0.04021949652204554,
+    "feature": "pl_orbper",
+    "importance": 0.02689156082013231
+  },
+  {
+    "coefficient_abs": 0.26160454932131605,
+    "feature": "pl_trandurh",
+    "importance": 0.03033097854526431
+  },
+  {
+    "coefficient_abs": 1.462105496947069,
+    "feature": "pl_trandep",
+    "importance": 0.04383057418771712
+  },
+  {
+    "coefficient_abs": 1.0913292964060286,
+    "feature": "pl_rade",
+    "importance": 0.03798285048285053
+  },
+  {
+    "coefficient_abs": 0.13723733324158055,
+    "feature": "pl_insol",
+    "importance": 0.0459510727367871
+  },
+  {
+    "coefficient_abs": 0.1744937644488126,
+    "feature": "st_tmag",
+    "importance": 0.00808209647495363
+  },
+  {
+    "coefficient_abs": 0.6355295304319,
+    "feature": "st_dist",
+    "importance": 0.01971361971361978
+  },
+  {
+    "coefficient_abs": 0.15852492814998084,
+    "feature": "st_teff",
+    "importance": 0.011331525617239935
+  },
+  {
+    "coefficient_abs": 0.15275699041283597,
+    "feature": "st_logg",
+    "importance": 0.02030647923505072
+  },
+  {
+    "coefficient_abs": 0.2940888666856085,
+    "feature": "st_rad",
+    "importance": 0.014545276152419066
+  },
+  {
+    "coefficient_abs": 0.16762770256183984,
+    "feature": "pm_total",
+    "importance": 0.0031768826411683994
+  }
+]

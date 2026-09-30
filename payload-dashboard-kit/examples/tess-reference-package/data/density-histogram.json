@@ -1,0 +1,146 @@
+[
+  {
+    "log10_density": -1.4,
+    "count": 28
+  },
+  {
+    "log10_density": -1.3371,
+    "count": 34
+  },
+  {
+    "log10_density": -1.2743,
+    "count": 42
+  },
+  {
+    "log10_density": -1.2114,
+    "count": 53
+  },
+  {
+    "log10_density": -1.1486,
+    "count": 67
+  },
+  {
+    "log10_density": -1.0857,
+    "count": 87
+  },
+  {
+    "log10_density": -1.0229,
+    "count": 111
+  },
+  {
+    "log10_density": -0.96,
+    "count": 141
+  },
+  {
+    "log10_density": -0.8971,
+    "count": 178
+  },
+  {
+    "log10_density": -0.8343,
+    "count": 219
+  },
+  {
+    "log10_density": -0.7714,
+    "count": 265
+  },
+  {
+    "log10_density": -0.7086,
+    "count": 315
+  },
+  {
+    "log10_density": -0.6457,
+    "count": 366
+  },
+  {
+    "log10_density": -0.5829,
+    "count": 416
+  },
+  {
+    "log10_density": -0.52,
+    "count": 462
+  },
+  {
+    "log10_density": -0.4571,
+    "count": 502
+  },
+  {
+    "log10_density": -0.3943,
+    "count": 532
+  },
+  {
+    "log10_density": -0.3314,
+    "count": 551
+  },
+  {
+    "log10_density": -0.2686,
+    "count": 558
+  },
+  {
+    "log10_density": -0.2057,
+    "count": 551
+  },
+  {
+    "log10_density": -0.1429,
+    "count": 532
+  },
+  {
+    "log10_density": -0.08,
+    "count": 502
+  },
+  {
+    "log10_density": -0.0171,
+    "count": 462
+  },
+  {
+    "log10_density": 0.0457,
+    "count": 416
+  },
+  {
+    "log10_density": 0.1086,
+    "count": 366
+  },
+  {
+    "log10_density": 0.1714,
+    "count": 315
+  },
+  {
+    "log10_density": 0.2343,
+    "count": 265
+  },
+  {
+    "log10_density": 0.2971,
+    "count": 219
+  },
+  {
+    "log10_density": 0.36,
+    "count": 178
+  },
+  {
+    "log10_density": 0.4229,
+    "count": 141
+  },
+  {
+    "log10_density": 0.4857,
+    "count": 111
+  },
+  {
+    "log10_density": 0.5486,
+    "count": 87
+  },
+  {
+    "log10_density": 0.6114,
+    "count": 67
+  },
+  {
+    "log10_density": 0.6743,
+    "count": 53
+  },
+  {
+    "log10_density": 0.7371,
+    "count": 42
+  },
+  {
+    "log10_density": 0.8,
+    "count": 34
+  }
+]

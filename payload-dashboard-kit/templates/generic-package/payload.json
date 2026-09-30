@@ -1,0 +1,113 @@
+{
+  "schema_version": "3.0.0",
+  "renderer_contract": {
+    "name": "render-payload-dashboard",
+    "version": "3.0.0",
+    "strict": true
+  },
+  "report": {
+    "title": "Example dashboard",
+    "subtitle": "Replace this domain-neutral starter with verified results",
+    "summary": "A minimal accordion report whose chart intent is fully declared by the payload.",
+    "claim": "The renderer presents declared values; it does not infer analytical meaning."
+  },
+  "run": {
+    "id": "example-run",
+    "label": "Example run",
+    "status": "complete"
+  },
+  "dataset": {
+    "id": "example-data",
+    "title": "Example data",
+    "description": "Small synthetic values used only as an authoring starter.",
+    "row_count": 3,
+    "feature_count": 2
+  },
+  "provenance": {
+    "generator": {
+      "name": "replace-with-upstream-generator",
+      "version": "0.1.0"
+    },
+    "inputs": []
+  },
+  "theme": {
+    "name": "generic",
+    "mode": "light",
+    "palette": "colorblind-safe",
+    "density": "comfortable"
+  },
+  "presentation": {
+    "locale": "en-US",
+    "section_prefix": "Section",
+    "show_section_numbers": true,
+    "show_figure_titles": true,
+    "show_figure_descriptions": true,
+    "show_coverage": true,
+    "show_build_footer": false
+  },
+  "data": [
+    {
+      "id": "category-values",
+      "semantic_type": "summary.category-values",
+      "title": "Values by category",
+      "fields": [
+        {"name": "category", "type": "string", "role": "dimension", "label": "Category"},
+        {"name": "value", "type": "number", "role": "measure", "label": "Value"}
+      ],
+      "storage": {
+        "kind": "inline",
+        "format": "rows",
+        "rows": [
+          {"category": "Alpha", "value": 12},
+          {"category": "Beta", "value": 19},
+          {"category": "Gamma", "value": 15}
+        ]
+      }
+    }
+  ],
+  "sections": [
+    {
+      "id": "overview",
+      "number": 1,
+      "title": "Overview",
+      "summary": "Replace this section with one step or topic from the upstream workflow.",
+      "figure_ids": ["category-summary"],
+      "findings": ["The example values are deliberately synthetic."],
+      "method_notes": [
+        {"kind": "produces", "text": "A declared category summary."}
+      ],
+      "initial_state": "open"
+    }
+  ],
+  "figures": [
+    {
+      "id": "category-summary",
+      "title": "Declared category values",
+      "description": "One explicit bar layer using fields from category-values.",
+      "caption": "Illustrative values only.",
+      "recipe": "generic.figure@1",
+      "layout": {"type": "single", "columns": 1, "gap": 16},
+      "panels": [
+        {
+          "id": "category-bars",
+          "title": "Value by category",
+          "data_ref": "category-values",
+          "coordinate": {"type": "cartesian"},
+          "layers": [
+            {
+              "id": "values",
+              "mark": {"type": "bar"},
+              "encoding": {
+                "x": {"field": "category", "type": "nominal", "axis": {"title": "Category"}},
+                "y": {"field": "value", "type": "quantitative", "axis": {"title": "Value", "grid": true}},
+                "text": {"field": "value", "type": "quantitative", "format": "number"},
+                "color": {"value": "primary", "type": "nominal", "scale_role": "semantic"},
+                "tooltip": {"field": "category", "type": "nominal", "title": "Category"}
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

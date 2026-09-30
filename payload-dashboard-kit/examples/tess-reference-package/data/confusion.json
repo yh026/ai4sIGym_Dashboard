@@ -1,0 +1,22 @@
+[
+  {
+    "actual": "False positive",
+    "predicted": "False positive",
+    "value": 0.83
+  },
+  {
+    "actual": "False positive",
+    "predicted": "Planet",
+    "value": 0.17
+  },
+  {
+    "actual": "Planet",
+    "predicted": "False positive",
+    "value": 0.15
+  },
+  {
+    "actual": "Planet",
+    "predicted": "Planet",
+    "value": 0.85
+  }
+]

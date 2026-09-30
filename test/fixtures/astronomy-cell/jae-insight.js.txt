@@ -1,0 +1,224 @@
+(()=>{"use strict";
+/* The page decodes a stored embedding; it never runs a model. Three views share one
+   selected cell: the map picks it, the block panel reads its 61 values, and the
+   neighbour test asks the whole vector the question the blocks were trained to lose. */
+const q=id=>document.getElementById(id);
+const N=D.n,DIM=D.dim,K=D.k;
+
+function u8(b64){const s=atob(b64),a=new Uint8Array(s.length);for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return a}
+/* One shared scale for every value, exactly as the payload stores it. */
+const raw=u8(D.latent.data),scale=(D.latent.hi-D.latent.lo)/255,base=D.latent.lo;
+const val=(cell,dim)=>raw[cell*DIM+dim]*scale+base;
+const cellType=u8(D.cell_type),donor=u8(D.batch),heldout=u8(D.heldout);
+const typeNames=D.cell_type_names,donorNames=D.batch_names,lineage=D.cell_type_lineage;
+
+/* Positions are the saved map; only the colouring and the rings change here. The
+   coordinates are stored 16-bit little-endian, so they are two bytes per cell. */
+function u16(b64){const b=u8(b64),a=new Uint16Array(b.length>>1);for(let i=0;i<a.length;i++)a[i]=b[i*2]|b[i*2+1]<<8;return a}
+const FULL=(1<<16)-1;
+const cx=u16(D.coords.x),cy=u16(D.coords.y),sx=D.coords.sx,sy=D.coords.sy;
+const px=i=>cx[i]/FULL*(sx[1]-sx[0])+sx[0],py=i=>cy[i]/FULL*(sy[1]-sy[0])+sy[0];
+const xr=[Math.min(...Array.from({length:N},(_,i)=>px(i))),Math.max(...Array.from({length:N},(_,i)=>px(i)))];
+const yr=[Math.min(...Array.from({length:N},(_,i)=>py(i))),Math.max(...Array.from({length:N},(_,i)=>py(i)))];
+
+const LINEAGE_COLOR=['--series-1','--series-2','--series-3','--series-4','--series-5','--series-6','--series-7','--series-8'];
+const lineageIndex=new Map(D.lineage_order.map((l,i)=>[l,i]));
+const typeColor=i=>PC.css(LINEAGE_COLOR[(lineageIndex.get(lineage[i])??0)%LINEAGE_COLOR.length]);
+const donorColor=i=>PC.css(LINEAGE_COLOR[i%LINEAGE_COLOR.length]);
+
+const block=key=>D.blocks.find(b=>b.key===key);
+function argmax(cell,span){let best=span[0],bv=-Infinity;for(let d=span[0];d<span[1];d++){const v=val(cell,d);if(v>bv){bv=v;best=d}}return best-span[0]}
+const readType=c=>argmax(c,block('cell_type').span),readDonor=c=>argmax(c,block('batch').span);
+
+/* The neighbour test is exact and cheap for one cell: 5,004 x 61 multiply-adds. */
+function neighbours(cell){
+ const d=new Float64Array(N);
+ for(let i=0;i<N;i++){let s=0;for(let k=0;k<DIM;k++){const t=raw[i*DIM+k]-raw[cell*DIM+k];s+=t*t}d[i]=i===cell?Infinity:s}
+ const idx=Array.from({length:N},(_,i)=>i);
+ idx.sort((a,b)=>d[a]-d[b]);
+ return idx.slice(0,K);
+}
+
+let selected=0,colorBy='type',nb=[],nbSet=new Set(),points=[];
+const pct=v=>(100*v).toFixed(1)+'%';
+
+function paintMap(){
+ const cv=q('map'),w=cv.parentElement.clientWidth;if(!w)return;
+ const h=Math.max(300,Math.min(560,w)),g=PC.fit(cv,w,h),pad=18;
+ g.fillStyle=PC.css('--surface-1');g.fillRect(0,0,w,h);
+ points=[];
+ const ring=q('showNeighbours').checked;
+ for(let i=0;i<N;i++){
+  const x=pad+(px(i)-xr[0])/(xr[1]-xr[0])*(w-2*pad),y=h-pad-(py(i)-yr[0])/(yr[1]-yr[0])*(h-2*pad);
+  points.push({x,y});
+  g.fillStyle=colorBy==='type'?typeColor(cellType[i]):donorColor(donor[i]);
+  g.globalAlpha=ring&&nbSet.size?(nbSet.has(i)?.95:.13):.62;
+  g.beginPath();g.arc(x,y,ring&&nbSet.has(i)?3.4:1.7,0,Math.PI*2);g.fill();
+ }
+ g.globalAlpha=1;
+ /* Neighbours get a thin hollow ring; the cell you clicked gets a filled marker with a
+    halo, so the one you chose is never mistaken for one of the fifteen it found. */
+ if(ring)for(const i of nb){const p=points[i];g.strokeStyle=PC.css('--text-primary');g.lineWidth=1.2;g.globalAlpha=.75;g.beginPath();g.arc(p.x,p.y,5.5,0,Math.PI*2);g.stroke()}
+ g.globalAlpha=1;
+ const p=points[selected];
+ g.beginPath();g.arc(p.x,p.y,9,0,Math.PI*2);g.fillStyle=PC.css('--surface-1');g.globalAlpha=.85;g.fill();g.globalAlpha=1;
+ g.beginPath();g.arc(p.x,p.y,5,0,Math.PI*2);g.fillStyle=colorBy==='type'?typeColor(cellType[selected]):donorColor(donor[selected]);g.fill();
+ g.strokeStyle=PC.css('--text-primary');g.lineWidth=2.5;g.beginPath();g.arc(p.x,p.y,9,0,Math.PI*2);g.stroke();
+ cv.dataset.cell=selected;cv.dataset.colorBy=colorBy;
+}
+
+function paintLegend(){
+ const host=q('legend');host.replaceChildren();
+ const items=colorBy==='type'
+  ? D.lineage_order.map((l,i)=>[l+' lineage',PC.css(LINEAGE_COLOR[i%LINEAGE_COLOR.length])])
+  : donorNames.map((b,i)=>[b,donorColor(i)]);
+ for(const [label,color] of items){
+  const chip=document.createElement('span');chip.className='legend-chip';
+  chip.style.setProperty('--chip',color);chip.textContent=label;host.append(chip);
+ }
+ const ringNote=q('showNeighbours').checked?` The cell you click is the filled marker with a heavy ring; the ${K} thin rings around it are its nearest neighbours across all ${DIM} values, counted directly below the map.`:'';
+ q('mapNote').textContent=(colorBy==='type'
+  ? `Every dot is one of ${N.toLocaleString()} cells, placed by its embedding and coloured by lineage. ${typeNames.length} cell types are grouped into ${D.lineage_order.length} lineages so the colours stay readable.`
+  : `The same ${N.toLocaleString()} cells in the same places, now coloured by which of the ${donorNames.length} batches each came from.`)+ringNote;
+}
+
+function bar(g,x,y,w,h,fill){g.fillStyle=fill;g.fillRect(x,y,w,h)}
+
+function paintBlocks(){
+ const host=q('blocks');host.replaceChildren();
+ const built=[];
+ for(const b of D.blocks){
+  const span=b.span;
+  const wrap=document.createElement('div');wrap.className='block';wrap.dataset.block=b.key;
+  const head=document.createElement('div');head.className='block-head';
+  const name=document.createElement('strong');name.textContent=b.label;
+  const dims=document.createElement('span');dims.textContent=`values ${span[0]}\u2013${span[1]-1} \u00b7 ${span[1]-span[0]}`;
+  head.append(name,dims);
+  const cv=document.createElement('canvas');cv.className='block-bars';
+  const note=document.createElement('p');note.className='note';note.textContent=b.target;
+  wrap.append(head,cv,note);
+  if(b.success){const ok=document.createElement('p');ok.className='block-success';ok.dataset.success=b.key;wrap.append(ok)}
+  if(b.reads){const read=document.createElement('p');read.className='block-read';read.dataset.read=b.key;wrap.append(read)}
+  host.append(wrap);built.push({b,wrap,cv});
+ }
+ /* Measure only once every block is in the document: a canvas cannot be sized from a
+    column that is still being built around it. */
+ for(const {b,wrap,cv} of built){
+  const cs=getComputedStyle(wrap),pad=parseFloat(cs.paddingLeft)+parseFloat(cs.paddingRight);
+  const w=Math.max(160,wrap.clientWidth-pad),count=b.span[1]-b.span[0],h=b.key==='cell_type'?74:56;
+  const g=PC.fit(cv,w,h);g.clearRect(0,0,w,h);
+  let hi=0;for(let d=b.span[0];d<b.span[1];d++)hi=Math.max(hi,val(selected,d));
+  /* ReLU output: a block training pushed to nothing is exactly zero, and an argmax over
+     it would just return its first entry. Nothing is highlighted in that case. */
+  const dead=hi<=0;
+  const top=dead?-1:b.key==='cell_type'?readType(selected):b.key==='batch'?readDonor(selected):-1;
+  wrap.classList.toggle('dead',dead);
+  const step=w/count,gap=count>20?0:2;
+  for(let i=0;i<count;i++){
+   const v=val(selected,b.span[0]+i),bh=hi>0?Math.max(1,v/hi*(h-2)):1;
+   bar(g,i*step,h-bh,Math.max(1,step-gap),bh,i===top?PC.css('--series-2'):PC.css('--axis'));
+  }
+  if(top>=0){g.strokeStyle=PC.css('--text-primary');g.lineWidth=1;g.strokeRect(top*step-.5,.5,Math.max(2,step-gap)+1,h-1)}
+  if(dead){g.fillStyle=PC.css('--text-primary');g.font='600 13px '+PC.css('--font');g.textAlign='center';g.textBaseline='middle';
+   g.fillText(`all ${count} values display as 0`,w/2,h/2)}
+  const okLine=wrap.querySelector('[data-success]');
+  if(okLine){okLine.textContent=dead?b.success:`This cell has a non-zero stored batch value. Non-zero values alone do not mean the target was missed: equal values also give equal probabilities.`}
+ }
+ const t=readType(selected);
+ const typeOk=t===cellType[selected],donorEmpty=blockPeak('batch')<=0;
+ const tr=host.querySelector('[data-read="cell_type"]');
+ if(tr){tr.replaceChildren(mark(typeOk),document.createTextNode(` reads ${typeNames[t]} \u00b7 true ${typeNames[cellType[selected]]}`))}
+ q('decodeVerdict').textContent=(typeOk
+  ? 'The cell-type block names this cell correctly. '
+  : `The cell-type block misreads this cell as ${typeNames[t]}${lineage[t]===lineage[cellType[selected]]?' \u2014 the wrong type, but the right lineage. ':'. '}`)
+  +(donorEmpty
+  ? `Its nine batch values all display as zero, as they do for ${pct(D.decode.occupancy.batch.all_zero)} of display cells. These values give equal batch probabilities; batch-related information may still remain elsewhere.`
+  : `Its batch block has at least one non-zero stored value, as in ${pct(1-D.decode.occupancy.batch.all_zero)} of display cells. The target concerns equal probabilities, not zeros specifically.`);
+}
+function blockPeak(key){const sp=block(key).span;let hi=0;for(let d=sp[0];d<sp[1];d++)hi=Math.max(hi,val(selected,d));return hi}
+function mark(ok){const s=document.createElement('span');s.className='mark '+(ok===null?'off':ok?'ok':'no');s.textContent=ok===null?'0':ok?'✓':'✗';return s}
+
+function paintCellName(){
+ const i=selected;
+ q('cellName').innerHTML='';
+ const strong=document.createElement('strong');strong.textContent=typeNames[cellType[i]];
+ q('cellName').append(strong,document.createTextNode(` · ${lineage[cellType[i]]} lineage · batch ${donorNames[donor[i]]} · ${D.barcodes[i]}`));
+ if(heldout[i]){const tag=document.createElement('span');tag.className='heldout-tag';tag.textContent='held out of training';q('cellName').append(tag)}
+}
+
+function paintTallies(){
+ const host=q('tallies');host.replaceChildren();
+ const d=D.decode,occ=d.occupancy;
+ const rows=[
+  {label:'Cell-type block names the exact type',value:d.type_exact,ref:1/d.n_types,refLabel:`${pct(1/d.n_types)} by guessing, ${d.n_types} types`},
+  {label:'\u2026 or at least the right lineage',value:d.type_lineage,ref:null,refLabel:`${D.lineage_order.length} lineages`},
+ ];
+ for(const b of D.blocks){
+  const o=occ[b.key];
+  rows.push({label:`${b.label} block displays all zeros`,value:o.all_zero,ref:null,
+   refLabel:`${o.dims} value${o.dims>1?'s':''} \u00b7 mean peak ${o.mean_peak.toFixed(2)}`,muted:true});
+ }
+ for(const r of rows){
+  const row=document.createElement('div');row.className='tally';
+  const lab=document.createElement('span');lab.className='tally-label';lab.textContent=r.label;
+  const track=document.createElement('div');track.className='tally-track';
+  const fill=document.createElement('div');fill.className='tally-fill'+(r.muted?' muted':'');fill.style.width=(100*r.value).toFixed(1)+'%';
+  track.append(fill);
+  if(r.ref!==null){const tick=document.createElement('div');tick.className='tally-chance';tick.style.left=(100*r.ref).toFixed(2)+'%';tick.title='chance';track.append(tick)}
+  const num=document.createElement('span');num.className='tally-value';num.textContent=pct(r.value);
+  const ref=document.createElement('span');ref.className='tally-ref';ref.textContent=r.refLabel;
+  row.append(lab,track,num,ref);host.append(row);
+ }
+ q('tallyNote').textContent=`Measured over all ${N.toLocaleString()} display cells, including training-labelled and held-out examples. The last four rows count blocks whose stored 8-bit values are all zero; small positive values can round to zero. All-zero batch values give uniform probabilities, satisfying that block’s target at display precision. Zero cycle outputs have a different meaning: their target is the cell’s S/G2M scores, not uniform probabilities.`;
+}
+function paintTwist(){
+ const sameType=nb.filter(i=>cellType[i]===cellType[selected]).length;
+ const sameDonor=nb.filter(i=>donor[i]===donor[selected]).length;
+ const host=q('twist');host.replaceChildren();
+ for(const [title,count,chance,chanceLabel] of [
+   ['share its cell type',sameType,null,''],
+   ['share its batch',sameDonor,D.neighbours.donor_chance,`${pct(D.neighbours.donor_chance)} expected by chance \u00b7 ${pct(D.neighbours.same_donor)} across all ${N.toLocaleString()} cells`]]){
+  const cell=document.createElement('div');cell.className='twist-card';
+  const h=document.createElement('p');h.className='twist-count';h.textContent=`${count} of ${K}`;
+  const s=document.createElement('p');s.className='twist-title';s.textContent=title;
+  const dots=document.createElement('div');dots.className='twist-dots';
+  for(let i=0;i<K;i++){const dot=document.createElement('span');dot.className='twist-dot'+(i<count?' on':'');dots.append(dot)}
+  cell.append(h,s,dots);
+  if(chance!==null){const c=document.createElement('p');c.className='note';c.textContent=chanceLabel;cell.append(c)}
+  host.append(cell);
+ }
+
+}
+
+function paintEvidence(){
+ const host=q('evidence');if(host.childElementCount)return;
+ for(const key of ['latent','blocks','dead_blocks','neighbours','heldout']){const p=document.createElement('p');p.textContent=D.evidence[key];host.append(p)}
+ const p=document.createElement('p');p.textContent=D.reference.note;host.append(p);
+ const r=document.createElement('p');r.className='note';
+ r.textContent=`For comparison, the saved analysis reports ${pct(D.reference.knn_same_batch_fraction)} same-batch neighbours against ${pct(D.reference.expected_same_batch_fraction)} expected, ${pct(D.reference.celltype_knn_purity)} cell-type purity, batch ASW ${D.reference.asw_batch.toFixed(3)} and NMI ${D.reference.nmi.toFixed(3)}.`;
+ host.append(r);
+}
+
+function select(i){
+ selected=Math.max(0,Math.min(N-1,i));
+ nb=neighbours(selected);nbSet=new Set(nb);
+ paintCellName();paintBlocks();paintTwist();paintMap();
+}
+function paint(){paintLegend();paintMap();paintBlocks();paintTallies();paintTwist();paintEvidence()}
+
+q('map').addEventListener('click',e=>{
+ const r=e.currentTarget.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+ let best=-1,bd=Infinity;
+ for(let i=0;i<N;i++){const d=(points[i].x-x)**2+(points[i].y-y)**2;if(d<bd){bd=d;best=i}}
+ if(best>=0)select(best);
+});
+q('map').addEventListener('keydown',e=>{const d={ArrowLeft:-1,ArrowRight:1,ArrowUp:-1,ArrowDown:1}[e.key];if(d){e.preventDefault();select(selected+d)}});
+for(const [id,mode] of [['colorType','type'],['colorDonor','donor']])q(id).addEventListener('click',()=>{
+ colorBy=mode;q('colorType').setAttribute('aria-pressed',String(mode==='type'));q('colorDonor').setAttribute('aria-pressed',String(mode==='donor'));
+ paintLegend();paintMap();
+});
+q('showNeighbours').addEventListener('change',()=>{paintLegend();paintMap()});
+q('kOut').textContent=K;
+PC.registerRepaint(paint);
+select(0);paint();
+})();

@@ -1,0 +1,152 @@
+{
+  "schema_version": "3.0.0",
+  "renderer_contract": {"name": "render-payload-dashboard", "version": "3.0.0", "strict": true},
+  "report": {
+    "title": "Production quality overview",
+    "subtitle": "Generic manufacturing example",
+    "summary": "A compact quality report built from a verified package-relative sidecar.",
+    "claim": "The page presents upstream aggregates without recomputing production metrics."
+  },
+  "run": {"id": "quality-run", "label": "Weekly quality summary", "status": "complete"},
+  "dataset": {
+    "id": "line-quality",
+    "title": "Production line summary",
+    "description": "Synthetic line-level totals for renderer demonstration.",
+    "row_count": 4,
+    "feature_count": 4
+  },
+  "provenance": {
+    "generator": {"name": "quality-summary-example", "version": "1.0.0"},
+    "inputs": [{"id": "line-aggregates", "kind": "dataset", "description": "Synthetic weekly aggregates committed with this example."}]
+  },
+  "theme": {
+    "name": "generic",
+    "mode": "light",
+    "palette": "colorblind-safe",
+    "density": "comfortable",
+    "semantic_colors": {
+      "throughput": "#2F6B8A",
+      "quality": "#C46B3C"
+    }
+  },
+  "presentation": {
+    "locale": "en-US",
+    "section_prefix": "Step",
+    "show_section_numbers": true,
+    "show_figure_titles": true,
+    "show_figure_descriptions": true,
+    "show_coverage": true,
+    "show_build_footer": false
+  },
+  "data": [
+    {
+      "id": "quality-summary",
+      "semantic_type": "manufacturing.quality-summary",
+      "title": "Line quality summary",
+      "description": "Precomputed units, defect counts, and defect rates by production line.",
+      "fields": [
+        {"name": "line", "type": "string", "role": "dimension", "label": "Line"},
+        {"name": "units", "type": "integer", "role": "measure", "label": "Units"},
+        {"name": "defects", "type": "integer", "role": "measure", "label": "Defects"},
+        {"name": "defect_rate", "type": "number", "role": "measure", "label": "Defect rate"}
+      ],
+      "storage": {
+        "kind": "sidecar",
+        "path": "data/quality-summary.json",
+        "format": "json",
+        "compression": "none",
+        "sha256": "44d282d4522572bf566e944a2ff261bfa671c6138a11aab723489ab3645aea7b",
+        "bytes": 256,
+        "rows": 4
+      }
+    }
+  ],
+  "sections": [
+    {
+      "id": "line-overview",
+      "number": 1,
+      "title": "Line overview",
+      "summary": "Compare output volume and the precomputed quality rate across lines.",
+      "figure_ids": ["line-summary-figure"],
+      "findings": ["East has the largest synthetic output and the smallest synthetic defect rate."],
+      "method_notes": [
+        {"kind": "uses", "text": "Verified line-level values from data/quality-summary.json."},
+        {"kind": "produces", "text": "Two panels bound to the same declared data source."}
+      ],
+      "initial_state": "open"
+    },
+    {
+      "id": "release-context",
+      "number": 2,
+      "title": "Release context",
+      "summary": "A workflow step may contain narrative and checks without inventing a chart.",
+      "figure_ids": [],
+      "checks": [
+        {"id": "review-complete", "label": "Operational review", "result": "pass", "detail": "The synthetic example is ready for renderer acceptance."}
+      ],
+      "caveats": [
+        {"kind": "scope", "text": "These values are illustrative and are not a production decision record."}
+      ],
+      "initial_state": "closed"
+    }
+  ],
+  "acts": [
+    {
+      "id": "review-act",
+      "numeral": "I",
+      "title": "Review",
+      "short_label": "Review",
+      "section_ids": ["line-overview", "release-context"]
+    }
+  ],
+  "figures": [
+    {
+      "id": "line-summary-figure",
+      "title": "Production and quality",
+      "description": "Both panels bind fields from a verified JSON sidecar.",
+      "caption": "Synthetic weekly aggregates.",
+      "recipe": "generic.figure@1",
+      "layout": {"type": "grid", "columns": 2, "rows": 1, "gap": 18},
+      "panels": [
+        {
+          "id": "units-panel",
+          "title": "Units produced",
+          "data_ref": "quality-summary",
+          "coordinate": {"type": "cartesian"},
+          "layers": [
+            {
+              "id": "unit-bars",
+              "mark": {"type": "bar"},
+              "encoding": {
+                "x": {"field": "line", "type": "nominal", "axis": {"title": "Line"}},
+                "y": {"field": "units", "type": "quantitative", "axis": {"title": "Units", "format": "integer", "grid": true}},
+                "text": {"field": "units", "type": "quantitative", "format": "integer"},
+                "color": {"value": "throughput", "type": "nominal", "scale_role": "semantic"},
+                "tooltip": {"field": "line", "type": "nominal", "title": "Line"}
+              }
+            }
+          ]
+        },
+        {
+          "id": "rate-panel",
+          "title": "Defect rate",
+          "data_ref": "quality-summary",
+          "coordinate": {"type": "cartesian"},
+          "layers": [
+            {
+              "id": "rate-bars",
+              "mark": {"type": "bar"},
+              "encoding": {
+                "x": {"field": "line", "type": "nominal", "axis": {"title": "Line"}},
+                "y": {"field": "defect_rate", "type": "quantitative", "axis": {"title": "Defect rate", "format": "percent", "grid": true}},
+                "text": {"field": "defect_rate", "type": "quantitative", "format": "percent"},
+                "color": {"value": "quality", "type": "nominal", "scale_role": "semantic"},
+                "tooltip": {"field": "defects", "type": "quantitative", "title": "Defects"}
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

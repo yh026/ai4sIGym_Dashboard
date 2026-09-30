@@ -1,0 +1,4 @@
+interface:
+  display_name: "Render Payload Dashboard"
+  short_description: "Compile cross-domain visualization packages to offline HTML"
+  default_prompt: "Use $render-payload-dashboard to validate this declarative visualization package and compile it into one self-contained accordion dashboard HTML."

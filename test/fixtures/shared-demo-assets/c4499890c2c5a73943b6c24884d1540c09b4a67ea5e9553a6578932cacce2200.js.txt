@@ -1,0 +1,1065 @@
+/* PC5251 shared drawing core — window.PC.
+   Generic theme, colour, canvas, axes, interaction, tooltip, linked-state and
+   accessible table-twin primitives. Component renderers live in panels/;
+   page-level behaviour lives in page.js. Dependency-free classic script. */
+
+(function (global) {
+  "use strict";
+
+  var root = document.documentElement;
+  var live = null;                       // live CSSStyleDeclaration; values track the theme
+
+  /* ── extension ── legacy → canonical token map. Pages declare these as CSS
+     compat aliases; this map is the belt-and-braces fallback for pages that
+     have not been migrated yet, so a stale token never resolves to "". ────── */
+  var ALIAS = {
+    "--bg": "--page",
+    "--panel": "--surface-1",
+    "--ink": "--text-primary",
+    "--ink2": "--text-secondary",
+    "--ink3": "--muted",
+    "--line": "--grid",
+    "--line2": "--axis",
+    "--surface": "--surface-1",
+    "--text": "--text-primary",
+    "--secondary": "--text-secondary",
+    "--accent": "--series-1",
+    "--baseline": "--axis",
+    "--sel-ring": "--series-1",
+    "--science-bg": "--surface-2",
+    "--science-border": "--axis"
+  };
+
+  /* ── ported: master (const V) + superconductor (function css) ───────────── */
+  function css(name) {
+    if (!live) live = getComputedStyle(root);
+    var v = live.getPropertyValue(name).trim();
+    if (!v && ALIAS[name]) v = live.getPropertyValue(ALIAS[name]).trim();
+    return v;
+  }
+
+  /* ══ theme ═══════════════════════════════════════════════════════════════ */
+
+  var MQ_DARK = "(prefers-color-scheme: dark)";
+
+  /* ── ported: master (isDark) ── data-theme first, matchMedia second ─────── */
+  function isDark() {
+    var t = root.getAttribute("data-theme");
+    if (t === "dark") return true;
+    if (t === "light") return false;
+    return matchMedia(MQ_DARK).matches;      // no attribute → follow the system
+  }
+
+  /* ── extension ── the write half of the same 3-way resolution ──────────── */
+  function setTheme(t) {
+    if (t === "dark" || t === "light") root.setAttribute("data-theme", t);
+    else root.removeAttribute("data-theme");   // null / "system" → back to matchMedia
+    return t;
+  }
+
+  /* Generic theme repaint subscription. Component modules register their own
+     paint collections; the drawing core never needs to know component names. */
+  var themePainters = [];
+  function registerThemePainter(paint) {
+    if (typeof paint !== "function") throw new TypeError("registerThemePainter expects a function");
+    if (themePainters.indexOf(paint) < 0) themePainters.push(paint);
+    return function () {
+      var at = themePainters.indexOf(paint);
+      if (at >= 0) themePainters.splice(at, 1);
+    };
+  }
+  function repaintThemePainters() {
+    themePainters.slice().forEach(function (paint) { paint(); });
+  }
+
+  /* ══ typography ══════════════════════════════════════════════════════════
+     ── extension ── ONE constant pair for every canvas label in the suite.
+     The family is resolved from --font at call time, so changing the token
+     (or the theme) reaches chart labels without touching any chart code. ─── */
+  var FONT_SIZE = { tick: "10px", emph: "600 11.5px" };
+  var FONT_FALLBACK = 'system-ui,-apple-system,"Segoe UI",sans-serif';
+  function fontFamily() { return css("--font") || FONT_FALLBACK; }
+  function tickFont() { return FONT_SIZE.tick + " " + fontFamily(); }
+  function emphFont() { return FONT_SIZE.emph + " " + fontFamily(); }
+
+  /* ══ colour ══════════════════════════════════════════════════════════════ */
+
+  /* ── ported: master (RAMP, hex2rgb, rampColor) ── validated ramp:
+     light 250→700, dark anchor-flipped 600→100 ───────────────────────────── */
+  var RAMP = ["--ramp-0", "--ramp-1", "--ramp-2", "--ramp-3", "--ramp-4"];
+  function hex2rgb(h) {
+    return [1, 3, 5].map(function (i) { return parseInt(h.slice(i, i + 2), 16); });
+  }
+  function mixStops(steps, t) {
+    t = Math.max(0, Math.min(1, t));
+    var x = t * (steps.length - 1);
+    var i = Math.min(Math.floor(x), steps.length - 2);
+    var f = x - i;
+    var a = steps[i], b = steps[i + 1];
+    return "rgb(" + Math.round(a[0] + (b[0] - a[0]) * f) + "," +
+                    Math.round(a[1] + (b[1] - a[1]) * f) + "," +
+                    Math.round(a[2] + (b[2] - a[2]) * f) + ")";
+  }
+  /* ── extension ── stops resolved once; the design-matrix panels issue tens of
+     thousands of fills per repaint and cannot afford a lookup per cell. ───── */
+  function rampScale() {
+    var steps = RAMP.map(function (n) { return hex2rgb(css(n)); });
+    return function (t) { return mixStops(steps, t); };
+  }
+  function rampColor(t) { return rampScale()(t); }
+
+  /* ── extension ── the "heat" ramp: --heat-0..4, matplotlib plasma. A SECOND
+     sequential encoder, interpolated exactly as rampColor is (same mixStops,
+     same five anchors, same clamp). It is for an UNSIGNED INTENSITY read on a
+     SPATIAL LAYOUT — a detector map, an image, a pixel grid — where the house
+     ramp's single hue spends its whole range on lightness and the layout's own
+     structure goes with it. Everything else stays on rampColor: this is not a
+     replacement, and a page picks one encoder per quantity, never both. ───── */
+  var HEAT = ["--heat-0", "--heat-1", "--heat-2", "--heat-3", "--heat-4"];
+  function heatScale() {
+    var steps = HEAT.map(function (n) { return hex2rgb(css(n)); });
+    return function (t) { return mixStops(steps, t); };
+  }
+  function heatColor(t) { return heatScale()(t); }
+
+  /* ── ported: master (s2l, l2s, toOklab, fromOklab, divColor) — exact
+     coefficients; diverging arms are interpolated in OKLab so the midpoint
+     never turns muddy. ───────────────────────────────────────────────────── */
+  var s2l = function (c) { return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  var l2s = function (c) {
+    c = Math.max(0, Math.min(1, c));
+    return c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+  };
+  function toOklab(hex) {
+    var rgb = hex2rgb(hex).map(function (v) { return s2l(v / 255); });
+    var r = rgb[0], g = rgb[1], b = rgb[2];
+    var l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+    var m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+    var s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+    return [0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+            1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+            0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s];
+  }
+  function fromOklab(L) {
+    var l = Math.pow(L[0] + 0.3963377774 * L[1] + 0.2158037573 * L[2], 3);
+    var m = Math.pow(L[0] - 0.1055613458 * L[1] - 0.0638541728 * L[2], 3);
+    var s = Math.pow(L[0] - 0.0894841775 * L[1] - 1.2914855480 * L[2], 3);
+    var rgb = [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+              -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+              -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s]
+      .map(function (v) { return Math.round(l2s(v) * 255); });
+    return "rgb(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + ")";
+  }
+  /* ── extension ── anchors resolved once, same shape as rampScale ────────── */
+  function divScale() {
+    var mid = toOklab(css("--div-mid"));
+    var pos = toOklab(css("--div-pos"));
+    var neg = toOklab(css("--div-neg"));
+    return function (r) {
+      var t = Math.max(-1, Math.min(1, r || 0));
+      var b = t >= 0 ? pos : neg;
+      var f = Math.abs(t);
+      return fromOklab([0, 1, 2].map(function (k) { return mid[k] + (b[k] - mid[k]) * f; }));
+    };
+  }
+  function divColor(r) { return divScale()(r); }
+
+  /* ── ported: master (inkOn) ── a label inside a filled cell picks ink or
+     white by the fill's own luminance, independently of the page theme. ──── */
+  function inkOn(rgbStr) {
+    var m = String(rgbStr).match(/\d+/g) || [0, 0, 0];
+    var v = m.map(function (x) { return s2l(x / 255); });
+    return (0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]) > 0.42 ? "#0b0b0b" : "#ffffff";
+  }
+
+  /* ══ canvas geometry ═════════════════════════════════════════════════════ */
+
+  /* ── ported: master (fit), with superconductor's measure-the-box fallback
+     when w/h are omitted (its canvases are CSS-sized, the master's are not) ─ */
+  function fit(cv, w, h) {
+    if (w == null || h == null) {
+      var rect = cv.getBoundingClientRect();
+      w = w == null ? Math.max(280, rect.width) : w;
+      h = h == null ? Math.max(160, rect.height) : h;
+    }
+    var dpr = Math.min(global.devicePixelRatio || 1, 2);
+    cv.width = Math.round(w * dpr);
+    cv.height = Math.round(h * dpr);
+    cv.style.width = w + "px";
+    cv.style.height = h + "px";
+    var g = cv.getContext("2d");
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+    return g;
+  }
+
+  /* ── ported: master (PAD, scales, frame, tickText, fmt, extent, pad10) ─── */
+  var PAD = { l: 26, r: 10, t: 10, b: 20 };
+  function scales(cv, xr, yr, pad) {
+    var p = pad || PAD;
+    var w = parseFloat(cv.style.width) || cv.getBoundingClientRect().width;
+    var h = parseFloat(cv.style.height) || cv.getBoundingClientRect().height;
+    var iw = w - p.l - p.r, ih = h - p.t - p.b;
+    return {
+      x: function (v) { return p.l + (v - xr[0]) / (xr[1] - xr[0]) * iw; },
+      y: function (v) { return p.t + ih - (v - yr[0]) / (yr[1] - yr[0]) * ih; },
+      w: w, h: h, iw: iw, ih: ih, p: p
+    };
+  }
+  /* ── extension ── bridge: master's scales geometry → superconductor's box ─ */
+  function boxOf(s) {
+    return { left: s.p.l, right: s.p.l + s.iw, top: s.p.t, bottom: s.p.t + s.ih };
+  }
+  function frame(g, s) {
+    g.strokeStyle = css("--grid");
+    g.lineWidth = 1;
+    g.strokeRect(s.p.l + 0.5, s.p.t + 0.5, s.iw - 1, s.ih - 1);
+  }
+  function tickText(g, txt, x, y, align, baseline) {
+    g.fillStyle = css("--muted");
+    g.font = tickFont();                       // re-keyed onto the one font pair
+    g.textAlign = align || "center";
+    g.textBaseline = baseline || "top";
+    g.fillText(txt, x, y);
+  }
+  var fmt = function (v) {
+    return Math.abs(v) >= 1000 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(0) : v.toFixed(1);
+  };
+  function extent(a, mask) {
+    var lo = Infinity, hi = -Infinity;
+    for (var i = 0; i < a.length; i++) {
+      if (mask && !mask[i]) continue;
+      if (a[i] < lo) lo = a[i];
+      if (a[i] > hi) hi = a[i];
+    }
+    if (!isFinite(lo)) return [0, 1];
+    if (lo === hi) { lo -= 1; hi += 1; }
+    return [lo, hi];
+  }
+  function pad10(r) { var d = (r[1] - r[0]) * 0.06; return [r[0] - d, r[1] + d]; }
+
+  /* ── ported: master (quantile) ── linear interpolation on a sorted array ── */
+  function quantile(sorted, q) {
+    var p = (sorted.length - 1) * q, lo = Math.floor(p), hi = Math.ceil(p);
+    return sorted[lo] + (sorted[hi] - sorted[lo]) * (p - lo);
+  }
+
+  /* ══ axes ════════════════════════════════════════════════════════════════
+     ── ported: superconductor (drawAxes) ── same renderer, re-keyed:
+       gridlines   --grid          (was --grid)
+       tick labels --muted         (was --muted)
+       spines      --axis          (was --secondary — spines are structure, not text)
+       axis titles --text-secondary(was --secondary)
+       fonts       PC.font.tick()/emph() (was a hard-coded 11px system-ui)
+     Extensions kept deliberately small: arg 2 may be a PC.scales object (then
+     xScale/yScale default to its mappers), and a trailing opts object controls
+     tick formatting, which gridlines to draw, and the spines. Default tick
+     label is String(v) for integers and PC.fmt(v) otherwise, so a computed
+     midpoint never renders as 0.30000000000000004. ───────────────────────── */
+  function drawAxes(g, box, xTicks, yTicks, xScale, yScale, xLabel, yLabel, opts) {
+    var s = null;
+    if (box && box.p && typeof box.x === "function") { s = box; box = boxOf(s); }
+    if (typeof xScale !== "function" && s) xScale = s.x;
+    if (typeof yScale !== "function" && s) yScale = s.y;
+    opts = opts || {};
+    var defFmt = function (v) {
+      return typeof v === "number" && !Number.isInteger(v) ? fmt(v) : String(v);
+    };
+    var xFmt = opts.xFmt || opts.fmt || defFmt;
+    var yFmt = opts.yFmt || opts.fmt || defFmt;
+    var grid = opts.grid === undefined ? "both" : opts.grid;
+    var wantX = grid === true || grid === "both" || grid === "x";
+    var wantY = grid === true || grid === "both" || grid === "y";
+
+    g.font = tickFont();
+    g.textAlign = "start";
+    g.textBaseline = "alphabetic";
+    g.lineWidth = 1;
+
+    (xTicks || []).forEach(function (value) {
+      var x = xScale(value);
+      if (wantX) {
+        g.strokeStyle = css("--grid");
+        g.beginPath(); g.moveTo(x + 0.5, box.top); g.lineTo(x + 0.5, box.bottom); g.stroke();
+      }
+      g.fillStyle = css("--muted");
+      var label = xFmt(value);
+      g.fillText(label, x - g.measureText(label).width / 2, box.bottom + 18);
+    });
+
+    (yTicks || []).forEach(function (value) {
+      var y = yScale(value);
+      if (wantY) {
+        g.strokeStyle = css("--grid");
+        g.beginPath(); g.moveTo(box.left, y + 0.5); g.lineTo(box.right, y + 0.5); g.stroke();
+      }
+      g.fillStyle = css("--muted");
+      var label = yFmt(value);
+      g.fillText(label, box.left - g.measureText(label).width - 7, y + 4);
+    });
+
+    if (opts.spines !== false) {
+      g.strokeStyle = css("--axis");
+      g.beginPath(); g.moveTo(box.left, box.bottom + 0.5); g.lineTo(box.right, box.bottom + 0.5); g.stroke();
+      g.beginPath(); g.moveTo(box.left + 0.5, box.top); g.lineTo(box.left + 0.5, box.bottom); g.stroke();
+    }
+
+    g.font = emphFont();
+    g.fillStyle = css("--text-secondary");
+    if (xLabel) {
+      g.fillText(xLabel, (box.left + box.right) / 2 - g.measureText(xLabel).width / 2, box.bottom + 38);
+    }
+    if (yLabel) {
+      g.save();
+      g.translate(opts.yTitleX == null ? 13 : opts.yTitleX,
+                  (box.top + box.bottom) / 2 + g.measureText(yLabel).width / 2);
+      g.rotate(-Math.PI / 2);
+      g.fillText(yLabel, 0, 0);
+      g.restore();
+    }
+    g.font = tickFont();
+  }
+
+  /* ══ hover ═══════════════════════════════════════════════════════════════
+     ── ported: master (attachHover registry) ── generalised: the point list,
+     the mask and the callbacks are supplied per canvas instead of read from
+     module globals, and re-calling hover() on an already-bound canvas just
+     refreshes them (the master's `if (cv.dataset.hooked) return`). Hit radius
+     is at least 24px — the dot is 4px, the target is a finger. ───────────── */
+  function normalizePts(pts) {
+    var out = [];
+    if (!pts) return out;
+    for (var k = 0; k < pts.length; k++) {
+      var p = pts[k];
+      if (!p) continue;
+      if (typeof p.length === "number") out.push([p[0], p[1], p.length > 2 ? p[2] : k]);
+      else out.push([p.x, p.y, p.i == null ? k : p.i]);
+    }
+    return out;
+  }
+
+  /* ══ touch mode ══════════════════════════════════════════════════════════
+     ── extension, appended 2026-08-31 ── The defect the owner reported from a
+     REAL handset: a hover readout is useless on a phone. PC.tip places #tip at
+     clientX+14 / clientY+14 — under the very finger that summoned it — and
+     pointerleave fires the instant that finger lifts, so the reader never gets
+     to read it; meanwhile base.css's `canvas{touch-action:none}` was taking
+     the scroll gesture away from the page, so a chart was also a dead zone the
+     reader could not scroll out of.
+
+     GATED ON INPUT CAPABILITY, NEVER ON WIDTH. `(hover: none) and
+     (pointer: coarse)` is true for a finger and false for a mouse whatever the
+     viewport is, so a narrow desktop window keeps the mouse path and a large
+     tablet gets the touch path. Re-read on `change`, so a plugged-in mouse
+     switches the page back mid-session.
+
+     WHAT TOUCH MODE DOES, in one paragraph. A `pointermove` from a touch
+     pointer is ignored — that gesture now belongs to the browser (base.css
+     ships `touch-action: pan-y pinch-zoom`), and a hover readout dragged along
+     under the finger was the defect. A `click` — the tap — selects the nearest
+     point within max(32, opts.radius) and fires the panel's own `onHit`
+     exactly as a mouse hover does, ALSO firing its `onClick` if it registered
+     one, because a tap is both. While that `onHit` runs, PC.tip() is
+     redirected into a `.pc-readout` strip docked directly BELOW the chart, in
+     the same plot box, instead of the floating #tip — so the payload the demo
+     already writes is what the reader sees, out from under their finger and
+     still there after the lift — and a `.pc-mark` ring is placed over the
+     canvas at the hit point so they can see which point it is about. (Below,
+     not above: above put the strip under the ⤢ button, which is anchored to
+     the box's top-right corner. See readoutFor.) A tap on empty space clears
+     both and fires `onLeave`. Tapping the SAME point again re-selects it: the
+     readout refreshes and the ring stays. It never toggles off, for the same
+     reason a second mouse click on one point does nothing surprising today —
+     a reader who taps a point twice is asking to see it, not to lose it.
+
+     THE MOUSE PATH IS UNCHANGED, deliberately down to WHICH canvases react to
+     a click. Touch mode needs the click listener bound on every canvas (the
+     `if (st.bound) return handle;` guard below runs before the old
+     `typeof opts.onClick === "function"` test, so a canvas whose first call
+     omitted onClick could never acquire a listener later), and binding it
+     unconditionally must not make a canvas newly clickable with a MOUSE. So
+     the old test is frozen at first-bind time into `st.clickable`, and the
+     mouse branch obeys that flag and nothing else. ────────────────────────── */
+
+  var TOUCH_MQ = "(hover: none) and (pointer: coarse)";
+  var touchMode = false;
+  try { touchMode = !!(global.matchMedia && global.matchMedia(TOUCH_MQ).matches); }
+  catch (e) { touchMode = false; }
+  (function () {
+    var mq = null;
+    try { mq = global.matchMedia ? global.matchMedia(TOUCH_MQ) : null; } catch (e) { return; }
+    if (!mq) return;
+    function onChange() {
+      var next = false;
+      try { next = !!mq.matches; } catch (e) { next = false; }
+      if (next === touchMode) return;
+      touchMode = next;
+      if (!touchMode) clearTapSel();     // a mouse arrived: the docked readout goes
+    }
+    if (mq.addEventListener) mq.addEventListener("change", onChange);
+    else if (mq.addListener) mq.addListener(onChange);
+  })();
+
+  /* The plot box: the SAME wrapper list the phone chart overlay picks for its
+     ⤢ button (that module now calls through here), so the button, the docked
+     readout and the ring always land in one container — which is also what
+     makes them work unchanged inside the full-screen overlay, because the
+     overlay promotes exactly this box. */
+  var PLOT_BOXES = ".pbox,.chartbox,.plotwrap,.bookbox,.plot-card,.dm,.mxcard,.scard";
+  function plotBoxOf(cv) {
+    if (!cv) return null;
+    var b = cv.closest ? cv.closest(PLOT_BOXES) : null;
+    return b || cv.parentElement;
+  }
+
+  var tapSel = null;        // {canvas,st,box,i,readout,mark} — ONE per page
+  var tapInto = null;       // non-null while a tap's onHit runs: tip() docks
+
+  function raf(fn) {
+    (global.requestAnimationFrame || function (f) { return setTimeout(f, 16); })(fn);
+  }
+  function childByClass(box, cls) {
+    var kids = box.children, i;
+    for (i = 0; i < kids.length; i++) if (kids[i].className === cls) return kids[i];
+    return null;
+  }
+  /* DOCKED BELOW THE CANVAS — a caption under the chart, not a bar over it.
+     Corrected 2026-08-31 after the owner's phone screenshot: the strip was
+     first inserted as the box's FIRST child, and that put it under the ⤢
+     button, which is absolutely positioned at the BOX's top:4px/right:4px
+     (components.css §23D). The button then rendered on the strip's top-right
+     corner, clipped at the box edge instead of sitting on the chart — the
+     owner's words, "the full screen button is at a wrong space". Reserving
+     52px of padding for it (the first attempt) fixed the text collision but
+     not the button's PLACE, which is the actual defect.
+
+     Below the canvas there is no conflict at all: the button is back over the
+     drawing area where it has always been, and the chart no longer jumps down
+     by the strip's own height on the first tap — the point the reader just
+     touched stays exactly where their finger was.
+
+     The strip is inserted after the box's own direct child that CONTAINS the
+     canvas, not after the canvas itself: a demo may wrap its canvas
+     (.imgframe, .chartbox), and the strip belongs to the box as a sibling of
+     that wrapper rather than inside it.
+
+     role=status + aria-live: the same tap announces the payload to a screen
+     reader. */
+  function readoutFor(sel) {
+    if (sel.readout && sel.readout.isConnected) return sel.readout;
+    var el = childByClass(sel.box, "pc-readout");
+    if (!el) {
+      el = document.createElement("div");
+      el.className = "pc-readout";
+      el.setAttribute("role", "status");
+      el.setAttribute("aria-live", "polite");
+      var anchor = sel.canvas;
+      while (anchor && anchor.parentNode !== sel.box) anchor = anchor.parentNode;
+      sel.box.insertBefore(el, anchor ? anchor.nextSibling : null);
+    }
+    sel.readout = el;
+    return el;
+  }
+  /* A tap near the bottom of the screen can put the strip below the fold. Bring
+     it in by the MINIMUM amount and only then: block:"nearest" aligns it to the
+     viewport's BOTTOM edge, so the sticky tab strip (46px) and the parameter
+     bar (44px) — both pinned at the TOP — are never in the way, and a strip
+     that is already visible is not moved at all, so an ordinary tap never
+     scrolls the page under the reader. Inside the full-screen overlay the page
+     itself is scroll-locked and the same call scrolls the overlay's own
+     container, which is what should happen there. */
+  function revealReadout(sel) {
+    var el = sel && sel.readout;
+    if (!el || !el.isConnected) return;
+    var r = el.getBoundingClientRect();
+    var vh = global.innerHeight || 0;
+    if (r.top >= 0 && r.bottom <= vh) return;
+    try { el.scrollIntoView({ block: "nearest", inline: "nearest" }); }
+    catch (e) { try { el.scrollIntoView(false); } catch (e2) {} }
+  }
+  /* A DOM ring, not a canvas draw: no demo's draw code changes, the mark
+     survives the redraw a tap's own onClick triggers, and it re-themes itself
+     from --accent like every other piece of chrome. */
+  function markFor(sel) {
+    if (sel.mark && sel.mark.isConnected) return sel.mark;
+    var el = childByClass(sel.box, "pc-mark");
+    if (!el) {
+      el = document.createElement("div");
+      el.className = "pc-mark";
+      el.setAttribute("aria-hidden", "true");   // the readout carries the meaning
+      sel.box.appendChild(el);
+    }
+    sel.box.classList.add("pc-plotbox");        // the ring's containing block
+    sel.mark = el;
+    return el;
+  }
+  function placeMark(sel, p) {
+    var el = markFor(sel);
+    var cr = sel.canvas.getBoundingClientRect(), br = sel.box.getBoundingClientRect();
+    el.style.left = (cr.left - br.left + p[0]) + "px";
+    el.style.top = (cr.top - br.top + p[1]) + "px";
+  }
+  function fireOn(st, name, a, b, c, d) {
+    var f = st && st.opts && st.opts[name];
+    if (typeof f !== "function") return null;
+    return f(a, b, c, d);
+  }
+  function pointOf(st, i) {
+    var list = (st && st.pts) || [];
+    for (var k = 0; k < list.length; k++) if (list[k][2] === i) return list[k];
+    return null;
+  }
+  /* Clearing runs the panel's OWN onLeave first, with tip() still docked — so
+     a panel that clears by calling PC.hideTip() (which is nearly all of them)
+     takes its strip down through the path it already has — and only then
+     removes whatever is left. */
+  function clearTapSel() {
+    var sel = tapSel;
+    if (!sel) return;
+    tapSel = null;
+    if (sel.st) sel.st.last = -1;
+    tapInto = sel;
+    try { fireOn(sel.st, "onLeave", null); } catch (e) {}
+    tapInto = null;
+    if (sel.readout && sel.readout.parentNode) sel.readout.parentNode.removeChild(sel.readout);
+    if (sel.mark && sel.mark.parentNode) sel.mark.parentNode.removeChild(sel.mark);
+    if (sel.box) sel.box.classList.remove("pc-plotbox");
+  }
+  /* The selected point's PIXELS move on every redraw — a rotation, the overlay
+     opening, a new parameter. The INDEX is what the selection means, so it is
+     re-looked-up in the (already refreshed) point list and the ring follows it;
+     a point that is no longer in the list clears the whole selection rather
+     than leaving a ring hanging over nothing. */
+  function syncTapSel() {
+    var sel = tapSel;
+    if (!sel) return;
+    if (!sel.canvas.isConnected || !sel.box.isConnected) { clearTapSel(); return; }
+    var p = pointOf(sel.st, sel.i);
+    if (!p) { clearTapSel(); return; }
+    placeMark(sel, p);
+  }
+  function tapSelect(canvas, st, i, p, evt) {
+    var box = plotBoxOf(canvas);
+    if (!box) return;
+    var changed = !tapSel || tapSel.canvas !== canvas || tapSel.i !== i;
+    clearTapSel();                          // one selection on the page at a time
+    var sel = { canvas: canvas, st: st, box: box, i: i, readout: null, mark: null };
+    tapSel = sel;
+    st.last = i;
+    tapInto = sel;
+    try { fireOn(st, "onHit", i, evt, changed, p); } catch (e) {}
+    tapInto = null;
+    /* A tap is a hover AND a click. onClick commonly redraws the panel, which
+       refreshes st.pts through hover()/update() — so the ring is placed after
+       it, from the refreshed list, and again on the next frame once that
+       redraw and the strip's own height have settled. */
+    if (typeof st.opts.onClick === "function") {
+      try { st.opts.onClick(i, evt, p); } catch (e) {}
+    }
+    if (tapSel !== sel) return;             // the callback moved the selection itself
+    syncTapSel();
+    raf(function () { syncTapSel(); revealReadout(sel); });
+  }
+
+  function hover(canvas, pts, opts) {
+    opts = opts || {};
+    var st = canvas.__pcHover;
+    if (!st) { st = canvas.__pcHover = { last: -1, bound: false }; }
+    st.pts = normalizePts(pts);
+    st.opts = opts;
+    st.radius = Math.max(24, opts.radius || 24);      // ≥24px, never the dot radius
+    /* A finger is not a mouse pointer: the tap target is the 32px minimum the
+       suite already uses for a control, or the panel's own radius when it asked
+       for a bigger one. */
+    st.tapRadius = Math.max(32, opts.radius || 0);
+    if (tapSel && tapSel.st === st) raf(syncTapSel);   // this panel just redrew
+
+    function allowed(i) {
+      var m = st.opts.mask;
+      if (!m) return true;
+      return typeof m === "function" ? !!m(i) : !!m[i];
+    }
+    function nearest(evt, radius) {
+      var rect = canvas.getBoundingClientRect();
+      var mx = evt.clientX - rect.left, my = evt.clientY - rect.top;
+      var r = radius == null ? st.radius : radius;
+      var best = -1, bd = r * r;
+      for (var k = 0; k < st.pts.length; k++) {
+        var p = st.pts[k];
+        if (!allowed(p[2])) continue;
+        var dx = p[0] - mx, dy = p[1] - my, d = dx * dx + dy * dy;
+        if (d < bd) { bd = d; best = k; }
+      }
+      return best;
+    }
+    function call(name) {
+      var f = st.opts[name];
+      if (typeof f !== "function") return null;
+      return f.apply(null, Array.prototype.slice.call(arguments, 1));
+    }
+
+    var handle = {
+      update: function (next) {
+        st.pts = normalizePts(next);
+        if (tapSel && tapSel.st === st) syncTapSel();
+        return handle;
+      },
+      setMask: function (m) { st.opts.mask = m; return handle; },
+      hit: function () { return st.last; },
+      destroy: function () {
+        if (tapSel && tapSel.canvas === canvas) clearTapSel();
+        canvas.removeEventListener("pointermove", st.move);
+        canvas.removeEventListener("pointerleave", st.leave);
+        if (st.click) canvas.removeEventListener("click", st.click);
+        canvas.__pcHover = null;
+      }
+    };
+    if (st.bound) return handle;
+    st.bound = true;
+    /* Frozen here, at first bind, and read by the MOUSE branch of st.click
+       alone: which canvases answer a mouse click stays exactly what it was
+       before the listener became unconditional. */
+    st.clickable = typeof opts.onClick === "function";
+
+    st.move = function (evt) {
+      /* Touch mode ignores a touch drag outright: that gesture is the page's
+         scroll now, and a readout dragged under the finger was the defect. A
+         real mouse on the same device still hovers. */
+      if (touchMode && evt.pointerType === "touch") return;
+      var k = nearest(evt);
+      if (k < 0) {
+        if (st.last !== -1) { st.last = -1; call("onLeave", evt); }
+        return;
+      }
+      var p = st.pts[k], i = p[2];
+      var changed = i !== st.last;
+      st.last = i;
+      call("onHit", i, evt, changed, p);
+    };
+    st.leave = function (evt) {
+      /* pointerleave fires for a touch pointer at LIFT. Honouring it here is
+         precisely what made a phone readout unreadable, so in touch mode the
+         selection outlives the finger and only another tap clears it. */
+      if (touchMode && evt.pointerType === "touch") return;
+      if (st.last !== -1) { st.last = -1; call("onLeave", evt); }
+    };
+    canvas.addEventListener("pointermove", st.move);
+    canvas.addEventListener("pointerleave", st.leave);
+    /* NEVER preventDefault, and never on pointerup/touchend: three
+       document-level bubble-phase click listeners at the end of this file (the
+       tab-scroll policy, the parameter bar's reinstall and the chart overlay's
+       reinstall) all depend on the synthetic click still arriving. */
+    st.click = function (evt) {
+      if (!touchMode) {
+        if (!st.clickable) return;                  // the pre-touch-mode contract
+        var m = nearest(evt);
+        if (m >= 0) call("onClick", st.pts[m][2], evt, st.pts[m]);
+        return;
+      }
+      var k = nearest(evt, st.tapRadius);
+      if (k < 0) { clearTapSel(); return; }         // a tap on nothing clears
+      tapSelect(canvas, st, st.pts[k][2], st.pts[k], evt);
+    };
+    canvas.addEventListener("click", st.click);
+    return handle;
+  }
+
+  /* A tab change swaps the whole panel under the reader, so a strip left over
+     from the tab they just left would describe a chart that is no longer on
+     screen. Bubble phase, no preventDefault: the tab's own handler and the
+     three policies at the end of this file run exactly as before. */
+  if (global.document) {
+    global.document.addEventListener("click", function (evt) {
+      if (!tapSel) return;
+      var t = evt.target;
+      if (t && t.closest && t.closest('.toptabs')) clearTapSel();
+    }, false);
+    /* Rotation, the overlay opening, the browser chrome collapsing: all arrive
+       as one resize. The ring follows its point through the demo's own redraw
+       (immediately for the layout we have, then again once that redraw has
+       run). */
+    global.addEventListener("resize", function () {
+      if (!tapSel) return;
+      raf(syncTapSel);
+      setTimeout(syncTapSel, 180);
+    });
+  }
+
+  /* ══ tooltip ═════════════════════════════════════════════════════════════
+     ── ported: superconductor (showTip/hideTip viewport clamping) + master
+     (#tip markup and the opacity convention). Both conventions are driven:
+     display for measuring, opacity for the master's .08s fade. The node is
+     created only if the page forgot it, and then carries its own minimal
+     styles so it is still legible. ───────────────────────────────────────── */
+  var tipEl = null;
+  function tipNode() {
+    if (tipEl && tipEl.isConnected) return tipEl;
+    tipEl = document.getElementById("tip");
+    if (!tipEl) {
+      tipEl = document.createElement("div");
+      tipEl.id = "tip";
+      tipEl.setAttribute("role", "tooltip");
+      tipEl.setAttribute("aria-live", "polite");
+      tipEl.style.cssText =
+        "position:fixed;pointer-events:none;z-index:1000;max-width:280px;" +
+        "padding:9px 12px;border-radius:9px;font-size:12.5px;line-height:1.5;" +
+        "background:var(--surface-1);color:var(--text-primary);" +
+        "border:1px solid var(--border);box-shadow:0 6px 22px rgba(0,0,0,.16)";
+      document.body.appendChild(tipEl);
+    }
+    return tipEl;
+  }
+  function tip(html, evt, y) {
+    /* THE ONE LINE THAT MOVES THE READOUT ON A PHONE. Every demo's onHit
+       already calls PC.tip(html, evt); during a tap that same HTML is docked
+       into the plot box's strip instead of being floated under the finger. No
+       demo's onHit changes, and #tip is untouched for mouse users. */
+    if (tapInto) {
+      var docked = readoutFor(tapInto);
+      docked.innerHTML = html;
+      return docked;
+    }
+    var el = tipNode();
+    el.innerHTML = html;
+    el.style.display = "block";
+    el.style.opacity = "1";
+    var cx = (evt && evt.clientX != null) ? evt.clientX : evt;
+    var cy = (evt && evt.clientY != null) ? evt.clientY : y;
+    var gap = 14;
+    var b = el.getBoundingClientRect();
+    el.style.left = Math.max(gap, Math.min(cx + gap, global.innerWidth - b.width - gap)) + "px";
+    el.style.top = Math.max(gap, Math.min(cy + gap, global.innerHeight - b.height - gap)) + "px";
+    return el;
+  }
+  function hideTip() {
+    /* The mirror of the above: inside a tap, "hide the tooltip" means take the
+       docked strip down, which is how a panel's own onLeave clears it. */
+    if (tapInto) {
+      var docked = tapInto.readout;
+      if (docked && docked.parentNode) docked.parentNode.removeChild(docked);
+      tapInto.readout = null;
+      return;
+    }
+    var el = tipEl && tipEl.isConnected ? tipEl : document.getElementById("tip");
+    if (!el) return;
+    el.style.opacity = "0";
+    el.style.display = "none";
+  }
+
+  /* ── ported: master (the resize `let rt; clearTimeout` idiom), generalised ─ */
+  function debounce(fn, ms) {
+    var t = null;
+    function wrapped() {
+      var args = arguments, self = this;
+      clearTimeout(t);
+      t = setTimeout(function () { t = null; fn.apply(self, args); }, ms == null ? 120 : ms);
+    }
+    wrapped.cancel = function () { clearTimeout(t); t = null; };
+    return wrapped;
+  }
+
+  /* ══ linked view state ═══════════════════════════════════════════════════
+     One state object drives controls, charts, table twins, live readouts and
+     conclusions. `params` is an allowlist: only named state fields reach the
+     URL, and unknown query parameters (including `theme`) are preserved.
+
+       var view = PC.createViewState({method:"pca", k:6, selected:null}, {
+         params: {
+           method: {values:["pca","tsne","umap"]},
+           k: {type:"integer", min:2, max:40},
+           selected: {type:"integer", param:"sample"}
+         }
+       });
+       view.subscribe(function (state) { renderAll(state); }, {immediate:true});
+       view.set({k: 8});
+
+     URL values are validated, never silently clamped. Programmatic values are
+     normalised to the declared type and rejected when invalid. Defaults are
+     removed from the URL so a copied link stays short. ───────────────────── */
+  function createViewState(initial, opts) {
+    opts = opts || {};
+    initial = initial || {};
+    var defaults = {};
+    Object.keys(initial).forEach(function (k) { defaults[k] = initial[k]; });
+    var specs = opts.params || {};
+    var listeners = [];
+
+    function own(obj, key) { return Object.prototype.hasOwnProperty.call(obj, key); }
+    function same(a, b) { return a === b || (a !== a && b !== b); }
+    function specFor(key) {
+      var s = specs[key];
+      if (s === true || s == null) s = {};
+      if (typeof s === "string") s = { param: s };
+      return s || {};
+    }
+    function normal(key, value, fallback, fromUrl) {
+      var spec = specFor(key), out = value;
+      if (value == null && (defaults[key] == null || spec.nullable === true)) {
+        return { ok: true, value: null };
+      }
+      if (typeof spec.parse === "function" && fromUrl) {
+        try { out = spec.parse(value, fallback); } catch (e) { return { ok: false, value: fallback }; }
+      } else {
+        var type = spec.type || (fallback == null ? "string" : typeof fallback);
+        if (type === "integer") {
+          out = typeof value === "number" ? value : Number(value);
+          if (!isFinite(out) || Math.floor(out) !== out) return { ok: false, value: fallback };
+        } else if (type === "number") {
+          out = typeof value === "number" ? value : Number(value);
+          if (!isFinite(out)) return { ok: false, value: fallback };
+        } else if (type === "boolean") {
+          if (value === true || value === "1" || value === "true" || value === "yes") out = true;
+          else if (value === false || value === "0" || value === "false" || value === "no") out = false;
+          else return { ok: false, value: fallback };
+        } else if (value == null && fallback == null) {
+          out = null;
+        } else {
+          out = String(value);
+        }
+      }
+      if (spec.values && spec.values.indexOf(out) < 0) return { ok: false, value: fallback };
+      if (typeof out === "number" && spec.min != null && out < spec.min) return { ok: false, value: fallback };
+      if (typeof out === "number" && spec.max != null && out > spec.max) return { ok: false, value: fallback };
+      if (typeof spec.validate === "function" && !spec.validate(out)) return { ok: false, value: fallback };
+      return { ok: true, value: out };
+    }
+    function readUrl(base) {
+      var next = {};
+      Object.keys(base).forEach(function (k) { next[k] = base[k]; });
+      if (!global.location || !global.URLSearchParams) return next;
+      var query;
+      try { query = new URLSearchParams(global.location.search); } catch (e) { return next; }
+      Object.keys(specs).forEach(function (key) {
+        if (!own(defaults, key)) return;
+        var spec = specFor(key), name = spec.param || key;
+        if (!query.has(name)) return;
+        var parsed = normal(key, query.get(name), defaults[key], true);
+        if (parsed.ok) next[key] = parsed.value;
+      });
+      return next;
+    }
+    var value = {};
+    Object.keys(defaults).forEach(function (k) { value[k] = defaults[k]; });
+    if (opts.readUrl !== false) value = readUrl(value);
+
+    function snapshot() {
+      var out = {};
+      Object.keys(value).forEach(function (k) { out[k] = value[k]; });
+      return out;
+    }
+    function writeUrl() {
+      if (opts.writeUrl === false || !global.location || !global.history || !global.URL) return;
+      var url;
+      try { url = new global.URL(global.location.href); } catch (e) { return; }
+      Object.keys(specs).forEach(function (key) {
+        if (!own(value, key)) return;
+        var spec = specFor(key), name = spec.param || key, current = value[key];
+        if (!spec.keepDefault && same(current, defaults[key])) { url.searchParams.delete(name); return; }
+        if (current == null || current === "") { url.searchParams.delete(name); return; }
+        var encoded;
+        try {
+          encoded = typeof spec.serialize === "function" ? spec.serialize(current) :
+            (typeof current === "boolean" ? (current ? "1" : "0") : String(current));
+        } catch (e) { return; }
+        if (encoded == null || encoded === "") url.searchParams.delete(name);
+        else url.searchParams.set(name, encoded);
+      });
+      try { global.history.replaceState(global.history.state, "", url.href); } catch (e) { /* file:// may deny history writes */ }
+    }
+    function emit(changed, meta) {
+      var snap = snapshot();
+      listeners.slice().forEach(function (fn) { fn(snap, changed.slice(), meta || {}); });
+      if (global.CustomEvent && global.dispatchEvent) {
+        global.dispatchEvent(new global.CustomEvent("pc:viewstatechange", {
+          detail: { state: snap, changed: changed.slice(), source: (meta && meta.source) || "program" }
+        }));
+      }
+    }
+    function set(patch, meta) {
+      if (typeof patch === "string") {
+        var one = {}; one[patch] = arguments[1]; patch = one; meta = arguments[2];
+      }
+      patch = patch || {};
+      var next = snapshot(), changed = [];
+      Object.keys(patch).forEach(function (key) {
+        if (!own(defaults, key)) return;
+        var parsed = normal(key, patch[key], value[key], false);
+        if (!parsed.ok || same(parsed.value, value[key])) return;
+        next[key] = parsed.value; changed.push(key);
+      });
+      if (!changed.length) return snapshot();
+      value = next;
+      if (!meta || meta.url !== false) writeUrl();
+      emit(changed, meta);
+      return snapshot();
+    }
+    function subscribe(fn, subOpts) {
+      if (typeof fn !== "function") return function () {};
+      listeners.push(fn);
+      if (subOpts && subOpts.immediate) fn(snapshot(), Object.keys(value), { source: "initial" });
+      return function () { var i = listeners.indexOf(fn); if (i >= 0) listeners.splice(i, 1); };
+    }
+    function reset(keys, meta) {
+      var patch = {};
+      (keys == null ? Object.keys(defaults) : (Array.isArray(keys) ? keys : [keys]))
+        .forEach(function (key) { if (own(defaults, key)) patch[key] = defaults[key]; });
+      return set(patch, meta || { source: "reset" });
+    }
+    return { get: snapshot, set: set, reset: reset, subscribe: subscribe, defaults: function () {
+      var out = {}; Object.keys(defaults).forEach(function (k) { out[k] = defaults[k]; }); return out;
+    } };
+  }
+
+  /* ══ interactive table twins ═════════════════════════════════════════════
+     A table remains passive unless a demo opts in. The opted-in table becomes
+     a one-column-selection ARIA grid: rows are focusable, arrow/Home/End moves
+     focus, Enter/Space selects, click selects, and Escape clears when onClear
+     is supplied. Re-rendered tbody content is supported through refresh(). */
+  function bindTableRows(table, opts) {
+    opts = opts || {};
+    if (typeof table === "string") table = document.querySelector(table);
+    if (!table) throw new Error("PC.bindTableRows: table not found");
+    table.classList.add("interactive-table");
+    table.setAttribute("role", "grid");
+    var selected = opts.selected;
+
+    function rows() { return Array.prototype.slice.call(table.querySelectorAll("tbody tr")); }
+    function keyOf(row, i) {
+      return typeof opts.key === "function" ? opts.key(row, i) :
+        (row.getAttribute("data-key") != null ? row.getAttribute("data-key") : i);
+    }
+    function isSelected(key, row, i) {
+      if (typeof selected !== "function") return String(key) === String(selected);
+      /* A zero-argument function is the documented live value getter used by
+         the skeleton (`selected: () => VIEW.get().selected`).  A callback
+         declaring arguments is an opt-in row predicate.  Keeping those two
+         meanings distinct prevents every row becoming selected when the
+         getter returns a truthy sample id. */
+      if (selected.length === 0) return String(key) === String(selected());
+      return !!selected(key, row, i);
+    }
+    function refresh(nextSelected) {
+      if (arguments.length) selected = nextSelected;
+      var list = rows(), focusSet = false;
+      list.forEach(function (row, i) {
+        var key = keyOf(row, i), on = isSelected(key, row, i);
+        row.setAttribute("role", "row");
+        row.setAttribute("aria-selected", on ? "true" : "false");
+        row.tabIndex = on ? 0 : -1;
+        if (on) focusSet = true;
+      });
+      if (!focusSet && list.length) list[0].tabIndex = 0;
+      return api;
+    }
+    function activate(row, evt) {
+      if (!row || row.getAttribute("aria-disabled") === "true") return;
+      var list = rows(), i = list.indexOf(row), key = keyOf(row, i);
+      if (typeof opts.onSelect === "function") {
+        /* Commit the row's ARIA state before the callback. A shared-state
+           subscriber may synchronously replace tbody; callers (and assistive
+           checks holding the activated node) must still observe that Enter or
+           click selected the node they activated. refresh() then reconciles
+           the replacement rows with the live selected getter. */
+        list.forEach(function (candidate) {
+          candidate.setAttribute("aria-selected", candidate === row ? "true" : "false");
+          candidate.tabIndex = candidate === row ? 0 : -1;
+        });
+        opts.onSelect(key, i, row, evt); refresh();
+      }
+      else { selected = key; refresh(); }
+    }
+    function click(evt) {
+      var row = evt.target.closest ? evt.target.closest("tbody tr") : null;
+      if (!row || !table.contains(row)) return;
+      activate(row, evt);
+    }
+    function keydown(evt) {
+      var row = evt.target.closest ? evt.target.closest("tbody tr") : null;
+      if (!row || !table.contains(row)) return;
+      var list = rows(), i = list.indexOf(row), next = i;
+      if (evt.key === "ArrowDown") next = Math.min(list.length - 1, i + 1);
+      else if (evt.key === "ArrowUp") next = Math.max(0, i - 1);
+      else if (evt.key === "Home") next = 0;
+      else if (evt.key === "End") next = list.length - 1;
+      else if (evt.key === "Enter" || evt.key === " ") { evt.preventDefault(); activate(row, evt); return; }
+      else if (evt.key === "Escape" && typeof opts.onClear === "function") {
+        evt.preventDefault();
+        /* onClear may synchronously replace tbody (linked plots commonly
+           redraw their table twins).  Preserve the user's logical row as the
+           sole roving tab stop after that redraw instead of leaving focus on
+           a tabindex=-1 row while a different selected row owns tabindex=0. */
+        var keepKey = keyOf(row, i);
+        opts.onClear(evt);
+        refresh();
+        var current = rows(), keep = null;
+        current.forEach(function (candidate, at) {
+          if (String(keyOf(candidate, at)) === String(keepKey)) keep = candidate;
+          candidate.tabIndex = -1;
+        });
+        if (keep) { keep.tabIndex = 0; keep.focus(); }
+        else if (current.length) { current[0].tabIndex = 0; current[0].focus(); }
+        return;
+      } else return;
+      evt.preventDefault();
+      list.forEach(function (r) { r.tabIndex = -1; });
+      if (list[next]) { list[next].tabIndex = 0; list[next].focus(); }
+    }
+    table.addEventListener("click", click);
+    table.addEventListener("keydown", keydown);
+    var api = {
+      refresh: refresh,
+      select: function (value) { selected = value; return refresh(); },
+      destroy: function () { table.removeEventListener("click", click); table.removeEventListener("keydown", keydown); }
+    };
+    return refresh();
+  }
+
+  /* ══ public drawing API ════════════════════════════════════════════════ */
+  var PC = {
+    version: "1.3.0",
+    css: css,
+    alias: ALIAS,
+    isDark: isDark,
+    setTheme: setTheme,
+    registerThemePainter: registerThemePainter,
+    repaintThemePainters: repaintThemePainters,
+    font: { sizes: FONT_SIZE, family: fontFamily, tick: tickFont, emph: emphFont },
+    rampColor: rampColor,
+    rampScale: rampScale,
+    heatColor: heatColor,
+    heatScale: heatScale,
+    divColor: divColor,
+    divScale: divScale,
+    inkOn: inkOn,
+    hex2rgb: hex2rgb,
+    toOklab: toOklab,
+    fromOklab: fromOklab,
+    fit: fit,
+    PAD: PAD,
+    scales: scales,
+    boxOf: boxOf,
+    frame: frame,
+    tickText: tickText,
+    drawAxes: drawAxes,
+    fmt: fmt,
+    extent: extent,
+    pad10: pad10,
+    quantile: quantile,
+    hover: hover,
+    tip: tip,
+    hideTip: hideTip,
+    touchMode: function () { return touchMode; },
+    plotBoxOf: plotBoxOf,
+    PLOT_BOXES: PLOT_BOXES,
+    clearSelection: clearTapSel,
+    selection: function () {
+      return tapSel ? { canvas: tapSel.canvas, index: tapSel.i } : null;
+    },
+    debounce: debounce,
+    createViewState: createViewState,
+    bindTableRows: bindTableRows
+  };
+
+  global.PC = PC;
+  if (typeof module === "object" && module.exports) module.exports = PC;
+})(typeof globalThis !== "undefined" ? globalThis : this);

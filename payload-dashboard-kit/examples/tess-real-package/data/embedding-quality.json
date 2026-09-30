@@ -1,0 +1,182 @@
+[
+  {
+    "k": 5,
+    "score": 0.94062708,
+    "series": "UMAP trust"
+  },
+  {
+    "k": 10,
+    "score": 0.93255749,
+    "series": "UMAP trust"
+  },
+  {
+    "k": 20,
+    "score": 0.92507887,
+    "series": "UMAP trust"
+  },
+  {
+    "k": 40,
+    "score": 0.91379174,
+    "series": "UMAP trust"
+  },
+  {
+    "k": 60,
+    "score": 0.90396317,
+    "series": "UMAP trust"
+  },
+  {
+    "k": 80,
+    "score": 0.89717325,
+    "series": "UMAP trust"
+  },
+  {
+    "k": 5,
+    "score": 0.96508785,
+    "series": "UMAP continuity"
+  },
+  {
+    "k": 10,
+    "score": 0.95407895,
+    "series": "UMAP continuity"
+  },
+  {
+    "k": 20,
+    "score": 0.94355334,
+    "series": "UMAP continuity"
+  },
+  {
+    "k": 40,
+    "score": 0.93299037,
+    "series": "UMAP continuity"
+  },
+  {
+    "k": 60,
+    "score": 0.92695061,
+    "series": "UMAP continuity"
+  },
+  {
+    "k": 80,
+    "score": 0.92310078,
+    "series": "UMAP continuity"
+  },
+  {
+    "k": 5,
+    "score": 0.9801462,
+    "series": "t-SNE trust"
+  },
+  {
+    "k": 10,
+    "score": 0.96504057,
+    "series": "t-SNE trust"
+  },
+  {
+    "k": 20,
+    "score": 0.94821699,
+    "series": "t-SNE trust"
+  },
+  {
+    "k": 40,
+    "score": 0.92973532,
+    "series": "t-SNE trust"
+  },
+  {
+    "k": 60,
+    "score": 0.91675447,
+    "series": "t-SNE trust"
+  },
+  {
+    "k": 80,
+    "score": 0.90643912,
+    "series": "t-SNE trust"
+  },
+  {
+    "k": 5,
+    "score": 0.95651841,
+    "series": "t-SNE continuity"
+  },
+  {
+    "k": 10,
+    "score": 0.94496198,
+    "series": "t-SNE continuity"
+  },
+  {
+    "k": 20,
+    "score": 0.93380905,
+    "series": "t-SNE continuity"
+  },
+  {
+    "k": 40,
+    "score": 0.92264293,
+    "series": "t-SNE continuity"
+  },
+  {
+    "k": 60,
+    "score": 0.91646782,
+    "series": "t-SNE continuity"
+  },
+  {
+    "k": 80,
+    "score": 0.91221087,
+    "series": "t-SNE continuity"
+  },
+  {
+    "k": 5,
+    "score": 0.85459553,
+    "series": "PCA-2 trust"
+  },
+  {
+    "k": 10,
+    "score": 0.85705584,
+    "series": "PCA-2 trust"
+  },
+  {
+    "k": 20,
+    "score": 0.86005886,
+    "series": "PCA-2 trust"
+  },
+  {
+    "k": 40,
+    "score": 0.86582879,
+    "series": "PCA-2 trust"
+  },
+  {
+    "k": 60,
+    "score": 0.86970438,
+    "series": "PCA-2 trust"
+  },
+  {
+    "k": 80,
+    "score": 0.87306131,
+    "series": "PCA-2 trust"
+  },
+  {
+    "k": 5,
+    "score": 0.96732708,
+    "series": "PCA-2 continuity"
+  },
+  {
+    "k": 10,
+    "score": 0.96263007,
+    "series": "PCA-2 continuity"
+  },
+  {
+    "k": 20,
+    "score": 0.95763704,
+    "series": "PCA-2 continuity"
+  },
+  {
+    "k": 40,
+    "score": 0.9530876,
+    "series": "PCA-2 continuity"
+  },
+  {
+    "k": 60,
+    "score": 0.95131982,
+    "series": "PCA-2 continuity"
+  },
+  {
+    "k": 80,
+    "score": 0.9504317,
+    "series": "PCA-2 continuity"
+  }
+]

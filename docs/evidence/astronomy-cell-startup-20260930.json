@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "date": "2026-09-30",
+  "status": "passed",
+  "scope": "Static compilation and isolated numeric/behavior execution against frozen live-preview source HTML. No browser, Drive changes or speed measurements.",
+  "baseline": "local-content/performance-20260930/before",
+  "pagesChecked": 6,
+  "totalComparedValues": 3141423,
+  "unitTestsPassed": 8,
+  "unitTestsFailed": 0,
+  "pages": [
+    {
+      "page": "pleiades-membership-explorer/index.html",
+      "status": "passed",
+      "transformations": [
+        "pleiades-defer-model-label-decode"
+      ],
+      "payloadSha256": "74e58af62daadeed28fa712bd0453838d316186d8acb5c106541321e5619aab4",
+      "scientificPayloadUnchanged": true,
+      "markupAndControlsUnchanged": true,
+      "nonTargetScriptsUnchanged": true,
+      "comparedValues": 139518
+    },
+    {
+      "page": "pleiades-membership-explorer/workflow.html",
+      "status": "passed",
+      "transformations": [
+        "pleiades-defer-workflow-arrays"
+      ],
+      "payloadSha256": "0300bf1ce0d3bc0bb9735e779cdd54454a48c64bf5856d939132ab60931ab1ce",
+      "scientificPayloadUnchanged": true,
+      "markupAndControlsUnchanged": true,
+      "nonTargetScriptsUnchanged": true,
+      "comparedValues": 279036
+    },
+    {
+      "page": "jae-joint-embedding-how-one-cell-becomes-61-numbers/dataset.html",
+      "status": "passed",
+      "transformations": [
+        "jae-defer-dataset-matrix-decode"
+      ],
+      "payloadSha256": "47dfc5ad6119de5b067ebfec066e85f5c9f94a873ee4026f3058c1618546809d",
+      "scientificPayloadUnchanged": true,
+      "markupAndControlsUnchanged": true,
+      "nonTargetScriptsUnchanged": true,
+      "comparedValues": 800640
+    },
+    {
+      "page": "pleiades-membership-explorer/dataset.html",
+      "status": "passed",
+      "transformations": [
+        "pleiades-cache-dataset-histograms"
+      ],
+      "payloadSha256": "ad40d9514e4618ad38f151fc47e726ec39b2c541310d59bf262d341656b8a502",
+      "scientificPayloadUnchanged": true,
+      "markupAndControlsUnchanged": true,
+      "nonTargetScriptsUnchanged": true,
+      "comparedValues": 198,
+      "sourceValuesForHistograms": 46506
+    },
+    {
+      "page": "jae-joint-embedding-how-one-cell-becomes-61-numbers/index.html",
+      "status": "passed",
+      "transformations": [
+        "jae-cache-exact-neighbours"
+      ],
+      "payloadSha256": "f27255e63504cb99991b85e884ce2ca1e98d19d685a30e9b1ac3578daf4c063e",
+      "scientificPayloadUnchanged": true,
+      "markupAndControlsUnchanged": true,
+      "nonTargetScriptsUnchanged": true,
+      "comparedValues": 495,
+      "selectedCellsVerified": 33,
+      "originalLatentCodes": 305244
+    },
+    {
+      "page": "jae-joint-embedding-how-one-cell-becomes-61-numbers/workflow.html",
+      "status": "passed",
+      "transformations": [
+        "jae-reuse-workflow-array-decode",
+        "jae-reuse-workflow-dequantization"
+      ],
+      "payloadSha256": "865dba67a6690cdd14ab835aeac37b4ccecd9a2020aaf273211143bc539b5751",
+      "scientificPayloadUnchanged": true,
+      "markupAndControlsUnchanged": true,
+      "nonTargetScriptsUnchanged": true,
+      "comparedValues": 1921536,
+      "coordinateVariants": 14
+    }
+  ],
+  "limitations": [
+    "Pure initialization/function tests do not execute full browser DOM/canvas interactions.",
+    "JAE Insight checks 33 deterministic real cells and synthetic tie/boundary cases; the distance and sorting formula is unchanged.",
+    "Shared JAE arrays are cached only inside the reviewed read-only program; producer changes invalidate its full-program checksum.",
+    "These checks do not claim visitor latency, speedup or performance timing."
+  ],
+  "reviewedSharedArrayConsumers": {
+    "allReadOnly": true,
+    "directIndexedAssignmentsFound": 0
+  }
+}

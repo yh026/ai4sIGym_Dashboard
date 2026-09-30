@@ -139,7 +139,7 @@ async function deliverPreviewCallback(options = {}) {
   const fetchImpl = options.fetchImpl || globalThis.fetch;
   const wait = options.wait || waitMs;
   const timeoutMs = Number.isFinite(options.timeoutMs) && options.timeoutMs > 0
-    ? options.timeoutMs : CALLBACK_TIMEOUT_MS;
+    ? options.timeoutMs : receipt.registry_schema === 3 ? 180000 : CALLBACK_TIMEOUT_MS;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
     try {

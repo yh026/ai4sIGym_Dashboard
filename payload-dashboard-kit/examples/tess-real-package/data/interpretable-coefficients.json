@@ -1,0 +1,46 @@
+[
+  {
+    "coefficient": 0.04021949652204554,
+    "feature": "pl_orbper"
+  },
+  {
+    "coefficient": 0.26160454932131605,
+    "feature": "pl_trandurh"
+  },
+  {
+    "coefficient": 1.462105496947069,
+    "feature": "pl_trandep"
+  },
+  {
+    "coefficient": -1.0913292964060286,
+    "feature": "pl_rade"
+  },
+  {
+    "coefficient": -0.13723733324158055,
+    "feature": "pl_insol"
+  },
+  {
+    "coefficient": -0.1744937644488126,
+    "feature": "st_tmag"
+  },
+  {
+    "coefficient": -0.6355295304319,
+    "feature": "st_dist"
+  },
+  {
+    "coefficient": -0.15852492814998084,
+    "feature": "st_teff"
+  },
+  {
+    "coefficient": -0.15275699041283597,
+    "feature": "st_logg"
+  },
+  {
+    "coefficient": 0.2940888666856085,
+    "feature": "st_rad"
+  },
+  {
+    "coefficient": -0.16762770256183984,
+    "feature": "pm_total"
+  }
+]

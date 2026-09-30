@@ -1,0 +1,22 @@
+[
+  {
+    "host_group": "1 signal",
+    "hosts": 6859
+  },
+  {
+    "host_group": "2 signals",
+    "hosts": 176
+  },
+  {
+    "host_group": "3 signals",
+    "hosts": 37
+  },
+  {
+    "host_group": "4 signals",
+    "hosts": 10
+  },
+  {
+    "host_group": "5 signals",
+    "hosts": 2
+  }
+]

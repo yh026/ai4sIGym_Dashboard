@@ -1,0 +1,369 @@
+{
+  "schema_version": "3.0.0",
+  "renderer_contract": {
+    "name": "render-payload-dashboard",
+    "version": "3.0.0",
+    "strict": true
+  },
+  "report": {
+    "title": "PCA diagnostics",
+    "subtitle": "Payload v3 golden fixture",
+    "summary": "A six-panel PCA composite with explicit data and visual intent."
+  },
+  "run": {
+    "id": "golden-pca",
+    "label": "Payload v3 PCA golden fixture",
+    "status": "complete",
+    "seed": 5102
+  },
+  "dataset": {
+    "id": "toy-standardized-features",
+    "title": "Toy standardized feature matrix",
+    "description": "A compact deterministic dataset used to exercise the PCA diagnostics recipe.",
+    "row_count": 120,
+    "feature_count": 4
+  },
+  "provenance": {
+    "generator": {
+      "name": "payload-v3-fixture-author",
+      "version": "1.0.0"
+    },
+    "inputs": [
+      {
+        "id": "toy-standardized-features",
+        "kind": "dataset",
+        "description": "Synthetic values committed with the fixture."
+      }
+    ]
+  },
+  "theme": {
+    "name": "tess",
+    "mode": "light",
+    "palette": "colorblind-safe",
+    "density": "comfortable",
+    "semantic_colors": {
+      "variance": "#2F6B8A",
+      "cumulative": "#D97941",
+      "positive": "#B94C4C",
+      "negative": "#356A9A"
+    }
+  },
+  "data": [
+    {
+      "id": "pca-scree",
+      "semantic_type": "pca.scree",
+      "title": "Explained variance by component",
+      "fields": [
+        {"name": "component", "type": "integer", "role": "dimension", "label": "Principal component"},
+        {"name": "explained_variance", "type": "number", "role": "measure", "label": "Explained variance", "unit": "fraction"},
+        {"name": "cumulative_variance", "type": "number", "role": "measure", "label": "Cumulative variance", "unit": "fraction"}
+      ],
+      "storage": {
+        "kind": "inline",
+        "format": "rows",
+        "rows": [
+          {"component": 1, "explained_variance": 0.34, "cumulative_variance": 0.34},
+          {"component": 2, "explained_variance": 0.24, "cumulative_variance": 0.58},
+          {"component": 3, "explained_variance": 0.16, "cumulative_variance": 0.74},
+          {"component": 4, "explained_variance": 0.10, "cumulative_variance": 0.84},
+          {"component": 5, "explained_variance": 0.07, "cumulative_variance": 0.91},
+          {"component": 6, "explained_variance": 0.04, "cumulative_variance": 0.95}
+        ]
+      }
+    },
+    {
+      "id": "pca-loadings",
+      "semantic_type": "pca.loadings",
+      "title": "PCA loading matrix in tidy form",
+      "fields": [
+        {"name": "component", "type": "integer", "role": "dimension"},
+        {"name": "feature", "type": "string", "role": "dimension"},
+        {"name": "loading", "type": "number", "role": "measure"}
+      ],
+      "storage": {
+        "kind": "inline",
+        "format": "rows",
+        "rows": [
+          {"component": 1, "feature": "duration", "loading": 0.62},
+          {"component": 1, "feature": "depth", "loading": 0.48},
+          {"component": 1, "feature": "period", "loading": -0.21},
+          {"component": 1, "feature": "radius", "loading": 0.55},
+          {"component": 2, "feature": "duration", "loading": -0.12},
+          {"component": 2, "feature": "depth", "loading": 0.67},
+          {"component": 2, "feature": "period", "loading": 0.58},
+          {"component": 2, "feature": "radius", "loading": -0.36},
+          {"component": 3, "feature": "duration", "loading": 0.59},
+          {"component": 3, "feature": "depth", "loading": -0.23},
+          {"component": 3, "feature": "period", "loading": 0.61},
+          {"component": 3, "feature": "radius", "loading": -0.45},
+          {"component": 4, "feature": "duration", "loading": -0.49},
+          {"component": 4, "feature": "depth", "loading": 0.12},
+          {"component": 4, "feature": "period", "loading": 0.47},
+          {"component": 4, "feature": "radius", "loading": 0.72}
+        ]
+      }
+    },
+    {
+      "id": "pca-circle",
+      "semantic_type": "pca.correlation-circle",
+      "title": "Feature coordinates in the first two components",
+      "fields": [
+        {"name": "feature", "type": "string", "role": "label"},
+        {"name": "origin_x", "type": "number", "role": "measure"},
+        {"name": "origin_y", "type": "number", "role": "measure"},
+        {"name": "pc1", "type": "number", "role": "measure"},
+        {"name": "pc2", "type": "number", "role": "measure"}
+      ],
+      "storage": {
+        "kind": "inline",
+        "format": "rows",
+        "rows": [
+          {"feature": "duration", "origin_x": 0, "origin_y": 0, "pc1": 0.78, "pc2": -0.12},
+          {"feature": "depth", "origin_x": 0, "origin_y": 0, "pc1": 0.54, "pc2": 0.70},
+          {"feature": "period", "origin_x": 0, "origin_y": 0, "pc1": -0.31, "pc2": 0.81},
+          {"feature": "radius", "origin_x": 0, "origin_y": 0, "pc1": 0.63, "pc2": -0.52}
+        ]
+      }
+    },
+    {
+      "id": "pca-residuals",
+      "semantic_type": "pca.covariance-residual",
+      "title": "Covariance reconstruction residuals",
+      "fields": [
+        {"name": "component_count", "type": "integer", "role": "dimension"},
+        {"name": "feature_x", "type": "string", "role": "dimension"},
+        {"name": "feature_y", "type": "string", "role": "dimension"},
+        {"name": "residual", "type": "number", "role": "measure"}
+      ],
+      "storage": {
+        "kind": "inline",
+        "format": "rows",
+        "rows": [
+          {"component_count": 2, "feature_x": "duration", "feature_y": "duration", "residual": 0.18},
+          {"component_count": 2, "feature_x": "duration", "feature_y": "depth", "residual": -0.11},
+          {"component_count": 2, "feature_x": "duration", "feature_y": "period", "residual": 0.08},
+          {"component_count": 2, "feature_x": "depth", "feature_y": "duration", "residual": -0.11},
+          {"component_count": 2, "feature_x": "depth", "feature_y": "depth", "residual": 0.22},
+          {"component_count": 2, "feature_x": "depth", "feature_y": "period", "residual": -0.14},
+          {"component_count": 2, "feature_x": "period", "feature_y": "duration", "residual": 0.08},
+          {"component_count": 2, "feature_x": "period", "feature_y": "depth", "residual": -0.14},
+          {"component_count": 2, "feature_x": "period", "feature_y": "period", "residual": 0.19},
+          {"component_count": 6, "feature_x": "duration", "feature_y": "duration", "residual": 0.05},
+          {"component_count": 6, "feature_x": "duration", "feature_y": "depth", "residual": -0.03},
+          {"component_count": 6, "feature_x": "duration", "feature_y": "period", "residual": 0.02},
+          {"component_count": 6, "feature_x": "depth", "feature_y": "duration", "residual": -0.03},
+          {"component_count": 6, "feature_x": "depth", "feature_y": "depth", "residual": 0.04},
+          {"component_count": 6, "feature_x": "depth", "feature_y": "period", "residual": -0.02},
+          {"component_count": 6, "feature_x": "period", "feature_y": "duration", "residual": 0.02},
+          {"component_count": 6, "feature_x": "period", "feature_y": "depth", "residual": -0.02},
+          {"component_count": 6, "feature_x": "period", "feature_y": "period", "residual": 0.03},
+          {"component_count": 8, "feature_x": "duration", "feature_y": "duration", "residual": 0.01},
+          {"component_count": 8, "feature_x": "duration", "feature_y": "depth", "residual": -0.01},
+          {"component_count": 8, "feature_x": "duration", "feature_y": "period", "residual": 0.00},
+          {"component_count": 8, "feature_x": "depth", "feature_y": "duration", "residual": -0.01},
+          {"component_count": 8, "feature_x": "depth", "feature_y": "depth", "residual": 0.01},
+          {"component_count": 8, "feature_x": "depth", "feature_y": "period", "residual": 0.00},
+          {"component_count": 8, "feature_x": "period", "feature_y": "duration", "residual": 0.00},
+          {"component_count": 8, "feature_x": "period", "feature_y": "depth", "residual": 0.00},
+          {"component_count": 8, "feature_x": "period", "feature_y": "period", "residual": 0.01}
+        ]
+      }
+    }
+  ],
+  "sections": [
+    {
+      "id": "pca-section",
+      "title": "Principal component analysis",
+      "short_label": "PCA",
+      "summary": "Six panels state the retained dimension and expose what the projection preserves or loses.",
+      "narrative": ["The retained dimension is chosen from cumulative explained variance, then checked against loadings and covariance residuals."],
+      "metrics": [
+        {"name": "retained components", "value": 5},
+        {"name": "retained variance", "value": 0.91, "unit": "fraction"}
+      ],
+      "checks": [
+        {"id": "variance-threshold", "label": "Cumulative variance at or above 90%", "result": "pass"}
+      ],
+      "caveats": ["The fixture values are illustrative and are not scientific results."],
+      "figure_ids": ["pca-diagnostics"],
+      "initial_state": "open"
+    }
+  ],
+  "figures": [
+    {
+      "id": "pca-diagnostics",
+      "title": "PCA diagnostics",
+      "caption": "Scree, loadings, correlation circle, and residual covariance views share one explicit composite specification.",
+      "recipe": "pca.diagnostics@1",
+      "recipe_config": {
+        "bindings": {
+          "scree": {"data": "pca-scree", "component": "component", "variance": "explained_variance", "cumulative": "cumulative_variance"},
+          "loadings": {"data": "pca-loadings", "component": "component", "feature": "feature", "value": "loading"},
+          "circle": {"data": "pca-circle", "label": "feature", "x": "pc1", "y": "pc2"},
+          "residuals": {"data": "pca-residuals", "component": "component_count", "row": "feature_y", "column": "feature_x", "value": "residual"}
+        },
+        "params": {
+          "variance_threshold": 0.9,
+          "selected_components": 5,
+          "residual_components": [2, 6, 8]
+        }
+      },
+      "layout": {
+        "type": "grid",
+        "columns": 3,
+        "rows": 2,
+        "gap": 16
+      },
+      "panels": [
+        {
+          "id": "pca-scree-panel",
+          "title": "Explained variance",
+          "data_ref": "pca-scree",
+          "coordinate": {"type": "cartesian"},
+          "layers": [
+            {
+              "id": "pca-scree-bars",
+              "mark": {"type": "bar", "orient": "vertical", "opacity": 0.88},
+              "encoding": {
+                "x": {"field": "component", "type": "ordinal", "title": "Component", "axis": {"title": "Principal component", "format": "integer"}},
+                "y": {"field": "explained_variance", "type": "quantitative", "title": "Explained variance", "axis": {"title": "Variance", "format": "percent", "grid": true}},
+                "color": {"value": "variance", "type": "nominal", "scale_role": "semantic"}
+              }
+            },
+            {
+              "id": "pca-cumulative-line",
+              "mark": {"type": "line", "stroke_width": 2.5},
+              "encoding": {
+                "x": {"field": "component", "type": "ordinal", "axis": false},
+                "y": {"field": "cumulative_variance", "type": "quantitative", "axis": false},
+                "stroke": {"value": "cumulative", "type": "nominal", "scale_role": "semantic"}
+              }
+            }
+          ],
+          "annotations": [
+            {"id": "pca-variance-target", "type": "rule", "description": "90% target", "encoding": {"y": {"value": 0.9, "type": "quantitative"}, "color": {"value": "reference", "type": "nominal"}}},
+            {"id": "pca-selected-l", "type": "rule", "description": "L = 5", "encoding": {"x": {"value": 5, "type": "ordinal"}, "color": {"value": "selection", "type": "nominal"}}}
+          ]
+        },
+        {
+          "id": "pca-loading-panel",
+          "title": "Loading matrix",
+          "type": "matrix",
+          "data_ref": "pca-loadings",
+          "coordinate": {"type": "matrix"},
+          "layers": [
+            {
+              "id": "pca-loading-cells",
+              "mark": {"type": "rect"},
+              "encoding": {
+                "x": {"field": "component", "type": "ordinal", "title": "Component", "axis": {"title": "Component", "format": "integer"}},
+                "y": {"field": "feature", "type": "nominal", "title": "Feature", "axis": {"title": "Feature"}},
+                "color": {"field": "loading", "type": "quantitative", "title": "Loading", "scale_role": "diverging", "legend": {"title": "Loading"}},
+                "tooltip": {"field": "loading", "type": "quantitative", "title": "Loading"}
+              }
+            }
+          ]
+        },
+        {
+          "id": "pca-circle-panel",
+          "title": "Correlation circle",
+          "data_ref": "pca-circle",
+          "coordinate": {"type": "cartesian"},
+          "layers": [
+            {
+              "id": "pca-unit-circle",
+              "mark": {"type": "ellipse", "role": "reference", "stroke_width": 1.5},
+              "encoding": {
+                "x": {"value": 0, "type": "quantitative"},
+                "y": {"value": 0, "type": "quantitative"},
+                "x_radius": {"value": 1, "type": "quantitative"},
+                "y_radius": {"value": 1, "type": "quantitative"},
+                "color": {"value": "reference", "type": "nominal", "scale_role": "semantic"}
+              }
+            },
+            {
+              "id": "pca-circle-vectors",
+              "mark": {"type": "vector", "stroke_width": 2},
+              "encoding": {
+                "x": {"field": "origin_x", "type": "quantitative", "axis": {"title": "PC1", "format": "number", "grid": true}},
+                "y": {"field": "origin_y", "type": "quantitative", "axis": {"title": "PC2", "format": "number", "grid": true}},
+                "x2": {"field": "pc1", "type": "quantitative"},
+                "y2": {"field": "pc2", "type": "quantitative"},
+                "color": {"field": "feature", "type": "nominal", "scale_role": "semantic", "legend": false}
+              }
+            },
+            {
+              "id": "pca-circle-labels",
+              "mark": {"type": "text"},
+              "encoding": {
+                "x": {"field": "pc1", "type": "quantitative", "axis": false},
+                "y": {"field": "pc2", "type": "quantitative", "axis": false},
+                "text": {"field": "feature", "type": "nominal"}
+              }
+            }
+          ]
+        },
+        {
+          "id": "pca-residual-2-panel",
+          "title": "Covariance residual, L = 2",
+          "type": "matrix",
+          "data_ref": "pca-residuals",
+          "coordinate": {"type": "matrix"},
+          "transform": [{"op": "filter", "field": "component_count", "predicate": {"eq": 2}}],
+          "layers": [
+            {
+              "id": "pca-residual-2-cells",
+              "mark": {"type": "rect"},
+              "encoding": {
+                "x": {"field": "feature_x", "type": "nominal", "axis": {"title": "Feature"}},
+                "y": {"field": "feature_y", "type": "nominal", "axis": {"title": "Feature"}},
+                "color": {"field": "residual", "type": "quantitative", "scale_role": "diverging", "legend": {"title": "Residual"}}
+              }
+            }
+          ]
+        },
+        {
+          "id": "pca-residual-6-panel",
+          "title": "Covariance residual, L = 6",
+          "type": "matrix",
+          "data_ref": "pca-residuals",
+          "coordinate": {"type": "matrix"},
+          "transform": [{"op": "filter", "field": "component_count", "predicate": {"eq": 6}}],
+          "layers": [
+            {
+              "id": "pca-residual-6-cells",
+              "mark": {"type": "rect"},
+              "encoding": {
+                "x": {"field": "feature_x", "type": "nominal", "axis": {"title": "Feature"}},
+                "y": {"field": "feature_y", "type": "nominal", "axis": {"title": "Feature"}},
+                "color": {"field": "residual", "type": "quantitative", "scale_role": "diverging", "legend": {"title": "Residual"}}
+              }
+            }
+          ]
+        },
+        {
+          "id": "pca-residual-8-panel",
+          "title": "Covariance residual, L = 8",
+          "type": "matrix",
+          "data_ref": "pca-residuals",
+          "coordinate": {"type": "matrix"},
+          "transform": [{"op": "filter", "field": "component_count", "predicate": {"eq": 8}}],
+          "layers": [
+            {
+              "id": "pca-residual-8-cells",
+              "mark": {"type": "rect"},
+              "encoding": {
+                "x": {"field": "feature_x", "type": "nominal", "axis": {"title": "Feature"}},
+                "y": {"field": "feature_y", "type": "nominal", "axis": {"title": "Feature"}},
+                "color": {"field": "residual", "type": "quantitative", "scale_role": "diverging", "legend": {"title": "Residual"}}
+              }
+            }
+          ]
+        }
+      ],
+      "interactions": [
+        {"id": "pca-loading-tooltip", "type": "tooltip", "targets": ["pca-loading-panel/pca-loading-cells"], "fields": ["feature", "component", "loading"], "mode": "pointer"}
+      ]
+    }
+  ]
+}

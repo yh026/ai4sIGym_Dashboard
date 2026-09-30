@@ -1,0 +1,62 @@
+[
+  {
+    "comparison": "k-means vs GMM",
+    "metric": "ARI",
+    "bar_label": "k-means vs GMM · ARI",
+    "value": 0.62
+  },
+  {
+    "comparison": "k-means vs GMM",
+    "metric": "NMI",
+    "bar_label": "k-means vs GMM · NMI",
+    "value": 0.58
+  },
+  {
+    "comparison": "k-means vs HDBSCAN",
+    "metric": "ARI",
+    "bar_label": "k-means vs HDBSCAN · ARI",
+    "value": 0.18
+  },
+  {
+    "comparison": "k-means vs HDBSCAN",
+    "metric": "NMI",
+    "bar_label": "k-means vs HDBSCAN · NMI",
+    "value": 0.21
+  },
+  {
+    "comparison": "k-means vs DBSCAN",
+    "metric": "ARI",
+    "bar_label": "k-means vs DBSCAN · ARI",
+    "value": 0.04
+  },
+  {
+    "comparison": "k-means vs DBSCAN",
+    "metric": "NMI",
+    "bar_label": "k-means vs DBSCAN · NMI",
+    "value": 0.06
+  },
+  {
+    "comparison": "GMM vs disposition",
+    "metric": "ARI",
+    "bar_label": "GMM vs disposition · ARI",
+    "value": 0.061
+  },
+  {
+    "comparison": "GMM vs disposition",
+    "metric": "NMI",
+    "bar_label": "GMM vs disposition · NMI",
+    "value": 0.079
+  },
+  {
+    "comparison": "k-means vs disposition",
+    "metric": "ARI",
+    "bar_label": "k-means vs disposition · ARI",
+    "value": 0.054
+  },
+  {
+    "comparison": "k-means vs disposition",
+    "metric": "NMI",
+    "bar_label": "k-means vs disposition · NMI",
+    "value": 0.071
+  }
+]

@@ -1,0 +1,72 @@
+[
+  {
+    "accuracy": 0.6853860880663688,
+    "depth": 2,
+    "split": "Train"
+  },
+  {
+    "accuracy": 0.6994047619047619,
+    "depth": 2,
+    "split": "Held-out"
+  },
+  {
+    "accuracy": 0.7415443522654754,
+    "depth": 3,
+    "split": "Train"
+  },
+  {
+    "accuracy": 0.7232142857142857,
+    "depth": 3,
+    "split": "Held-out"
+  },
+  {
+    "accuracy": 0.7638800255264837,
+    "depth": 4,
+    "split": "Train"
+  },
+  {
+    "accuracy": 0.7663690476190477,
+    "depth": 4,
+    "split": "Held-out"
+  },
+  {
+    "accuracy": 0.8066368857689853,
+    "depth": 5,
+    "split": "Train"
+  },
+  {
+    "accuracy": 0.7782738095238095,
+    "depth": 5,
+    "split": "Held-out"
+  },
+  {
+    "accuracy": 0.8391831525207403,
+    "depth": 6,
+    "split": "Train"
+  },
+  {
+    "accuracy": 0.78125,
+    "depth": 6,
+    "split": "Held-out"
+  },
+  {
+    "accuracy": 0.8640714741544352,
+    "depth": 7,
+    "split": "Train"
+  },
+  {
+    "accuracy": 0.7901785714285714,
+    "depth": 7,
+    "split": "Held-out"
+  },
+  {
+    "accuracy": 0.8902361199744735,
+    "depth": 8,
+    "split": "Train"
+  },
+  {
+    "accuracy": 0.7782738095238095,
+    "depth": 8,
+    "split": "Held-out"
+  }
+]

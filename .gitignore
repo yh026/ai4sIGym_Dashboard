@@ -2,6 +2,20 @@ dist/
 node_modules/
 .DS_Store
 .preview/
+local-content/
+
+# Local delivery packages and generated payload dashboards
+/payload-dashboard-*.zip
+/payload-dashboard-session-test/
+/payload-dashboard-kit/input/
+/payload-dashboard-kit/output/
+/payload-dashboard-kit/examples/*/dashboard.html
+/payload-dashboard-kit/examples/*/*.dashboard.html
+/payloads/*.html
+
+# Python caches from optional example analysis
+__pycache__/
+*.pyc
 
 # Local Netlify folder
 .netlify

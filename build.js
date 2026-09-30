@@ -13,15 +13,18 @@
  * Netlify's CONTEXT and BRANCH select a fail-closed content policy:
  *   production/main       -> Live only
  *   branch-deploy/develop -> Live + Draft
- * Local preview: node build.js --mock
+ * Local website: node build.js --local (outputs to local-content/site/)
+ * Mock fixtures: node build.js --mock
  */
 
 const fs = require('fs');
 const path = require('path');
 
 const MOCK = process.argv.includes('--mock');
+const LOCAL = process.argv.includes('--local');
+const INCLUDE_DRAFTS = process.argv.includes('--include-drafts');
 const ROOT = __dirname;
-const DIST = path.join(ROOT, 'dist');
+const DIST = LOCAL ? path.join(ROOT, 'local-content', 'site') : path.join(ROOT, 'dist');
 const SITE = path.join(ROOT, 'site');
 const NEW_WINDOW_DAYS = 14;
 const DEPLOY_RECEIPT_SCHEMA = 1;
@@ -1190,6 +1193,13 @@ function deployHeaders(policy) {
     || ['branch-deploy', 'deploy-preview', 'dev', 'local'].includes(policy.context);
   if (isNonProductionDeploy) {
     blocks.push('', '/*', '  X-Robots-Tag: noindex, nofollow');
+    // Content hashes change when bytes change. Cache only within the user's
+    // browser; the protected preview must not become publicly cacheable.
+    for (const directory of ['embedded', 'optimized', 'runtime']) {
+      blocks.push('', '/assets/' + directory + '/*',
+        '  Cache-Control: private, max-age=31536000, immutable',
+        '  X-Content-Type-Options: nosniff');
+    }
   }
   return blocks.join('\n') + '\n';
 }
@@ -1238,6 +1248,11 @@ function isPublishableDemo(demo, policy, schemaVersion = 1) {
 }
 
 async function loadRegistry(policy, expectedRevision) {
+  if (LOCAL) {
+    return require('./lib/local-content').loadLocalRegistry(
+      process.env.AIS_LOCAL_CONTENT_DIR || path.join(ROOT, 'local-content', 'drive-current'),
+    );
+  }
   if (MOCK) {
     const manifestPath = process.env.MOCK_MANIFEST || path.join(ROOT, 'fixtures', 'manifest.json');
     const fallbackHtml = process.env.MOCK_HTML_FALLBACK;
@@ -1289,6 +1304,9 @@ async function loadRegistry(policy, expectedRevision) {
   }
 
   const base = process.env.REGISTRY_URL;
+  if (base && new URL(base).searchParams.get('schema') === '3') {
+    return require('./lib/registry-v3-client').loadV3Registry(base, policy, getJson, expectedRevision);
+  }
   if (!base) {
     fail('REGISTRY_URL is not set. In Netlify: Site configuration → Environment variables. '
       + 'Get the value from the sheet: AI4S dashboard → Show Registry API URL for Netlify.');
@@ -1686,9 +1704,9 @@ function cardHtml(demo, domain, isNew, hrefBase, index) {
   const methodValues = isV2 ? demo.method_ids.join('|') : '';
   const dataTypeValues = isV2 ? demo.data_type_ids.join('|') : '';
   const instrumentTypeValues = isV2 ? demo.instrument_type_ids.join('|') : '';
-  const facetAttributes = isV2
+  const facetAttributes = (isV2
     ? ` data-method="${esc(methodValues)}" data-data-type="${esc(dataTypeValues)}" data-instrument-type="${esc(instrumentTypeValues)}"`
-    : '';
+    : '');
   const domainFilterId = isV2 ? demo.department_id : domain.id;
   const summary = isV2 ? demo.card_summary : demo.description;
   return `<a class="project-card" href="${hrefBase}demos/${esc(demo.slug)}/index.html" style="--card-accent:${domain.color}" data-search="${esc(search)}" data-domain="${esc(domainFilterId)}" data-subtopic="${esc(subtopic.id)}" data-task="${esc(taskValues)}"${facetAttributes}>
@@ -1741,13 +1759,22 @@ function domainSwitcherHtml(currentDomain, grouped, domains = DOMAIN_DEFINITIONS
 // ------------------------------------------------------------------ main
 
 async function main() {
-  console.log(MOCK ? 'Build AIS Instrumentation Gym (mock fixtures)…' : 'Build AIS Instrumentation Gym (live registry)…');
+  if (MOCK && LOCAL) throw new Error('Choose either --mock or --local.');
+  if (INCLUDE_DRAFTS && !LOCAL) throw new Error('--include-drafts requires --local.');
+  console.log(LOCAL ? 'Build AIS Instrumentation Gym (local Drive snapshot)…'
+    : MOCK ? 'Build AIS Instrumentation Gym (mock fixtures)…' : 'Build AIS Instrumentation Gym (live registry)…');
   validateTaxonomy();
-  const policy = resolveBuildContentPolicy(process.env);
+  const policy = LOCAL
+    ? require('./lib/local-content').localContentPolicy(process.env, { includeDrafts: INCLUDE_DRAFTS })
+    : resolveBuildContentPolicy(process.env);
   const trigger = resolvePreviewHookReceipt(process.env, policy);
   console.log('  content policy: ' + policy.audience + ' (' + policy.context + ' / ' + policy.branch + ')');
   console.log('  deploy receipt: ' + (trigger.verified ? 'verified Preview request' : 'unverified build'));
   const registry = await loadRegistry(policy, trigger.registryRevision);
+  const localCollection = LOCAL
+    ? require('./lib/local-demo-collection').loadLocalDemoCollection(path.join(ROOT, 'demos_v4'), registry.demos)
+    : null;
+  if (localCollection) registry.demos = localCollection.demos;
   if (trigger.verified && registry.audience !== policy.audience) {
     throw new Error('Registry audience does not match the verified Preview request.');
   }
@@ -1778,10 +1805,19 @@ async function main() {
       : [];
   }
 
-  const excluded = demos.filter(demo => !isPublishableDemo(demo, policy, schemaVersion));
+  const localPreviewIds = LOCAL
+    ? require('./lib/local-project-pages').localPreviewProjectIds(path.join(ROOT, 'local-content', 'v2'), demos)
+    : new Set();
+  if (localCollection) {
+    localCollection.previewIds.forEach(id => localPreviewIds.add(id));
+  }
+  const visibleHere = demo => isPublishableDemo(demo, policy, schemaVersion)
+    || (LOCAL && localPreviewIds.has(demo.demo_id)
+      && isPublishableDemo(demo, { ...policy, audience: 'preview' }, schemaVersion));
+  const excluded = demos.filter(demo => !visibleHere(demo));
   excluded.forEach(demo => console.warn('  skipping (not publishable for ' + policy.audience + '): '
     + (demo.title || demo.file_name || demo.file_id || 'unnamed row')));
-  demos = demos.filter(demo => isPublishableDemo(demo, policy, schemaVersion));
+  demos = demos.filter(visibleHere);
 
   const siteRecords = demos.filter(demo => isSiteRecord(demo));
   siteRecords.forEach(demo => console.warn('  skipping (dashboard record, not a project): ' + (demo.title || demo.file_name)));
@@ -1821,9 +1857,10 @@ async function main() {
   }
 
   const pages = await inChunks(demos, registryReadBatchSize(schemaVersion), async demo => {
-    const result = await withRetry(() => registry.getHtml(
-      demo.file_id, activeRegistryRevision,
-    ));
+    const localEntry = localCollection?.entries.get(demo.slug);
+    const result = localEntry
+      ? { html: localEntry.insightHtml, registryRevision: activeRegistryRevision }
+      : await withRetry(() => registry.getHtml(demo.file_id, activeRegistryRevision));
     requireMatchingRegistryRevision(
       result && result.registryRevision, activeRegistryRevision, 'Project file',
     );
@@ -1833,15 +1870,34 @@ async function main() {
     }
     return { demo, html };
   });
-  const cardAssets = schemaVersion === REGISTRY_SCHEMA_V2
+  const cardAssets = schemaVersion === REGISTRY_SCHEMA_V2 && registry.protocolVersion !== 3
     ? await fetchV2CardAssets(demos, registry, activeRegistryRevision)
     : [];
+
+  const registryProjectPages = registry.protocolVersion === 3
+    ? await registry.getProjectPages(demos, activeRegistryRevision) : new Map();
+  if (registry.protocolVersion === 3) {
+    for (const demo of demos) {
+      const bundle = registry.bundles.find(b => b.demo_id === demo.demo_id);
+      const card = bundle.resources.find(r => r.role === 'card');
+      if (card) demo.card_asset = { asset_id: card.resource_id, public_path: card.route, alt_text: demo.title };
+    }
+  }
 
   if (activeRegistryRevision) {
     const finalRegistryRevision = await registry.getRevision(activeRegistryRevision);
     requireMatchingRegistryRevision(
       finalRegistryRevision, activeRegistryRevision, 'Final manifest',
     );
+  }
+
+  // Authoring pages are loaded only for an explicit local build and are kept
+  // outside the dist/ directory used by Netlify. Read them before clearing output.
+  let localProjects = LOCAL
+    ? require('./lib/local-project-pages').loadLocalProjectPages(path.join(ROOT, 'local-content', 'v2'), demos)
+    : new Map();
+  if (localCollection) {
+    localProjects = require('./lib/local-demo-collection').integrateLocalDemoPages(localCollection, demos, localProjects);
   }
 
   fs.rmSync(DIST, { recursive: true, force: true });
@@ -1851,6 +1907,18 @@ async function main() {
   if (fs.existsSync(assetSource)) fs.cpSync(assetSource, path.join(DIST, 'assets'), { recursive: true });
   materializeCardAssets(cardAssets);
   for (const { demo, html } of pages) {
+    const localPages = registryProjectPages.get(demo.slug) || localProjects.get(demo.slug);
+    if (localPages) {
+      for (const page of localPages) {
+        const destination = path.join(DIST, page.path);
+        fs.mkdirSync(path.dirname(destination), { recursive: true });
+        fs.writeFileSync(destination, page.bytes ?? (page.legacy ? injectIntoDemo(page.html, demo) : page.html));
+        if (page.html) console.log('  local page: /' + page.path);
+      }
+      const downloads = localPages.filter(page => page.bytes).length;
+      if (downloads) console.log('  local downloads: ' + downloads + ' files');
+      continue;
+    }
     const directory = path.join(DIST, 'demos', demo.slug);
     fs.mkdirSync(directory, { recursive: true });
     fs.writeFileSync(path.join(directory, 'index.html'), injectIntoDemo(html, demo));
@@ -2088,15 +2156,35 @@ async function main() {
       instrument_types: publicOptionTerms(v2Taxonomy.instrument_types),
     };
   }
+  if (registry.protocolVersion === 3) {
+    publicManifest.schema_version = 3;
+    publicManifest.demos.forEach(demo => {
+      const bundle = registry.bundles.find(b => b.demo_id === demo.demo_id);
+      demo.pages = bundle.pages.map(p => ({ role: p.role, state: p.state, path: p.route }));
+    });
+  }
   fs.writeFileSync(path.join(DIST, 'manifest.json'), JSON.stringify(publicManifest, null, 2));
   const deployReceipt = createDeployReceipt(
     process.env, policy, trigger, activeRegistryRevision, new Date().toISOString(),
   );
+  if (registry.protocolVersion === 3) {
+    deployReceipt.registry_schema = 3;
+    deployReceipt.registry_instance = registry.registryInstance;
+  }
   fs.writeFileSync(path.join(DIST, 'deploy-receipt.json'), JSON.stringify(
     deployReceipt, null, 2,
   ));
 
-  console.log('Done: ' + demos.length + ' demos across ' + pluralText(activeDepartments.length, 'active department') + ' → dist/ (built ' + built + ')');
+  if (policy.audience === 'preview' || LOCAL) {
+    const performance = require('./lib/site-performance').optimizeSiteOutput(DIST);
+    const saved = performance.pages.reduce((sum, page) => sum + page.inputBytes - page.outputBytes, 0);
+    fs.writeFileSync(path.join(DIST, 'performance-report.json'), JSON.stringify(performance, null, 2));
+    console.log('  lossless delivery: ' + performance.assets.length + ' reusable assets; '
+      + (saved / 1048576).toFixed(2) + ' MiB removed from HTML');
+  }
+
+  console.log('Done: ' + demos.length + ' demos across ' + pluralText(activeDepartments.length, 'active department')
+    + ' → ' + path.relative(ROOT, DIST) + '/ (built ' + built + ')');
 }
 
 if (require.main === module) {

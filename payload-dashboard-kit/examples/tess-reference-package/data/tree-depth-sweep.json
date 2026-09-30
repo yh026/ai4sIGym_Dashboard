@@ -1,0 +1,72 @@
+[
+  {
+    "depth": 2,
+    "accuracy": 0.72,
+    "split": "Train"
+  },
+  {
+    "depth": 3,
+    "accuracy": 0.756,
+    "split": "Train"
+  },
+  {
+    "depth": 4,
+    "accuracy": 0.792,
+    "split": "Train"
+  },
+  {
+    "depth": 5,
+    "accuracy": 0.828,
+    "split": "Train"
+  },
+  {
+    "depth": 6,
+    "accuracy": 0.864,
+    "split": "Train"
+  },
+  {
+    "depth": 7,
+    "accuracy": 0.9,
+    "split": "Train"
+  },
+  {
+    "depth": 8,
+    "accuracy": 0.936,
+    "split": "Train"
+  },
+  {
+    "depth": 2,
+    "accuracy": 0.71829,
+    "split": "Held-out"
+  },
+  {
+    "depth": 3,
+    "accuracy": 0.72738,
+    "split": "Held-out"
+  },
+  {
+    "depth": 4,
+    "accuracy": 0.7392,
+    "split": "Held-out"
+  },
+  {
+    "depth": 5,
+    "accuracy": 0.745,
+    "split": "Held-out"
+  },
+  {
+    "depth": 6,
+    "accuracy": 0.7392,
+    "split": "Held-out"
+  },
+  {
+    "depth": 7,
+    "accuracy": 0.72738,
+    "split": "Held-out"
+  },
+  {
+    "depth": 8,
+    "accuracy": 0.71829,
+    "split": "Held-out"
+  }
+]

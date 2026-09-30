@@ -1,0 +1,101 @@
+{
+  "reviewed_at": "2026-09-30T16:04:19.583681+00:00",
+  "source_commit": "6a56afde35bb966255350d9108d51213b4e7438e",
+  "source_deploy_id": "6abcd9a85bfd9b000843743b",
+  "source_url": "https://develop--aisigym.netlify.app/",
+  "scope": "Functional and visual release review; no speed benchmark.",
+  "static": {
+    "html_pages": 46,
+    "demos": 13,
+    "internal_links": 268,
+    "anchors": 97,
+    "tag_asset_references": 143,
+    "generated_asset_references": 153,
+    "script_compilations": 147,
+    "combined_page_scopes": 46,
+    "json_blocks": 39,
+    "broken_references": 0
+  },
+  "tests": {
+    "passed": 570,
+    "failed": 0
+  },
+  "browser_checks": [
+    [
+      "Homepage",
+      "13 project cards and cover images; battery search returns three; reset restores all"
+    ],
+    [
+      "Battery curve shape",
+      "Curve and PCA visible; cycle reveal and CS2_36 filter; Dataset matrix expanded; Workflow navigation"
+    ],
+    [
+      "Single cell",
+      "All 8569 cells on first load; Cluster 23; fitted clusters; reset all groups"
+    ],
+    [
+      "Alzheimer",
+      "PLD2 main network; TPP2 selection; Severe stage; all clusters"
+    ],
+    [
+      "SOH battery",
+      "Forecast curve; next prediction boundary; measured future reveal"
+    ],
+    [
+      "CEEMDAN",
+      "Raw LSTM comparison switch; evaluation accordion and table"
+    ],
+    [
+      "Superconductor",
+      "Main scatter; high temperature highlight; linear PCA model; Workflow PCA expanded"
+    ],
+    [
+      "JAE",
+      "Cell type and batch map colors; keyboard selection updates cell readout"
+    ],
+    [
+      "Pleiades",
+      "Candidate highlight; Gaussian mixture; all three linked figures"
+    ],
+    [
+      "TBB",
+      "Map reveal and PCA display; linked scatter and geography"
+    ],
+    [
+      "Satellite quantization",
+      "VQ-32; misclassified image filter; original and reconstructed images"
+    ],
+    [
+      "Galaxy",
+      "UMAP projection; paired-start comparison"
+    ],
+    [
+      "Air Quality",
+      "Existing page loads; read-only, unchanged"
+    ],
+    [
+      "Singapore Road",
+      "Existing UMAP and geographic map load; read-only, unchanged"
+    ]
+  ],
+  "browser_script_errors_observed": 0,
+  "limits": "Desktop functional review of all project entry pages and representative Dataset/Workflow views; not an exhaustive interaction or mobile-device audit.",
+  "previous_production": {
+    "commit": "1626fb1f55391c8c1ba6a91e5a199645d3f3beab",
+    "deploy_id": "6aa78719ff58fc00081400cb"
+  },
+  "release_mode": "Frozen reviewed artifact; Drive continues to manage develop. This does not implement a complete V3 production publisher.",
+  "artifact": {
+    "cloud_files_verified": 133,
+    "source_receipt_sha256": "7b947ddee67735095ba2d1f2948494785cefd6ec2c7401e04fc4633f93749f1b",
+    "archive_sha256": "fe5ec225805e4d422d9f0dec43d41c4e64f1924b9916bbb50604d30603a77bb8",
+    "frozen_files": 130,
+    "byte_preserved_files": 129
+  },
+  "review_build": {
+    "package_files": 133,
+    "audience": "preview",
+    "requires": "Netlify deploy-preview with matching REVIEW_ID and pull branch",
+    "production_package_unchanged": true
+  }
+}

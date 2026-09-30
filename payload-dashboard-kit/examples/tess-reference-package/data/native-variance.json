@@ -1,0 +1,46 @@
+[
+  {
+    "feature": "pl_orbper",
+    "variance": 1200000
+  },
+  {
+    "feature": "pl_trandurh",
+    "variance": 9.8
+  },
+  {
+    "feature": "pl_trandep",
+    "variance": 210000000
+  },
+  {
+    "feature": "pl_rade",
+    "variance": 94
+  },
+  {
+    "feature": "pl_insol",
+    "variance": 420000000000
+  },
+  {
+    "feature": "st_tmag",
+    "variance": 3.4
+  },
+  {
+    "feature": "st_dist",
+    "variance": 86000
+  },
+  {
+    "feature": "st_teff",
+    "variance": 730000
+  },
+  {
+    "feature": "st_logg",
+    "variance": 0.18
+  },
+  {
+    "feature": "st_rad",
+    "variance": 44
+  },
+  {
+    "feature": "pm_total",
+    "variance": 25000000
+  }
+]

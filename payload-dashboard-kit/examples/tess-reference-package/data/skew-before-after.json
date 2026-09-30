@@ -1,0 +1,42 @@
+[
+  {
+    "feature": "pl_orbper",
+    "before": 6.2,
+    "after": 0.84
+  },
+  {
+    "feature": "pl_trandurh",
+    "before": 3.1,
+    "after": 0.62
+  },
+  {
+    "feature": "pl_trandep",
+    "before": 18.7,
+    "after": 1.18
+  },
+  {
+    "feature": "pl_rade",
+    "before": 7.9,
+    "after": 0.88
+  },
+  {
+    "feature": "pl_insol",
+    "before": 15.2,
+    "after": 1.24
+  },
+  {
+    "feature": "st_dist",
+    "before": 2.8,
+    "after": 0.41
+  },
+  {
+    "feature": "st_rad",
+    "before": 5.3,
+    "after": 0.73
+  },
+  {
+    "feature": "pm_total",
+    "before": 9.6,
+    "after": 0.97
+  }
+]

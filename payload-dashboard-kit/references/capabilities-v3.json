@@ -1,0 +1,209 @@
+{
+  "schema_version": "3.0.0",
+  "renderer_contract": {
+    "name": "render-payload-dashboard",
+    "version": "3.0.0",
+    "strict": true
+  },
+  "presentation": {
+    "presets": ["generic", "tess"],
+    "modes": ["light", "dark"],
+    "palettes": ["scientific", "colorblind-safe"],
+    "density": ["compact", "comfortable"],
+    "locales": "BCP 47 language tags",
+    "options": [
+      "locale",
+      "section_prefix",
+      "show_section_numbers",
+      "show_figure_titles",
+      "show_figure_descriptions",
+      "show_coverage",
+      "show_build_footer",
+      "labels"
+    ],
+    "label_keys": [
+      "fold_all",
+      "unfold_all",
+      "report_claim",
+      "coverage",
+      "concepts_used",
+      "reports",
+      "minimises",
+      "uses",
+      "produces",
+      "note",
+      "top",
+      "javascript_required",
+      "standalone_package",
+      "schema",
+      "figures",
+      "seed",
+      "payload_sha256",
+      "renderer",
+      "reset",
+      "status_pass",
+      "status_warn",
+      "status_fail",
+      "status_not_applicable"
+    ],
+    "theme_token_keys": [
+      "accent",
+      "accent_contrast",
+      "background",
+      "surface",
+      "surface_muted",
+      "text",
+      "muted_text",
+      "border",
+      "radius",
+      "max_width"
+    ]
+  },
+  "marks": {
+    "bar": {
+      "channels": ["x", "x2", "y", "y2", "color", "group", "text", "tooltip"],
+      "required_channel_sets": [["x", "y"]],
+      "properties": ["role", "orient", "opacity"]
+    },
+    "line": {
+      "channels": ["x", "y", "color", "stroke", "group", "tooltip"],
+      "required_channel_sets": [["x", "y"]],
+      "properties": ["role", "opacity", "stroke_width", "point", "point_size"]
+    },
+    "point": {
+      "channels": ["x", "y", "color", "group", "tooltip"],
+      "required_channel_sets": [["x", "y"]],
+      "properties": ["role", "opacity", "point_size"]
+    },
+    "band": {
+      "channels": ["x", "x2", "y", "y2", "color", "group", "tooltip"],
+      "required_channel_sets": [["x", "y", "y2"], ["x", "x2", "y"]],
+      "properties": ["role", "orient", "opacity"]
+    },
+    "rule": {
+      "channels": ["x", "x2", "y", "y2", "color", "stroke", "tooltip"],
+      "required_channel_sets": [["x"], ["y"]],
+      "properties": ["role", "stroke_width"]
+    },
+    "rect": {
+      "channels": ["x", "y", "color", "text", "tooltip"],
+      "required_channel_sets": [["x", "y", "color"]],
+      "properties": ["role"]
+    },
+    "text": {
+      "channels": ["x", "y", "text", "color", "tooltip"],
+      "required_channel_sets": [["x", "y", "text"]],
+      "properties": ["role", "dx", "dy"]
+    },
+    "vector": {
+      "channels": ["x", "y", "x2", "y2", "color", "stroke", "tooltip"],
+      "required_channel_sets": [["x", "y", "x2", "y2"]],
+      "properties": ["role", "stroke_width"]
+    },
+    "node": {
+      "channels": ["key", "text", "color", "tooltip"],
+      "required_channel_sets": [["key"]],
+      "properties": ["role", "opacity"]
+    },
+    "link": {
+      "channels": ["from", "to", "text", "color", "tooltip"],
+      "required_channel_sets": [["from", "to"]],
+      "properties": ["role", "opacity", "stroke_width"]
+    },
+    "errorbar": {
+      "channels": ["x", "x_lower", "x_upper", "y", "y_lower", "y_upper", "color", "group", "tooltip"],
+      "required_channel_sets": [["x", "y_lower", "y_upper"], ["x_lower", "x_upper", "y"]],
+      "properties": ["role", "orient", "stroke_width"]
+    },
+    "boxplot": {
+      "channels": ["x", "q1", "q3", "median", "whisker_low", "whisker_high", "color", "group", "tooltip"],
+      "required_channel_sets": [["x", "q1", "q3", "median", "whisker_low", "whisker_high"]],
+      "properties": ["role", "opacity"]
+    },
+    "ellipse": {
+      "channels": ["x", "y", "x_radius", "y_radius", "color", "group", "tooltip"],
+      "required_channel_sets": [["x", "y", "x_radius", "y_radius"]],
+      "properties": ["role", "opacity", "stroke_width"]
+    },
+    "polygon": {
+      "channels": ["x", "y", "group", "color", "tooltip"],
+      "required_channel_sets": [["x", "y", "group"]],
+      "properties": ["role", "opacity", "stroke_width"]
+    }
+  },
+  "channels": {
+    "names": [
+      "color",
+      "from",
+      "group",
+      "key",
+      "median",
+      "q1",
+      "q3",
+      "stroke",
+      "text",
+      "to",
+      "tooltip",
+      "whisker_high",
+      "whisker_low",
+      "x",
+      "x2",
+      "x_lower",
+      "x_radius",
+      "x_upper",
+      "y",
+      "y2",
+      "y_lower",
+      "y_radius",
+      "y_upper"
+    ],
+    "types": ["quantitative", "nominal", "ordinal", "temporal"],
+    "formats": {
+      "named": ["auto", "number", "integer", "percent", "scientific", "date", "datetime", "none"],
+      "patterns": ["^\\.(?:[0-9]|1[0-2])[f%]$"]
+    }
+  },
+  "coordinates": {
+    "cartesian": {
+      "marks": ["bar", "line", "point", "band", "rule", "vector", "text", "errorbar", "boxplot", "ellipse", "polygon"],
+      "options": ["equal_aspect"]
+    },
+    "matrix": {"marks": ["rect", "text"], "options": []},
+    "tree": {"marks": ["node", "link"], "options": []},
+    "flow": {"marks": ["node"], "options": []},
+    "canvas": {"marks": ["point"], "options": []}
+  },
+  "panel_types": ["plot", "matrix", "tree", "diagram"],
+  "transforms": {
+    "operations": ["filter", "sort", "sample"],
+    "filter_predicates": ["eq", "neq", "lt", "lte", "gt", "gte", "in", "not_in", "valid"],
+    "sample_methods": ["first", "stride", "hash"]
+  },
+  "interactions": {
+    "types": ["hover", "tooltip", "legend_filter", "parameter", "linked_highlight", "zoom"],
+    "canvas_types": ["hover", "tooltip", "legend_filter", "parameter", "linked_highlight"]
+  },
+  "recipes": [
+    "embedding.small-multiples@1",
+    "generic.figure@1",
+    "model.validation@1",
+    "pca.diagnostics@1"
+  ],
+  "storage": {
+    "kinds": ["inline", "sidecar"],
+    "inline_formats": ["rows", "columns", "values"],
+    "formats": ["json", "jsonl"],
+    "compressions": ["none", "gzip"],
+    "integrity": ["sha256", "bytes", "rows"]
+  },
+  "field_types": ["number", "integer", "string", "boolean", "date", "datetime"],
+  "visual_types": ["quantitative", "nominal", "ordinal", "temporal"],
+  "scale_types": ["linear", "log", "sqrt", "symlog", "band", "point", "ordinal", "time", "utc"],
+  "constraints": {
+    "payload_is_data_not_code": true,
+    "unknown_capabilities_fail_closed": true,
+    "figure_panel_layer_intent_is_explicit": true,
+    "sidecar_paths_are_payload_relative": true,
+    "output_is_one_offline_html": true
+  }
+}

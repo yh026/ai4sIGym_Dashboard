@@ -1,0 +1,580 @@
+
+"use strict";
+
+
+
+
+
+
+/* Battery demo code: every displayed measurement is read from D. */
+const META = D.metadata;
+const EXT = D.legacy_extensions;
+const AUDIT = D.audit;
+const PROV = D.provenance;
+const TEST = META.test_battery;
+const BATTERIES = [...META.train_batteries, TEST];
+const BRIDGE_BATTERY = META.train_batteries[0];
+const BRIDGE_W = META.default_window;
+const MODEL_TOKEN = {lstm:"--series-1", persistence:"--series-2", linear:"--series-3"};
+const CELL_TOKEN = {CS2_35:"--cs2-35",CS2_36:"--cs2-36",CS2_37:"--cs2-37",CS2_38:"--cs2-38"};
+const FONT = PC.font.family();
+const TICK_FONT = "10px " + FONT;
+const EMPH_FONT = "600 11.5px " + FONT;
+
+const byId = id => document.getElementById(id);
+const configFor = state => D.configs[String(state.window)];
+const seriesFor = name => D.batteries[name].soh;
+const fmt = (value,digits=3) => Number(value).toLocaleString("en-US",{minimumFractionDigits:digits,maximumFractionDigits:digits});
+const compact = value => Number(value).toLocaleString("en-US",{maximumFractionDigits:4});
+const mseText = value => Number(value).toExponential(2);
+const rmsePoints = value => Math.sqrt(value)*100;
+const sum = values => values.reduce((total,value)=>total+value,0);
+const mean = values => values.length ? sum(values)/values.length : NaN;
+const clamp = (value,lo,hi) => Math.max(lo,Math.min(hi,value));
+const htmlEscape = value => String(value).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+
+function initialAnchor(windowSize){
+  const list=D.configs[String(windowSize)].rollout_anchors;
+  const target=Math.round(seriesFor(TEST).length*0.4);
+  return list.reduce((best,value)=>Math.abs(value-target)<Math.abs(best-target)?value:best,list[0]);
+}
+const finalEpochIndex = D.configs[String(META.default_window)].training.snapshot_epochs.length-1;
+const VIEW = PC.createViewState({
+  window:META.default_window,
+  battery:EXT.causal_filter.example_cell,
+  denoiseWin:EXT.causal_filter.default_window,
+  denoiseSig:EXT.causal_filter.default_sigma,
+  matrixBattery:BRIDGE_BATTERY,
+  bridgePos:Math.min(BRIDGE_W*10,seriesFor(BRIDGE_BATTERY).length-BRIDGE_W-1),
+  matrixCol:BRIDGE_W-1,
+  epochIdx:finalEpochIndex,
+  anchor:initialAnchor(META.default_window),
+  threshold:META.failure_thresholds[1],
+  slidePlaying:false,
+  epochPlaying:false
+},{params:{
+  window:{type:"integer",values:META.window_sizes},
+  battery:{values:BATTERIES},
+  matrixBattery:{param:"matrix_cell",values:META.train_batteries},
+  bridgePos:{type:"integer",param:"row",min:0,max:Math.max(...META.train_batteries.map(name=>seriesFor(name).length-BRIDGE_W-1))},
+  matrixCol:{type:"integer",param:"column",min:0,max:BRIDGE_W-1},
+  epochIdx:{type:"integer",param:"epoch_state",min:0,max:finalEpochIndex},
+  anchor:{type:"integer"},
+  threshold:{type:"number",values:META.failure_thresholds}
+}});
+
+function node(tag,className,text){
+  const element=document.createElement(tag);
+  if(className)element.className=className;
+  if(text!==undefined&&text!==null)element.textContent=String(text);
+  return element;
+}
+function replaceChildren(host,children){host.replaceChildren(...children);return host}
+function addCell(row,tag,text,className){const cell=node(tag,className,text);row.appendChild(cell);return cell}
+function stat(label,value,note){const box=node("div","stat");box.append(node("span","sv",value),node("span","sl",label));if(note)box.append(node("span","sn",note));return box}
+function verdict(value){
+  const warn=value==="warn";const flag=node("span","flag "+(warn?"warn":"ok"));
+  flag.append(node("span","icon",warn?"!":"✓"),document.createTextNode(warn?" caution":" verified"));return flag;
+}
+
+function buildProvenance(){
+  const body=byId("provTable").querySelector("tbody");body.textContent="";
+  PROV.claims.forEach(claim=>{
+    const row=node("tr");
+    addCell(row,"td",claim.property);addCell(row,"td",claim.card_says);addCell(row,"td",claim.file_says);
+    const cell=node("td");cell.appendChild(verdict(claim.verdict));row.appendChild(cell);row.title=claim.note;body.appendChild(row);
+  });
+  const counts=BATTERIES.map(name=>name+" "+AUDIT.csv_rows_by_cell[name]).join(" · ");
+  byId("provSource").textContent=PROV.identifier+" · "+PROV.span+" · supplied per-cycle rows: "+counts+" · "+PROV.unit+".";
+}
+
+function buildFindings(){
+  const supplied=AUDIT.csv_rebuild_audit.supplied_rows;
+  const rebuilt=AUDIT.csv_rebuild_audit.notebook_formula_rows_from_current_zips;
+  const checks=[
+    {claim:"The supplied per-cycle files are internally complete",meaning:"All four committed CSV arrays have the audited row counts used by this page; their cycle indices were checked as contiguous after the source preprocessing renumbered them.",ev:BATTERIES.map((name,index)=>name+": "+supplied[index]+" rows").join(" · "),so:"Those are the records used for forecasting; the raw archives remain chain-of-custody evidence, not a claimed byte-for-byte regeneration."},
+    {claim:"The raw archives do not exactly regenerate the supplied CSVs",meaning:"Directly applying the submitted recipe to the current archives produces different row counts, even where one cell's count happens to agree.",ev:"supplied "+supplied.join("/")+" · rebuilt "+rebuilt.join("/")+" · CS2_37 maximum pointwise difference "+compact(AUDIT.csv_rebuild_audit.cs2_37_max_pointwise_difference),so:"The page therefore names the CSV series as its numerical input and discloses the archive-level mismatch."},
+    {claim:"The embedded SOH arrays are the committed CSV values",meaning:"The payload-consistency audit compares every browser array with its supplied capacity column after the documented rounding.",ev:"all arrays equal CSV rounded to five decimals: "+AUDIT.payload_consistency.battery_arrays_equal_csv_rounded_5dp+" · maximum absolute rounding error "+AUDIT.payload_consistency.battery_max_absolute_rounding_error.toExponential(6),so:"The plotted curves and all stored predictions have a traceable input, rather than an illustrative replacement series."},
+    {claim:"Legacy-only extensions remain labelled as such",meaning:"Causal-cleaning scores and the longest-window rollout sweep were trusted from the existing HTML even though no committed retraining artifact accompanies them.",ev:EXT.causal_filter.source+" · "+EXT.large_window_rollout.source,so:"They remain learner-facing evidence, but the page never presents them as newly reproduced notebook outputs."}
+  ];
+  const grid=node("div","findings");
+  checks.forEach(item=>{const box=node("article","finding");box.append(node("h4",null,item.claim),node("p",null,item.meaning),node("p","ev",item.ev),node("p","so",item.so));grid.appendChild(box)});
+  replaceChildren(byId("forensics"),[grid]);
+}
+
+function buildStaticText(){
+  const train=META.train_batteries.map(name=>name+" ("+D.batteries[name].n.toLocaleString("en-US")+" cycles)").join(", ");
+  byId("trainSplitText").textContent=train+". Every training window comes from one of these complete cell records.";
+  byId("testSplitText").textContent=TEST+" ("+D.batteries[TEST].n.toLocaleString("en-US")+" cycles). This whole curve is untouched during fitting and supplies every evaluation target.";
+  byId("lstm-card").textContent="A recurrent network with "+META.hidden_dim+" hidden units and "+META.num_layers+" layer reads each window sequentially, then a linear head emits the next SOH. Adam learning rate "+META.learning_rate+", MSE loss, "+META.num_epochs+" full-batch epochs and primary seed "+META.primary_seed+" reproduce the executed default.";
+  byId("snapshot-count").textContent=configFor(VIEW.get()).training.snapshot_epochs.length+" stored model states";
+  byId("rollout-formula").textContent="one rollout MSE = mean[(forecast − measured)²] over its future cycles; mean rollout MSE = the average over "+configFor(VIEW.get()).rollout_anchors.length+" stored anchors.";
+  byId("footer-source").textContent="Data: "+PROV.identifier+" · "+PROV.licence;
+  byId("footer-method").textContent="Offline single file · stored LSTM predictions and rollouts; browser-recomputed persistence and linear-trend baselines.";
+}
+
+function rowsPerBattery(windowSize){return META.train_batteries.map(name=>({name,count:seriesFor(name).length-windowSize}))}
+function totalRows(windowSize){return sum(rowsPerBattery(windowSize).map(item=>item.count))}
+function locateGlobalRow(index,windowSize){
+  let left=index;
+  for(const item of rowsPerBattery(windowSize)){if(left<item.count)return{name:item.name,start:left};left-=item.count}
+  const name=META.train_batteries[META.train_batteries.length-1];return{name,start:seriesFor(name).length-windowSize-1};
+}
+function bridgeRow(state,offset=0){
+  const name=state.matrixBattery,start=clamp(state.bridgePos+offset,0,seriesFor(name).length-BRIDGE_W-1);
+  const values=seriesFor(name).slice(start,start+BRIDGE_W);
+  return{name,start,values,label:seriesFor(name)[start+BRIDGE_W]};
+}
+
+let rowTableBinding=null;
+function buildDesignMatrix(state=VIEW.get()){
+  const coded=configFor({...state,window:BRIDGE_W});
+  byId("heroValue").textContent=coded.training.total_rows.toLocaleString("en-US");
+  byId("heroNote").textContent="Rows from "+META.train_batteries.length+" whole training cells at the executed notebook window w = "+BRIDGE_W+"; "+coded.training.train_rows.toLocaleString("en-US")+" rows fit parameters and the remaining "+(coded.training.total_rows-coded.training.train_rows).toLocaleString("en-US")+" monitor validation.";
+  replaceChildren(byId("statRow"),rowsPerBattery(BRIDGE_W).map(item=>stat(item.name,item.count.toLocaleString("en-US"),"window → next-cycle pairs")));
+  const rules=[
+    "Copy "+BRIDGE_W+" consecutive SOH ratios from one cell into X[i,:].",
+    "Keep the immediately following measured SOH beside the row as y_i; it is never a column of X.",
+    "Slide by one cycle, never across a cell boundary, then stack the three cell-specific blocks."
+  ];replaceChildren(byId("matrixRules"),rules.map(text=>node("li",null,text)));
+
+  const max=seriesFor(state.matrixBattery).length-BRIDGE_W-1;
+  const rowSlider=byId("matrix-row-slider");rowSlider.min="0";rowSlider.max=String(max);rowSlider.step="1";rowSlider.value=String(state.bridgePos);
+  const colSlider=byId("matrix-col-slider");colSlider.min="0";colSlider.max=String(BRIDGE_W-1);colSlider.step="1";colSlider.value=String(state.matrixCol);
+  byId("matrix-battery-val").textContent=state.matrixBattery;
+  byId("matrix-row-val").textContent="row "+state.bridgePos.toLocaleString("en-US")+" within its block";
+  byId("matrix-col-val").textContent="X[:,"+(state.matrixCol+1)+"]";
+
+  const selected=bridgeRow(state);
+  byId("dmCellReadout").textContent="Selected cell x["+selected.start+","+(state.matrixCol+1)+"] = "+fmt(selected.values[state.matrixCol],5)+"; its separate label is y["+selected.start+"] = "+fmt(selected.label,5)+".";
+  byId("dmRowReadout").textContent=selected.name+" cycles "+(selected.start+1)+"–"+(selected.start+BRIDGE_W)+" become row "+selected.start+" in that battery block; cycle "+(selected.start+BRIDGE_W+1)+" supplies y = "+fmt(selected.label,5)+".";
+  byId("dmColumnReadout").textContent="Column "+(state.matrixCol+1)+" means the "+(state.matrixCol+1)+"th position in every window. Moving to the next column advances the same underlying SOH sequence by one cycle; adjacent rows likewise share "+(BRIDGE_W-1)+" of "+BRIDGE_W+" values.";
+
+  const rowTable=byId("dmRowTable");rowTable.textContent="";
+  const head=node("thead"),hr=node("tr");["matrix row","source cycles","X[i,:] values","y_i"].forEach(text=>addCell(hr,"th",text));head.appendChild(hr);rowTable.appendChild(head);
+  const body=node("tbody");
+  for(let offset=-3;offset<=3;offset++){
+    const record=bridgeRow(state,offset),tr=node("tr");tr.dataset.key=String(record.start);
+    addCell(tr,"td",record.name+" · "+record.start);addCell(tr,"td",(record.start+1)+"–"+(record.start+BRIDGE_W));addCell(tr,"td",record.values.map(value=>fmt(value,5)).join(", "));addCell(tr,"td",fmt(record.label,5));body.appendChild(tr);
+  }
+  rowTable.appendChild(body);
+  if(!rowTableBinding)rowTableBinding=PC.bindTableRows(rowTable,{
+    key:row=>Number(row.dataset.key),
+    selected:()=>VIEW.get().bridgePos,
+    onSelect:(key,_index,_row,event)=>{
+      VIEW.set({bridgePos:Number(key)},{source:"table"});
+      /* VIEW.set redraws this seven-row twin synchronously.  When activation
+         came from Enter/Space, restore focus to the equivalent replacement
+         row so Arrow/Home/End continue from the selected record. */
+      if(event&&event.type==="keydown")requestAnimationFrame(()=>{
+        const replacement=[...rowTable.querySelectorAll("tbody tr")].find(row=>Number(row.dataset.key)===Number(key));
+        if(replacement){replacement.tabIndex=0;replacement.focus()}
+      });
+    }
+  });
+  else rowTableBinding.refresh();
+
+  const columnTable=byId("dmColumnTable");columnTable.textContent="";
+  const ch=node("thead"),chr=node("tr");["battery block","rows","first value","last value"].forEach(text=>addCell(chr,"th",text));ch.appendChild(chr);columnTable.appendChild(ch);
+  const cb=node("tbody");rowsPerBattery(BRIDGE_W).forEach(item=>{const values=seriesFor(item.name).slice(state.matrixCol,state.matrixCol+item.count);const tr=node("tr");addCell(tr,"td",item.name);addCell(tr,"td",item.count.toLocaleString("en-US"));addCell(tr,"td",fmt(values[0],5));addCell(tr,"td",fmt(values[values.length-1],5));cb.appendChild(tr)});columnTable.appendChild(cb);
+}
+
+function linearFit(values){
+  const n=values.length;let sx=0,sy=0,sxx=0,sxy=0;
+  values.forEach((value,index)=>{sx+=index;sy+=value;sxx+=index*index;sxy+=index*value});
+  const denominator=n*sxx-sx*sx;const slope=denominator?(n*sxy-sx*sy)/denominator:0;
+  return{slope,intercept:(sy-slope*sx)/n};
+}
+function persistenceOneStep(values,windowSize){return values.slice(windowSize-1,values.length-1)}
+function linearOneStep(values,windowSize){const out=[];for(let index=0;index+windowSize<values.length;index++){const fit=linearFit(values.slice(index,index+windowSize));out.push(fit.intercept+fit.slope*windowSize)}return out}
+function persistenceRollout(values,anchor,steps){return new Array(steps).fill(values[anchor-1])}
+function linearRollout(values,anchor,windowSize,steps){const fit=linearFit(values.slice(anchor-windowSize,anchor));return Array.from({length:steps},(_,index)=>fit.intercept+fit.slope*(windowSize+index))}
+function mse(prediction,truth){return mean(truth.map((value,index)=>(prediction[index]-value)**2))}
+const SUSTAIN = Number((META.crossing_rule.match(/\d+/)||["1"])[0]);
+function crossing(values,startCycle,threshold){let run=0;for(let index=0;index<values.length;index++){run=values[index]<=threshold?run+1:0;if(run===SUSTAIN)return startCycle+index-SUSTAIN+1}return null}
+function rolloutMseMean(windowSize){
+  const config=D.configs[String(windowSize)],truth=seriesFor(TEST);
+  return mean(config.rollout_anchors.map(anchor=>mse(config.rollouts[String(anchor)],truth.slice(anchor))));
+}
+function sweepPoints(){
+  const selectable=META.window_sizes.map(windowSize=>({window:windowSize,mean_mse:rolloutMseMean(windowSize),source:"precomputed rollout payload"}));
+  return selectable.concat(EXT.large_window_rollout.points).sort((a,b)=>a.window-b.window);
+}
+
+function makeButton(label,pressed,patch,source){
+  const button=node("button",null,label);button.type="button";button.dataset.pcControl="";button.setAttribute("aria-pressed",String(pressed));button.addEventListener("click",()=>VIEW.set(patch,{source:source||"button"}));return button;
+}
+function syncControls(state){
+  const batteryHost=byId("battery-seg");replaceChildren(batteryHost,BATTERIES.map(name=>makeButton(name,name===state.battery,{battery:name},"battery")));
+  replaceChildren(byId("denoise-win-seg"),EXT.causal_filter.available_windows.map(value=>makeButton(String(value),value===state.denoiseWin,{denoiseWin:value},"denoise-window")));
+  replaceChildren(byId("denoise-sig-seg"),EXT.causal_filter.available_sigmas.map(value=>makeButton(value+"σ",value===state.denoiseSig,{denoiseSig:value},"denoise-sigma")));
+  document.querySelectorAll(".window-seg").forEach(host=>replaceChildren(host,META.window_sizes.map(value=>makeButton("w = "+value,value===state.window,{window:value,anchor:initialAnchor(value),epochIdx:D.configs[String(value)].training.snapshot_epochs.length-1},"window"))));
+  replaceChildren(byId("threshold-seg"),META.failure_thresholds.map(value=>makeButton("SOH "+value.toFixed(1),value===state.threshold,{threshold:value},"threshold")));
+  const config=configFor(state),epochs=config.training.snapshot_epochs;
+  const epochSlider=byId("epoch-slider");epochSlider.min="0";epochSlider.max=String(epochs.length-1);epochSlider.step="1";epochSlider.value=String(clamp(state.epochIdx,0,epochs.length-1));
+  const anchors=config.rollout_anchors,anchorSlider=byId("anchor-slider");anchorSlider.min=String(anchors[0]);anchorSlider.max=String(anchors[anchors.length-1]);anchorSlider.step=String(anchors.length>1?anchors[1]-anchors[0]:1);anchorSlider.value=String(state.anchor);
+  byId("anchor-val").textContent="cycle "+state.anchor+" · "+Math.round(state.anchor/seriesFor(TEST).length*100)+"% of record";
+  const cases=[
+    {label:"Early life",hint:"long horizon; forecasts must carry far",anchor:anchors[Math.floor(anchors.length*0.12)]},
+    {label:"Mid life",hint:"working region for a battery manager",anchor:anchors[Math.floor(anchors.length*0.5)]},
+    {label:"Near end of life",hint:"short horizon; every model looks easier",anchor:anchors[anchors.length-2]}
+  ];
+  replaceChildren(byId("rollout-examples"),cases.map(item=>{const button=makeButton("",item.anchor===state.anchor,{anchor:item.anchor},"anchor-example");button.append(node("b",null,item.label+" · cycle "+item.anchor),node("span",null,item.hint));return button}));
+}
+
+function buildWindowText(state){
+  const config=configFor(state),testRows=seriesFor(TEST).length-state.window;
+  byId("window-note").textContent="With w = "+state.window+", the three training curves yield "+config.training.total_rows.toLocaleString("en-US")+" window→next-value pairs and "+TEST+" yields "+testRows.toLocaleString("en-US")+" held-out test pairs. Changing w switches every stored model and forecast below.";
+  const fidelity=EXT.notebook_fidelity;
+  byId("window-fidelity").textContent="Fidelity: notebook prose says w = "+fidelity.prose_window+", while executed code uses "+fidelity.executed_default_window+". The page lands on the executed value and extends the comparison down to "+Math.min(...META.window_sizes)+" using the stored runs.";
+  byId("snapshot-count").textContent=config.training.snapshot_epochs.length+" stored model states";
+  byId("rollout-formula").textContent="one rollout MSE = mean[(forecast − measured)²] over its future cycles; mean rollout MSE = the average over "+config.rollout_anchors.length+" stored anchors.";
+}
+
+function renderSeedTable(state){
+  const table=byId("seed-table");table.textContent="";const head=node("thead"),row=node("tr");["training seed","one-step test MSE","RMSE (SOH points)"].forEach(text=>addCell(row,"th",text));head.appendChild(row);table.appendChild(head);const body=node("tbody");
+  META.seeds.forEach(seed=>{const score=configFor(state).seeds[String(seed)].onestep_mse,tr=node("tr");addCell(tr,"td","seed "+seed+(seed===META.primary_seed?" · notebook primary":""));addCell(tr,"td",mseText(score));addCell(tr,"td",fmt(rmsePoints(score),2));body.appendChild(tr)});table.appendChild(body);
+}
+function buildSweepTables(){
+  const labels={learning_rate:"learning rate",hidden_dim:"hidden width",num_layers:"layers",window_size:"window"};
+  replaceChildren(byId("sweep-tables"),Object.entries(D.notebook_sweeps).map(([key,record])=>{const wrapper=node("div");wrapper.append(node("h3",null,labels[key]));const table=node("table"),body=node("tbody");Object.entries(record).forEach(([setting,score])=>{const tr=node("tr");addCell(tr,"th",setting);addCell(tr,"td",Number(score).toExponential(2));body.appendChild(tr)});table.appendChild(body);wrapper.appendChild(table);return wrapper}));
+}
+function renderAblation(state){
+  const values=configFor(state).training.ablation,labels={real:"real ordered history",flattened:"history flattened",shuffled:"history shuffled",persistence:"persistence",var_y:"variance of SOH target",var_step:"variance of one-cycle change"};
+  const table=byId("ablation-table");table.textContent="";const body=node("tbody");Object.entries(values).forEach(([key,value])=>{const tr=node("tr");addCell(tr,"th",labels[key]);addCell(tr,"td",Number(value).toExponential(5));body.appendChild(tr)});table.appendChild(body);
+}
+
+function buildFidelityAndLimits(){
+  const f=EXT.notebook_fidelity;
+  const fidelity=[
+    "Window: prose says "+f.prose_window+"; executed default is "+f.executed_default_window+".",
+    "Learning rate: prose selects "+f.prose_selected_learning_rate+"; final code uses "+f.executed_default_learning_rate+".",
+    "Headline result: discussion says "+f.result_analysis_mse+"; the executed main run prints "+f.executed_main_mse+".",
+    "High-rate sweep: summary table says "+f.learning_rate_0_2_summary_table_mse+" at learning rate "+Object.keys(D.notebook_sweeps.learning_rate).find(key=>Number(key)===0.2)+"; saved output is "+f.learning_rate_0_2_saved_output_mse+".",
+    "Ambient condition: notebook prose says "+f.notebook_ambient_celsius+" °C; the dataset record says "+f.dataset_ambient+".",
+    "Capacity normalization: prose defines C₀ as "+f.prose_initial_capacity_definition+", while code divides by "+f.executed_capacity_denominator_as.toLocaleString("en-US")+" A·s. The nominal "+f.rated_capacity_ah+" Ah rating is about "+f.rated_capacity_as.toLocaleString("en-US")+" A·s, explaining why initial SOH lies slightly below one.",
+    "Validation: the coded split reserves "+Math.round(f.validation_fraction*100)+"% = "+f.window_30_validation_rows+" late windows from "+f.window_30_validation_source+"; it is a monitor split, not an independent cell."
+  ];replaceChildren(byId("fidelity-list"),fidelity.map(text=>node("li",null,text)));
+  const limits=[
+    "The test set is "+META.test_battery+", one cell from the same "+EXT.context.chemistry+" cohort and "+EXT.context.ambient+" protocol; other chemistries, batches, temperatures and duty cycles are untested.",
+    "SOH inherits the project's discharge-current integration and fixed "+EXT.context.notebook_denominator_as.toLocaleString("en-US")+" A·s normalization; changing that definition changes the target.",
+    "Recursive forecasts exist only for seed "+META.primary_seed+". Seeds "+META.seeds.filter(seed=>seed!==META.primary_seed).join(" and ")+" tie closely at one step but have no stored long-horizon envelope.",
+    "The model uses only past SOH. Temperature, current and voltage covariates available to real battery-management systems are absent.",
+    "Causal-cleaning improvements and the longest-window sweep are trusted legacy static evidence, not newly reproduced artifacts; their payload source labels remain visible in provenance."
+  ];replaceChildren(byId("limits-list"),limits.map(text=>node("li",null,text)));
+}
+
+function buildConclusions(state=VIEW.get()){
+  const config=configFor(state),truth=seriesFor(TEST),target=truth.slice(state.window);
+  const lstm=config.seeds[String(META.primary_seed)].onestep_mse,persistence=mse(persistenceOneStep(truth,state.window),target);
+  const sensitivity=config.training.sensitivity,sensTotal=sum(sensitivity),lastOne=sensitivity[sensitivity.length-1]/sensTotal,lastFive=sum(sensitivity.slice(-5))/sensTotal;
+  const full=sweepPoints(),best=full.reduce((a,b)=>b.mean_mse<a.mean_mse?b:a,full[0]);
+  const trueCross=META.true_crossings[state.threshold.toFixed(1)],rollout=config.rollouts[String(state.anchor)],predCross=crossing(rollout,state.anchor+1,state.threshold);
+  const items=[
+    {claim:"A small one-step error is not enough evidence of learned degradation.",reason:"Persistence receives the identical measured history and nearly matches the trained network.",numbers:"w = "+state.window+" · LSTM MSE "+mseText(lstm)+" · persistence "+mseText(persistence)+" · ratio "+(lstm/persistence).toFixed(2)+"×"},
+    {claim:"The fitted network relies mainly on the most recent few cycles.",reason:"The stored nudge profile concentrates sensitivity at the end of each window, explaining the flat one-step window comparison.",numbers:"most recent cycle ≈ "+Math.round(lastOne*100)+"% · last five ≈ "+Math.round(lastFive*100)+"% of summed sensitivity"},
+    {claim:"Recursive forecasting is the evaluation that remaining-life claims need.",reason:"After the anchor, the model receives no measured correction; threshold timing and long-horizon shape reveal accumulated error.",numbers:"anchor "+state.anchor+" · threshold "+state.threshold.toFixed(1)+" · measured crossing "+(trueCross===null?"none":trueCross)+" · LSTM crossing "+(predCross===null?"none":predCross)},
+    {claim:"More history has a sweet spot rather than a monotonic benefit.",reason:"The trusted full sweep falls and then rises as long windows reduce training rows and add redundant past values.",numbers:"best stored mean rollout MSE at w = "+best.window+" · "+mseText(best.mean_mse)+" · longest w = "+full[full.length-1].window+" gives "+mseText(full[full.length-1].mean_mse)}
+  ];
+  const host=node("div","concl");items.forEach(item=>{const block=node("div");block.append(node("h4",null,item.claim),node("p",null,item.reason),node("p","num-ev",item.numbers));host.appendChild(block)});replaceChildren(byId("conclusion-content"),[host]);
+}
+
+const GLOSS = [
+  {section:"Battery and measurement",terms:[
+    ["State of health (SOH)",()=>"The fraction of a cell's reference capacity still delivered on a cycle: C_t/C₀. This page uses the submitted fixed "+EXT.context.notebook_denominator_as.toLocaleString("en-US")+" A·s denominator rather than silently redefining C₀."],
+    ["CALCE CS2 cell",()=>"A "+EXT.context.rated_capacity_ah+" Ah "+EXT.context.chemistry+" cell from the University of Maryland cycling record, charged under a constant-current/constant-voltage protocol and discharged at "+EXT.context.ambient+"."],
+    ["Capacity by current integration",()=>"The discharge current accumulated over time for one cycle. The project turns that charge into the per-cycle SOH ratio used here."],
+    ["Degradation",()=>"The capacity loss accumulated through cycling, including electrode change and solid-electrolyte-interphase growth. The page observes its outcome in SOH rather than modelling those mechanisms directly."],
+    ["Remaining useful life (RUL)",()=>"Cycles from the forecast anchor until SOH first satisfies the chosen sustained failure rule. It is undefined if the threshold is never reached and already settled if the measured crossing precedes the anchor."]
+  ]},
+  {section:"From series to supervised data",terms:[
+    ["Design matrix X",()=>"The stack of sliding-window inputs. At the coded default it has "+D.configs[String(BRIDGE_W)].training.total_rows.toLocaleString("en-US")+" rows and "+BRIDGE_W+" ordered SOH-position columns."],
+    ["Window",()=>"A consecutive run of past SOH measurements used as one model input. Sliding it forward by one cycle creates the next, heavily overlapping row."],
+    ["Row X[i,:]",()=>"One complete past-SOH window. It is drawn separately from its label so no future value is accidentally described as an input."],
+    ["Column X[:,j]",()=>"One relative position inside every window. Adjacent columns are the same underlying sequence shifted by one cycle, not different physical sensors."],
+    ["Label y_i",()=>"The measured SOH immediately after a row's window. Supervised regression trains the output to match this value."],
+    ["Leakage",()=>"Information from the held-out future or cell entering fitting or preprocessing. Whole-cell splitting and a strictly trailing filter are the safeguards used here."]
+  ]},
+  {section:"Models and training",terms:[
+    ["LSTM",()=>"A recurrent neural network with a memory state. Here one layer with "+META.hidden_dim+" hidden units reads the ordered window and a linear head predicts one SOH value."],
+    ["Persistence baseline",()=>"A training-free forecast that copies the last measured value. It is the minimum honest comparator for a smooth one-step time series."],
+    ["Linear-trend baseline",()=>"A least-squares line fitted within the current window and extrapolated forward. Recursive use continues that line without curvature."],
+    ["Full-batch epoch",()=>"One optimizer update computed from all training rows. The submitted loop therefore performs "+META.num_epochs+" parameter updates, not "+META.num_epochs+" mini-batch passes."],
+    ["Seed",()=>"The random initialization identifier. The page stores one-step results for "+META.seeds.length+" seeds and recursive trajectories only for the primary seed "+META.primary_seed+"."],
+    ["Sensitivity profile",()=>"The mean absolute change in prediction when an input position is nudged. It describes local reliance of the fitted model, not causal importance in the battery."],
+    ["Ablation",()=>"A controlled corruption of input history—flattening or shuffling here—to test whether ordered earlier values contain information beyond the last point."]
+  ]},
+  {section:"Forecast evaluation",terms:[
+    ["One-step / teacher-forced protocol",()=>"Every prediction receives the real preceding window and forecasts only the next cycle, so measurement continuously resets accumulated error."],
+    ["Recursive rollout",()=>"After an anchor, each prediction is fed back as the next input. This exposes compounding error and is the protocol needed to draw a future trajectory."],
+    ["Anchor and horizon",()=>"The anchor is the final measured cycle allowed to a rollout; the horizon is how many forecast cycles beyond it are scored."],
+    ["MSE and RMSE",()=>"Mean squared error averages squared prediction gaps. RMSE is its square root; this page multiplies RMSE by "+(100).toLocaleString("en-US")+" to report SOH percentage points."],
+    ["Sustained crossing",()=>"A threshold event counts only after SOH remains at or below it for "+SUSTAIN+" consecutive cycles. This prevents isolated noise dips from becoming false end-of-life alarms."],
+    ["Causal Hampel-style filter",()=>"A trailing local trend and median-absolute-deviation residual test. At the default it looks back "+EXT.causal_filter.default_window+" cycles and flags beyond "+EXT.causal_filter.default_sigma+" scaled deviations, with a residual floor of "+EXT.causal_filter.mad_floor+"."],
+    ["CEEMDAN",()=>"A whole-series decomposition mentioned by the source work. Because later values affect earlier components, it is useful for retrospective cleaning but leaks future information if used as an online forecast input."]
+  ]}
+];
+function buildGlossary(){
+  const host=node("div","gloss");GLOSS.forEach(group=>{host.appendChild(node("h3",null,group.section));group.terms.forEach(term=>{const box=node("div","term");box.append(node("h4",null,term[0]),node("p",null,term[1]()));host.appendChild(box)})});replaceChildren(byId("glossary-content"),[host]);
+}
+
+function canvasSetup(id){
+  const canvas=byId(id),rect=canvas.getBoundingClientRect();
+  const width=Math.max(280,rect.width),height=Math.max(160,rect.height);
+  const context=PC.fit(canvas,width,height);context.font=TICK_FONT;
+  return{canvas,context,width,height};
+}
+function ticksBetween(lo,hi,count=5){return Array.from({length:count},(_,index)=>lo+(hi-lo)*index/(count-1))}
+function cycleTicks(length){const step=Math.max(1,Math.round(length/5/50)*50);const out=[];for(let value=0;value<=length;value+=step)out.push(value);return out}
+function path(context,scale,xs,ys,colour,width=1.8,dash=null){
+  context.save();context.strokeStyle=colour;context.lineWidth=width;if(dash)context.setLineDash(dash);context.beginPath();
+  ys.forEach((value,index)=>{const x=scale.x(xs[index]),y=scale.y(value);if(index)context.lineTo(x,y);else context.moveTo(x,y)});context.stroke();context.restore();
+}
+function bindHover(canvas,records,onClick){
+  PC.hover(canvas,records.map((record,index)=>[record.x,record.y,index]),{
+    radius:28,
+    onHit:(index,event)=>PC.tip(records[index].html,event),
+    onLeave:()=>PC.hideTip(),
+    onClick:onClick?(index,event)=>onClick(records[index],event):undefined
+  });
+}
+function linePlot(id,series,options={}){
+  const setup=canvasSetup(id),g=setup.context,canvas=setup.canvas;
+  const transformY=options.logY?value=>Math.log10(Math.max(value,Number.MIN_VALUE)):value=>value;
+  const rawX=series.flatMap(item=>item.x),rawY=series.flatMap(item=>item.y.filter(Number.isFinite));
+  const xDomain=options.xDomain||[Math.min(...rawX),Math.max(...rawX)];
+  let yDomain=options.yDomain||[Math.min(...rawY),Math.max(...rawY)];
+  if(yDomain[0]===yDomain[1])yDomain=[yDomain[0]-1,yDomain[1]+1];
+  const transformed=[transformY(yDomain[0]),transformY(yDomain[1])];
+  const base=PC.scales(canvas,xDomain,transformed,options.pad||{l:58,r:14,t:16,b:48});
+  const scale={x:base.x,y:value=>base.y(transformY(value)),p:base.p,iw:base.iw,ih:base.ih,w:base.w,h:base.h};
+  const box=PC.boxOf(base),xTicks=options.xTicks||ticksBetween(xDomain[0],xDomain[1]),yTicks=options.yTicks||ticksBetween(yDomain[0],yDomain[1]);
+  PC.drawAxes(g,box,xTicks,yTicks,scale.x,scale.y,options.xLabel||"",options.yLabel||"",{xFmt:options.xFmt||compact,yFmt:options.yFmt||compact,grid:options.grid||"both"});
+  if(options.shadeFrom!==undefined){g.save();g.fillStyle=PC.css("--accent-soft");g.fillRect(scale.x(options.shadeFrom),box.top,Math.max(0,box.right-scale.x(options.shadeFrom)),box.bottom-box.top);g.restore()}
+  if(options.hLine!==undefined){g.save();g.strokeStyle=PC.css("--axis");g.setLineDash([5,4]);g.beginPath();g.moveTo(box.left,scale.y(options.hLine));g.lineTo(box.right,scale.y(options.hLine));g.stroke();g.restore()}
+  if(options.vLine!==undefined){g.save();g.strokeStyle=PC.css("--axis");g.setLineDash([4,4]);g.beginPath();g.moveTo(scale.x(options.vLine),box.top);g.lineTo(scale.x(options.vLine),box.bottom);g.stroke();g.restore()}
+  const hover=[];
+  series.forEach(item=>{
+    const colour=PC.css(item.token);if(!item.pointsOnly)path(g,scale,item.x,item.y,colour,item.width||1.8,item.dash||null);
+    const stride=Math.max(1,Math.ceil(item.y.length/140));
+    item.y.forEach((value,index)=>{
+      if(item.points||item.pointsOnly){g.fillStyle=colour;g.beginPath();g.arc(scale.x(item.x[index]),scale.y(value),item.radius||3,0,Math.PI*2);g.fill()}
+      if(index%stride===0||index===item.y.length-1)hover.push({x:scale.x(item.x[index]),y:scale.y(value),rawX:item.x[index],rawY:value,pointIndex:index,key:item.key||item.name,html:"<b>"+htmlEscape(item.name)+"</b><br>"+htmlEscape(options.xTip?options.xTip(item.x[index]):"x "+compact(item.x[index]))+"<br>"+htmlEscape(options.yTip?options.yTip(value):"value "+compact(value))});
+    });
+  });
+  bindHover(canvas,hover,options.onClick);return{...setup,scale,box};
+}
+
+const STORY_PAINTERS = [
+  function(canvas,g){
+    const all=BATTERIES.map(name=>seriesFor(name)),length=Math.max(...all.map(values=>values.length));
+    const scale=PC.scales(canvas,[0,length],[0,1.05],{l:3,r:3,t:5,b:5});
+    BATTERIES.forEach(name=>path(g,scale,seriesFor(name).map((_,index)=>index),seriesFor(name),PC.css(CELL_TOKEN[name]),name===TEST?2:1.2));
+  },
+  function(canvas,g){
+    const truth=seriesFor(TEST),config=D.configs[String(META.default_window)],anchor=initialAnchor(META.default_window),prediction=config.rollouts[String(anchor)];
+    const scale=PC.scales(canvas,[0,truth.length],[0,1.05],{l:3,r:3,t:5,b:5});
+    path(g,scale,truth.map((_,index)=>index+1),truth,PC.css("--text-primary"),1.4);
+    path(g,scale,prediction.map((_,index)=>anchor+index+1),prediction,PC.css(MODEL_TOKEN.lstm),2);
+    g.strokeStyle=PC.css("--axis");g.setLineDash([3,3]);g.beginPath();g.moveTo(scale.x(anchor),5);g.lineTo(scale.x(anchor),canvas.getBoundingClientRect().height-5);g.stroke();g.setLineDash([]);
+  },
+  function(canvas,g){
+    const points=sweepPoints(),xs=points.map(point=>Math.log10(point.window)),ys=points.map(point=>Math.log10(point.mean_mse));
+    const scale=PC.scales(canvas,[Math.min(...xs),Math.max(...xs)],[Math.min(...ys),Math.max(...ys)],{l:5,r:5,t:6,b:6});
+    path(g,scale,xs,ys,PC.css("--series-1"),2.2);g.fillStyle=PC.css("--series-1");ys.forEach((value,index)=>{g.beginPath();g.arc(scale.x(xs[index]),scale.y(value),2.5,0,Math.PI*2);g.fill()});
+  }
+];
+
+function renderCurvesLegend(state){
+  const buttons=BATTERIES.map(name=>{const button=makeButton("",name===state.battery,{battery:name},"curve-legend");button.className="key play";const swatch=node("i","swatch");swatch.style.background="var("+CELL_TOKEN[name]+")";button.append(swatch,document.createTextNode(name+(name===TEST?" · TEST":" · TRAIN")+" · "+D.batteries[name].n.toLocaleString("en-US")+" cycles"));return button});
+  replaceChildren(byId("curves-legend"),buttons);
+}
+function drawCurves(state){
+  const selected=state.battery,length=Math.max(...BATTERIES.map(name=>seriesFor(name).length));
+  linePlot("curves-plot",BATTERIES.map(name=>({key:name,name,x:seriesFor(name).map((_,index)=>index+1),y:seriesFor(name),token:CELL_TOKEN[name],width:name===selected?2.5:1.25})),{xDomain:[0,length],yDomain:[0.1,1.05],xTicks:cycleTicks(length),yTicks:[0.2,0.4,0.6,0.8,1],xLabel:"cycle number",yLabel:"SOH",yFmt:value=>value.toFixed(1),xTip:value=>"cycle "+Math.round(value),yTip:value=>"SOH "+fmt(value,5),onClick:record=>VIEW.set({battery:record.key},{source:"curve"})});
+}
+
+function median(values){const sorted=values.slice().sort((a,b)=>a-b),middle=Math.floor(sorted.length/2);return sorted.length%2?sorted[middle]:(sorted[middle-1]+sorted[middle])/2}
+function causalFilter(values,windowSize,sigma){
+  const out=values.slice(),floor=EXT.causal_filter.mad_floor;
+  for(let index=0;index<values.length;index++){
+    const lo=Math.max(0,index-windowSize),count=index-lo;if(count<3)continue;
+    let st=0,sy=0,stt=0,sty=0;
+    for(let cursor=lo;cursor<index;cursor++){const t=cursor-index;st+=t;sy+=values[cursor];stt+=t*t;sty+=t*values[cursor]}
+    const denominator=count*stt-st*st,slope=denominator?(count*sty-st*sy)/denominator:0,intercept=(sy-slope*st)/count;
+    const residual=[];for(let cursor=lo;cursor<index;cursor++)residual.push(values[cursor]-(slope*(cursor-index)+intercept));
+    const centre=median(residual),mad=1.4826*median(residual.map(value=>Math.abs(value-centre)));
+    if(Math.abs(values[index]-intercept)>sigma*Math.max(mad,floor))out[index]=intercept;
+  }return out;
+}
+function drawDenoise(state){
+  const raw=seriesFor(state.battery),clean=causalFilter(raw,state.denoiseWin,state.denoiseSig),changed=[];
+  raw.forEach((value,index)=>{if(Math.abs(value-clean[index])>1e-9)changed.push({index,gap:Math.abs(value-clean[index]),value})});
+  const lo=Math.min(...raw),hi=Math.max(...raw),pad=(hi-lo)*0.06;
+  const items=[{name:"raw "+state.battery,x:raw.map((_,index)=>index+1),y:raw,token:"--muted",width:1.2},{name:"causal filter",x:clean.map((_,index)=>index+1),y:clean,token:"--series-1",width:2}];
+  if(changed.length)items.push({name:"replaced spike",x:changed.map(item=>item.index+1),y:changed.map(item=>item.value),token:"--critical",pointsOnly:true,points:true,radius:3.2});
+  linePlot("denoise-plot",items,{xDomain:[1,raw.length],yDomain:[lo-pad,hi+pad],xTicks:cycleTicks(raw.length).filter(value=>value>0),yTicks:ticksBetween(lo,hi,4),xLabel:"cycle number",yLabel:"SOH",yFmt:value=>value.toFixed(2),xTip:value=>"cycle "+Math.round(value),yTip:value=>"SOH "+fmt(value,5)});
+  const worst=changed.reduce((best,item)=>!best||item.gap>best.gap?item:best,null);
+  byId("denoise-note").textContent="On "+state.battery+", a length-"+state.denoiseWin+" trailing window at "+state.denoiseSig+"× MAD replaces "+changed.length+" of "+raw.length+" cycles"+(worst?"; the largest correction is at cycle "+(worst.index+1)+" ("+fmt(worst.gap,3)+" SOH).":".")+" Every replacement uses only earlier cycles.";
+  const e=EXT.causal_filter;
+  byId("denoise-evidence").textContent="Trusted legacy retraining evidence at seed "+META.primary_seed+" and w = "+META.default_window+": one-step MSE "+mseText(e.raw_onestep_mse)+" → "+mseText(e.cleaned_onestep_mse)+"; mean rollout MSE "+mseText(e.raw_rollout_mse)+" → "+mseText(e.cleaned_rollout_mse)+". The source is explicitly labelled: "+e.source+". Removing unpredictable glitches changes the scoring target as well as the inputs, so this is not purely a smarter-model gain.";
+}
+
+function matrixRows(){return META.train_batteries.flatMap(name=>Array.from({length:seriesFor(name).length-BRIDGE_W},(_,start)=>({name,start,values:seriesFor(name).slice(start,start+BRIDGE_W),label:seriesFor(name)[start+BRIDGE_W]})))}
+function drawMatrixWhole(state){
+  const setup=canvasSetup("slide-plot"),g=setup.context,{canvas,width,height}=setup,rows=matrixRows();
+  const pad={left:66,right:36,top:28,bottom:36},grid={left:pad.left,right:width-pad.right-18,top:pad.top,bottom:height-pad.bottom};
+  const sampleCount=Math.min(54,rows.length),rowH=(grid.bottom-grid.top)/sampleCount,colW=(grid.right-grid.left)/BRIDGE_W,ramp=PC.rampScale(),hover=[];
+  const min=Math.min(...BATTERIES.flatMap(name=>seriesFor(name))),max=Math.max(...BATTERIES.flatMap(name=>seriesFor(name)));
+  for(let r=0;r<sampleCount;r++){
+    const global=Math.round(r*(rows.length-1)/(sampleCount-1)),record=rows[global];
+    for(let col=0;col<BRIDGE_W;col++){
+      const x=grid.left+col*colW,y=grid.top+r*rowH,value=record.values[col];g.fillStyle=ramp((value-min)/(max-min));g.fillRect(x,y,Math.max(1,colW+0.2),Math.max(1,rowH+0.2));
+      hover.push({x:x+colW/2,y:y+rowH/2,name:record.name,start:record.start,col,html:"<b>"+record.name+" · X["+global+","+(col+1)+"]</b><br>source cycle "+(record.start+col+1)+"<br>SOH "+fmt(value,5)});
+    }
+  }
+  const before=rowsPerBattery(BRIDGE_W).slice(0,META.train_batteries.indexOf(state.matrixBattery)).reduce((total,item)=>total+item.count,0),selectedGlobal=before+state.bridgePos;
+  const selectedY=grid.top+(selectedGlobal/(rows.length-1))*(grid.bottom-grid.top),selectedX=grid.left+state.matrixCol*colW;
+  g.save();g.globalAlpha=0.28;g.fillStyle=PC.css("--matrix-row");g.fillRect(grid.left,selectedY-rowH,grid.right-grid.left,rowH*2);g.fillStyle=PC.css("--matrix-column");g.fillRect(selectedX,grid.top,colW,grid.bottom-grid.top);g.restore();
+  g.strokeStyle=PC.css("--matrix-cell");g.lineWidth=2;g.strokeRect(selectedX,selectedY-rowH,colW,rowH*2);
+  g.fillStyle=PC.css("--matrix-cell");g.fillRect(grid.right+8,selectedY-rowH,10,rowH*2);
+  g.font=TICK_FONT;g.fillStyle=PC.css("--muted");g.fillText("X · "+rows.length.toLocaleString("en-US")+" rows × "+BRIDGE_W+" columns",grid.left,17);g.fillText("y",grid.right+8,17);g.fillText("window position →",Math.max(grid.left,grid.right-104),height-8);
+  const cumulative=[];let count=0;rowsPerBattery(BRIDGE_W).forEach(item=>{const y=grid.top+count/rows.length*(grid.bottom-grid.top);g.fillStyle=PC.css("--text-secondary");g.fillText(item.name,4,y+12);if(count){g.strokeStyle=PC.css("--axis");g.beginPath();g.moveTo(grid.left,y);g.lineTo(grid.right+18,y);g.stroke()}count+=item.count;cumulative.push(count)});
+  bindHover(canvas,hover,record=>VIEW.set({matrixBattery:record.name,bridgePos:record.start,matrixCol:record.col},{source:"matrix-cell"}));
+}
+function drawMatrixRow(state){
+  const record=bridgeRow(state),xs=Array.from({length:BRIDGE_W},(_,index)=>index+1),all=record.values.concat(record.label),lo=Math.min(...all),hi=Math.max(...all),pad=(hi-lo)*0.18||0.001;
+  linePlot("row-view",[{key:"row",name:"X[i,:]",x:xs,y:record.values,token:"--matrix-row",width:2.3,points:true},{key:"label",name:"label y_i",x:[BRIDGE_W+1],y:[record.label],token:"--matrix-cell",pointsOnly:true,points:true,radius:4}],{xDomain:[1,BRIDGE_W+1],yDomain:[lo-pad,hi+pad],xTicks:[1,Math.ceil(BRIDGE_W/2),BRIDGE_W,BRIDGE_W+1],yTicks:[lo,hi],xLabel:"position in row; final point is y_i",yLabel:"SOH",xFmt:value=>value===BRIDGE_W+1?"y_i":String(Math.round(value)),yFmt:value=>value.toFixed(3),xTip:value=>value===BRIDGE_W+1?"next-cycle label":"window position "+Math.round(value),yTip:value=>"SOH "+fmt(value,5),onClick:record=>{if(record.key==="row")VIEW.set({matrixCol:Math.round(record.rawX)-1},{source:"matrix-row-plot"})}});
+}
+function columnValues(col){return META.train_batteries.flatMap(name=>{const values=seriesFor(name),count=values.length-BRIDGE_W;return values.slice(col,col+count)})}
+function drawMatrixColumn(state){
+  const values=columnValues(state.matrixCol),otherCol=Math.min(BRIDGE_W-1,state.matrixCol+1),other=columnValues(otherCol),xs=values.map((_,index)=>index);
+  const result=linePlot("stack-view",[{key:"selected",name:"X[:,"+(state.matrixCol+1)+"]",x:xs,y:values,token:"--matrix-column",width:2},{key:"adjacent",name:"adjacent shifted column "+(otherCol+1),x:xs,y:other,token:"--axis",width:1.2,dash:[4,3]}],{xDomain:[0,values.length-1],yDomain:[Math.min(...values,...other),Math.max(...values,...other)],xTicks:rowsPerBattery(BRIDGE_W).reduce((out,item)=>{out.push(out.length?out[out.length-1]+item.count:item.count);return out},[0]),yTicks:[0.4,0.6,0.8,1],xLabel:"stacked training rows",yLabel:"SOH",xFmt:value=>Math.round(value).toLocaleString("en-US"),yFmt:value=>value.toFixed(1),xTip:value=>"matrix row "+Math.round(value),yTip:value=>"SOH "+fmt(value,5),onClick:record=>{const located=locateGlobalRow(Math.round(record.rawX),BRIDGE_W);VIEW.set({matrixBattery:located.name,bridgePos:located.start,matrixCol:record.key==="adjacent"?otherCol:state.matrixCol},{source:"matrix-column-plot"})}});
+  let boundary=0;rowsPerBattery(BRIDGE_W).slice(0,-1).forEach(item=>{boundary+=item.count;result.context.strokeStyle=PC.css("--axis");result.context.setLineDash([3,3]);result.context.beginPath();result.context.moveTo(result.scale.x(boundary),result.box.top);result.context.lineTo(result.scale.x(boundary),result.box.bottom);result.context.stroke();result.context.setLineDash([])});
+}
+function drawDesignMatrix(state){drawCurves(state);drawDenoise(state);drawMatrixWhole(state);drawMatrixRow(state);drawMatrixColumn(state)}
+
+function snapshotEpoch(state){const epochs=configFor(state).training.snapshot_epochs;return epochs[clamp(state.epochIdx,0,epochs.length-1)]}
+function drawEpochPrediction(state){
+  const training=configFor(state).training,truth=seriesFor(TEST),epoch=snapshotEpoch(state),prediction=training.snapshots[String(epoch)]||[],xs=prediction.map((_,index)=>state.window+index*training.pred_stride+1);
+  let lo=Math.min(...truth),hi=Math.max(...truth);Object.values(training.snapshots).forEach(values=>values.forEach(value=>{lo=Math.min(lo,value);hi=Math.max(hi,value)}));lo=Math.max(-0.5,lo-0.06);hi=Math.min(2,hi+0.06);
+  linePlot("epoch-pred",[{name:"measured "+TEST,x:truth.map((_,index)=>index+1),y:truth,token:"--text-primary",width:1.5},{name:"LSTM after "+epoch+" updates",x:xs,y:prediction,token:MODEL_TOKEN.lstm,width:2}],{xDomain:[1,truth.length],yDomain:[lo,hi],xTicks:cycleTicks(truth.length).filter(value=>value>0),yTicks:ticksBetween(lo,hi,5),xLabel:"cycle number",yLabel:"SOH",xTip:value=>"cycle "+Math.round(value),yTip:value=>"SOH "+fmt(value,5)});
+}
+function drawTrainingLoss(state){
+  const config=configFor(state),curves=config.curves,epoch=snapshotEpoch(state);
+  linePlot("train-plot",[{name:"training MSE",x:curves.train.map((_,index)=>index),y:curves.train,token:MODEL_TOKEN.lstm,width:2},{name:"validation MSE",x:curves.val.map((_,index)=>index),y:curves.val,token:MODEL_TOKEN.persistence,width:2}],{logY:true,xDomain:[0,curves.train.length-1],xTicks:[0,100,200,curves.train.length-1],yTicks:[1e-4,1e-3,1e-2,1e-1,1],xLabel:"full-batch update",yLabel:"MSE · log scale",yFmt:value=>value.toExponential(0),vLine:epoch,xTip:value=>"update "+Math.round(value),yTip:value=>"MSE "+mseText(value)});
+  const index=Math.min(epoch,curves.train.length-1),prediction=config.training.snapshots[String(epoch)]||[],truth=seriesFor(TEST);let score=0;prediction.forEach((value,k)=>{const gap=value-truth[state.window+k*config.training.pred_stride];score+=gap*gap});score=prediction.length?score/prediction.length:NaN;
+  byId("epoch-val").textContent=epoch.toLocaleString("en-US");
+  byId("learn-note").textContent="After "+epoch+" update"+(epoch===1?"":"s")+": training MSE "+mseText(curves.train[index])+"; the displayed held-out sample scores "+mseText(score)+". "+(epoch===0?"The output head is still random and unrelated to the curve.":epoch<=12?"The network first learns the overall level before the visible slope.":"Most of the visible fit is already present; the numerical tail keeps improving more than the picture changes.");
+  const last=curves.train.length-1;byId("train-note").textContent="Final training MSE "+mseText(curves.train[last])+" and validation MSE "+mseText(curves.val[last])+". Because the notebook uses one full-batch update per epoch, "+META.num_epochs+" epochs are exactly "+META.num_epochs+" optimizer steps; the independent test remains the whole "+TEST+" curve.";
+}
+function drawSensitivity(state){
+  const setup=canvasSetup("leans-plot"),g=setup.context,{canvas,width,height}=setup,profile=configFor(state).training.sensitivity,total=sum(profile),show=Math.min(12,profile.length),bars=Array.from({length:show},(_,index)=>profile[profile.length-1-index]),peak=Math.max(...bars);
+  const pad={left:22,right:14,top:24,bottom:45},base=height-pad.bottom,bw=(width-pad.left-pad.right)/show,hover=[];
+  g.strokeStyle=PC.css("--grid");g.beginPath();g.moveTo(pad.left,pad.top);g.lineTo(width-pad.right,pad.top);g.stroke();g.font=TICK_FONT;
+  bars.forEach((value,index)=>{const h=value/peak*(base-pad.top),x=pad.left+index*bw;g.fillStyle=PC.css("--series-1");g.globalAlpha=0.35+0.65*value/peak;g.fillRect(x+3,base-h,Math.max(2,bw-6),h);g.globalAlpha=1;g.fillStyle=PC.css("--muted");g.fillText(String(index+1),x+bw/2-g.measureText(String(index+1)).width/2,base+16);hover.push({x:x+bw/2,y:base-h/2,html:"<b>"+(index+1)+" cycle"+(index?"s":"")+" before target</b><br>"+fmt(value/total*100,1)+"% of summed sensitivity"})});
+  g.fillStyle=PC.css("--text-secondary");g.font=EMPH_FONT;g.fillText("cycles before target · 1 = most recent",pad.left,height-9);bindHover(canvas,hover);
+  const lastOne=profile[profile.length-1]/total,lastFive=sum(profile.slice(-5))/total,oneStep=META.window_sizes.map(windowSize=>D.configs[String(windowSize)].seeds[String(META.primary_seed)].onestep_mse),spread=(Math.max(...oneStep)-Math.min(...oneStep))/Math.min(...oneStep)*100;
+  byId("leans-note").textContent="The most recent cycle accounts for about "+Math.round(lastOne*100)+"% of summed sensitivity and the last five for about "+Math.round(lastFive*100)+"%. One-step MSE spreads only "+spread.toFixed(0)+"% across w = "+META.window_sizes.join(", ")+". Earlier positions still matter: flattening or shuffling them scores worse in the exact ablation table.";
+}
+
+function modelNameCell(row,label,token){const cell=node("td");const dot=node("i","swatch");dot.style.cssText="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:7px;background:var("+token+")";cell.append(dot,document.createTextNode(label));row.appendChild(cell)}
+function oneStepScores(state){
+  const truth=seriesFor(TEST),targets=truth.slice(state.window),lstm=configFor(state).seeds[String(META.primary_seed)].onestep_mse,persistence=mse(persistenceOneStep(truth,state.window),targets),linear=mse(linearOneStep(truth,state.window),targets);
+  return[{key:"lstm",name:"LSTM · trained on whole cells",score:lstm},{key:"persistence",name:"Persistence · no training",score:persistence},{key:"linear",name:"Linear trend · no training",score:linear}];
+}
+function drawOneStep(state){
+  const truth=seriesFor(TEST),prediction=configFor(state).seeds[String(META.primary_seed)].onestep_pred;
+  linePlot("onestep-plot",[{name:"measured "+TEST,x:truth.map((_,index)=>index+1),y:truth,token:"--text-primary",width:1.7},{name:"LSTM one-step",x:prediction.map((_,index)=>state.window+index+1),y:prediction,token:MODEL_TOKEN.lstm,width:1.8}],{xDomain:[1,truth.length],yDomain:[0.1,1.05],xTicks:cycleTicks(truth.length).filter(value=>value>0),yTicks:[0.2,0.4,0.6,0.8,1],xLabel:"cycle number",yLabel:"SOH",yFmt:value=>value.toFixed(1),xTip:value=>"cycle "+Math.round(value),yTip:value=>"SOH "+fmt(value,5)});
+  const scores=oneStepScores(state),persistence=scores.find(item=>item.key==="persistence").score,table=byId("onestep-table");table.textContent="";const head=node("thead"),hr=node("tr");["model","one-step test MSE","RMSE (SOH points)","vs persistence"].forEach(text=>addCell(hr,"th",text));head.appendChild(hr);table.appendChild(head);const body=node("tbody");
+  scores.slice().sort((a,b)=>a.score-b.score).forEach(item=>{const tr=node("tr");modelNameCell(tr,item.name,MODEL_TOKEN[item.key]);addCell(tr,"td",mseText(item.score));addCell(tr,"td",fmt(rmsePoints(item.score),2));const ratio=item.score/persistence,cell=addCell(tr,"td",ratio.toFixed(2)+"×",ratio<0.97?"good":ratio>1.03?"bad":null);body.appendChild(tr)});table.appendChild(body);
+  const lstm=scores.find(item=>item.key==="lstm").score;byId("onestep-lesson").textContent="The notebook's small MSE is real, but persistence scores "+mseText(persistence)+" on the identical task (LSTM/persistence = "+(lstm/persistence).toFixed(2)+"×). One-step accuracy mostly certifies that the curve is smooth; it does not by itself show that the LSTM learned degradation.";
+}
+
+function anchorData(state){
+  const config=configFor(state),truth=seriesFor(TEST),anchor=config.rollout_anchors.includes(state.anchor)?state.anchor:config.rollout_anchors.reduce((best,value)=>Math.abs(value-state.anchor)<Math.abs(best-state.anchor)?value:best,config.rollout_anchors[0]),steps=truth.length-anchor;
+  return{anchor,truth,future:truth.slice(anchor),lstm:config.rollouts[String(anchor)],persistence:persistenceRollout(truth,anchor,steps),linear:linearRollout(truth,anchor,state.window,steps)};
+}
+function drawRollout(state){
+  const data=anchorData(state),futureX=data.future.map((_,index)=>data.anchor+index+1);
+  linePlot("rollout-plot",[{name:"measured "+TEST,x:data.truth.map((_,index)=>index+1),y:data.truth,token:"--text-primary",width:1.7},{name:"LSTM recursive",x:futureX,y:data.lstm,token:MODEL_TOKEN.lstm,width:2.2},{name:"persistence",x:futureX,y:data.persistence,token:MODEL_TOKEN.persistence,width:1.9},{name:"linear trend",x:futureX,y:data.linear,token:MODEL_TOKEN.linear,width:1.9}],{xDomain:[1,data.truth.length],yDomain:[0,1.05],xTicks:cycleTicks(data.truth.length).filter(value=>value>0),yTicks:[0,0.2,0.4,0.6,0.8,1],xLabel:"cycle number",yLabel:"SOH",yFmt:value=>value.toFixed(1),shadeFrom:data.anchor,hLine:state.threshold,vLine:data.anchor,xTip:value=>"cycle "+Math.round(value),yTip:value=>"SOH "+fmt(value,5)});
+  renderRolloutTable(state,data);
+}
+function renderRolloutTable(state,data){
+  const horizons=[10,25,50,100,200].filter(value=>value<=data.future.length),trueCross=META.true_crossings[state.threshold.toFixed(1)],already=trueCross!==null&&trueCross<=data.anchor;
+  const models=[{key:"lstm",name:"LSTM rollout",values:data.lstm},{key:"persistence",name:"Persistence",values:data.persistence},{key:"linear",name:"Linear trend",values:data.linear}],table=byId("rollout-table");table.textContent="";const head=node("thead"),hr=node("tr");["model",...horizons.map(value=>"RMSE @ +"+value+" cycles"),"predicted crossing","RUL error"].forEach(text=>addCell(hr,"th",text));head.appendChild(hr);table.appendChild(head);const body=node("tbody");
+  models.forEach(model=>{const tr=node("tr");modelNameCell(tr,model.name,MODEL_TOKEN[model.key]);horizons.forEach(horizon=>addCell(tr,"td",fmt(rmsePoints(mse(model.values.slice(0,horizon),data.future.slice(0,horizon))),2)));const predicted=crossing(model.values,data.anchor+1,state.threshold);addCell(tr,"td",predicted===null?"never reaches":String(predicted));if(trueCross===null||already)addCell(tr,"td","—");else if(predicted===null)addCell(tr,"td","no crossing","bad");else{const error=predicted-trueCross;addCell(tr,"td",(error>0?"+":"")+error,Math.abs(error)<=40?"good":"bad")}body.appendChild(tr)});table.appendChild(body);
+  byId("rul-note").textContent=trueCross===null?TEST+" never sustains SOH ≤ "+state.threshold.toFixed(1)+"; this threshold has no measured RUL answer.":already?TEST+" crossed SOH "+state.threshold.toFixed(1)+" at cycle "+trueCross+", before anchor "+data.anchor+"; move the anchor earlier to score RUL.":"Measured crossing: cycle "+trueCross+", so true RUL from anchor "+data.anchor+" is "+(trueCross-data.anchor)+" cycles. A crossing requires "+SUSTAIN+" consecutive cycles at or below threshold; positive RUL error means promised life beyond the measured crossing.";
+  const horizon=Math.min(10,data.future.length),lstmRmse=rmsePoints(mse(data.lstm.slice(0,horizon),data.future.slice(0,horizon))),persRmse=rmsePoints(mse(data.persistence.slice(0,horizon),data.future.slice(0,horizon)));
+  byId("rollout-lesson").textContent="After cycle "+data.anchor+", nothing re-anchors the models. Persistence freezes and linear trend cannot bend; the LSTM "+(lstmRmse<persRmse?"does carry a learned downward trend at this short horizon.":"is not clearly better than persistence at this anchor.")+" Move the anchor: early forecasts must carry much farther, while near-end forecasts look easier because little future remains.";
+}
+function drawRolloutError(state){
+  const data=anchorData(state),setup=canvasSetup("rollerr-plot"),g=setup.context,{canvas}=setup,n=data.lstm.length,truth=data.future,lo=Math.min(...truth,...data.lstm),hi=Math.max(...truth,...data.lstm),pad=(hi-lo)*0.06||0.001,base=PC.scales(canvas,[0,n-1],[lo-pad,hi+pad],{l:58,r:14,t:16,b:46}),box=PC.boxOf(base);
+  PC.drawAxes(g,box,[0,n-1],[lo,(lo+hi)/2,hi],base.x,base.y,"forecast cycles after anchor","SOH",{xFmt:value=>value===0?"0":"+"+Math.round(value),yFmt:value=>value.toFixed(2),grid:"y"});
+  g.save();g.fillStyle=PC.css("--critical");g.globalAlpha=0.25;g.beginPath();g.moveTo(base.x(0),base.y(truth[0]));for(let index=1;index<n;index++)g.lineTo(base.x(index),base.y(truth[index]));for(let index=n-1;index>=0;index--)g.lineTo(base.x(index),base.y(data.lstm[index]));g.closePath();g.fill();g.restore();
+  path(g,base,truth.map((_,index)=>index),truth,PC.css("--text-primary"),2);path(g,base,data.lstm.map((_,index)=>index),data.lstm,PC.css(MODEL_TOKEN.lstm),2);
+  const hover=[],stride=Math.max(1,Math.ceil(n/120));for(let index=0;index<n;index+=stride)hover.push({x:base.x(index),y:(base.y(truth[index])+base.y(data.lstm[index]))/2,html:"<b>cycle "+(data.anchor+index+1)+"</b><br>measured "+fmt(truth[index],5)+"<br>LSTM "+fmt(data.lstm[index],5)+"<br>squared gap "+mseText((data.lstm[index]-truth[index])**2)});bindHover(canvas,hover);
+  const gaps=data.lstm.map((value,index)=>Math.abs(value-truth[index])),one=mse(data.lstm,truth),average=rolloutMseMean(state.window);byId("rollerr-note").textContent="At anchor "+data.anchor+", the widest absolute gap is "+fmt(Math.max(...gaps),3)+" SOH. Squaring and averaging all "+n+" forecast-cycle gaps gives this rollout MSE "+mseText(one)+"; averaging the same calculation over "+configFor(state).rollout_anchors.length+" stored anchors gives w = "+state.window+" mean rollout MSE "+mseText(average)+".";
+}
+function drawWindowComparison(state){
+  const windows=META.window_sizes,one=windows.map(value=>D.configs[String(value)].seeds[String(META.primary_seed)].onestep_mse),roll=windows.map(rolloutMseMean),all=one.concat(roll);
+  linePlot("abwin-plot",[{name:"Protocol A · one-step",x:windows,y:one,token:"--series-1",width:2.2,points:true},{name:"Protocol B · recursive",x:windows,y:roll,token:"--cs2-38",width:2.2,points:true}],{logY:true,xDomain:[Math.min(...windows),Math.max(...windows)],yDomain:[Math.min(...all),Math.max(...all)],xTicks:windows,yTicks:[1e-4,1e-3,1e-2],xLabel:"window length",yLabel:"MSE · log scale",yFmt:value=>value.toExponential(0),vLine:state.window,xTip:value=>"window "+Math.round(value),yTip:value=>"MSE "+mseText(value)});
+  const spreadA=(Math.max(...one)-Math.min(...one))/Math.min(...one)*100,spreadB=Math.max(...roll)/Math.min(...roll);byId("abwin-note").textContent="Across selectable windows, one-step MSE moves "+spreadA.toFixed(0)+"%, while recursive mean MSE spans "+spreadB.toFixed(1)+"×. These protocols score different tasks, so the contrast is in sensitivity to w, not their absolute vertical separation.";
+}
+function drawUCurve(){
+  const points=sweepPoints(),windows=points.map(point=>point.window),scores=points.map(point=>point.mean_mse),best=points.reduce((a,b)=>b.mean_mse<a.mean_mse?b:a,points[0]);
+  linePlot("ucurve-plot",[{name:"mean recursive MSE",x:windows,y:scores,token:"--cs2-38",width:2.2,points:true}],{logY:true,xDomain:[Math.min(...windows),Math.max(...windows)],yDomain:[Math.min(...scores),Math.max(...scores)],xTicks:windows,yTicks:[1e-3,1e-2],xLabel:"window length",yLabel:"mean rollout MSE · log scale",yFmt:value=>value.toExponential(0),vLine:best.window,xTip:value=>"window "+Math.round(value),yTip:value=>"mean rollout MSE "+mseText(value)});
+  const last=points[points.length-1];byId("ucurve-note").textContent="The minimum stored score is near w = "+best.window+" at "+mseText(best.mean_mse)+"; by w = "+last.window+" it is "+mseText(last.mean_mse)+", "+(last.mean_mse/best.mean_mse).toFixed(1)+"× the minimum. Large-window points are labelled in the payload as "+EXT.large_window_rollout.source+".";
+}
+function drawAnalysis(state){drawEpochPrediction(state);drawTrainingLoss(state);drawSensitivity(state);drawOneStep(state);drawRollout(state);drawRolloutError(state);drawWindowComparison(state);drawUCurve()}
+
+function redrawVisible(){
+  const state=VIEW.get();
+  if(PCFolds.isOpen(document.getElementById("design-matrix")))drawDesignMatrix(state);
+  if(PCFolds.isOpen(document.getElementById("analysis")))drawAnalysis(state);
+}
+function onShow(index){
+  if(index!==1)setSliding(false);
+  if(index!==2)setReplaying(false);
+  redrawVisible();
+}
+
+let slideTimer=null,epochTimer=null;
+function setSliding(on){
+  if(slideTimer!==null){clearInterval(slideTimer);slideTimer=null}
+  const button=byId("slide-play");button.setAttribute("aria-pressed",String(on));button.textContent=on?"❚❚ Pause rows":"▶ Slide rows";
+  if(VIEW.get().slidePlaying!==on)VIEW.set({slidePlaying:on},{source:"matrix-play-toggle",url:false});
+  if(!on)return;
+  const max=seriesFor(BRIDGE_BATTERY).length-BRIDGE_W-1;
+  slideTimer=setInterval(()=>{const state=VIEW.get();VIEW.set({bridgePos:(state.bridgePos+2)%(max+1)},{source:"matrix-play"})},70);
+}
+function setReplaying(on){
+  if(epochTimer!==null){clearInterval(epochTimer);epochTimer=null}
+  const button=byId("epoch-play");button.setAttribute("aria-pressed",String(on));button.textContent=on?"❚❚ Pause":"▶ Replay";
+  if(VIEW.get().epochPlaying!==on)VIEW.set({epochPlaying:on},{source:"epoch-play-toggle",url:false});
+  if(!on)return;
+  const count=configFor(VIEW.get()).training.snapshot_epochs.length;if(VIEW.get().epochIdx>=count-1)VIEW.set({epochIdx:0},{source:"epoch-replay"});
+  epochTimer=setInterval(()=>{const state=VIEW.get(),length=configFor(state).training.snapshot_epochs.length,next=state.epochIdx+1;if(next>=length){setReplaying(false);return}VIEW.set({epochIdx:next},{source:"epoch-replay"})},650);
+}
+
+byId("slide-play").addEventListener("click",()=>setSliding(slideTimer===null));
+byId("matrix-row-slider").addEventListener("input",event=>{setSliding(false);VIEW.set({bridgePos:Number(event.target.value)},{source:"matrix-row"})});
+byId("matrix-col-slider").addEventListener("input",event=>VIEW.set({matrixCol:Number(event.target.value)},{source:"matrix-column"}));
+byId("epoch-play").addEventListener("click",()=>setReplaying(epochTimer===null));
+byId("epoch-slider").addEventListener("input",event=>{setReplaying(false);VIEW.set({epochIdx:Number(event.target.value)},{source:"epoch"})});
+byId("anchor-slider").addEventListener("input",event=>VIEW.set({anchor:Number(event.target.value)},{source:"anchor"}));
+
+buildProvenance();buildFindings();buildStaticText();buildSweepTables();buildFidelityAndLimits();buildGlossary();
+VIEW.subscribe(state=>{
+  syncControls(state);renderCurvesLegend(state);buildDesignMatrix(state);buildWindowText(state);renderSeedTable(state);renderAblation(state);buildConclusions(state);redrawVisible();
+},{immediate:true});
+
+
+
+if(D.provenance_card)PC.renderProvenance("#provCard",D.provenance_card);
+
+
+
+PC.panels.dag.create(document.getElementById("workflowDag"), D.dag.steps, D.dag.options);
+PC.registerRepaint(redrawVisible);
+PC.repaint("initial", document);

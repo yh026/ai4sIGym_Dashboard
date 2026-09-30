@@ -1,0 +1,62 @@
+[
+  {
+    "space": "UMAP-2",
+    "scored_in": "Own space",
+    "bar_label": "UMAP-2 · Own space",
+    "score": 0.42
+  },
+  {
+    "space": "UMAP-2",
+    "scored_in": "11-D",
+    "bar_label": "UMAP-2 · 11-D",
+    "score": 0.14
+  },
+  {
+    "space": "t-SNE-2",
+    "scored_in": "Own space",
+    "bar_label": "t-SNE-2 · Own space",
+    "score": 0.39
+  },
+  {
+    "space": "t-SNE-2",
+    "scored_in": "11-D",
+    "bar_label": "t-SNE-2 · 11-D",
+    "score": 0.13
+  },
+  {
+    "space": "PCA-2",
+    "scored_in": "Own space",
+    "bar_label": "PCA-2 · Own space",
+    "score": 0.24
+  },
+  {
+    "space": "PCA-2",
+    "scored_in": "11-D",
+    "bar_label": "PCA-2 · 11-D",
+    "score": 0.16
+  },
+  {
+    "space": "PCA-6",
+    "scored_in": "Own space",
+    "bar_label": "PCA-6 · Own space",
+    "score": 0.2
+  },
+  {
+    "space": "PCA-6",
+    "scored_in": "11-D",
+    "bar_label": "PCA-6 · 11-D",
+    "score": 0.18
+  },
+  {
+    "space": "Standardised-11D",
+    "scored_in": "Own space",
+    "bar_label": "Standardised-11D · Own space",
+    "score": 0.18
+  },
+  {
+    "space": "Standardised-11D",
+    "scored_in": "11-D",
+    "bar_label": "Standardised-11D · 11-D",
+    "score": 0.18
+  }
+]

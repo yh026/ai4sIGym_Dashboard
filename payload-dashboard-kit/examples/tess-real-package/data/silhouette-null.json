@@ -1,0 +1,92 @@
+[
+  {
+    "k": 2,
+    "score": 0.28684994,
+    "series": "Observed"
+  },
+  {
+    "k": 2,
+    "score": 0.08708307,
+    "series": "Shuffled-feature null"
+  },
+  {
+    "k": 3,
+    "score": 0.18617252,
+    "series": "Observed"
+  },
+  {
+    "k": 3,
+    "score": 0.07692475,
+    "series": "Shuffled-feature null"
+  },
+  {
+    "k": 4,
+    "score": 0.17675021,
+    "series": "Observed"
+  },
+  {
+    "k": 4,
+    "score": 0.06828225,
+    "series": "Shuffled-feature null"
+  },
+  {
+    "k": 5,
+    "score": 0.17579356,
+    "series": "Observed"
+  },
+  {
+    "k": 5,
+    "score": 0.06415048,
+    "series": "Shuffled-feature null"
+  },
+  {
+    "k": 6,
+    "score": 0.17426668,
+    "series": "Observed"
+  },
+  {
+    "k": 6,
+    "score": 0.07256555,
+    "series": "Shuffled-feature null"
+  },
+  {
+    "k": 7,
+    "score": 0.17746356,
+    "series": "Observed"
+  },
+  {
+    "k": 7,
+    "score": 0.06959968,
+    "series": "Shuffled-feature null"
+  },
+  {
+    "k": 8,
+    "score": 0.17979028,
+    "series": "Observed"
+  },
+  {
+    "k": 8,
+    "score": 0.06994324,
+    "series": "Shuffled-feature null"
+  },
+  {
+    "k": 9,
+    "score": 0.16391427,
+    "series": "Observed"
+  },
+  {
+    "k": 9,
+    "score": 0.07267827,
+    "series": "Shuffled-feature null"
+  },
+  {
+    "k": 10,
+    "score": 0.16215203,
+    "series": "Observed"
+  },
+  {
+    "k": 10,
+    "score": 0.07301184,
+    "series": "Shuffled-feature null"
+  }
+]

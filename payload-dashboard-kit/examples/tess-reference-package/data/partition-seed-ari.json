@@ -1,0 +1,10 @@
+[
+  {
+    "method": "UMAP seed rerun",
+    "ari": 0.879
+  },
+  {
+    "method": "k-means seed rerun",
+    "ari": 0.983
+  }
+]

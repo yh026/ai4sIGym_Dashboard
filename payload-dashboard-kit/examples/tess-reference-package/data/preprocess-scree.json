@@ -1,0 +1,112 @@
+[
+  {
+    "component": 1,
+    "variance": 0.612,
+    "series": "Native"
+  },
+  {
+    "component": 2,
+    "variance": 0.173,
+    "series": "Native"
+  },
+  {
+    "component": 3,
+    "variance": 0.082,
+    "series": "Native"
+  },
+  {
+    "component": 4,
+    "variance": 0.051,
+    "series": "Native"
+  },
+  {
+    "component": 5,
+    "variance": 0.031,
+    "series": "Native"
+  },
+  {
+    "component": 6,
+    "variance": 0.019,
+    "series": "Native"
+  },
+  {
+    "component": 7,
+    "variance": 0.012,
+    "series": "Native"
+  },
+  {
+    "component": 8,
+    "variance": 0.008,
+    "series": "Native"
+  },
+  {
+    "component": 9,
+    "variance": 0.006,
+    "series": "Native"
+  },
+  {
+    "component": 10,
+    "variance": 0.004,
+    "series": "Native"
+  },
+  {
+    "component": 11,
+    "variance": 0.002,
+    "series": "Native"
+  },
+  {
+    "component": 1,
+    "variance": 0.409,
+    "series": "Standardised"
+  },
+  {
+    "component": 2,
+    "variance": 0.218,
+    "series": "Standardised"
+  },
+  {
+    "component": 3,
+    "variance": 0.125,
+    "series": "Standardised"
+  },
+  {
+    "component": 4,
+    "variance": 0.082,
+    "series": "Standardised"
+  },
+  {
+    "component": 5,
+    "variance": 0.061,
+    "series": "Standardised"
+  },
+  {
+    "component": 6,
+    "variance": 0.041,
+    "series": "Standardised"
+  },
+  {
+    "component": 7,
+    "variance": 0.025,
+    "series": "Standardised"
+  },
+  {
+    "component": 8,
+    "variance": 0.017,
+    "series": "Standardised"
+  },
+  {
+    "component": 9,
+    "variance": 0.011,
+    "series": "Standardised"
+  },
+  {
+    "component": 10,
+    "variance": 0.007,
+    "series": "Standardised"
+  },
+  {
+    "component": 11,
+    "variance": 0.004,
+    "series": "Standardised"
+  }
+]

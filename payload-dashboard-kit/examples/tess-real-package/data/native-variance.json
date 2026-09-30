@@ -1,0 +1,46 @@
+[
+  {
+    "feature": "pl_orbper",
+    "variance": 9483.213143379711
+  },
+  {
+    "feature": "pl_trandurh",
+    "variance": 3.434470937928968
+  },
+  {
+    "feature": "pl_trandep",
+    "variance": 237316693.64355794
+  },
+  {
+    "feature": "pl_rade",
+    "variance": 59.70787451898444
+  },
+  {
+    "feature": "pl_insol",
+    "variance": 102661760.58563069
+  },
+  {
+    "feature": "st_tmag",
+    "variance": 2.6765403098507456
+  },
+  {
+    "feature": "st_dist",
+    "variance": 304933.2362026152
+  },
+  {
+    "feature": "st_teff",
+    "variance": 1415664.3435616852
+  },
+  {
+    "feature": "st_logg",
+    "variance": 0.0817722436721839
+  },
+  {
+    "feature": "st_rad",
+    "variance": 1.1046280107308102
+  },
+  {
+    "feature": "pm_total",
+    "variance": 8842.058661965932
+  }
+]

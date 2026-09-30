@@ -1,0 +1,576 @@
+{
+  "schema_version": "3.0.0",
+  "renderer_contract": {
+    "name": "render-payload-dashboard",
+    "version": "3.0.0",
+    "strict": true
+  },
+  "report": {
+    "title": "Payload v3 renderer capabilities",
+    "subtitle": "Strict renderer capability fixture",
+    "summary": "A compact deterministic fixture for less common marks, coordinates, scales, and interactions."
+  },
+  "run": {
+    "id": "renderer-capabilities",
+    "label": "Payload v3 renderer capability fixture",
+    "status": "complete",
+    "seed": 5102
+  },
+  "dataset": {
+    "id": "renderer-capability-data",
+    "title": "Synthetic renderer capability data",
+    "description": "Small deterministic values committed solely to exercise declared rendering capabilities.",
+    "row_count": 51,
+    "feature_count": 18
+  },
+  "provenance": {
+    "generator": {
+      "name": "payload-v3-fixture-author",
+      "version": "1.0.0"
+    },
+    "inputs": [
+      {
+        "id": "renderer-capability-data",
+        "kind": "dataset",
+        "description": "Synthetic values committed with the fixture."
+      }
+    ]
+  },
+  "theme": {
+    "name": "tess",
+    "mode": "light",
+    "palette": "colorblind-safe",
+    "density": "comfortable",
+    "semantic_colors": {
+      "control": "#2F6B8A",
+      "treatment": "#D97941",
+      "candidate": "#356A9A",
+      "background": "#A9B6C4"
+    }
+  },
+  "data": [
+    {
+      "id": "stacked-intervals",
+      "semantic_type": "summary.stacked-intervals",
+      "title": "Precomputed horizontal stack intervals",
+      "fields": [
+        {"name": "scenario", "type": "string", "role": "metadata"},
+        {"name": "category", "type": "string", "role": "dimension"},
+        {"name": "segment", "type": "string", "role": "dimension"},
+        {"name": "interval_start", "type": "number", "role": "measure"},
+        {"name": "interval_end", "type": "number", "role": "measure"}
+      ],
+      "storage": {
+        "kind": "inline",
+        "format": "rows",
+        "rows": [
+          {"scenario": "baseline", "category": "Group A", "segment": "control", "interval_start": 0, "interval_end": 4},
+          {"scenario": "baseline", "category": "Group A", "segment": "treatment", "interval_start": 4, "interval_end": 7},
+          {"scenario": "baseline", "category": "Group B", "segment": "control", "interval_start": 0, "interval_end": 3},
+          {"scenario": "baseline", "category": "Group B", "segment": "treatment", "interval_start": 3, "interval_end": 8},
+          {"scenario": "stress", "category": "Group A", "segment": "control", "interval_start": 0, "interval_end": 2},
+          {"scenario": "stress", "category": "Group A", "segment": "treatment", "interval_start": 2, "interval_end": 9},
+          {"scenario": "stress", "category": "Group B", "segment": "control", "interval_start": 0, "interval_end": 5},
+          {"scenario": "stress", "category": "Group B", "segment": "treatment", "interval_start": 5, "interval_end": 10}
+        ]
+      }
+    },
+    {
+      "id": "horizontal-bounds",
+      "semantic_type": "uncertainty.horizontal-band",
+      "title": "Horizontal confidence envelope",
+      "fields": [
+        {"name": "step", "type": "integer", "role": "dimension"},
+        {"name": "lower", "type": "number", "role": "uncertainty"},
+        {"name": "upper", "type": "number", "role": "uncertainty"}
+      ],
+      "storage": {
+        "kind": "inline",
+        "format": "rows",
+        "rows": [
+          {"step": 1, "lower": 1.2, "upper": 2.7},
+          {"step": 2, "lower": 1.5, "upper": 3.1},
+          {"step": 3, "lower": 2.0, "upper": 3.8},
+          {"step": 4, "lower": 2.4, "upper": 4.2}
+        ]
+      }
+    },
+    {
+      "id": "horizontal-errors",
+      "semantic_type": "estimate.horizontal-errorbar",
+      "title": "Horizontal estimates and intervals",
+      "fields": [
+        {"name": "method", "type": "string", "role": "dimension"},
+        {"name": "estimate", "type": "number", "role": "measure"},
+        {"name": "lower", "type": "number", "role": "uncertainty"},
+        {"name": "upper", "type": "number", "role": "uncertainty"}
+      ],
+      "storage": {
+        "kind": "inline",
+        "format": "rows",
+        "rows": [
+          {"method": "Method A", "estimate": 0.62, "lower": 0.48, "upper": 0.75},
+          {"method": "Method B", "estimate": 0.71, "lower": 0.60, "upper": 0.84},
+          {"method": "Method C", "estimate": 0.56, "lower": 0.41, "upper": 0.68}
+        ]
+      }
+    },
+    {
+      "id": "box-summaries",
+      "semantic_type": "distribution.box-summary",
+      "title": "Five-number distribution summaries",
+      "fields": [
+        {"name": "group", "type": "string", "role": "dimension"},
+        {"name": "q1", "type": "number", "role": "measure"},
+        {"name": "median", "type": "number", "role": "measure"},
+        {"name": "q3", "type": "number", "role": "measure"},
+        {"name": "whisker_low", "type": "number", "role": "measure"},
+        {"name": "whisker_high", "type": "number", "role": "measure"}
+      ],
+      "storage": {
+        "kind": "inline",
+        "format": "rows",
+        "rows": [
+          {"group": "Control", "q1": 2.2, "median": 3.0, "q3": 3.8, "whisker_low": 1.1, "whisker_high": 4.7},
+          {"group": "Treatment", "q1": 3.1, "median": 4.2, "q3": 5.0, "whisker_low": 2.0, "whisker_high": 6.2}
+        ]
+      }
+    },
+    {
+      "id": "polygon-vertices",
+      "semantic_type": "geometry.polygon-vertices",
+      "title": "Ordered polygon vertices",
+      "fields": [
+        {"name": "region", "type": "string", "role": "dimension"},
+        {"name": "vertex_order", "type": "integer", "role": "metadata"},
+        {"name": "x", "type": "number", "role": "measure"},
+        {"name": "y", "type": "number", "role": "measure"}
+      ],
+      "storage": {
+        "kind": "inline",
+        "format": "rows",
+        "rows": [
+          {"region": "candidate", "vertex_order": 1, "x": -2.0, "y": -1.0},
+          {"region": "candidate", "vertex_order": 2, "x": -0.2, "y": -1.4},
+          {"region": "candidate", "vertex_order": 3, "x": -0.5, "y": 0.8},
+          {"region": "candidate", "vertex_order": 4, "x": -2.0, "y": -1.0},
+          {"region": "background", "vertex_order": 1, "x": 0.3, "y": -0.6},
+          {"region": "background", "vertex_order": 2, "x": 2.1, "y": -0.1},
+          {"region": "background", "vertex_order": 3, "x": 1.2, "y": 1.7},
+          {"region": "background", "vertex_order": 4, "x": 0.3, "y": -0.6}
+        ]
+      }
+    },
+    {
+      "id": "continuous-points",
+      "semantic_type": "embedding.scored-points",
+      "title": "Points with a continuous score",
+      "fields": [
+        {"name": "sample_id", "type": "string", "role": "id"},
+        {"name": "x", "type": "number", "role": "measure"},
+        {"name": "y", "type": "number", "role": "measure"},
+        {"name": "score", "type": "number", "role": "measure"}
+      ],
+      "storage": {
+        "kind": "inline",
+        "format": "rows",
+        "rows": [
+          {"sample_id": "sample-1", "x": -1.4, "y": -0.5, "score": 0.12},
+          {"sample_id": "sample-2", "x": -0.6, "y": 0.4, "score": 0.38},
+          {"sample_id": "sample-3", "x": 0.7, "y": 0.9, "score": 0.67},
+          {"sample_id": "sample-4", "x": 1.5, "y": -0.2, "score": 0.91}
+        ]
+      }
+    },
+    {
+      "id": "positive-log-points",
+      "semantic_type": "response.log-scale-points",
+      "title": "Positive values spanning orders of magnitude",
+      "fields": [
+        {"name": "sample_id", "type": "string", "role": "id"},
+        {"name": "magnitude", "type": "number", "role": "measure"},
+        {"name": "response", "type": "number", "role": "measure"},
+        {"name": "score", "type": "number", "role": "measure"}
+      ],
+      "storage": {
+        "kind": "inline",
+        "format": "rows",
+        "rows": [
+          {"sample_id": "sample-1", "magnitude": 1, "response": 0.18, "score": 0.12},
+          {"sample_id": "sample-2", "magnitude": 10, "response": 0.44, "score": 0.38},
+          {"sample_id": "sample-3", "magnitude": 100, "response": 0.73, "score": 0.67},
+          {"sample_id": "sample-4", "magnitude": 1000, "response": 0.88, "score": 0.91}
+        ]
+      }
+    },
+    {
+      "id": "tree-nodes",
+      "semantic_type": "hierarchy.nodes",
+      "title": "Hierarchy nodes",
+      "fields": [
+        {"name": "id", "type": "string", "role": "id"},
+        {"name": "kind", "type": "string", "role": "dimension"}
+      ],
+      "storage": {
+        "kind": "inline",
+        "format": "rows",
+        "rows": [
+          {"id": "root", "kind": "control"},
+          {"id": "left", "kind": "candidate"},
+          {"id": "right", "kind": "background"},
+          {"id": "leaf", "kind": "candidate"}
+        ]
+      }
+    },
+    {
+      "id": "tree-links",
+      "semantic_type": "hierarchy.links",
+      "title": "Hierarchy links",
+      "fields": [
+        {"name": "source", "type": "string", "role": "id"},
+        {"name": "target", "type": "string", "role": "id"}
+      ],
+      "storage": {
+        "kind": "inline",
+        "format": "rows",
+        "rows": [
+          {"source": "root", "target": "left"},
+          {"source": "root", "target": "right"},
+          {"source": "left", "target": "leaf"}
+        ]
+      }
+    },
+    {
+      "id": "flow-nodes",
+      "semantic_type": "workflow.steps",
+      "title": "Ordered workflow steps",
+      "fields": [
+        {"name": "id", "type": "string", "role": "id"},
+        {"name": "label", "type": "string", "role": "label"}
+      ],
+      "storage": {
+        "kind": "inline",
+        "format": "rows",
+        "rows": [
+          {"id": "ingest", "label": "Ingest payload"},
+          {"id": "validate", "label": "Validate contract"},
+          {"id": "render", "label": "Render report"}
+        ]
+      }
+    },
+    {
+      "id": "canvas-embedding",
+      "semantic_type": "embedding.canvas-points",
+      "title": "Parameterised canvas embedding",
+      "fields": [
+        {"name": "space", "type": "string", "role": "metadata"},
+        {"name": "k", "type": "integer", "role": "metadata"},
+        {"name": "x", "type": "number", "role": "measure"},
+        {"name": "y", "type": "number", "role": "measure"},
+        {"name": "class", "type": "string", "role": "dimension"},
+        {"name": "id", "type": "string", "role": "id"}
+      ],
+      "storage": {
+        "kind": "inline",
+        "format": "rows",
+        "rows": [
+          {"space": "original", "k": 2, "x": -2.0, "y": 0.8, "class": "candidate", "id": "object-a"},
+          {"space": "original", "k": 2, "x": 1.7, "y": -0.5, "class": "background", "id": "object-b"},
+          {"space": "original", "k": 3, "x": -1.5, "y": 1.1, "class": "candidate", "id": "object-a"},
+          {"space": "original", "k": 3, "x": 1.2, "y": -0.8, "class": "background", "id": "object-b"},
+          {"space": "pca", "k": 2, "x": -1.2, "y": 0.4, "class": "candidate", "id": "object-a"},
+          {"space": "pca", "k": 2, "x": 0.9, "y": -0.2, "class": "background", "id": "object-b"},
+          {"space": "pca", "k": 3, "x": -0.8, "y": 0.6, "class": "candidate", "id": "object-a"},
+          {"space": "pca", "k": 3, "x": 0.7, "y": -0.4, "class": "background", "id": "object-b"}
+        ]
+      }
+    }
+  ],
+  "sections": [
+    {
+      "id": "capabilities",
+      "number": 1,
+      "title": "Renderer capability coverage",
+      "short_label": "Capabilities",
+      "summary": "Explicit views cover advanced static primitives, hierarchy and flow coordinates, log and continuous scales, and declarative interactions.",
+      "figure_ids": ["renderer-capability-figure"],
+      "initial_state": "open"
+    }
+  ],
+  "figures": [
+    {
+      "id": "renderer-capability-figure",
+      "title": "Renderer capability matrix",
+      "caption": "This fixture is renderer coverage, not a scientific result.",
+      "recipe": "generic.figure@1",
+      "layout": {
+        "type": "grid",
+        "columns": 3,
+        "rows": 4,
+        "gap": 16
+      },
+      "scales": [
+        {
+          "id": "positive-log-x",
+          "type": "log",
+          "domain": [1, 1000],
+          "title": "Positive magnitude"
+        },
+        {
+          "id": "continuous-score",
+          "type": "linear",
+          "domain": [0, 1],
+          "range": ["#DCEAF7", "#1D4E89"],
+          "scheme": "sequential",
+          "title": "Score"
+        }
+      ],
+      "panels": [
+        {
+          "id": "stacked-bars",
+          "title": "Horizontal stacked intervals",
+          "data_ref": "stacked-intervals",
+          "coordinate": {"type": "cartesian"},
+          "layers": [
+            {
+              "id": "stacked-segments",
+              "mark": {"type": "bar", "orient": "horizontal", "opacity": 0.9},
+              "encoding": {
+                "x": {"field": "interval_end", "type": "quantitative", "axis": {"title": "Precomputed cumulative value", "grid": true}},
+                "x2": {"field": "interval_start", "type": "quantitative"},
+                "y": {"field": "category", "type": "nominal", "axis": {"title": "Category"}},
+                "color": {"field": "segment", "type": "nominal", "scale_role": "semantic", "legend": {"title": "Segment"}},
+                "group": {"field": "segment", "type": "nominal"}
+              }
+            }
+          ]
+        },
+        {
+          "id": "horizontal-band",
+          "title": "Horizontal uncertainty band",
+          "data_ref": "horizontal-bounds",
+          "coordinate": {"type": "cartesian"},
+          "layers": [
+            {
+              "id": "horizontal-envelope",
+              "mark": {"type": "band", "orient": "horizontal", "role": "uncertainty", "opacity": 0.22},
+              "encoding": {
+                "x": {"field": "lower", "type": "quantitative", "axis": {"title": "Interval", "grid": true}},
+                "x2": {"field": "upper", "type": "quantitative"},
+                "y": {"field": "step", "type": "ordinal", "axis": {"title": "Step", "format": "integer"}},
+                "color": {"value": "control", "type": "nominal", "scale_role": "semantic"}
+              }
+            }
+          ]
+        },
+        {
+          "id": "horizontal-errorbar",
+          "title": "Horizontal error bars",
+          "data_ref": "horizontal-errors",
+          "coordinate": {"type": "cartesian"},
+          "layers": [
+            {
+              "id": "horizontal-estimates",
+              "mark": {"type": "errorbar", "orient": "horizontal", "stroke_width": 2},
+              "encoding": {
+                "x": {"field": "estimate", "type": "quantitative", "axis": {"title": "Estimate", "grid": true}},
+                "x_lower": {"field": "lower", "type": "quantitative"},
+                "x_upper": {"field": "upper", "type": "quantitative"},
+                "y": {"field": "method", "type": "nominal", "axis": {"title": "Method"}},
+                "color": {"value": "treatment", "type": "nominal", "scale_role": "semantic"}
+              }
+            }
+          ]
+        },
+        {
+          "id": "boxplot-panel",
+          "title": "Box summary",
+          "data_ref": "box-summaries",
+          "coordinate": {"type": "cartesian"},
+          "layers": [
+            {
+              "id": "box-summaries-layer",
+              "mark": {"type": "boxplot", "opacity": 0.6},
+              "encoding": {
+                "x": {"field": "group", "type": "nominal", "axis": {"title": "Group"}},
+                "q1": {"field": "q1", "type": "quantitative"},
+                "q3": {"field": "q3", "type": "quantitative"},
+                "median": {"field": "median", "type": "quantitative"},
+                "whisker_low": {"field": "whisker_low", "type": "quantitative"},
+                "whisker_high": {"field": "whisker_high", "type": "quantitative"},
+                "color": {"field": "group", "type": "nominal", "scale_role": "semantic", "legend": false}
+              }
+            }
+          ]
+        },
+        {
+          "id": "polygon-panel",
+          "title": "Polygon regions",
+          "data_ref": "polygon-vertices",
+          "coordinate": {"type": "cartesian"},
+          "layers": [
+            {
+              "id": "regions",
+              "mark": {"type": "polygon", "opacity": 0.24, "stroke_width": 1.5},
+              "encoding": {
+                "x": {"field": "x", "type": "quantitative", "axis": {"title": "X", "grid": true}},
+                "y": {"field": "y", "type": "quantitative", "axis": {"title": "Y", "grid": true}},
+                "group": {"field": "region", "type": "nominal"},
+                "color": {"field": "region", "type": "nominal", "scale_role": "semantic", "legend": {"title": "Region"}}
+              }
+            }
+          ]
+        },
+        {
+          "id": "continuous-scatter",
+          "title": "Continuous-colour points",
+          "data_ref": "continuous-points",
+          "coordinate": {"type": "cartesian"},
+          "layers": [
+            {
+              "id": "scatter-points",
+              "mark": {"type": "point", "point_size": 42, "opacity": 0.85},
+              "encoding": {
+                "x": {"field": "x", "type": "quantitative", "axis": {"title": "X", "grid": true}},
+                "y": {"field": "y", "type": "quantitative", "axis": {"title": "Y", "grid": true}},
+                "color": {"field": "score", "type": "quantitative", "scale_id": "continuous-score", "scale_role": "continuous", "legend": {"title": "Score"}},
+                "tooltip": {"field": "sample_id", "type": "nominal", "title": "Sample"}
+              }
+            }
+          ]
+        },
+        {
+          "id": "log-scale",
+          "title": "Logarithmic shared scale",
+          "data_ref": "positive-log-points",
+          "coordinate": {"type": "cartesian"},
+          "layers": [
+            {
+              "id": "log-points",
+              "mark": {"type": "point", "point_size": 36, "opacity": 0.82},
+              "encoding": {
+                "x": {"field": "magnitude", "type": "quantitative", "scale_id": "positive-log-x", "axis": {"title": "Magnitude (log10)", "grid": true}},
+                "y": {"field": "response", "type": "quantitative", "axis": {"title": "Response", "grid": true}},
+                "color": {"field": "score", "type": "quantitative", "scale_id": "continuous-score", "scale_role": "continuous", "legend": {"title": "Score"}},
+                "tooltip": {"field": "sample_id", "type": "nominal", "title": "Sample"}
+              }
+            }
+          ]
+        },
+        {
+          "id": "tree-panel",
+          "title": "Tree nodes and links",
+          "type": "tree",
+          "data_ref": "tree-nodes",
+          "coordinate": {"type": "tree"},
+          "layers": [
+            {
+              "id": "tree-links-layer",
+              "data_ref": "tree-links",
+              "mark": {"type": "link", "stroke_width": 1.5},
+              "encoding": {
+                "from": {"field": "source", "type": "nominal"},
+                "to": {"field": "target", "type": "nominal"}
+              }
+            },
+            {
+              "id": "tree-nodes-layer",
+              "mark": {"type": "node", "opacity": 0.82},
+              "encoding": {
+                "key": {"field": "id", "type": "nominal"},
+                "color": {"field": "kind", "type": "nominal", "scale_role": "semantic", "legend": {"title": "Node kind"}}
+              }
+            }
+          ]
+        },
+        {
+          "id": "flow-panel",
+          "title": "Flow nodes",
+          "type": "diagram",
+          "data_ref": "flow-nodes",
+          "coordinate": {"type": "flow"},
+          "layers": [
+            {
+              "id": "flow-nodes-layer",
+              "mark": {"type": "node"},
+              "encoding": {
+                "key": {"field": "id", "type": "nominal"},
+                "text": {"field": "label", "type": "nominal"}
+              }
+            }
+          ]
+        },
+        {
+          "id": "canvas-panel",
+          "title": "Interactive Canvas embedding",
+          "data_ref": "canvas-embedding",
+          "coordinate": {"type": "canvas"},
+          "layers": [
+            {
+              "id": "canvas-points",
+              "mark": {"type": "point", "point_size": 18, "opacity": 0.78},
+              "encoding": {
+                "x": {"field": "x", "type": "quantitative"},
+                "y": {"field": "y", "type": "quantitative"},
+                "color": {"field": "class", "type": "nominal", "scale_role": "semantic"},
+                "tooltip": {"field": "id", "type": "nominal", "title": "Object"}
+              }
+            }
+          ]
+        }
+      ],
+      "interactions": [
+        {
+          "id": "stacked-scenario",
+          "type": "parameter",
+          "parameter": "scenario",
+          "control": "select",
+          "label": "Scenario",
+          "options": ["baseline", "stress"],
+          "default": "baseline",
+          "targets": ["stacked-bars/stacked-segments"]
+        },
+        {
+          "id": "scatter-hover",
+          "type": "hover",
+          "targets": ["continuous-scatter/scatter-points"]
+        },
+        {
+          "id": "cross-panel-highlight",
+          "type": "linked_highlight",
+          "targets": ["continuous-scatter/scatter-points", "log-scale/log-points"],
+          "fields": ["sample_id"]
+        },
+        {
+          "id": "canvas-space",
+          "type": "parameter",
+          "parameter": "space",
+          "control": "select",
+          "label": "Embedding space",
+          "options": ["original", "pca"],
+          "default": "pca",
+          "targets": ["canvas-panel/canvas-points"]
+        },
+        {
+          "id": "canvas-k",
+          "type": "parameter",
+          "parameter": "k",
+          "control": "range",
+          "label": "Neighbour count",
+          "minimum": 2,
+          "maximum": 3,
+          "step": 1,
+          "default": 3,
+          "targets": ["canvas-panel/canvas-points"]
+        },
+        {
+          "id": "canvas-tooltip",
+          "type": "tooltip",
+          "targets": ["canvas-panel/canvas-points"],
+          "fields": ["id", "class", "space", "k"],
+          "mode": "nearest"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+/* Presentation only: every line uses the saved observations or saved forecast. */
+const cv=document.getElementById('storyPlot'),slider=document.getElementById('progress'),action=document.getElementById('action');
+const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+const state={progress:D.kind==='forecast'?0:1,mode:'time',playing:false,anchor:D.anchor};let raf=0,start=0,from=0;
+const $=id=>document.getElementById(id),color=x=>PC.css(x);
+function stop(){state.playing=false;cancelAnimationFrame(raf);action.textContent=D.kind==='forecast'?(state.progress===1?'Replay the reveal':'Reveal what really happened'):'Play both discharges';action.setAttribute('aria-pressed','false')}
+function play(){if(state.playing){stop();return}if(reduced.matches){state.progress=1;render();return}if(state.progress>=1)state.progress=0;from=state.progress;start=performance.now();state.playing=true;action.textContent='Pause';action.setAttribute('aria-pressed','true');function tick(now){state.progress=Math.min(1,from+(now-start)/6000);render();if(state.progress<1)raf=requestAnimationFrame(tick);else stop()}raf=requestAnimationFrame(tick)}
+action.addEventListener('click',play);slider.addEventListener('input',()=>{stop();state.progress=Number(slider.value)/1000;render()});
+if($('reset'))$('reset').addEventListener('click',()=>{stop();state.progress=0;setAnchor(D.anchor)});
+if($('timeMode'))for(const mode of ['time','shape'])$(mode+'Mode').addEventListener('click',()=>{stop();state.mode=mode;state.progress=1;render()});
+reduced.addEventListener('change',()=>{if(reduced.matches)stop()});document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});
+
+let dragFrame=null,dragPointer=null;
+const startSlider=$('anchorStart');
+function setAnchor(value){
+ stop();const anchor=D.anchors.reduce((best,a)=>Math.abs(a-value)<Math.abs(best-value)?a:best,D.anchors[0]);state.anchor=anchor;
+ startSlider.value=D.anchors.indexOf(anchor);startSlider.setAttribute('aria-valuetext','Predict after cycle '+anchor);$('anchorValue').value=anchor;
+ $('tableStart').textContent='Forecast starts after cycle '+anchor+'.';
+ $('forecastData').tBodies[0].innerHTML=D.truth.map((v,i)=>'<tr><td>'+(i+1)+'</td><td>'+v+'</td><td>'+(i>=anchor?D.rollouts[String(anchor)][i-anchor]:'—')+'</td></tr>').join('');
+ render();
+}
+startSlider.max=D.anchors.length-1;startSlider.addEventListener('input',()=>setAnchor(D.anchors[Number(startSlider.value)]));
+function position(event){const r=cv.getBoundingClientRect();return {x:(event.clientX-r.left)*dragFrame.width/r.width,y:event.clientY-r.top}}
+cv.addEventListener('pointerdown',event=>{if(!dragFrame||event.button!==0)return;const p=position(event);if(Math.abs(p.x-dragFrame.anchorX)>24||p.y<dragFrame.top-14||p.y>dragFrame.bottom+14)return;event.preventDefault();stop();dragPointer=event.pointerId;cv.setPointerCapture(event.pointerId);cv.style.cursor='ew-resize'});
+cv.addEventListener('pointermove',event=>{if(!dragFrame)return;const p=position(event);if(dragPointer===event.pointerId){event.preventDefault();setAnchor(1+(p.x-dragFrame.left)/(dragFrame.right-dragFrame.left)*(D.truth.length-1))}else cv.style.cursor=Math.abs(p.x-dragFrame.anchorX)<24?'ew-resize':''});
+function endDrag(event){if(dragPointer!==event.pointerId)return;dragPointer=null;if(cv.hasPointerCapture(event.pointerId))cv.releasePointerCapture(event.pointerId);cv.style.cursor=''}
+cv.addEventListener('pointerup',endDrag);cv.addEventListener('pointercancel',endDrag);cv.addEventListener('lostpointercapture',()=>{dragPointer=null;cv.style.cursor=''});
+
+function frame(xd,yd,xlabel,ylabel,xticks,yticks){
+ const w=cv.clientWidth,h=w<600?320:410;cv.style.height=h+'px';const g=PC.fit(cv,w,h),p={l:w<600?48:62,r:20,t:42,b:48},x=v=>p.l+(v-xd[0])/(xd[1]-xd[0])*(w-p.l-p.r),y=v=>h-p.b-(v-yd[0])/(yd[1]-yd[0])*(h-p.t-p.b);
+ g.clearRect(0,0,w,h);g.font='12px '+PC.font.family();g.textBaseline='middle';g.lineWidth=1;
+ yticks.forEach(v=>{g.strokeStyle=color('--grid');g.beginPath();g.moveTo(p.l,y(v));g.lineTo(w-p.r,y(v));g.stroke();g.fillStyle=color('--muted');g.textAlign='right';g.fillText(D.kind==='forecast'?v+'%':v.toFixed(1),p.l-9,y(v))});
+ xticks.forEach(v=>{g.fillStyle=color('--muted');g.textAlign='center';g.fillText(String(v)+(state.mode==='shape'&&D.kind==='shape'?'%':''),x(v),h-p.b+18)});
+ g.fillStyle=color('--text-secondary');g.textAlign='left';g.font='600 12px '+PC.font.family();g.fillText(ylabel,p.l,14);g.textAlign='center';g.fillText(xlabel,p.l+(w-p.l-p.r)/2,h-8);
+ return {g,w,h,p,x,y};
+}
+function line(f,points,token,width=2.3){const {g,x,y}=f;if(!points.length)return;g.strokeStyle=color(token);g.lineWidth=width;g.lineJoin='round';g.beginPath();points.forEach((a,i)=>g[i?'lineTo':'moveTo'](x(a[0]),y(a[1])));g.stroke()}
+function dot(f,point,token){const{g,x,y}=f;g.fillStyle=color(token);g.beginPath();g.arc(x(point[0]),y(point[1]),4,0,Math.PI*2);g.fill()}
+function partial(points,end){const result=points.filter(p=>p[0]<=end);if(result.length&&result.length<points.length){const a=result[result.length-1],b=points[result.length],u=(end-a[0])/(b[0]-a[0]);result.push([end,a[1]+u*(b[1]-a[1])])}return result}
+function forecast(){
+ const a=state.anchor,prediction=D.rollouts[String(a)],n=D.truth.length,until=Math.round(a+state.progress*(n-a)),f=frame([1,n],[0,105],'Charge–discharge cycles','Capacity left',[1,300,600,900],[0,25,50,75,100]),{g,x,y,h,p,w}=f;
+ g.fillStyle=color('--accent-soft');g.fillRect(x(a),p.t,w-p.r-x(a),h-p.t-p.b);
+ g.fillStyle=color('--muted');g.textAlign='center';g.font='12px '+PC.font.family();if(x(a)-x(1)>65)g.fillText(w<600?'Seen':'Measured history',(x(1)+x(a))/2,p.t-12);if(x(n)-x(a)>90)g.fillText(w<600?'Predicting ahead':'Predicting ahead',(x(a)+x(n))/2,p.t-12);
+ line(f,D.truth.slice(0,a).map((v,i)=>[i+1,v*100]),'--text-primary');line(f,prediction.map((v,i)=>[a+1+i,v*100]),'--series-1',2.8);
+ if(until>a){const actual=D.truth.slice(a-1,until).map((v,i)=>[a+i,v*100]);line(f,actual,'--text-primary',2);dot(f,actual.at(-1),'--text-primary')}
+ g.strokeStyle=color('--axis');g.setLineDash([4,5]);g.beginPath();g.moveTo(x(a),p.t);g.lineTo(x(a),h-p.b);g.stroke();g.setLineDash([]);g.fillStyle=color('--series-1');g.beginPath();g.arc(x(a),p.t,8,0,Math.PI*2);g.fill();g.strokeStyle=color('--stage-ink');g.lineWidth=1.5;g.beginPath();g.moveTo(x(a)-3,p.t-3);g.lineTo(x(a)-3,p.t+3);g.moveTo(x(a)+3,p.t-3);g.lineTo(x(a)+3,p.t+3);g.stroke();dragFrame={left:p.l,right:w-p.r,width:w,anchorX:x(a),top:p.t,bottom:h-p.b};
+ $('sceneLabel').textContent=state.progress===0?'The blue forecast is ready. The real future is hidden.':state.progress<1?'Revealing real measurements through cycle '+until+'…':'The real future is revealed. Compare black with blue.';
+ $('progressLabel').textContent=state.progress===0?'Future hidden':'Through cycle '+until;
+ let biggest=0,index=0;prediction.slice(0,Math.max(0,until-a)).forEach((v,i)=>{const gap=Math.abs(v-D.truth[a+i]);if(gap>biggest){biggest=gap;index=i}});
+ if(state.progress===0)$('takeaway').textContent='The black line is what we let the computer see. The blue line is its guess about the rest of this battery’s life. Reveal the measurements to test that guess.';
+ else if(biggest>.04){const cycle=a+index+1,guess=Math.round(prediction[index]*100),real=Math.round(D.truth[a+index]*100);$('takeaway').textContent='By cycle '+cycle+', the computer predicts '+guess+'% of reference capacity, but the real battery has '+real+'%. '+(prediction[index]>D.truth[a+index]?'The battery loses capacity faster than this forecast expects.':'The forecast expects more capacity loss than the battery actually shows.');g.strokeStyle=color('--series-2');g.lineWidth=2;g.beginPath();g.moveTo(x(cycle),y(guess));g.lineTo(x(cycle),y(real));g.stroke()}
+ else $('takeaway').textContent=state.progress===1?'For this start point, the forecast stays fairly close over the remaining recorded cycles. Try an earlier start to compare a longer forecast.':'So far, the prediction and the real battery stay fairly close. Keep revealing the measurements to see whether that continues.';
+}
+function shape(){
+ const normal=state.mode==='shape',maxTime=Math.max(...D.curves.map(c=>c.duration_min)),end=state.progress*(normal?100:maxTime),f=frame([0,normal?100:60],[2.6,4.15],normal?'Progress through each discharge':'Minutes since discharge began','Voltage (V)',normal?[0,50,100]:[0,20,40,60],[2.7,3.2,3.7,4.1]);
+ D.curves.forEach((c,i)=>{const pts=c.points.map(([t,v])=>[normal?t/c.duration_min*100:t,v]),shown=partial(pts,end),token='--series-'+(i+1);line(f,shown,token,2.8);if(shown.length)dot(f,shown.at(-1),token)});
+ const {g,x,y,p,h,w}=f;g.fillStyle=color('--muted');g.font='12px '+PC.font.family();g.textAlign='right';g.fillText(normal?(w<600?'Same width; same voltage scale':'Same width; voltage unchanged'):(w<600?'Same test current':'Both tested at the same discharge current'),w-20,31);
+ if(!normal&&state.progress>=.72){D.curves.forEach((c,i)=>{if(end<c.duration_min)return;g.strokeStyle=color('--series-'+(i+1));g.setLineDash([3,5]);g.beginPath();g.moveTo(x(c.duration_min),y(2.7));g.lineTo(x(c.duration_min),p.t+24);g.stroke();g.setLineDash([]);g.fillStyle=color('--series-'+(i+1));g.textAlign='center';g.fillText(Math.round(c.duration_min)+' min',x(c.duration_min),p.t+12)})}
+ $('timeMode').setAttribute('aria-pressed',String(!normal));$('shapeMode').setAttribute('aria-pressed',String(normal));
+ $('progressLabel').textContent=normal?Math.round(state.progress*100)+'% through each run':Math.round(end)+' minutes elapsed';
+ $('takeaway').textContent=normal?'Both runs now have the same width, but the blue and orange lines still do not fully overlap. The difference is not just a shorter running time: the voltage curve changes shape too.':end>D.curves[1].duration_min&&end<D.curves[0].duration_min?'The older run has already ended. The younger battery is still supplying current.':'The orange line reaches the end first: the older battery cannot run for as long. Now try “Match their durations”.';
+}
+function render(){if(!state.playing)action.textContent=D.kind==='forecast'?(state.progress===1?'Replay the reveal':'Reveal what really happened'):'Play both discharges';slider.value=Math.round(state.progress*1000);if(D.kind==='forecast')forecast();else shape()}
+PC.registerRepaint(render);setAnchor(D.anchor);PC.repaint('initial',document);
+
+// Keep a drag attached to its slider, including when the pointer leaves the track.
+// Native keyboard behaviour remains available. Freeze track geometry during a drag:
+// changing playback labels must not change the value under the pointer.
+function bindStableRange(input){
+ let drag=null;
+ function update(event){
+  if(!drag||event.pointerId!==drag.id)return;
+  const min=Number(input.min)||0,max=Number(input.max)||100,step=Number(input.step)||1;
+  const raw=min+Math.max(0,Math.min(1,(event.clientX-drag.left-drag.offset)/drag.width))*(max-min);
+  const value=Math.max(min,Math.min(max,min+Math.round((raw-min)/step)*step));
+  if(Number(input.value)!==value){input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));}
+ }
+ input.style.touchAction='none';
+ input.addEventListener('pointerdown',event=>{
+  if(event.button!==0||drag)return;
+  const rect=input.getBoundingClientRect(),left=rect.left+8,width=Math.max(1,rect.width-16);
+  const min=Number(input.min)||0,max=Number(input.max)||100;
+  const thumb=left+(Number(input.value)-min)/(max-min)*width;
+  drag={id:event.pointerId,left,width,offset:Math.abs(event.clientX-thumb)<=12?event.clientX-thumb:0};
+  event.preventDefault();stop();input.focus({preventScroll:true});input.setPointerCapture(event.pointerId);update(event);
+ });
+ input.addEventListener('pointermove',event=>{if(drag&&event.pointerId===drag.id){event.preventDefault();update(event)}});
+ function finish(event){
+  if(!drag||event.pointerId!==drag.id)return;
+  if(event.type==='pointerup')update(event);
+  drag=null;if(input.hasPointerCapture(event.pointerId))input.releasePointerCapture(event.pointerId);
+  input.dispatchEvent(new Event('change',{bubbles:true}));
+ }
+ input.addEventListener('pointerup',finish);input.addEventListener('pointercancel',finish);
+ input.addEventListener('lostpointercapture',()=>{drag=null});
+ input.addEventListener('keydown',stop);
+}
+document.querySelectorAll('input[type="range"]').forEach(bindStableRange);

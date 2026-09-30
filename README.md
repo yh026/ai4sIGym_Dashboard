@@ -19,6 +19,27 @@ Drive folder ──▶ Apps Script (sync + JSON feed) ──▶ this build ─�
               registry sheet (Draft / Live / Archived + metadata)
 ```
 
+## Development baseline and local tools
+
+The [2026-09-15 baseline record](docs/baseline-2026-09-15.md) identifies the
+verified Production commit and the local development snapshot before the
+Key Findings page work. The deployment stories below retain their original
+release context; use the dated baseline record for that checkpoint.
+
+The optional [Payload dashboard kit](payload-dashboard-kit/README.md) creates
+standalone HTML reports from versioned JSON packages and verified data
+sidecars. It requires Node.js 24 and no package installation:
+
+```sh
+npm run render:payload -- \
+  --input payload-dashboard-kit/examples/generic-manufacturing/payload.json \
+  --output local-content/manufacturing.html
+```
+
+Source packages and tests are versioned. Generated reports and delivery ZIPs
+are local artifacts. Run `npm test` to check both the Registry website and the
+payload tool; tests generate their HTML in temporary directories.
+
 ## One-time setup (~20 min)
 
 ### A. Deploy the Registry v2 Apps Script as a web app
@@ -254,6 +275,15 @@ first round. When **Card Image** is blank, the build reuses the matching
 quiet pending state rather than a generic science emblem.
 
 ## Local preview
+For the current downloaded collection and the V2 authoring workspace, see
+[the local content workflow](docs/local-content-workflow.md). Run
+`npm run content:verify`, `npm run content:build`, then `npm run content:preview`
+to open the actual website homepage at `http://127.0.0.1:4173/`. Local builds show
+Live projects by default; add `-- --include-drafts` to `content:build` to include
+Drafts. Downloaded content and the generated local site stay outside Git. The
+TBB V2 package, when present, adds its Key Findings → Dataset / Workflow flow only
+to the local site. Netlify continues to build and publish `dist/`.
+
 Use Node.js 24 or newer. `node build.js --mock` builds from `fixtures/` into `dist/` with no network —
 open `dist/index.html` in a browser. With `REGISTRY_URL` exported in your
 shell, plain `node build.js` builds from the real registry.

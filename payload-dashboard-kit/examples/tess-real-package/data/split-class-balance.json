@@ -1,0 +1,30 @@
+[
+  {
+    "class": "Planet",
+    "count": 725,
+    "interval_end": 725.0,
+    "interval_start": 0.0,
+    "split": "Train (n=1,567)"
+  },
+  {
+    "class": "False positive",
+    "count": 842,
+    "interval_end": 1567.0,
+    "interval_start": 725.0,
+    "split": "Train (n=1,567)"
+  },
+  {
+    "class": "Planet",
+    "count": 308,
+    "interval_end": 308.0,
+    "interval_start": 0.0,
+    "split": "Test (n=672)"
+  },
+  {
+    "class": "False positive",
+    "count": 364,
+    "interval_end": 672.0,
+    "interval_start": 308.0,
+    "split": "Test (n=672)"
+  }
+]

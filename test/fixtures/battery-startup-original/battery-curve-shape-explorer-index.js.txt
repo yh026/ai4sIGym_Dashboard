@@ -1,0 +1,99 @@
+/* Reuses original pooled PC1–PC2 coordinates. No fit or age prediction runs here. */
+const $=id=>document.getElementById(id),css=name=>PC.css(name),reduced=matchMedia('(prefers-reduced-motion: reduce)');
+const bytes=Uint8Array.from(atob(D.z_b64),c=>c.charCodeAt(0)),Z=new Int8Array(bytes.buffer);
+const state={cell:D.cells[0],index:Math.floor(D.records[D.cells[0]].rows.length/2),revealed:false,revealAmount:0,playing:false};
+let timer=0,revealFrame=0,orderHits=[];
+const records=()=>D.records[state.cell].rows,current=()=>records()[state.index];
+function stop(){clearInterval(timer);state.playing=false;$('play').textContent=state.revealed?'Play through cycles':'Reveal & play cycles';$('play').setAttribute('aria-pressed','false')}
+function setReveal(show){
+ cancelAnimationFrame(revealFrame);state.revealed=show;$('reveal').setAttribute('aria-pressed',String(show));$('reveal').textContent=show?'Hide the cycle numbers':'Reveal the true cycle numbers';
+ if(!show||reduced.matches){state.revealAmount=show?1:0;render();return}
+ const began=performance.now(),from=state.revealAmount;function step(now){state.revealAmount=Math.min(1,from+(now-began)/650);render();if(state.revealAmount<1)revealFrame=requestAnimationFrame(step)}revealFrame=requestAnimationFrame(step);render();
+}
+$('reveal').addEventListener('click',()=>{stop();setReveal(!state.revealed)});
+$('cellPick').addEventListener('change',()=>{stop();const fraction=state.index/(records().length-1);state.cell=$('cellPick').value;state.index=Math.round(fraction*(records().length-1));render()});
+$('rankSlider').addEventListener('input',()=>{stop();state.index=Number($('rankSlider').value);render()});
+$('play').addEventListener('click',()=>{
+ if(state.playing){stop();return}setReveal(true);if(reduced.matches){state.index=Math.floor(records().length/2);render();return}
+ state.index=0;state.playing=true;$('play').textContent='Pause';$('play').setAttribute('aria-pressed','true');render();
+ const jumps=[...new Set(Array.from({length:40},(_,i)=>Math.round(i*(records().length-1)/39)))];let step=0;
+ timer=setInterval(()=>{step++;if(step>=jumps.length){stop();return}state.index=jumps[step];render()},200);
+});
+reduced.addEventListener('change',()=>{if(reduced.matches){stop();cancelAnimationFrame(revealFrame);state.revealAmount=state.revealed?1:0;render()}});document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});
+function chart(id,xd,yd,xticks,yticks,xlabel,ylabel){
+ const cv=$(id),w=cv.clientWidth,h=w<400?280:340;cv.style.height=h+'px';const g=PC.fit(cv,w,h),pad={l:46,r:15,t:35,b:46};
+ const x=v=>pad.l+(v-xd[0])/(xd[1]-xd[0])*(w-pad.l-pad.r),y=v=>h-pad.b-(v-yd[0])/(yd[1]-yd[0])*(h-pad.t-pad.b);
+ g.clearRect(0,0,w,h);g.font='11px '+PC.font.family();g.textBaseline='middle';g.lineWidth=1;
+ yticks.forEach(([v,label])=>{g.strokeStyle=css('--grid');g.beginPath();g.moveTo(pad.l,y(v));g.lineTo(w-pad.r,y(v));g.stroke();g.fillStyle=css('--muted');g.textAlign='right';g.fillText(label,pad.l-8,y(v))});
+ xticks.forEach(([v,label])=>{g.fillStyle=css('--muted');g.textAlign='center';g.fillText(label,x(v),h-pad.b+17)});
+ g.fillStyle=css('--text-secondary');g.font='600 11px '+PC.font.family();g.textAlign='left';g.fillText(ylabel,pad.l,12);g.textAlign='center';g.fillText(xlabel,pad.l+(w-pad.l-pad.r)/2,h-7);return{cv,g,w,h,pad,x,y};
+}
+function trace(f,row,token,alpha=1){const {g,x,y}=f;g.strokeStyle=css(token);g.lineWidth=2.3;g.globalAlpha=alpha;for(const start of [0,D.seam]){g.beginPath();for(let j=start;j<start+D.seam;j++){const v=Z[row*D.columns+j]/D.z_scale;g[j===start?'moveTo':'lineTo'](x(j),y(v))}g.stroke()}g.globalAlpha=1}
+function drawShape(){
+ const r=current(),f=chart('shapePlot',[0,D.columns-1],[-D.clip-.1,D.clip+.1],[[0,'Start'],[D.seam-1,'End'],[D.seam,''],[D.columns-1,'End']],[[-4,'−4'],[-2,'−2'],[0,'0'],[2,'2'],[4,'4']],'Progress through each half-cycle','Relative voltage (unitless)'),{g,x,pad,h}=f;
+ g.font='11px '+PC.font.family();g.textAlign='center';g.fillStyle=css('--muted');g.fillText('Charging',x((D.seam-1)/2),28);g.fillText('Discharging',x((D.seam+D.columns-1)/2),28);
+ g.setLineDash([3,5]);g.strokeStyle=css('--axis');g.beginPath();g.moveTo(x(D.seam-.5),pad.t);g.lineTo(x(D.seam-.5),h-pad.b);g.stroke();g.setLineDash([]);trace(f,r.row,'--series-1');
+ $('curveNote').textContent=state.revealed?state.cell+' · actual cycle '+r.cycle+' · selected PCA point':state.cell+' · selected curve · actual cycle hidden';
+}
+// Fixed multihue sequential scale: early purple → teal → late yellow.
+// Shared by points and legend in both themes.
+function cycleColour(t){
+ const stops=[[68,1,84],[59,82,139],[33,145,140],[94,201,98],[253,231,37]];
+ const q=Math.max(0,Math.min(1,t))*4,i=Math.min(3,Math.floor(q)),f=q-i;
+ return 'rgb('+stops[i].map((v,k)=>Math.round(v+(stops[i+1][k]-v)*f)).join(',')+')';
+}
+function drawOrder(){
+ const domains=D.domains.map(([lo,hi])=>[lo-(hi-lo)*.05,hi+(hi-lo)*.05]);
+ const ticks=([lo,hi])=>Array.from({length:5},(_,i)=>{const v=lo+(hi-lo)*i/4;return[v,v.toFixed(0)]});
+ const f=chart('orderPlot',domains[0],domains[1],ticks(domains[0]),ticks(domains[1]),'PC1 · '+(D.evr[0]*100).toFixed(1)+'% of shape variation','PC2 · '+(D.evr[1]*100).toFixed(1)+'%'),{g,x,y,w}=f;
+ const ramp=cycleColour;orderHits=[];$('ageLegend').hidden=!state.revealed;$('ageRamp').style.background='linear-gradient(to right,'+[0,.25,.5,.75,1].map(v=>ramp(v)).join(',')+')';
+ // Other cells retain the full original map as quiet context; no point is moved or ranked.
+ D.cells.filter(c=>c!==state.cell).forEach(c=>D.records[c].rows.forEach(r=>{g.fillStyle=css('--muted');g.globalAlpha=.13;g.beginPath();g.arc(x(r.pc1),y(r.pc2),2,0,Math.PI*2);g.fill()}));
+ records().forEach((r,i)=>{const px=x(r.pc1),py=y(r.pc2);g.fillStyle=state.revealed?ramp(r.cycle/D.max_cycle):css('--series-1');g.globalAlpha=.9;g.beginPath();g.arc(px,py,w<400?2.3:2.8,0,Math.PI*2);g.fill();orderHits.push({x:px,y:py,i})});g.globalAlpha=1;
+ const hit=orderHits[state.index];g.strokeStyle=css('--text-primary');g.lineWidth=2;g.beginPath();g.arc(hit.x,hit.y,6,0,Math.PI*2);g.stroke();
+ $('colourNote').textContent=state.revealed?'Colour = actual cycle number, early to late. Look for regions of similar colour. Faint grey points are the other batteries.':'Positions come only from curve shape. Reveal cycle colours to check whether earlier and later cycles occupy different regions. Faint grey points are the other batteries.';
+}
+$('orderPlot').addEventListener('click',event=>{const r=$('orderPlot').getBoundingClientRect(),px=event.clientX-r.left,py=event.clientY-r.top;let best=null,d=25**2;for(const h of orderHits){const dist=(h.x-px)**2+(h.y-py)**2;if(dist<d){best=h;d=dist}}if(best){stop();state.index=best.i;render()}});
+function render(){
+ const rs=records(),record=current();$('rankSlider').max=rs.length-1;$('rankSlider').value=state.index;$('rankSlider').setAttribute('aria-valuetext','Sample '+(state.index+1)+' of '+rs.length+(state.revealed?', actual cycle '+record.cycle:', cycle number hidden'));
+ $('selectedNote').textContent='Sample '+(state.index+1)+' / '+rs.length;
+ $('trainingNote').textContent='Original PCA fitted on all four batteries · highlighting '+state.cell;
+ $('observation').textContent=!state.revealed?'The map summarises differences in curve shape. Reveal the actual cycle colours; the PCA positions stay exactly the same.':state.cell==='CS2_38'?'Early and late colours overlap in parts of CS2_38’s map. Shape changes include a reversible episode, so position cannot uniquely identify battery age.':'Earlier and later cycles tend to occupy different parts of the map. PCA found these shape differences without using cycle numbers; the colours make their association with ageing visible.';
+ if(!state.playing)$('play').textContent=state.revealed?'Play through cycles':'Reveal & play cycles';
+ drawShape();drawOrder();
+}
+PC.registerRepaint(render);PC.repaint('initial',document);
+
+// Keep a drag attached to its slider, including when the pointer leaves the track.
+// Native keyboard behaviour remains available. Freeze track geometry during a drag:
+// changing playback labels must not change the value under the pointer.
+function bindStableRange(input){
+ let drag=null;
+ function update(event){
+  if(!drag||event.pointerId!==drag.id)return;
+  const min=Number(input.min)||0,max=Number(input.max)||100,step=Number(input.step)||1;
+  const raw=min+Math.max(0,Math.min(1,(event.clientX-drag.left-drag.offset)/drag.width))*(max-min);
+  const value=Math.max(min,Math.min(max,min+Math.round((raw-min)/step)*step));
+  if(Number(input.value)!==value){input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));}
+ }
+ input.style.touchAction='none';
+ input.addEventListener('pointerdown',event=>{
+  if(event.button!==0||drag)return;
+  const rect=input.getBoundingClientRect(),left=rect.left+8,width=Math.max(1,rect.width-16);
+  const min=Number(input.min)||0,max=Number(input.max)||100;
+  const thumb=left+(Number(input.value)-min)/(max-min)*width;
+  drag={id:event.pointerId,left,width,offset:Math.abs(event.clientX-thumb)<=12?event.clientX-thumb:0};
+  event.preventDefault();stop();input.focus({preventScroll:true});input.setPointerCapture(event.pointerId);update(event);
+ });
+ input.addEventListener('pointermove',event=>{if(drag&&event.pointerId===drag.id){event.preventDefault();update(event)}});
+ function finish(event){
+  if(!drag||event.pointerId!==drag.id)return;
+  if(event.type==='pointerup')update(event);
+  drag=null;if(input.hasPointerCapture(event.pointerId))input.releasePointerCapture(event.pointerId);
+  input.dispatchEvent(new Event('change',{bubbles:true}));
+ }
+ input.addEventListener('pointerup',finish);input.addEventListener('pointercancel',finish);
+ input.addEventListener('lostpointercapture',()=>{drag=null});
+ input.addEventListener('keydown',stop);
+}
+document.querySelectorAll('input[type="range"]').forEach(bindStableRange);

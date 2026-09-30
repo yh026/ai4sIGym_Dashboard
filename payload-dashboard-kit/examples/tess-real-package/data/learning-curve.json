@@ -1,0 +1,86 @@
+[
+  {
+    "lower": 1.0,
+    "n_train": 358,
+    "score": 1.0,
+    "series": "Train",
+    "upper": 1.0
+  },
+  {
+    "lower": 0.7659399643597965,
+    "n_train": 358,
+    "score": 0.781136213385057,
+    "series": "Held-out",
+    "upper": 0.7963324624103175
+  },
+  {
+    "lower": 1.0,
+    "n_train": 644,
+    "score": 1.0,
+    "series": "Train",
+    "upper": 1.0
+  },
+  {
+    "lower": 0.7860671018517095,
+    "n_train": 644,
+    "score": 0.7954905906493343,
+    "series": "Held-out",
+    "upper": 0.804914079446959
+  },
+  {
+    "lower": 1.0,
+    "n_train": 931,
+    "score": 1.0,
+    "series": "Train",
+    "upper": 1.0
+  },
+  {
+    "lower": 0.7954673215253153,
+    "n_train": 931,
+    "score": 0.8064303352536534,
+    "series": "Held-out",
+    "upper": 0.8173933489819915
+  },
+  {
+    "lower": 1.0,
+    "n_train": 1217,
+    "score": 1.0,
+    "series": "Train",
+    "upper": 1.0
+  },
+  {
+    "lower": 0.8092426897473833,
+    "n_train": 1217,
+    "score": 0.8185140971753508,
+    "series": "Held-out",
+    "upper": 0.8277855046033183
+  },
+  {
+    "lower": 1.0,
+    "n_train": 1504,
+    "score": 1.0,
+    "series": "Train",
+    "upper": 1.0
+  },
+  {
+    "lower": 0.8154990751203877,
+    "n_train": 1504,
+    "score": 0.8251464196912994,
+    "series": "Held-out",
+    "upper": 0.8347937642622112
+  },
+  {
+    "lower": 1.0,
+    "n_train": 1791,
+    "score": 1.0,
+    "series": "Train",
+    "upper": 1.0
+  },
+  {
+    "lower": 0.8283285782013555,
+    "n_train": 1791,
+    "score": 0.8359225350053376,
+    "series": "Held-out",
+    "upper": 0.8435164918093198
+  }
+]

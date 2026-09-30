@@ -1,0 +1,62 @@
+[
+  {
+    "bar_label": "UMAP-2 · Own space",
+    "score": 0.41585784,
+    "scored_in": "Own space",
+    "space": "UMAP-2"
+  },
+  {
+    "bar_label": "UMAP-2 · 11-D",
+    "score": 0.13926511,
+    "scored_in": "11-D",
+    "space": "UMAP-2"
+  },
+  {
+    "bar_label": "t-SNE-2 · Own space",
+    "score": 0.40615973,
+    "scored_in": "Own space",
+    "space": "t-SNE-2"
+  },
+  {
+    "bar_label": "t-SNE-2 · 11-D",
+    "score": 0.11933125,
+    "scored_in": "11-D",
+    "space": "t-SNE-2"
+  },
+  {
+    "bar_label": "PCA-2 · Own space",
+    "score": 0.35799746,
+    "scored_in": "Own space",
+    "space": "PCA-2"
+  },
+  {
+    "bar_label": "PCA-2 · 11-D",
+    "score": 0.17903877,
+    "scored_in": "11-D",
+    "space": "PCA-2"
+  },
+  {
+    "bar_label": "PCA-6 · Own space",
+    "score": 0.19292899,
+    "scored_in": "Own space",
+    "space": "PCA-6"
+  },
+  {
+    "bar_label": "PCA-6 · 11-D",
+    "score": 0.17758691,
+    "scored_in": "11-D",
+    "space": "PCA-6"
+  },
+  {
+    "bar_label": "Standardised-11D · Own space",
+    "score": 0.17675021,
+    "scored_in": "Own space",
+    "space": "Standardised-11D"
+  },
+  {
+    "bar_label": "Standardised-11D · 11-D",
+    "score": 0.17675021,
+    "scored_in": "11-D",
+    "space": "Standardised-11D"
+  }
+]

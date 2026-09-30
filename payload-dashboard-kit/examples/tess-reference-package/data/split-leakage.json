@@ -1,0 +1,10 @@
+[
+  {
+    "strategy": "Stratified rows",
+    "shared_hosts": 41
+  },
+  {
+    "strategy": "Grouped by TIC ID",
+    "shared_hosts": 0
+  }
+]

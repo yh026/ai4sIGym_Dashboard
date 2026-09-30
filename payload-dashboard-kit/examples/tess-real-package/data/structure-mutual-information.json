@@ -1,0 +1,552 @@
+[
+  {
+    "column": "pl_trandurh",
+    "row": "pl_orbper",
+    "value": 0.24005540063463246
+  },
+  {
+    "column": "pl_trandep",
+    "row": "pl_orbper",
+    "value": 0.06424678440399363
+  },
+  {
+    "column": "pl_rade",
+    "row": "pl_orbper",
+    "value": 0.08122204610939149
+  },
+  {
+    "column": "pl_insol",
+    "row": "pl_orbper",
+    "value": 0.3207548692155977
+  },
+  {
+    "column": "st_tmag",
+    "row": "pl_orbper",
+    "value": 0.05672074567676352
+  },
+  {
+    "column": "st_dist",
+    "row": "pl_orbper",
+    "value": 0.06681291041757237
+  },
+  {
+    "column": "st_teff",
+    "row": "pl_orbper",
+    "value": 0.030851110513711685
+  },
+  {
+    "column": "st_logg",
+    "row": "pl_orbper",
+    "value": 0.04032855683351613
+  },
+  {
+    "column": "st_rad",
+    "row": "pl_orbper",
+    "value": 0.038923344658399577
+  },
+  {
+    "column": "pm_total",
+    "row": "pl_orbper",
+    "value": 0.0472695876959196
+  },
+  {
+    "column": "pl_orbper",
+    "row": "pl_trandurh",
+    "value": 0.24005540063463246
+  },
+  {
+    "column": "pl_trandep",
+    "row": "pl_trandurh",
+    "value": 0.058612555505055966
+  },
+  {
+    "column": "pl_rade",
+    "row": "pl_trandurh",
+    "value": 0.053452859094345974
+  },
+  {
+    "column": "pl_insol",
+    "row": "pl_trandurh",
+    "value": 0.03798568087678249
+  },
+  {
+    "column": "st_tmag",
+    "row": "pl_trandurh",
+    "value": 0.036165052991832175
+  },
+  {
+    "column": "st_dist",
+    "row": "pl_trandurh",
+    "value": 0.0422521266669947
+  },
+  {
+    "column": "st_teff",
+    "row": "pl_trandurh",
+    "value": 0.0750746857315481
+  },
+  {
+    "column": "st_logg",
+    "row": "pl_trandurh",
+    "value": 0.08171266265140031
+  },
+  {
+    "column": "st_rad",
+    "row": "pl_trandurh",
+    "value": 0.08976197620971771
+  },
+  {
+    "column": "pm_total",
+    "row": "pl_trandurh",
+    "value": 0.03557936494196983
+  },
+  {
+    "column": "pl_orbper",
+    "row": "pl_trandep",
+    "value": 0.06424678440399362
+  },
+  {
+    "column": "pl_trandurh",
+    "row": "pl_trandep",
+    "value": 0.05861255550505596
+  },
+  {
+    "column": "pl_rade",
+    "row": "pl_trandep",
+    "value": 0.4129320100647801
+  },
+  {
+    "column": "pl_insol",
+    "row": "pl_trandep",
+    "value": 0.06789673002639388
+  },
+  {
+    "column": "st_tmag",
+    "row": "pl_trandep",
+    "value": 0.3471752503050035
+  },
+  {
+    "column": "st_dist",
+    "row": "pl_trandep",
+    "value": 0.17921998837474143
+  },
+  {
+    "column": "st_teff",
+    "row": "pl_trandep",
+    "value": 0.09172023284231264
+  },
+  {
+    "column": "st_logg",
+    "row": "pl_trandep",
+    "value": 0.15696331144042713
+  },
+  {
+    "column": "st_rad",
+    "row": "pl_trandep",
+    "value": 0.18508944851817685
+  },
+  {
+    "column": "pm_total",
+    "row": "pl_trandep",
+    "value": 0.10106762464029803
+  },
+  {
+    "column": "pl_orbper",
+    "row": "pl_rade",
+    "value": 0.08122204610939147
+  },
+  {
+    "column": "pl_trandurh",
+    "row": "pl_rade",
+    "value": 0.05345285909434597
+  },
+  {
+    "column": "pl_trandep",
+    "row": "pl_rade",
+    "value": 0.4129320100647801
+  },
+  {
+    "column": "pl_insol",
+    "row": "pl_rade",
+    "value": 0.1311003395247922
+  },
+  {
+    "column": "st_tmag",
+    "row": "pl_rade",
+    "value": 0.143453204823551
+  },
+  {
+    "column": "st_dist",
+    "row": "pl_rade",
+    "value": 0.3936526187805519
+  },
+  {
+    "column": "st_teff",
+    "row": "pl_rade",
+    "value": 0.13207051355884447
+  },
+  {
+    "column": "st_logg",
+    "row": "pl_rade",
+    "value": 0.23632253515613122
+  },
+  {
+    "column": "st_rad",
+    "row": "pl_rade",
+    "value": 0.2932628000937665
+  },
+  {
+    "column": "pm_total",
+    "row": "pl_rade",
+    "value": 0.22971850151535217
+  },
+  {
+    "column": "pl_orbper",
+    "row": "pl_insol",
+    "value": 0.3207548692155977
+  },
+  {
+    "column": "pl_trandurh",
+    "row": "pl_insol",
+    "value": 0.037985680876782495
+  },
+  {
+    "column": "pl_trandep",
+    "row": "pl_insol",
+    "value": 0.06789673002639388
+  },
+  {
+    "column": "pl_rade",
+    "row": "pl_insol",
+    "value": 0.1311003395247922
+  },
+  {
+    "column": "st_tmag",
+    "row": "pl_insol",
+    "value": 0.041657167368989015
+  },
+  {
+    "column": "st_dist",
+    "row": "pl_insol",
+    "value": 0.1727243113904069
+  },
+  {
+    "column": "st_teff",
+    "row": "pl_insol",
+    "value": 0.2579061873818224
+  },
+  {
+    "column": "st_logg",
+    "row": "pl_insol",
+    "value": 0.2040942676796409
+  },
+  {
+    "column": "st_rad",
+    "row": "pl_insol",
+    "value": 0.2599703041656507
+  },
+  {
+    "column": "pm_total",
+    "row": "pl_insol",
+    "value": 0.13261513704859654
+  },
+  {
+    "column": "pl_orbper",
+    "row": "st_tmag",
+    "value": 0.05672074567676352
+  },
+  {
+    "column": "pl_trandurh",
+    "row": "st_tmag",
+    "value": 0.03616505299183218
+  },
+  {
+    "column": "pl_trandep",
+    "row": "st_tmag",
+    "value": 0.3471752503050035
+  },
+  {
+    "column": "pl_rade",
+    "row": "st_tmag",
+    "value": 0.14345320482355103
+  },
+  {
+    "column": "pl_insol",
+    "row": "st_tmag",
+    "value": 0.04165716736898902
+  },
+  {
+    "column": "st_dist",
+    "row": "st_tmag",
+    "value": 0.25538416035743094
+  },
+  {
+    "column": "st_teff",
+    "row": "st_tmag",
+    "value": 0.06933373739910278
+  },
+  {
+    "column": "st_logg",
+    "row": "st_tmag",
+    "value": 0.06233792620812052
+  },
+  {
+    "column": "st_rad",
+    "row": "st_tmag",
+    "value": 0.07756838687412539
+  },
+  {
+    "column": "pm_total",
+    "row": "st_tmag",
+    "value": 0.09394496961326995
+  },
+  {
+    "column": "pl_orbper",
+    "row": "st_dist",
+    "value": 0.06681291041757235
+  },
+  {
+    "column": "pl_trandurh",
+    "row": "st_dist",
+    "value": 0.0422521266669947
+  },
+  {
+    "column": "pl_trandep",
+    "row": "st_dist",
+    "value": 0.17921998837474143
+  },
+  {
+    "column": "pl_rade",
+    "row": "st_dist",
+    "value": 0.3936526187805519
+  },
+  {
+    "column": "pl_insol",
+    "row": "st_dist",
+    "value": 0.1727243113904069
+  },
+  {
+    "column": "st_tmag",
+    "row": "st_dist",
+    "value": 0.25538416035743094
+  },
+  {
+    "column": "st_teff",
+    "row": "st_dist",
+    "value": 0.21479956671191844
+  },
+  {
+    "column": "st_logg",
+    "row": "st_dist",
+    "value": 0.28052192939849513
+  },
+  {
+    "column": "st_rad",
+    "row": "st_dist",
+    "value": 0.3168115450312531
+  },
+  {
+    "column": "pm_total",
+    "row": "st_dist",
+    "value": 0.4786360598398963
+  },
+  {
+    "column": "pl_orbper",
+    "row": "st_teff",
+    "value": 0.030851110513711685
+  },
+  {
+    "column": "pl_trandurh",
+    "row": "st_teff",
+    "value": 0.0750746857315481
+  },
+  {
+    "column": "pl_trandep",
+    "row": "st_teff",
+    "value": 0.09172023284231262
+  },
+  {
+    "column": "pl_rade",
+    "row": "st_teff",
+    "value": 0.13207051355884447
+  },
+  {
+    "column": "pl_insol",
+    "row": "st_teff",
+    "value": 0.2579061873818224
+  },
+  {
+    "column": "st_tmag",
+    "row": "st_teff",
+    "value": 0.06933373739910278
+  },
+  {
+    "column": "st_dist",
+    "row": "st_teff",
+    "value": 0.21479956671191847
+  },
+  {
+    "column": "st_logg",
+    "row": "st_teff",
+    "value": 0.43446341189719284
+  },
+  {
+    "column": "st_rad",
+    "row": "st_teff",
+    "value": 0.6627577401057185
+  },
+  {
+    "column": "pm_total",
+    "row": "st_teff",
+    "value": 0.19449289351986204
+  },
+  {
+    "column": "pl_orbper",
+    "row": "st_logg",
+    "value": 0.04032855683351613
+  },
+  {
+    "column": "pl_trandurh",
+    "row": "st_logg",
+    "value": 0.08171266265140031
+  },
+  {
+    "column": "pl_trandep",
+    "row": "st_logg",
+    "value": 0.15696331144042713
+  },
+  {
+    "column": "pl_rade",
+    "row": "st_logg",
+    "value": 0.23632253515613122
+  },
+  {
+    "column": "pl_insol",
+    "row": "st_logg",
+    "value": 0.2040942676796409
+  },
+  {
+    "column": "st_tmag",
+    "row": "st_logg",
+    "value": 0.06233792620812052
+  },
+  {
+    "column": "st_dist",
+    "row": "st_logg",
+    "value": 0.28052192939849513
+  },
+  {
+    "column": "st_teff",
+    "row": "st_logg",
+    "value": 0.43446341189719284
+  },
+  {
+    "column": "st_rad",
+    "row": "st_logg",
+    "value": 1.1376650745330816
+  },
+  {
+    "column": "pm_total",
+    "row": "st_logg",
+    "value": 0.20460755373208472
+  },
+  {
+    "column": "pl_orbper",
+    "row": "st_rad",
+    "value": 0.038923344658399577
+  },
+  {
+    "column": "pl_trandurh",
+    "row": "st_rad",
+    "value": 0.08976197620971771
+  },
+  {
+    "column": "pl_trandep",
+    "row": "st_rad",
+    "value": 0.18508944851817682
+  },
+  {
+    "column": "pl_rade",
+    "row": "st_rad",
+    "value": 0.2932628000937665
+  },
+  {
+    "column": "pl_insol",
+    "row": "st_rad",
+    "value": 0.25997030416565065
+  },
+  {
+    "column": "st_tmag",
+    "row": "st_rad",
+    "value": 0.0775683868741254
+  },
+  {
+    "column": "st_dist",
+    "row": "st_rad",
+    "value": 0.3168115450312531
+  },
+  {
+    "column": "st_teff",
+    "row": "st_rad",
+    "value": 0.6627577401057185
+  },
+  {
+    "column": "st_logg",
+    "row": "st_rad",
+    "value": 1.1376650745330816
+  },
+  {
+    "column": "pm_total",
+    "row": "st_rad",
+    "value": 0.22700502536376024
+  },
+  {
+    "column": "pl_orbper",
+    "row": "pm_total",
+    "value": 0.0472695876959196
+  },
+  {
+    "column": "pl_trandurh",
+    "row": "pm_total",
+    "value": 0.035579364941969824
+  },
+  {
+    "column": "pl_trandep",
+    "row": "pm_total",
+    "value": 0.10106762464029802
+  },
+  {
+    "column": "pl_rade",
+    "row": "pm_total",
+    "value": 0.2297185015153521
+  },
+  {
+    "column": "pl_insol",
+    "row": "pm_total",
+    "value": 0.1326151370485965
+  },
+  {
+    "column": "st_tmag",
+    "row": "pm_total",
+    "value": 0.09394496961326995
+  },
+  {
+    "column": "st_dist",
+    "row": "pm_total",
+    "value": 0.4786360598398963
+  },
+  {
+    "column": "st_teff",
+    "row": "pm_total",
+    "value": 0.1944928935198621
+  },
+  {
+    "column": "st_logg",
+    "row": "pm_total",
+    "value": 0.20460755373208472
+  },
+  {
+    "column": "st_rad",
+    "row": "pm_total",
+    "value": 0.22700502536376027
+  }
+]
