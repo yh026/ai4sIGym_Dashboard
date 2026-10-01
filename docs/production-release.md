@@ -12,14 +12,32 @@ read Drive credentials. Branch deploys retain the existing registry build.
 The production builder requires
 Netlify production/main identity and validates the checked-in archive and every
 file against `release/production-release.json` before replacing its output.
-Images, scientific values, page scripts, and downloads are preserved byte for
-byte. Only deployment headers, robots rules, the public manifest's release
-status, and the deployment receipt are regenerated for production.
+Images, scientific values, page scripts, and retained downloads are preserved
+byte for byte. Deployment headers, robots rules, the public manifest's release
+status, and the deployment receipt are regenerated for production. Explicit
+publication overrides below record the additional output differences.
 
 The receipt records the actual main commit and Netlify build/deploy IDs. Its
 top-level `verified: false` means that it is not a signed preview-hook receipt;
 `source_preview` separately records the signed preview used for this release.
 Archive SHA-256 and the per-file inventory provide reproducible content checks.
+
+## TBB publication override
+
+After validating the entire original archive, production and its release review
+hide TBB's Notebook & skills page and downloads. The builder removes only the
+three reviewed navigation links from TBB Insight, Workflow, and Dataset, omits
+the resource page and its `resources/` directory, and removes its entries from
+the public manifest and performance report. Existing resource-page URLs redirect
+to Workflow with HTTP 302; download URLs are no longer published.
+
+The archive remains unchanged. The public manifest's
+`release.publication_overrides` and the receipt's `publication_overrides` record
+the exact changed-file hashes, omitted-file hashes, and redirects. All other
+page and asset bytes are retained. This override requires TBB's declared
+`resource_page`; a missing source page or changed navigation fails validation
+before replacing output. The normal develop builder and Drive sources retain
+their resource page and downloads.
 
 Netlify Pretty URLs HTML rewriting is disabled: its post-processing changed
 apostrophe-containing card search attributes into invalid HTML quoting. Native
