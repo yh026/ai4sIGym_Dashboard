@@ -63,6 +63,91 @@ function sample(t) {
     build: options => buildProductionRelease({ manifestPath, outputDirectory, env, ...options }) };
 }
 
+function tbbResourceSample(t) {
+  const s = sample(t), base = 'demos/tbb-cluster-explorer-2/';
+  const manifest = JSON.parse(s.entries.get('manifest.json'));
+  const tbb = manifest.demos.find(demo => demo.slug === 'tbb-cluster-explorer-2');
+  tbb.pages = [
+    { role: 'insight', path: base + 'index.html', state: 'Ready' },
+    { role: 'workflow', path: base + 'workflow.html', state: 'Ready' },
+    { role: 'dataset', path: 'datasets/himawari-9-ahi/index.html', state: 'Ready' },
+    { role: 'resource_page', path: base + 'workflow-resources.html', state: 'Ready' },
+  ];
+  const wrap = href => Buffer.from('<!doctype html><html><body><nav><a href="' + href
+    + '">Notebook &amp; skills</a><span>TBB</span></nav><script>const exact=[0.12345678912345678];</script></body></html>');
+  s.entries.set(base + 'index.html', wrap('workflow-resources.html'));
+  s.entries.set(base + 'workflow.html', wrap('workflow-resources.html'));
+  s.entries.set('datasets/himawari-9-ahi/index.html', wrap('../../demos/tbb-cluster-explorer-2/workflow-resources.html'));
+  s.entries.set(base + 'workflow-resources.html', Buffer.from('<html>Notebook &amp; skills</html>'));
+  s.entries.set(base + 'resources/skills/notebook.zip', Buffer.from('unchanged source download'));
+  s.entries.set('demos/soh-battery/resources/notebook.zip', Buffer.from('another demo download stays public'));
+  const report = { schema: 1, pages: [{ path: base + 'index.html', inputBytes: 4321, outputBytes: 1234 },
+    { path: base + 'workflow-resources.html', inputBytes: 99, outputBytes: 98 }], assets: [{ path: 'assets/exact.png', bytes: 123 }],
+  homeMap: { pixelsIdentical: true } };
+  s.entries.set('performance-report.json', Buffer.from(JSON.stringify(report)));
+  s.entries.set('manifest.json', Buffer.from(JSON.stringify(manifest))); s.write();
+  return s;
+}
+
+test('production and review omit only TBB notebook publication while preserving source inputs and other bytes', async t => {
+  for (const options of [{}, { env: reviewEnv, review: true }]) await t.test(options.review ? 'review' : 'production', t => {
+    const s = tbbResourceSample(t), base = 'demos/tbb-cluster-explorer-2/';
+    const archivePath = path.join(s.directory, s.manifest.archive.path);
+    const archiveBytes = fs.readFileSync(archivePath), manifestBytes = fs.readFileSync(s.manifestPath);
+    fs.mkdirSync(path.join(s.outputDirectory, base, 'resources'), { recursive: true });
+    fs.writeFileSync(path.join(s.outputDirectory, base, 'resources/stale.zip'), 'old output');
+    const result = s.build(options);
+    const manifest = JSON.parse(fs.readFileSync(path.join(s.outputDirectory, 'manifest.json')));
+    const override = result.receipt.publication_overrides[0];
+    assert.equal(override.id, 'hide-tbb-notebook-resources-v1');
+    assert.deepEqual(manifest.release.publication_overrides, result.receipt.publication_overrides);
+    assert.deepEqual(manifest.demos.find(d => d.slug === 'tbb-cluster-explorer-2').pages.map(p => p.role), ['insight', 'workflow', 'dataset']);
+    const changed = new Map(override.modified_files.map(file => [file.path, file]));
+    const omitted = new Map(override.omitted_files.map(file => [file.path, file]));
+    assert.equal(changed.size, 4);
+    assert.deepEqual([...omitted.keys()].sort(), [base + 'resources/aisgym.ipynb', base + 'resources/skills/notebook.zip', base + 'workflow-resources.html'].sort());
+    for (const [name, original] of s.entries) {
+      if (name === 'manifest.json') continue;
+      if (omitted.has(name)) {
+        assert.equal(fs.existsSync(path.join(s.outputDirectory, name)), false);
+        assert.equal(omitted.get(name).sha256, sha256(original));
+      } else {
+        const output = fs.readFileSync(path.join(s.outputDirectory, name));
+        if (changed.has(name)) {
+          assert.equal(changed.get(name).input_sha256, sha256(original));
+          assert.equal(changed.get(name).output_sha256, sha256(output));
+          if (name === 'performance-report.json') {
+            const expected = JSON.parse(original); expected.pages = expected.pages.filter(p => p.path !== base + 'workflow-resources.html');
+            assert.deepEqual(JSON.parse(output), expected);
+          } else {
+            const href = name.startsWith('datasets/') ? '../../' + base + 'workflow-resources.html' : 'workflow-resources.html';
+            assert.deepEqual(output, Buffer.from(original.toString().replace('<a href="' + href + '">Notebook &amp; skills</a>', '')));
+          }
+        } else assert.deepEqual(output, original, name);
+      }
+    }
+    assert.equal(fs.existsSync(path.join(s.outputDirectory, base + 'resources')), false);
+    const redirects = ['', '/', '.html', '.html/'].map(suffix => '/' + base + 'workflow-resources' + suffix + ' /' + base + 'workflow.html 302').join('\n') + '\n';
+    assert.equal(fs.readFileSync(path.join(s.outputDirectory, '_redirects'), 'utf8'), redirects);
+    assert.deepEqual(fs.readFileSync(archivePath), archiveBytes);
+    assert.deepEqual(fs.readFileSync(s.manifestPath), manifestBytes);
+  });
+});
+
+test('TBB omission never bypasses full source validation or changes an existing output on failure', t => {
+  const s = tbbResourceSample(t), resource = 'demos/tbb-cluster-explorer-2/workflow-resources.html';
+  fs.mkdirSync(s.outputDirectory); fs.writeFileSync(path.join(s.outputDirectory, 'previous'), 'keep until valid');
+  s.write([...s.entries].map(([name, bytes]) => ({ path: name, bytes: name === resource ? Buffer.from('bad source') : bytes })));
+  assert.throws(() => s.build(), /size mismatch|checksum/);
+  const original = s.entries.get(resource); s.entries.delete(resource); s.write();
+  assert.throws(() => s.build(), /public page is missing/);
+  s.entries.set(resource, original);
+  s.entries.set('demos/tbb-cluster-explorer-2/workflow.html', Buffer.from('<html>Unexpected navigation revision</html>')); s.write();
+  assert.throws(() => s.build(), /exact single navigation link/);
+  assert.deepEqual(fs.readdirSync(s.outputDirectory), ['previous']);
+  assert.equal(fs.readFileSync(path.join(s.outputDirectory, 'previous'), 'utf8'), 'keep until valid');
+});
+
 test('release policy accepts only current Production identity or explicit local validation', () => {
   assert.equal(productionPolicy(env).deploy_id, env.DEPLOY_ID);
   assert.equal(productionPolicy({}, { local: true }).platform, 'local-release-validation');
@@ -111,6 +196,9 @@ test('review candidate preserves artifact bytes and source proof while remaining
   assert.equal(receipt.commit_ref, reviewEnv.COMMIT_REF);
   assert.equal(receipt.deploy_id, reviewEnv.DEPLOY_ID);
   assert.deepEqual(receipt.source_preview, source);
+  assert.equal(receipt.publication_overrides, undefined);
+  assert.equal(manifest.release.publication_overrides, undefined);
+  assert.equal(fs.existsSync(path.join(s.outputDirectory, '_redirects')), false);
   const headers = fs.readFileSync(path.join(s.outputDirectory, '_headers'), 'utf8');
   assert.match(headers, /(?:^|\n)\/\*\n  X-Robots-Tag: noindex, nofollow/);
   assert.doesNotMatch(headers, /Cache-Control: public/);
