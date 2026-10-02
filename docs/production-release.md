@@ -66,3 +66,14 @@ deployment for an immediate rollback, then revert the corresponding main release
 commit if necessary. The production builder never changes Drive, the V2 registry
 configuration, or the previous deployment. Retaining a release commit retains
 its complete inputs, so its pages can be reconstructed without a live Drive API.
+
+## Release reviewed on 2026-10-02
+
+This release freezes develop deployment `6abf25ef581f89000876e7fa`
+(commit `ee1c49d6ed8e32ee17493a5c395bfe9245a60d52`, registry revision
+`sha256:41094736529eb088d119a4f9c5e817f13c3b11f1dd8f68713b8b740f4b0bfcb8`).
+It publishes the approved Air Quality and Singapore Road pages, the dark Battery
+Curve Shape cover, and aligned Satellite reconstruction images. All 137 source
+files were verified against the exact Netlify deployment inventory. The existing
+TBB Notebook & skills publication override and HTML preservation settings remain
+in effect.
