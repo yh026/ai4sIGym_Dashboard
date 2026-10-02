@@ -1036,6 +1036,19 @@ function collectDemos_(folder) {
   var notices = [];
   var rootId = driveEntryIdOrThrow_(folder, 'configured Drive root');
   try {
+    var categoryLayout = registryV2CategoryLayout_(rootId);
+    if (categoryLayout) {
+      // A numbered physical name is not a new Registry identity. Enumerate
+      // only the approved legacy projects; categories and Draft descendants
+      // must never be treated as newly discovered V2 demos.
+      categoryLayout.projects.forEach(function (mapping) {
+        var project = DriveApp.getFolderById(mapping.project_id);
+        registryV2CategoryProjectContract_(project, rootId, categoryLayout);
+        var item = collectDemoFolder_(project, rootId, notices, mapping.legacy_folder_name);
+        if (item) out.push(item);
+      });
+      return out;
+    }
     // One sub-folder per demo — page + PROVENANCE.md.
     var subs = folder.getFolders();
     while (subs.hasNext()) {
@@ -1077,9 +1090,9 @@ function collectDemos_(folder) {
 }
 
 /** One demo sub-folder → an item for collectDemos_, or null if it holds no page. */
-function collectDemoFolder_(sub, rootId, notices) {
+function collectDemoFolder_(sub, rootId, notices, legacyFolderName) {
   notices = notices || [];
-  var name = sub.getName();
+  var name = legacyFolderName || sub.getName();
   var subId = driveEntryIdOrThrow_(sub, 'demo folder "' + name + '"');
   var pages = [], images = [], prov = null;
 
@@ -1308,12 +1321,30 @@ function registryV2IngestContract_(item) {
   if (!spreadsheetId || !rootId || !folderId || !item || !item.file) {
     throw new Error('Drive sync stopped: an item lacks its collected folder identity.');
   }
-  var folderParents = folderId === rootId ? ['@configured-root']
+  var categoryLayout = registryV2CategoryLayout_(rootId);
+  var categoryContract = categoryLayout
+    ? registryV2CategoryProjectContract_(item.folder, rootId, categoryLayout) : null;
+  if (categoryContract && item.folderName !== categoryContract.legacy_folder_name) {
+    throw new Error('Category project logical name changed during sync.');
+  }
+  var folderParents = categoryContract ? categoryContract.parent_ids
+    : folderId === rootId ? ['@configured-root']
     : registryV2SyncParentIds_(item.folder, rootId,
       'demo folder "' + String(item.folderName || '') + '"');
   if (sourceFolderId !== folderId
       && registryV2ArchiveSource_(item.folder, rootId).getId() !== sourceFolderId) {
     throw new Error('Archived source changed during sync.');
+  }
+  if (categoryContract && sourceFolderId !== folderId) {
+    var archiveEntry = registryV2Archives_()[folderId];
+    var sourceArchive = DriveApp.getFolderById(archiveEntry.archive_id);
+    var archiveParentId = hasDirectParentOrThrow_(sourceArchive, folderId, 'source archive')
+      ? folderId : categoryLayout.archive_id;
+    categoryContract.source_archive = {
+      id: archiveEntry.archive_id, name: sourceArchive.getName(),
+      parent_ids: registryV2SyncParentIds_(sourceArchive, archiveParentId, 'source archive'),
+      date_id: sourceFolderId, date: archiveEntry.date
+    };
   }
   var pages = (item.pageFiles && item.pageFiles.length
     ? item.pageFiles : [item.file]).map(function (file) {
@@ -1329,7 +1360,7 @@ function registryV2IngestContract_(item) {
   var images = (item.imageFiles || []).map(function (file) {
     return registryV2SyncFileContract_(file, sourceFolderId, 'card-image candidate');
   });
-  return {
+  var contract = {
     schema: REGISTRY_V2_INGEST_CACHE_SCHEMA,
     spreadsheet_id: spreadsheetId,
     root_id: rootId,
@@ -1345,6 +1376,10 @@ function registryV2IngestContract_(item) {
     images: registryV2SortSyncContracts_(images),
     notes: (item.notes || []).map(function (note) { return String(note || ''); })
   };
+  // Include every verified physical edge so a category move, rename or
+  // mapping edit during a warm scan invalidates the fingerprint too.
+  if (categoryContract) contract.category_location = categoryContract;
+  return contract;
 }
 
 function registryV2IngestFingerprint_(contract) {
@@ -3953,12 +3988,19 @@ function registryV2ReadinessError_(demo, project, taxonomyIndex) {
 
 function registryV2AllowedParentIds_(file, rootId) {
   var archivedParent = registryV2ArchivedParentId_(file, rootId);
+  var categoryLayout = registryV2CategoryLayout_(rootId);
   var parents = file.getParents();
   var allowed = [];
   while (parents.hasNext()) {
     var parent = parents.next();
     var id = String(parent.getId());
-    if (id === archivedParent || id === String(rootId) || folderHasParentId_(parent, rootId)) allowed.push(id);
+    if (id === archivedParent) allowed.push(id);
+    else if (categoryLayout) {
+      if (registryV2CategoryMapping_(categoryLayout, id)) {
+        registryV2CategoryProjectContract_(parent, rootId, categoryLayout);
+        allowed.push(id);
+      }
+    } else if (id === String(rootId) || folderHasParentId_(parent, rootId)) allowed.push(id);
   }
   allowed.sort();
   return allowed;
@@ -4907,9 +4949,17 @@ function registryDriveFile_(cfg, fileId, kind) {
 
   try {
     if (registryV2ArchivedFileAllowed_(file, rootId)) return file;
+    var categoryLayout = registryV2CategoryLayout_(rootId);
     var parents = file.getParents();
     while (parents.hasNext()) {
       var parent = parents.next();
+      if (categoryLayout) {
+        if (registryV2CategoryMapping_(categoryLayout, parent.getId())) {
+          registryV2CategoryProjectContract_(parent, rootId, categoryLayout);
+          return file;
+        }
+        continue;
+      }
       if (kind === 'page' && parent.getId() === rootId) return file;
       if (folderHasParentId_(parent, rootId)) return file;
     }
@@ -5962,17 +6012,101 @@ function groupCols_(sh, from, to) {
   sh.getRange(1, from, 1, to - from + 1).shiftColumnGroupDepth(1);
 }
 
+/** Explicit category migration map. An absent property keeps the old layout. */
+function registryV2CategoryLayout_(rootId) {
+  var props = PropertiesService.getScriptProperties();
+  var raw = typeof props.getProperty === 'function'
+    ? props.getProperty('AI4S_CATEGORY_LAYOUT_V1') : null;
+  if (!raw) return null;
+  var layout = JSON.parse(raw);
+  if (!layout || layout.root_id !== String(rootId)
+      || !layout.demo_html_id || !layout.archive_id
+      || layout.demo_html_id === layout.archive_id
+      || !Array.isArray(layout.projects) || !layout.projects.length) {
+    throw new Error('Invalid category layout configuration');
+  }
+  var seen = {};
+  [layout.root_id, layout.demo_html_id, layout.archive_id].forEach(function (id) {
+    if (typeof id !== 'string' || seen[id]) throw new Error('Invalid category folder identity');
+    seen[id] = true;
+  });
+  layout.projects.forEach(function (mapping) {
+    if (!mapping || typeof mapping.project_id !== 'string' || !mapping.project_id
+        || typeof mapping.legacy_folder_name !== 'string' || !mapping.legacy_folder_name
+        || typeof mapping.folder_name !== 'string' || !mapping.folder_name || seen[mapping.project_id]
+        || (!!mapping.archive_id !== !!mapping.archive_name)) {
+      throw new Error('Invalid category project mapping');
+    }
+    seen[mapping.project_id] = true;
+  });
+  layout.projects.forEach(function (mapping) {
+    if (!mapping.archive_id) return;
+    if (typeof mapping.archive_id !== 'string' || typeof mapping.archive_name !== 'string'
+        || seen[mapping.archive_id]) throw new Error('Invalid or duplicate category archive identity');
+    seen[mapping.archive_id] = true;
+  });
+  registryV2CategoryFolder_(layout.demo_html_id, 'demo_html', rootId);
+  registryV2CategoryFolder_(layout.archive_id, 'archive', rootId);
+  return layout;
+}
+
+function registryV2CategoryFolder_(id, name, rootId) {
+  var folder = DriveApp.getFolderById(id);
+  var parents = registryV2SyncParentIds_(folder, rootId, 'category ' + name);
+  if (folder.getName() !== name || parents.length !== 1) {
+    throw new Error('Category folder moved or renamed: ' + name);
+  }
+  return folder;
+}
+
+function registryV2CategoryMapping_(layout, projectId) {
+  return layout.projects.find(function (mapping) {
+    return mapping.project_id === String(projectId);
+  }) || null;
+}
+
+function registryV2CategoryProjectContract_(project, rootId, layout) {
+  var mapping = registryV2CategoryMapping_(layout, project.getId());
+  if (!mapping) throw new Error('Project is not in the approved category mapping');
+  var parentId = hasDirectParentOrThrow_(project, rootId, 'category project')
+    ? rootId : layout.demo_html_id;
+  var parents = registryV2SyncParentIds_(project, parentId, 'category project');
+  var physicalName = project.getName();
+  if (parents.length !== 1 || (physicalName !== mapping.legacy_folder_name
+      && physicalName !== mapping.folder_name)) {
+    throw new Error('Category project moved or renamed outside its approved layout');
+  }
+  return { legacy_folder_name: mapping.legacy_folder_name,
+    physical_name: physicalName, parent_ids: parents,
+    demo_html_id: layout.demo_html_id, archive_id: layout.archive_id,
+    mapping: mapping };
+}
+
 /** Explicit, dated legacy sources. No recursive scan of new development files. */
 function registryV2Archives_() {
   return JSON.parse(PropertiesService.getScriptProperties().getProperty('AI4S_DATED_ARCHIVES_V1') || '{}');
 }
 function registryV2CheckedArchive_(project, rootId, entry) {
   if (entry.root_id !== rootId || project.getId() !== entry.project_id) throw new Error('Archive root mismatch');
-  registryV2SyncParentIds_(project, rootId, 'archived project');
+  var layout = registryV2CategoryLayout_(rootId);
+  var mapping = layout ? registryV2CategoryMapping_(layout, project.getId()) : null;
+  if (layout) registryV2CategoryProjectContract_(project, rootId, layout);
+  else registryV2SyncParentIds_(project, rootId, 'archived project');
   var archive = DriveApp.getFolderById(entry.archive_id), dated = DriveApp.getFolderById(entry.date_id);
-  if (archive.getName() !== 'archive' || dated.getName() !== entry.date) throw new Error('Archive name mismatch');
-  registryV2SyncParentIds_(archive, project.getId(), 'archive folder');
-  registryV2SyncParentIds_(dated, archive.getId(), 'dated archive');
+  if (dated.getName() !== entry.date) throw new Error('Archive name mismatch');
+  if (layout) {
+    if (!mapping || mapping.archive_id !== entry.archive_id) throw new Error('Category archive mapping mismatch');
+    var parentId = hasDirectParentOrThrow_(archive, project.getId(), 'archive folder')
+      ? project.getId() : layout.archive_id;
+    var parents = registryV2SyncParentIds_(archive, parentId, 'archive folder');
+    if (parents.length !== 1 || (archive.getName() !== 'archive'
+        && archive.getName() !== mapping.archive_name)) throw new Error('Archive name mismatch');
+  } else {
+    if (archive.getName() !== 'archive') throw new Error('Archive name mismatch');
+    registryV2SyncParentIds_(archive, project.getId(), 'archive folder');
+  }
+  var datedParents = registryV2SyncParentIds_(dated, archive.getId(), 'dated archive');
+  if (layout && datedParents.length !== 1) throw new Error('Ambiguous dated archive parents');
   return dated;
 }
 function registryV2ArchiveSource_(project, rootId) {
