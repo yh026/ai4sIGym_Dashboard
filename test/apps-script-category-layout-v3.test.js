@@ -57,13 +57,22 @@ function fixture() {
     readInput_: () => copy(env.input), locked_: fn => fn(),
     previewState_: () => ({ phase: 'ready', revision: env.snapshot.manifest.registry_revision,
       deploy_id: 'approved-deploy', hook: 'DO-NOT-EXPORT-STATE-HOOK', secret: 'DO-NOT-EXPORT-STATE-SECRET' }),
-    source_: (id, previous) => { reads.push({ id, previous }); return copy(env.actual); },
-    assertStamp_: expected => { if (expected.modified_at !== env.actual.modified_at) throw new Error('Source changed'); },
+    source_: (id, previous) => {
+      reads.push({ id, previous });
+      if (env.failOnFileId === id) throw new Error('Interrupted source read');
+      return copy(env.actuals ? env.actuals.get(id) : env.actual);
+    },
+    assertStamp_: expected => {
+      env.stampReads = (env.stampReads || 0) + 1;
+      const actual = env.actuals ? env.actuals.get(expected.file_id) : env.actual;
+      if (expected.modified_at !== actual.modified_at) throw new Error('Source changed');
+    },
     publishPreview: () => { throw new Error('Build is forbidden'); },
     syncSandbox: () => { throw new Error('Sheet mutation is forbidden'); },
   });
   vm.runInContext(read('google-apps-script/sandbox/SourceMounts.gs'), context);
   vm.runInContext(read('google-apps-script/migration/CategoryDevelopOperations.gs'), context);
+  vm.runInContext(read('google-apps-script/migration/CategoryDevelopVerification.gs'), context);
   context.CATEGORY_V3_CONFIG_FILE_ID = CONFIG;
   const mountConfig = { schema: 2, root_id: ROOT, mounts: [{ id: 'version',
     ancestor_chain: ['project', 'demo-html', ROOT], logical_path: descriptor.parent_path }] };
@@ -92,6 +101,84 @@ test('V3 export saves full snapshot and nonsecret state, is idempotent and leave
   assert.deepEqual(h.logs, ['Baseline file: ' + id, 'Baseline file: ' + id]);
   assert.deepEqual(h.writes, ['AIS_CATEGORY_V3_BASELINE_FILE']);
   assert.equal(h.properties.get('AI4S_AUTO_PUBLISH_TARGET'), 'preview');
+});
+
+function batchFixture(count = 13) {
+  const h = fixture(), original = h.env.snapshot.files[0];
+  h.env.snapshot.files = Array.from({ length: count }, (_, index) => ({ ...original,
+    id: 'page-' + index, file_id: 'source-file-' + String(index).padStart(20, '0'), size: 1234 + index }));
+  h.env.actuals = new Map(h.env.snapshot.files.map(file => [file.file_id, copy(file)]));
+  h.prepare();
+  return h;
+}
+
+test('bounded V3 verification resumes an installed map, hashes at most twelve files and finalizes exact coverage', () => {
+  const h = batchFixture();
+  h.properties.set('AIS_PROJECT_MOUNTS_V1', JSON.stringify(h.mountConfig));
+  assert.equal(h.context.categoryBeginV3Verification().verified, 0);
+  assert.equal(h.reads.length, 0);
+  assert.equal(h.context.categoryVerifyV3Chunk().verified, 12);
+  assert.equal(h.reads.length, 12);
+  assert.throws(() => h.context.categoryFinalizeV3Verification(), /every source chunk/);
+  assert.equal(h.context.categoryBeginV3Verification().verified, 12);
+  assert.equal(h.context.categoryVerifyV3Chunk().verified, 13);
+  assert.equal(h.reads.length, 13);
+  const reportId = h.context.categoryFinalizeV3Verification(), report = h.records.get(reportId).json;
+  assert.equal(report.binding_count, 13); assert.equal(report.unique_file_count, 13);
+  assert.equal(report.chunk_reports.length, 2); assert.equal(h.reads.length, 13);
+  assert.equal(h.env.stampReads, 13);
+  assert.equal(h.context.categoryFinalizeV3Verification(), reportId);
+  assert.equal(h.context.categoryVerifyV3Chunk().phase, 'complete');
+  assert.equal(h.reads.length, 13);
+  const progress = JSON.parse(h.properties.get('AIS_CATEGORY_V3_VERIFY_PROGRESS'));
+  assert.equal(progress.phase, 'complete'); assert.equal(progress.report_file_id, reportId);
+});
+
+test('bounded V3 chunks retain the cursor after partial read or evidence-save failure and retry only that chunk', () => {
+  for (const failure of ['read', 'save']) {
+    const h = batchFixture(25); h.context.categoryBeginV3Verification(); h.context.categoryVerifyV3Chunk();
+    if (failure === 'read') h.env.failOnFileId = h.env.snapshot.files[16].file_id;
+    else h.env.failSave = true;
+    assert.throws(() => h.context.categoryVerifyV3Chunk(), /Interrupted source read|Evidence save failed/);
+    let progress = JSON.parse(h.properties.get('AIS_CATEGORY_V3_VERIFY_PROGRESS'));
+    assert.equal(progress.next_index, 12); assert.equal(progress.chunks.length, 1);
+    h.env.failOnFileId = null; h.env.failSave = false;
+    const previousReads = h.reads.length;
+    assert.equal(h.context.categoryVerifyV3Chunk().verified, 24);
+    assert.equal(h.reads.length - previousReads, 12);
+    assert.equal(h.context.categoryVerifyV3Chunk().verified, 25);
+    progress = JSON.parse(h.properties.get('AIS_CATEGORY_V3_VERIFY_PROGRESS'));
+    assert.equal(progress.chunks.length, 3);
+    assert.equal(h.records.get(h.context.categoryFinalizeV3Verification()).json.binding_count, 25);
+  }
+});
+
+test('bounded V3 verification fails closed when snapshot, input, config or baseline changes between chunks', () => {
+  const cases = [
+    h => { h.env.input.pages.push('changed'); },
+    h => { h.env.snapshot.files[0].size += 1; },
+    h => { h.records.get(CONFIG).json.unreviewed_change = true; },
+    h => { const id = h.properties.get('AIS_CATEGORY_V3_BASELINE_FILE'); h.records.get(id).json.exported_at = 'changed'; },
+    h => { h.properties.set('AIS_PROJECT_MOUNTS_V1', JSON.stringify(h.oldMap)); },
+  ];
+  for (const change of cases) {
+    const h = batchFixture(); h.context.categoryBeginV3Verification(); h.context.categoryVerifyV3Chunk();
+    const progress = h.properties.get('AIS_CATEGORY_V3_VERIFY_PROGRESS'), reads = h.reads.length;
+    change(h); assert.throws(() => h.context.categoryVerifyV3Chunk());
+    assert.equal(h.properties.get('AIS_CATEGORY_V3_VERIFY_PROGRESS'), progress); assert.equal(h.reads.length, reads);
+  }
+});
+
+test('bounded V3 finalizer rejects tampered chunk proof and source changes after hashing', () => {
+  for (const change of ['proof', 'stamp', 'coverage']) {
+    const h = batchFixture(1); h.context.categoryBeginV3Verification(); h.context.categoryVerifyV3Chunk();
+    const progress = JSON.parse(h.properties.get('AIS_CATEGORY_V3_VERIFY_PROGRESS'));
+    if (change === 'proof') h.records.get(progress.chunks[0].file_id).json.files[0].sha256 = 'd'.repeat(64);
+    if (change === 'stamp') h.env.actuals.get(h.env.snapshot.files[0].file_id).modified_at = '2026-10-03T01:00:00.000Z';
+    if (change === 'coverage') { progress.chunks = []; h.properties.set('AIS_CATEGORY_V3_VERIFY_PROGRESS', JSON.stringify(progress)); }
+    assert.throws(() => h.context.categoryFinalizeV3Verification(), /proof changed|Source changed|Incomplete/);
+    assert.equal(JSON.parse(h.properties.get('AIS_CATEGORY_V3_VERIFY_PROGRESS')).phase, 'hashing');
+  }
 });
 
 test('V3 installer freshly hashes each unique source and preserves snapshot, Sheet, state and source bindings', () => {
