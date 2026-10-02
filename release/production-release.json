@@ -2,16 +2,16 @@
   "schema": 1,
   "archive": {
     "path": "production-release.tar.gz",
-    "sha256": "fe5ec225805e4d422d9f0dec43d41c4e64f1924b9916bbb50604d30603a77bb8"
+    "sha256": "787978a735ba6da98301fa551c7abe423841abfbbf5ac60c1ef61a70446ca8ed"
   },
   "source": {
     "verified": true,
-    "commit_ref": "6a56afde35bb966255350d9108d51213b4e7438e",
-    "registry_revision": "sha256:725f60dde65b3d72b82dcd59a1ae1fa82b9f11ac37ea007fe4a9f86489694355",
-    "deploy_id": "6abcd9a85bfd9b000843743b",
-    "receipt_sha256": "7b947ddee67735095ba2d1f2948494785cefd6ec2c7401e04fc4633f93749f1b",
+    "commit_ref": "ee1c49d6ed8e32ee17493a5c395bfe9245a60d52",
+    "registry_revision": "sha256:41094736529eb088d119a4f9c5e817f13c3b11f1dd8f68713b8b740f4b0bfcb8",
+    "deploy_id": "6abf25ef581f89000876e7fa",
+    "receipt_sha256": "3772b6255607176570d9e9cf96833873b4902e588b92c844f161da5d3c092fcb",
     "site_id": "2fe21bb6-70b5-47c6-a810-18f6bd8f4973",
-    "build_id": "6abcd9a8095a5e766bf6986d",
+    "build_id": "6abf25ef05e5bd6270b61565",
     "registry_instance": "ais-backend-sandbox-20260923"
   },
   "demo_slugs": [
@@ -52,8 +52,8 @@
     },
     {
       "path": "assets/cards/battery-curve-shape-explorer.jpg",
-      "size": 37519,
-      "sha256": "3fc8d15fb7897919592db7181feed01a0905fa151d3f792eedae3b49e5dd6494"
+      "size": 466755,
+      "sha256": "bb6e3b3310a687202536071e0d905a81f30ed8db26853353a8351833c686aeb6"
     },
     {
       "path": "assets/cards/ceemdan-battery-forecasting.jpg",
@@ -236,11 +236,6 @@
       "sha256": "3f2ed72eefd2bd672f0b5050397d7666772271a1b61c6d2df9f686377cb9845c"
     },
     {
-      "path": "assets/optimized/3fc8d15fb7897919592db7181feed01a0905fa151d3f792eedae3b49e5dd6494.jpg",
-      "size": 37519,
-      "sha256": "3fc8d15fb7897919592db7181feed01a0905fa151d3f792eedae3b49e5dd6494"
-    },
-    {
       "path": "assets/optimized/4dfb9bb882e39a960933bb52d7f51dd5bbafd15d9ea0a08bf53956725b77c2e6.jpg",
       "size": 271965,
       "sha256": "4dfb9bb882e39a960933bb52d7f51dd5bbafd15d9ea0a08bf53956725b77c2e6"
@@ -279,6 +274,11 @@
       "path": "assets/optimized/abbef4d820b1f33d4a7ee5922857ce46e15d6ea51d1cc568553f61e3f92e393d.jpg",
       "size": 186125,
       "sha256": "abbef4d820b1f33d4a7ee5922857ce46e15d6ea51d1cc568553f61e3f92e393d"
+    },
+    {
+      "path": "assets/optimized/bb6e3b3310a687202536071e0d905a81f30ed8db26853353a8351833c686aeb6.jpg",
+      "size": 466755,
+      "sha256": "bb6e3b3310a687202536071e0d905a81f30ed8db26853353a8351833c686aeb6"
     },
     {
       "path": "assets/optimized/dd08f7153e2b0319b9dc1510e34f3a435be8715f7270fefc073fbe03bb3efe0b.jpg",
@@ -401,6 +401,11 @@
       "sha256": "f0631e74d84e9887c4d8c3627c5b18597e795608c37e6afda6d7c90837ce6a95"
     },
     {
+      "path": "datasets/air-quality-uci/index.html",
+      "size": 40780,
+      "sha256": "023d63458386501038648a6a9c6b2f462ce0324340f063ed234faa3c3a856ceb"
+    },
+    {
       "path": "datasets/gse1297-hippocampus/index.html",
       "size": 3210760,
       "sha256": "2976c8e9509bd2c32dcbc10d3c74da3d549bfe216b84623524d9fb783fae0e0f"
@@ -416,9 +421,19 @@
       "sha256": "37eff54c6d674a3f6859f58602cd4e120f3d7746c4567cb2b21e709bf75d354e"
     },
     {
+      "path": "datasets/singapore-traffic-speed-bands/index.html",
+      "size": 285499,
+      "sha256": "a5efd6927c802f2b89ca440cc63253b2cb4d5cd59aedae2a721c9a71b8ae2c3d"
+    },
+    {
       "path": "demos/air-quality-day-segment-pca-and-amp-umap-by-sensor/index.html",
-      "size": 437891,
-      "sha256": "f3496e450c7b18c9e264d6d05592b2d261309117063ee255c1262ec0dc77c32e"
+      "size": 185872,
+      "sha256": "68da4f196b3674cf12a2e8414f36af2fef6de70e06e555014a7a2622b4f40658"
+    },
+    {
+      "path": "demos/air-quality-day-segment-pca-and-amp-umap-by-sensor/workflow.html",
+      "size": 434824,
+      "sha256": "7b9e5b853730543290cdaaf3364da4cbdb2cedd537a5970512e54efe30e756aa"
     },
     {
       "path": "demos/alzheimer-s-gene-co-expression-explorer/index.html",
@@ -467,8 +482,8 @@
     },
     {
       "path": "demos/from-twelve-thousand-numbers-to-a-codebook/index.html",
-      "size": 4054810,
-      "sha256": "1b92a0aed7df8802705dab3fe828e257aaf3de86a742de0f0f817bcdc74e553e"
+      "size": 4054953,
+      "sha256": "462a383bab602c7f368924ea1bf6b272d0c08d0d25d2979acfae6fcc7be8c08f"
     },
     {
       "path": "demos/from-twelve-thousand-numbers-to-a-codebook/workflow.html",
@@ -532,8 +547,13 @@
     },
     {
       "path": "demos/singapore-road-speed-clusters-umap/index.html",
-      "size": 8859736,
-      "sha256": "9a53bab0a48665fc636d3f3e10792d03ed84536f05eba14419ae0afba18b32a9"
+      "size": 7682090,
+      "sha256": "d8f26a508c2ca097cc76b772749eb5f653cc22ee23331fae9af04f41426f94cd"
+    },
+    {
+      "path": "demos/singapore-road-speed-clusters-umap/workflow.html",
+      "size": 944404,
+      "sha256": "578b1a9d143f4e685bb46e989cd679f4500316b9de0e69b4ad822beae9c44e8e"
     },
     {
       "path": "demos/soh-battery/dataset.html",
@@ -622,18 +642,18 @@
     },
     {
       "path": "domains/ai-mathematics-data/index.html",
-      "size": 54449,
-      "sha256": "7527c0f2b24cfd2c491e2496af2f6e6e9af9f539ac971ea2f09acfd8e6272112"
+      "size": 54458,
+      "sha256": "9102194a98dbf94e98b987384592354bbd0f63a5d68a8cb277c354f2feee87dc"
     },
     {
       "path": "domains/biology-genomics/index.html",
       "size": 54283,
-      "sha256": "4f1f7067b7f0a482e8c60e160e817b10751569b5f8ec444234bdc13c3a78bdc6"
+      "sha256": "4f3bc4f9410fbd3a57e37e08bf09d3f441a2740727dbbb984179b3b7eed827c5"
     },
     {
       "path": "domains/chemistry-materials/index.html",
       "size": 54817,
-      "sha256": "988419fa5199a54842a7560eb2c7e1a5016ec27d05667996b915c28736554300"
+      "sha256": "9bd468e6d05ba9589275f8cd17eeb40060ea2dc931fbcac16490f8406be688ff"
     },
     {
       "path": "domains/earth-climate/index.html",
@@ -643,17 +663,17 @@
     {
       "path": "domains/food-science-technology/index.html",
       "size": 48376,
-      "sha256": "90295e5ca6340751efa640dc30b6ca06d55d2a0e5aa1c5d2e78750fcef5744d7"
+      "sha256": "320e70a3d9a8ca7b7000f7ff5ab7fd028de00e340724e40b39a23511ff6db2a2"
     },
     {
       "path": "domains/mathematics/index.html",
       "size": 48241,
-      "sha256": "17d63a36cd0d1a89ae18a1cca42040beef207c233cae63fcde055b93bc4514fe"
+      "sha256": "2aa6c2b99bf124fe8be1cd9c84af32659b8f1d8e29ea7bc466c8927c194b2b55"
     },
     {
       "path": "domains/pharmacy-biomedical/index.html",
       "size": 48430,
-      "sha256": "12a4c2b287b737bb3c02d81cdbcc5d425d4f86281c1f27026f05ab028eba4008"
+      "sha256": "567d0afa2abd0b7df25605962e7128da4b85f3839f82612ad86b132b087cf37c"
     },
     {
       "path": "domains/physics-simulation/index.html",
@@ -663,22 +683,22 @@
     {
       "path": "domains/space-astronomy/index.html",
       "size": 57489,
-      "sha256": "95d0b1cf1c51781f18735dd0a529fad49a01fe8f719536ea2effb9d1b80be965"
+      "sha256": "96927c88e391975c7d54d8e85649a5bea4a745ec47dd0be01463f00ce1c66670"
     },
     {
       "path": "index.html",
-      "size": 103314,
-      "sha256": "9cbb6a323d72c2bc4f9010b7b60c97e8ff80cc1c0aacdb5891dc4dba9a8b6776"
+      "size": 103326,
+      "sha256": "4a157050ab46560e701bd92456c0e1627885a67ebb1977e4a1caa6984b1c8e7f"
     },
     {
       "path": "manifest.json",
-      "size": 47470,
-      "sha256": "991ffd8346219d3fcfe990c63f18279bfc9d5dcb9b71e38cea623bb513acc582"
+      "size": 48090,
+      "sha256": "17252ec3dc2aa3fe1d8b7fa8d88685bb515ab3dcaa48800b851d0e6d87cd81dd"
     },
     {
       "path": "performance-report.json",
-      "size": 53538,
-      "sha256": "16a9c38919be4f3b069ea14eed016f4303a1bdd7b3860106342bc18c878f2ea8"
+      "size": 55527,
+      "sha256": "34b8c5e01431484bf415d1d75384315a52cc6821c1790502851e1ac027a5dbc2"
     }
   ]
 }

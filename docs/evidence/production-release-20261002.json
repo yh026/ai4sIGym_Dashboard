@@ -1,0 +1,46 @@
+{
+  "reviewed_date": "2026-10-02",
+  "source": {
+    "verified": true,
+    "commit_ref": "ee1c49d6ed8e32ee17493a5c395bfe9245a60d52",
+    "registry_revision": "sha256:41094736529eb088d119a4f9c5e817f13c3b11f1dd8f68713b8b740f4b0bfcb8",
+    "deploy_id": "6abf25ef581f89000876e7fa",
+    "receipt_sha256": "3772b6255607176570d9e9cf96833873b4902e588b92c844f161da5d3c092fcb",
+    "site_id": "2fe21bb6-70b5-47c6-a810-18f6bd8f4973",
+    "build_id": "6abf25ef05e5bd6270b61565",
+    "registry_instance": "ais-backend-sandbox-20260923"
+  },
+  "archive_sha256": "787978a735ba6da98301fa551c7abe423841abfbbf5ac60c1ef61a70446ca8ed",
+  "source_files_verified": 137,
+  "package_files": 134,
+  "production_output_files": 129,
+  "demos": 13,
+  "tests": {
+    "passed": 574,
+    "failed": 0
+  },
+  "scope": [
+    "Approved Air Quality Insight, Dataset and Workflow",
+    "Approved Singapore Road Insight, Dataset and Workflow",
+    "Dark Battery Curve Shape cover",
+    "Aligned Satellite original and reconstructed images"
+  ],
+  "preserved": [
+    "TBB Notebook & skills publication override",
+    "Netlify HTML processing settings",
+    "Independent develop and production publication"
+  ],
+  "verification_reports": [
+    "Local exact deployment acquisition and file digest inventory",
+    "Independent source audit",
+    "Production builder archive and per-file checks"
+  ],
+  "production_static_audit": {
+    "html_pages": 49,
+    "internal_links": 285,
+    "local_assets": 143,
+    "hashed_assets": 153,
+    "broken_references": 0,
+    "byte_identical_retained_files": 120
+  }
+}

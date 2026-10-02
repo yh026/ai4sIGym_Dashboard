@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Package the downloaded, verified 2026-09-30 preview as a frozen release.
+"""Package the downloaded, verified 2026-10-02 preview as a frozen release.
 
 The caller must first obtain the immutable Netlify deploy artifact and verify
 its provenance. This script verifies that artifact's receipt and file inventory;
@@ -17,8 +17,8 @@ import stat
 import tarfile
 import tempfile
 
-EXPECTED_COMMIT = "6a56afde35bb966255350d9108d51213b4e7438e"
-EXPECTED_DEPLOY = "6abcd9a85bfd9b000843743b"
+EXPECTED_COMMIT = "ee1c49d6ed8e32ee17493a5c395bfe9245a60d52"
+EXPECTED_DEPLOY = "6abf25ef581f89000876e7fa"
 AUTHORIZED_DEMOS = sorted([
     "air-quality-day-segment-pca-and-amp-umap-by-sensor",
     "alzheimer-s-gene-co-expression-explorer", "battery-curve-shape-explorer",

@@ -392,7 +392,7 @@ test('packager binds the actual reviewed receipt, excludes controls, and emits d
   }
   const previewReceipt = { schema: 1, registry_schema: 3, verified: true, revision_bound: true,
     platform: 'netlify', target: 'preview', audience: 'preview', context: 'branch-deploy', branch: 'develop',
-    commit_ref: '6a56afde35bb966255350d9108d51213b4e7438e', deploy_id: '6abcd9a85bfd9b000843743b',
+    commit_ref: 'ee1c49d6ed8e32ee17493a5c395bfe9245a60d52', deploy_id: '6abf25ef581f89000876e7fa',
     registry_revision: source.registry_revision, site_id: env.SITE_ID, build_id: 'real-preview-build', registry_instance: 'reviewed-registry' };
   const receiptBytes = Buffer.from(JSON.stringify(previewReceipt));
   fs.writeFileSync(path.join(input, 'deploy-receipt.json'), receiptBytes);
