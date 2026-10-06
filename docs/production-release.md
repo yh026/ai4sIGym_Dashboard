@@ -77,3 +77,25 @@ Curve Shape cover, and aligned Satellite reconstruction images. All 137 source
 files were verified against the exact Netlify deployment inventory. The existing
 TBB Notebook & skills publication override and HTML preservation settings remain
 in effect.
+
+## Homepage introduction added on 2026-10-06
+
+The October 2 archive and its source proof remain unchanged. The optional
+`homepage_introduction` entry in the release manifest binds the exact source
+homepage and five files in `release/homepage-video/`: a section fragment, CSS,
+JavaScript, poster, and the approved 1080p video. Keeping these separate avoids
+repacking the original archive with a large MP4.
+
+After validating the complete original archive, the builder verifies every
+supplement file and inserts only the video section, stylesheet link, and player
+script. The section appears between the science map and project library; all
+existing homepage bytes, including project numbering, are retained. Four new
+assets use content-hash URLs. The browser assigns the video URL only when the
+visitor presses play; mobile playback retains the reviewed fullscreen behavior.
+
+Both production and PR review apply this supplement. The public manifest and
+deployment receipt append `homepage-introduction-v1` to the existing publication
+overrides, recording the homepage input/output hashes and added asset hashes.
+The TBB publication override, demo files, and deployment controls remain in
+effect. Remove the supplement configuration to restore the original homepage
+without changing the frozen source archive.

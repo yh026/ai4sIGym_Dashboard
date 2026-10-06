@@ -345,6 +345,76 @@ test('immutable resource names must bind the actual file bytes', t => {
   assert.throws(() => s.build(), /filename does not match/);
 });
 
+test('homepage introduction publishes in production and review without changing demos or replacing the TBB override', async t => {
+  for (const options of [{}, { env: reviewEnv, review: true }]) await t.test(options.review ? 'review' : 'production', t => {
+    const s = tbbResourceSample(t);
+    const home = Buffer.from('<!doctype html><html><head></head><body>Original map\n'
+      + '  <section class="project-library" id="projects" aria-labelledby="projects-title">Original projects</section></body></html>');
+    s.entries.set('index.html', home);
+    s.write();
+    s.build(options);
+    const baseline = new Map();
+    const walk = directory => {
+      for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+        const file = path.join(directory, entry.name);
+        if (entry.isDirectory()) walk(file);
+        else baseline.set(path.relative(s.outputDirectory, file), fs.readFileSync(file));
+      }
+    };
+    walk(s.outputDirectory);
+    const directory = path.join(s.directory, 'homepage-video');
+    fs.mkdirSync(directory);
+    const definitions = [
+      ['section', 'section.html', '<section id="introduction"><img src="{{POSTER_URL}}"><video data-intro-src="{{VIDEO_URL}}"></video></section>'],
+      ['stylesheet', 'intro.css', '.gym-intro-video { width: 100%; }'],
+      ['script', 'intro.js', '/* click-to-load player */'],
+      ['poster', 'poster.jpg', 'poster bytes'],
+      ['video', 'intro.mp4', 'video bytes'],
+    ];
+    const files = definitions.map(([role, name, content]) => {
+      const bytes = Buffer.from(content), hash = sha256(bytes);
+      fs.writeFileSync(path.join(directory, name), bytes);
+      return { role, source: 'homepage-video/' + name, size: bytes.length, sha256: hash,
+        ...(role === 'section' ? {} : { path: 'assets/' + (['stylesheet', 'script'].includes(role) ? 'runtime/' : 'optimized/')
+          + hash + path.extname(name) }) };
+    });
+    s.manifest.homepage_introduction = { id: 'homepage-introduction-v1', input_index_sha256: sha256(home), files };
+    s.write();
+    const result = s.build(options);
+    for (const [name, bytes] of baseline) {
+      if (['index.html', 'manifest.json', 'deploy-receipt.json'].includes(name)) continue;
+      assert.deepEqual(fs.readFileSync(path.join(s.outputDirectory, name)), bytes, name);
+    }
+    const overrides = result.receipt.publication_overrides;
+    assert.deepEqual(overrides.map(item => item.id), ['hide-tbb-notebook-resources-v1', 'homepage-introduction-v1']);
+    const metadata = JSON.parse(fs.readFileSync(path.join(s.outputDirectory, 'manifest.json')));
+    assert.deepEqual(metadata.release.publication_overrides, overrides);
+    assert.deepEqual(metadata.demos, JSON.parse(baseline.get('manifest.json')).demos);
+    assert.deepEqual(result.receipt.source_preview, JSON.parse(baseline.get('deploy-receipt.json')).source_preview);
+    for (const file of files.filter(file => file.path)) {
+      assert.equal(sha256(fs.readFileSync(path.join(s.outputDirectory, file.path))), file.sha256);
+    }
+    assert.equal(overrides[1].modified_files[0].input_sha256, sha256(home));
+    assert.equal(overrides[1].added_files.length, 4);
+    const publishedHome = fs.readFileSync(path.join(s.outputDirectory, 'index.html'));
+    fs.appendFileSync(path.join(directory, 'intro.mp4'), 'corrupt');
+    assert.throws(() => s.build(options), /size|checksum|hash/i);
+    assert.deepEqual(fs.readFileSync(path.join(s.outputDirectory, 'index.html')), publishedHome);
+  });
+});
+
+test('release accepts only byte-bound immutable MP4 resources', t => {
+  const s = sample(t), video = Buffer.from('unchanged video bytes');
+  const name = 'assets/optimized/' + sha256(video) + '.mp4';
+  s.entries.set(name, video); s.write(); s.build();
+  assert.deepEqual(fs.readFileSync(path.join(s.outputDirectory, name)), video);
+  s.entries.set(name, Buffer.from('changed video bytes')); s.write();
+  assert.throws(() => s.build(), /filename does not match/);
+  s.entries.delete(name);
+  s.entries.set('assets/unreviewed.mp4', video); s.write();
+  assert.throws(() => s.build(), /outside the authorized public routes/);
+});
+
 test('the two reviewed legacy department redirects survive release without allowing other collections', t => {
   const s = sample(t);
   const html = Buffer.from('<!doctype html><meta http-equiv="refresh" content="0;url=../../index.html#projects">');
