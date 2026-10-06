@@ -700,5 +700,45 @@
       "size": 55527,
       "sha256": "34b8c5e01431484bf415d1d75384315a52cc6821c1790502851e1ac027a5dbc2"
     }
-  ]
+  ],
+  "homepage_introduction": {
+    "id": "homepage-introduction-v1",
+    "input_index_sha256": "4a157050ab46560e701bd92456c0e1627885a67ebb1977e4a1caa6984b1c8e7f",
+    "files": [
+      {
+        "role": "section",
+        "source": "homepage-video/section.html",
+        "size": 2322,
+        "sha256": "fd28c288b4245a4b6d6ed8eec12119dbdce74e2b101824f8f0b3074f64cf13b3"
+      },
+      {
+        "role": "stylesheet",
+        "source": "homepage-video/intro.css",
+        "size": 5108,
+        "sha256": "ddc7903e4471a4b4f3c09012e49bb85d3a7213145a7cf0711db44adb6ec5471d",
+        "path": "assets/runtime/ddc7903e4471a4b4f3c09012e49bb85d3a7213145a7cf0711db44adb6ec5471d.css"
+      },
+      {
+        "role": "script",
+        "source": "homepage-video/intro.js",
+        "size": 4857,
+        "sha256": "daf5bfe6faebf6141c7cdabb29e2f03c53a3c2aade692e3b2c0086fd8514c7f6",
+        "path": "assets/runtime/daf5bfe6faebf6141c7cdabb29e2f03c53a3c2aade692e3b2c0086fd8514c7f6.js"
+      },
+      {
+        "role": "poster",
+        "source": "homepage-video/poster.jpg",
+        "size": 142047,
+        "sha256": "5e1123b2591905a658a1bf9c35f48fda02dc1784106703f4ec8c54364682b093",
+        "path": "assets/optimized/5e1123b2591905a658a1bf9c35f48fda02dc1784106703f4ec8c54364682b093.jpg"
+      },
+      {
+        "role": "video",
+        "source": "homepage-video/gym-explainer-web-1080p.mp4",
+        "size": 41387192,
+        "sha256": "1600880b9e057f04071b47a0ebd56300985966a3bd8c6fbe231415d6925b003a",
+        "path": "assets/optimized/1600880b9e057f04071b47a0ebd56300985966a3bd8c6fbe231415d6925b003a.mp4"
+      }
+    ]
+  }
 }

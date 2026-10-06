@@ -1,0 +1,33 @@
+  <section class="gym-intro-section" id="introduction" aria-labelledby="introduction-title">
+    <div class="gym-intro-content">
+      <div class="section-heading">
+        <div>
+          <p class="section-kicker">Introduction</p>
+          <h2 id="introduction-title">Get to know the Gym</h2>
+          <p>A two-minute guide to the Gym, its workflows, and how to get started.</p>
+        </div>
+      </div>
+      <div class="gym-intro-frame" id="gym-intro-frame">
+        <div class="gym-intro-shell" id="gym-intro-shell">
+          <header class="gym-intro-bar">
+            <h2 id="gym-intro-modal-title">AIS Gym / Introduction</h2>
+            <button class="gym-intro-close" id="gym-intro-close" type="button" aria-label="Close introduction" autofocus>
+              <span>Close</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+            </button>
+          </header>
+          <div class="gym-intro-stage">
+            <video class="gym-intro-video" id="gym-intro-video" data-intro-src="{{VIDEO_URL}}" data-intro-poster="{{POSTER_URL}}" width="1920" height="1080" preload="none" playsinline aria-hidden="true" tabindex="-1" aria-label="AIS Instrumentation Gym introduction with English narration and subtitles"></video>
+            <button class="gym-intro-trigger" id="gym-intro-trigger" type="button" aria-label="Play the introduction, 2 minutes 6 seconds">
+              <img src="{{POSTER_URL}}" width="1280" height="720" loading="lazy" decoding="async" alt="The Gym brings data-analysis workflows, methods and models together in a cube.">
+              <span class="gym-intro-play-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 3v18l16-9Z"/></svg></span>
+              <span class="gym-intro-cover-label" aria-hidden="true"><span id="gym-intro-play-label">Watch the introduction</span><span>2:06</span></span>
+            </button>
+          </div>
+          <p class="gym-intro-status" id="gym-intro-status" role="status" hidden></p>
+          <p class="gym-intro-rotate">Turn your phone sideways for the best view.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+<dialog class="gym-intro-dialog" id="gym-intro-dialog" aria-labelledby="gym-intro-modal-title"></dialog>

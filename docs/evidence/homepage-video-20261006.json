@@ -1,0 +1,62 @@
+{
+  "baseline_commit": "34b2107461f86a4c24b829ae1a18ca9b4b5b6cb6",
+  "baseline_deploy": "6abf2ecf1b209d0007be6e86",
+  "source_archive_unchanged": true,
+  "source_archive_sha256": "787978a735ba6da98301fa551c7abe423841abfbbf5ac60c1ef61a70446ca8ed",
+  "existing_output_files": 129,
+  "unchanged_output_files": 126,
+  "changed_existing_files": [
+    "deploy-receipt.json",
+    "index.html",
+    "manifest.json"
+  ],
+  "added_files": [
+    "assets/optimized/1600880b9e057f04071b47a0ebd56300985966a3bd8c6fbe231415d6925b003a.mp4",
+    "assets/optimized/5e1123b2591905a658a1bf9c35f48fda02dc1784106703f4ec8c54364682b093.jpg",
+    "assets/runtime/daf5bfe6faebf6141c7cdabb29e2f03c53a3c2aade692e3b2c0086fd8514c7f6.js",
+    "assets/runtime/ddc7903e4471a4b4f3c09012e49bb85d3a7213145a7cf0711db44adb6ec5471d.css"
+  ],
+  "removed_files": [],
+  "homepage_strip_insertions_matches_live": true,
+  "unchanged_demo_file_count": 39,
+  "all_demo_files_unchanged": true,
+  "demo_metadata_unchanged": true,
+  "index_before_sha256": "4a157050ab46560e701bd92456c0e1627885a67ebb1977e4a1caa6984b1c8e7f",
+  "index_after_sha256": "57061fcb03a6c7c49df4aff517ad2000b827b6119d7cd29a565a337cb44d3a91",
+  "video_sha256": "1600880b9e057f04071b47a0ebd56300985966a3bd8c6fbe231415d6925b003a",
+  "video_bytes": 41387192,
+  "video_duration_seconds": 126.4,
+  "video_resolution": "1920x1080",
+  "video_fps": 30,
+  "tests": {
+    "command": "node --test --test-concurrency=1 test/*.test.js",
+    "passed": 614,
+    "failed": 0
+  },
+  "browser": {
+    "initial_mp4_requests": 0,
+    "desktop_playback": true,
+    "desktop_seek_seconds": 50.56,
+    "muted": false,
+    "media_error": null,
+    "failed_load_message_visible": true,
+    "battery_search_results": 3,
+    "physics_filter_results": 4,
+    "unfiltered_results": 13,
+    "mobile_emulation": {
+      "portrait": [
+        390,
+        844
+      ],
+      "landscape": [
+        844,
+        390
+      ],
+      "fullscreen": true,
+      "horizontal_overflow": false,
+      "exit_paused_at": 50.56,
+      "resumed_at": 50.741514,
+      "playing_after_resume": true
+    }
+  }
+}
