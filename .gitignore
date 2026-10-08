@@ -19,3 +19,6 @@ __pycache__/
 
 # Local Netlify folder
 .netlify
+
+# Expendable Netlify release download cache
+/.ais-release-cache-v1/
