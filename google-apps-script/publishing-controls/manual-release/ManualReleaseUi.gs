@@ -157,14 +157,14 @@ function registryManualReviewProduction() {
       return {existing:existing};
     var baseline=registryManualBaseline_(),preview=registryManualPreview_();
     var now=new Date().toISOString(),id=Utilities.getUuid(),requestId=Utilities.getUuid();
-    var review={id:id,schema:1,site_id:SANDBOX.site_id,created_at:now,expires_at:new Date(Date.now()+2*60*60*1000).toISOString(),
+    var review={id:id,schema:1,site_id:SANDBOX.site_id,created_at:now,expires_at:new Date(Date.parse(now)+2*60*60*1000).toISOString(),
       phase:'requested',request_id:requestId,selection:registryManualSelection_(),catalog:registryPublishingCatalog_().map(function(c){
         return Object.assign({},c,{slug:c.demo_id.replace(/^demo-/,'')});}),
       baseline_capsule_id:baseline.capsule.id,preview_capsule_id:preview.id,
       baseline_deploy_id:baseline.receipt.deploy_id,preview_deploy_id:preview.provenance.deploy_id,
       renderer_digest:registryManualProperty_('AIS_RELEASE_RENDERER_DIGEST')};
     registryReleaseStoreCreateReview_(review);
-    var request={id:requestId,kind:'review',review_id:id,created_at:now,expires_at:new Date(Date.now()+30*60*1000).toISOString(),
+    var request={id:requestId,kind:'review',review_id:id,created_at:now,expires_at:new Date(Date.parse(now)+30*60*1000).toISOString(),
       phase:'requested',branch:'codex/manual-production-review',target:'production-review',baseline_deploy_id:review.baseline_deploy_id};
     registryReleaseStoreCreateRequest_(request);
     PropertiesService.getScriptProperties().setProperty('AIS_RELEASE_CURRENT_REVIEW_ID',id);
@@ -184,7 +184,7 @@ function registryManualConfirmProduction(reviewId) {
     if(baseline.receipt.deploy_id!==review.baseline_deploy_id)throw new Error('Production changed. Review the changes again.');
     if(registryManualPreview_().id!==review.preview_capsule_id)throw new Error('Preview changed. Review the changes again.');
     var now=new Date().toISOString(),r={id:Utilities.getUuid(),kind:'production',review_id:review.id,
-      created_at:now,expires_at:new Date(Date.now()+15*60*1000).toISOString(),phase:'requested',branch:'main',target:'production',
+      created_at:now,expires_at:new Date(Date.parse(now)+15*60*1000).toISOString(),phase:'requested',branch:'main',target:'production',
       candidate_capsule_id:review.candidate_capsule_id,artifact_digest:review.artifact_digest,baseline_deploy_id:review.baseline_deploy_id};
     registryReleaseStoreCreateRequest_(r);
     PropertiesService.getScriptProperties().setProperty('AIS_RELEASE_ACTIVE_REQUEST_ID',r.id);

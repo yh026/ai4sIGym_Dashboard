@@ -6,6 +6,7 @@ const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
 const {createReleaseIntent, stable} = require('../google-apps-script/publishing-controls/production-release/release-plan.cjs');
+const {validateHook} = require('../google-apps-script/publishing-controls/manual-release/hook.cjs');
 const code = fs.readFileSync(path.join(__dirname, '../google-apps-script/publishing-controls/manual-release/ManualReleaseUi.gs'), 'utf8');
 const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
 const NOW = '2026-10-08T08:00:00.000Z';
@@ -138,6 +139,54 @@ test('Review creates only an isolated review request and sends its hook once', (
   const second = h.context.registryManualReviewProduction();
   assert.equal(second.id, first.id); assert.equal(h.posts.length, 1);
   assertNoProduction(h);
+});
+
+test('slow review persistence keeps exact lifetimes and produces a valid Netlify hook', () => {
+  const h = harness();
+  let clock = Date.parse(NOW);
+  h.properties.set('AI4S_PREVIEW_CALLBACK_SECRET', 'ui-test-signing-secret-at-least-32-characters');
+  const delay = (object, key, milliseconds) => {
+    const original = object[key];
+    object[key] = (...args) => {
+      h.clock(new Date(clock += milliseconds).toISOString());
+      return original(...args);
+    };
+  };
+  delay(h.context.Utilities, 'getUuid', 175);
+  delay(h.context, 'registryPublishingCatalog_', 1300);
+  delay(h.context, 'registryReleaseStoreCreateReview_', 24000);
+  delay(h.context, 'registryReleaseStoreCreateRequest_', 6500);
+  h.context.registryManualReviewProduction();
+  const review = [...h.reviews.values()][0], request = [...h.requests.values()][0];
+  assert.equal(Date.parse(review.expires_at) - Date.parse(review.created_at), 2 * 60 * 60 * 1000);
+  assert.equal(request.created_at, review.created_at);
+  assert.equal(Date.parse(request.expires_at) - Date.parse(request.created_at), 30 * 60 * 1000);
+  const accepted = validateHook({NETLIFY:'true', SITE_ID:SITE, CONTEXT:'branch-deploy',
+    BRANCH:'codex/manual-production-review', COMMIT_REF:'1'.repeat(40), BUILD_ID:'review-build-1234',
+    DEPLOY_ID:'e'.repeat(24), INCOMING_HOOK_BODY:h.posts[0].payload,
+    AI4S_PREVIEW_CALLBACK_SECRET:h.properties.get('AI4S_PREVIEW_CALLBACK_SECRET')}, 'production-review', clock);
+  assert.equal(accepted.request_id, request.id);
+  assertNoProduction(h);
+});
+
+test('production expiry derives from the creation timestamp despite delayed UUID and save', () => {
+  const h = harness(), review = h.readyReview();
+  let clock = Date.parse(NOW);
+  h.properties.set('AI4S_PREVIEW_CALLBACK_SECRET', 'ui-test-signing-secret-at-least-32-characters');
+  const uuid = h.context.Utilities.getUuid;
+  h.context.Utilities.getUuid = () => { h.clock(new Date(clock += 175).toISOString()); return uuid(); };
+  const save = h.context.registryReleaseStoreCreateRequest_;
+  h.context.registryReleaseStoreCreateRequest_ = request => {
+    h.clock(new Date(clock += 24000).toISOString()); return save(request);
+  };
+  h.context.registryManualConfirmProduction(review.id);
+  const request = [...h.requests.values()][0];
+  assert.equal(Date.parse(request.expires_at) - Date.parse(request.created_at), 15 * 60 * 1000);
+  const accepted = validateHook({NETLIFY:'true', SITE_ID:SITE, CONTEXT:'production', BRANCH:'main',
+    COMMIT_REF:'1'.repeat(40), BUILD_ID:'production-build-1234', DEPLOY_ID:'e'.repeat(24),
+    INCOMING_HOOK_BODY:h.posts[0].payload,
+    AI4S_PREVIEW_CALLBACK_SECRET:h.properties.get('AI4S_PREVIEW_CALLBACK_SECRET')}, 'production', clock);
+  assert.equal(accepted.request_id, request.id);
 });
 
 test('only explicit Confirm submits the exact candidate and blocks a second confirmation', () => {
