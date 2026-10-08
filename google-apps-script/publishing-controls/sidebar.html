@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base target="_blank">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    *{box-sizing:border-box}body{margin:0;padding:18px 15px;background:#f6f5f0;color:#203341;font:14px Arial,sans-serif;line-height:1.45}
+    h1{font-size:21px;margin:0 0 16px}h2{font-size:16px;margin:0 0 12px}p{margin:0 0 12px}
+    .card{padding:14px;background:#fffefa;border:1px solid #dcded8;border-radius:10px;margin:14px 0}
+    .status-row{display:flex;align-items:center;justify-content:space-between;gap:12px}.status-row+.status-row{margin-top:14px}
+    .label{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#65717a}.status{font-size:16px;font-weight:bold;margin-top:3px}
+    .open-link{font-size:12px;white-space:nowrap;color:#345968;text-underline-offset:3px}.selection{border-top:1px solid #e3e5df;margin-top:14px;padding-top:11px;color:#65717a;font-size:12px}
+    button{display:block;width:100%;margin:8px 0;padding:11px;border:1px solid #b7c3c9;border-radius:7px;background:#fffefa;color:#203341;font:600 14px Arial,sans-serif;text-align:center;cursor:pointer}
+    button.primary{background:#345968;color:white;border-color:#345968}button.quiet{border-color:transparent;background:transparent;font-weight:normal;font-size:12px;padding:6px}
+    button:disabled{opacity:.5;cursor:default}button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #85a9bd;outline-offset:2px}
+    [hidden]{display:none!important}#message{padding:10px 12px;border-radius:7px;background:#e9efea;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}#message.error{background:#f8e9e5;color:#843e32}
+    .muted,.detail{color:#65717a;font-size:12px}.notice{padding:10px;background:#f4edda;border-radius:6px;color:#675529;font-size:12px;overflow-wrap:anywhere}
+    #changes{list-style:none;padding:0;margin:0 0 14px}#changes li{display:grid;grid-template-columns:55px 1fr;gap:8px;padding:9px 0;border-bottom:1px solid #e3e5df;font-size:13px;overflow-wrap:anywhere}
+    .tag{font-size:11px;font-weight:bold;text-transform:uppercase;color:#345968}.tag.remove{color:#843e32}
+    details{margin-top:18px;border-top:1px solid #dcded8;padding-top:12px}summary{cursor:pointer;color:#526670;font-size:12px}dl{margin:12px 0 0}dt{margin-top:12px;color:#65717a;font-size:11px}dd{margin:2px 0 0;font-size:12px;overflow-wrap:anywhere}.notes{white-space:pre-wrap;overflow-wrap:anywhere;margin:14px 0 0}
+  </style>
+</head>
+<body>
+  <h1>Publish projects</h1>
+  <div class="card" aria-label="Website status">
+    <div class="status-row"><div><div class="label">Preview</div><div id="status" class="status">Loading…</div></div><a class="open-link" href="https://develop--aisigym.netlify.app/" rel="noopener noreferrer" aria-label="Open preview">Open ↗</a></div>
+    <div class="status-row"><div><div class="label">Production</div><div id="production" class="status">Loading…</div></div><a class="open-link" href="https://aisigym.netlify.app/" rel="noopener noreferrer" aria-label="Open production">Open ↗</a></div>
+    <div id="selection" class="selection">Reading project selections…</div>
+  </div>
+  <button class="primary" id="update" onclick="act('update')" disabled>Update preview</button>
+  <button id="reviewButton" onclick="reviewProduction()" disabled>Review changes</button>
+  <button class="quiet" id="refresh" onclick="act('refresh')" disabled>Refresh status</button>
+  <p id="message" role="status" aria-live="polite" hidden></p>
+  <section id="review" class="card" aria-labelledby="reviewTitle" hidden>
+    <h2 id="reviewTitle">Review changes</h2>
+    <p id="reviewSummary" class="muted"></p>
+    <ul id="changes"></ul>
+    <p id="candidateLink" hidden><a id="candidatePreview" class="open-link" rel="noopener noreferrer">Open release preview ↗</a></p>
+    <p id="connection" class="notice" hidden></p>
+    <button class="primary" id="confirm" onclick="confirmProduction()" disabled>Publish to production</button>
+    <button class="quiet" id="cancel" onclick="cancelReview()">Close</button>
+  </section>
+  <details id="details">
+    <summary>Details</summary>
+    <dl>
+      <dt>Last sync</dt><dd id="sync">Not checked</dd>
+      <dt>Preview verified</dt><dd id="previewChecked">Not checked</dd>
+      <dt>Production checked</dt><dd id="productionChecked">Not checked</dd>
+      <dt>Automation</dt><dd id="automation">Not checked</dd>
+      <dt>Selected projects</dt><dd id="selectedCounts">Not checked</dd>
+    </dl>
+    <p id="notes" class="detail notes" hidden></p>
+    <p class="detail notes">Checkboxes select the next release. Publishing does not delete project files.</p>
+  </details>
+  <script>
+    var reviewId='',reviewEnabled=false,reviewState=null,operation='',lastStatus=null,submissionPending=false;
+    function el(id){return document.getElementById(id);}
+    function previewPending(s){return !!s&&(['requested','accepted','building','publishing'].indexOf(s.phase)>=0);}
+    function productionPending(s){var p=s&&s.publishing||{};return ['requested','accepted','building','publishing'].indexOf(p.production_phase)>=0;}
+    function controls(){var locked=!!operation||submissionPending||productionPending(lastStatus)||!!reviewState&&reviewState.phase==='preparing';el('update').disabled=locked||!lastStatus||previewPending(lastStatus);el('reviewButton').disabled=locked||!lastStatus||previewPending(lastStatus);el('refresh').disabled=!!operation;el('confirm').disabled=locked||previewPending(lastStatus)||!reviewId||!reviewEnabled;el('cancel').disabled=!!operation;document.body.setAttribute('aria-busy',operation?'true':'false');}
+    function date(v){if(!v||!Number.isFinite(Date.parse(v)))return 'Not checked';return new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Singapore',year:'numeric',month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(v))+' SGT';}
+    function message(t,error){el('message').textContent=t||'';el('message').className=error?'error':'';el('message').hidden=!t;el('message').setAttribute('role',error?'alert':'status');}
+    function resetReview(clearState){reviewId='';reviewEnabled=false;if(clearState)reviewState=null;el('review').hidden=true;el('confirm').disabled=true;}
+    function render(s){
+      s=s||{};lastStatus=s;operation='';var p=s.publishing||{};
+      el('status').textContent=s.preview_state||'Not checked';
+      el('production').textContent=s.production_warning?'Check needed':p.production_state||(s.production_deploy?'Published':'Not checked');
+      el('selection').textContent=typeof p.pending==='number'?(p.pending===0?'No selection changes':p.pending+' project'+(p.pending===1?'':'s')+' with selection changes'):'Selections are shown in the table';
+      el('sync').textContent=(s.last_sync_result?s.last_sync_result+' · ':'')+date(s.last_sync_at);
+      el('previewChecked').textContent=date(s.preview_verified_at||s.preview_ready_at);
+      el('productionChecked').textContent=date(s.production_checked_at);
+      el('automation').textContent=s.automation||'Not checked';
+      el('selectedCounts').textContent=typeof p.preview==='number'&&typeof p.production==='number'?p.preview+' preview · '+p.production+' production':'See the project table';
+      var notes=[s.production_warning,s.preview_warning,p.production_disabled_reason].filter(Boolean);el('notes').textContent=notes.join('\n\n');el('notes').hidden=!notes.length;
+      var error=s.last_error||p.production_error||'';message(error,!!error);renderReview(p.review||null);controls();
+    }
+    function fail(e){operation='';resetReview();message(e&&e.message||'The action could not finish.',true);controls();}
+    function cancelReview(){if(operation)return;resetReview();controls();}
+    function act(a){
+      if(operation||a==='update'&&el('update').disabled)return;
+      resetReview(a==='update');operation=a;controls();message(a==='update'?'Updating preview…':'Checking website status…');
+      var runner=google.script.run.withSuccessHandler(function(s){if(a==='refresh')submissionPending=false;render(s);}).withFailureHandler(fail);
+      if(a==='update')runner.registryPublishingUpdatePreview();else runner.registryPublishingRefreshStatus();
+    }
+    function actionLabel(action){return ({Add:'Add',Update:'Update',Remove:'Remove','Use reviewed preview':'Update'})[action]||'';}
+    function renderReview(r){
+      resetReview(true);reviewState=r;if(!r)return;
+      var list=el('changes');list.replaceChildren();el('review').hidden=false;el('connection').hidden=true;el('candidateLink').hidden=true;
+      if(r.phase==='preparing'){el('reviewSummary').textContent=r.message||'Preparing a release preview. Refresh status to check progress.';return;}
+      if(r.phase==='failed'){el('reviewSummary').textContent='Release review failed.';message(r.error||r.message||'The release preview could not be prepared.',true);return;}
+      if(r.phase!=='ready'){el('reviewSummary').textContent=r.production_disabled_reason||'Review changes again to prepare a current release.';return;}
+      reviewId=r.id||'';var count=0,kept=0;
+      (r.changes||[]).forEach(function(c){var label=actionLabel(c.action);if(!label){kept++;return;}count++;var li=document.createElement('li'),tag=document.createElement('span'),title=document.createElement('span');tag.className='tag'+(label==='Remove'?' remove':'');tag.textContent=label;title.textContent=c.title||c.demo_id;li.appendChild(tag);li.appendChild(title);list.appendChild(li);});
+      el('reviewSummary').textContent=count?count+' project'+(count===1?'':'s')+' will change.'+(kept?' '+kept+' unchanged.':''):'No changes to publish.';
+      reviewEnabled=r.production_enabled===true&&count>0&&!!reviewId;
+      var reason=r.production_enabled!==true?(r.production_disabled_reason||(count?'Production publishing is not connected yet.':'')):'';
+      if(reason==='No production changes to publish.')reason='';
+      if(!count&&reason)el('reviewSummary').textContent='This review cannot be published.';
+      el('connection').textContent=reason;el('connection').hidden=!reason;
+      if(/^https:\/\/(?:[a-f0-9]{24}--|develop--)?aisigym\.netlify\.app(?:\/|$)/.test(r.preview_url||'')){el('candidatePreview').href=r.preview_url;el('candidateLink').hidden=false;}
+    }
+    function reviewProduction(){
+      if(operation||el('reviewButton').disabled)return;
+      resetReview(true);operation='review';controls();message('Preparing the change list…');
+      google.script.run.withSuccessHandler(function(r){
+        operation='';message('');renderReview(r);controls();
+      }).withFailureHandler(fail).registryPublishingReviewProduction();
+    }
+    function confirmProduction(){
+      if(operation||el('confirm').disabled||!reviewId||!reviewEnabled)return;
+      var confirmedId=reviewId;operation='publish';reviewEnabled=false;controls();message('Submitting the production release…');
+      google.script.run.withSuccessHandler(function(r){
+        resetReview(true);operation='';submissionPending=true;el('production').textContent='Release requested';message(r&&r.message||'Release requested. Refresh status to check progress.');controls();
+      }).withFailureHandler(function(e){submissionPending=true;resetReview(true);fail(e);}).registryPublishingConfirmProduction(confirmedId);
+    }
+    // Opening the sidebar reads saved status only. Every deployment requires a click.
+    operation='load';controls();
+    google.script.run.withSuccessHandler(render).withFailureHandler(fail).registryUiGetStatus();
+  </script>
+</body>
+</html>
