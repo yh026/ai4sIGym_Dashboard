@@ -1856,6 +1856,15 @@ async function main() {
     });
   }
 
+  // V3 loads all selected pages through its bounded reader first. The entry
+  // reads below then reuse verified bytes instead of taking the V2 serial path.
+  let registryProjectPages = new Map();
+  if (registry.protocolVersion === 3) {
+    console.log('  reading verified project pages for ' + demos.length + ' demos…');
+    registryProjectPages = await withRetry(() => registry.getProjectPages(demos, activeRegistryRevision));
+    console.log('  verified project pages loaded');
+  }
+
   const pages = await inChunks(demos, registryReadBatchSize(schemaVersion), async demo => {
     const localEntry = localCollection?.entries.get(demo.slug);
     const result = localEntry
@@ -1874,8 +1883,6 @@ async function main() {
     ? await fetchV2CardAssets(demos, registry, activeRegistryRevision)
     : [];
 
-  const registryProjectPages = registry.protocolVersion === 3
-    ? await registry.getProjectPages(demos, activeRegistryRevision) : new Map();
   if (registry.protocolVersion === 3) {
     for (const demo of demos) {
       const bundle = registry.bundles.find(b => b.demo_id === demo.demo_id);
@@ -1885,6 +1892,7 @@ async function main() {
   }
 
   if (activeRegistryRevision) {
+    console.log('  checking final registry revision…');
     const finalRegistryRevision = await registry.getRevision(activeRegistryRevision);
     requireMatchingRegistryRevision(
       finalRegistryRevision, activeRegistryRevision, 'Final manifest',

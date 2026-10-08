@@ -1,6 +1,7 @@
 [build]
   command = "node build.js"
   publish = "dist"
+  ignore = "node google-apps-script/publishing-controls/manual-release/ignore-build.cjs"
 
 [build.environment]
   NODE_VERSION = "24"
@@ -10,10 +11,25 @@
   pretty_urls = false
 
 [context.production]
-  command = "node scripts/build-production-release.cjs"
+  command = "node google-apps-script/publishing-controls/manual-release/production-build.cjs"
 
 [context.deploy-preview]
   command = "node scripts/build-production-release.cjs --review"
 
 [[context.branch-deploy.plugins]]
   package = "./netlify/plugins/preview-ready"
+
+# Checked boxes only stage the next release. These commands require the explicit
+# control-panel request; an ordinary Git push never publishes these branches.
+[context.develop]
+  command = "node google-apps-script/publishing-controls/manual-release/preview-build.cjs"
+
+[context."codex/manual-production-review"]
+  command = "node google-apps-script/publishing-controls/manual-release/review-build.cjs"
+
+# Branch callbacks are ordered: verify Preview first, then activate its capsule.
+[[context.branch-deploy.plugins]]
+  package = "./google-apps-script/publishing-controls/manual-release/netlify-plugin"
+
+[[context.production.plugins]]
+  package = "./google-apps-script/publishing-controls/manual-release/netlify-plugin"

@@ -92,4 +92,73 @@ test('client assembles compact Dataset placeholders with independent round-trip 
   assert.equal(await registry.getRevision(snapshot.manifest.registry_revision),snapshot.manifest.registry_revision);
 });
 
+test('V3 continuous readers cap concurrency at three and refill past a slow first page',async()=>{
+  const snapshot=compileRegistryV3(input(),hash),revision=snapshot.manifest.registry_revision;
+  let releaseFirst;
+  const firstHeld=new Promise(resolve=>{releaseFirst=resolve;});
+  const calls=[];let active=0,peak=0;
+  const getJson=async address=>{
+    const u=new URL(address),id=u.searchParams.get('id');
+    if(u.searchParams.get('action')==='manifest')return {ok:true,...snapshot.manifest};
+    authorizedFile(snapshot,id,'preview',u.searchParams.get('registry_revision'));
+    calls.push(id);active++;peak=Math.max(peak,active);
+    try {
+      if(calls.length===1)await firstHeld;
+      else await new Promise(resolve=>setImmediate(resolve));
+      return {ok:true,id,registry_instance:'test-registry',registry_revision:revision,html};
+    } finally {active--;}
+  };
+  const registry=await loadV3Registry('https://example.com/exec?token=test&schema=3',policy,getJson,revision,{AIS_REGISTRY_INSTANCE:'test-registry'});
+  const pending=registry.getProjectPages(snapshot.manifest.demos,revision);
+  try {
+    // Yield two event-loop turns, not wall-clock time: the three fast reads
+    // can proceed while the first request remains explicitly blocked.
+    await new Promise(resolve=>setImmediate(resolve));
+    await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(calls.length,4,'fourth page starts before the first page finishes');
+    assert.equal(peak,3);
+  } finally {releaseFirst();}
+  const pages=await pending;
+  assert.deepEqual([...pages.keys()],['battery-a','battery-b']);
+  assert.equal(new Set(calls).size,4);
+  for(const demo of snapshot.manifest.demos){
+    assert.equal((await registry.getHtml(demo.file_id,revision)).html,html);
+    const rendered=pages.get(demo.slug).find(page=>page.path.endsWith('/index.html')).html;
+    assert.ok(rendered.includes('<script>window.result=42</script><main>Core result</main>'));
+  }
+  assert.deepEqual(await registry.getProjectPages(snapshot.manifest.demos,revision),pages);
+  assert.equal(calls.length,4,'entry reads and a repeated page assembly use validated cached bytes');
+  assert.equal(await registry.getRevision(revision),revision);
+});
+
+test('V3 workers stop scheduling on invalid bytes or identity and never cache the rejected source',async()=>{
+  for(const invalid of ['hash','revision']){
+    const snapshot=compileRegistryV3(input(),hash),revision=snapshot.manifest.registry_revision;
+    let releaseOthers;
+    const othersHeld=new Promise(resolve=>{releaseOthers=resolve;});
+    const calls=[];let badId;
+    const getJson=async address=>{
+      const u=new URL(address),id=u.searchParams.get('id');
+      if(u.searchParams.get('action')==='manifest')return {ok:true,...snapshot.manifest};
+      authorizedFile(snapshot,id,'preview',u.searchParams.get('registry_revision'));
+      calls.push(id);badId??=id;
+      if(id!==badId)await othersHeld;
+      return {ok:true,id,registry_instance:'test-registry',
+        registry_revision:id===badId&&invalid==='revision'?'sha256:'+'f'.repeat(64):revision,
+        html:id===badId&&invalid==='hash'?html.replace('42','43'):html};
+    };
+    const registry=await loadV3Registry('https://example.com/exec?token=test&schema=3',policy,getJson,revision,{AIS_REGISTRY_INSTANCE:'test-registry'});
+    const rejected=assert.rejects(registry.getProjectPages(snapshot.manifest.demos,revision),
+      invalid==='hash'?/source content changed/:/identity or revision mismatch/);
+    await new Promise(resolve=>setImmediate(resolve));
+    releaseOthers();await rejected;
+    assert.equal(calls.length,3,'the fourth queued request is not started after failure');
+    await assert.rejects(registry.getHtml(badId,revision));
+    assert.equal(calls.filter(id=>id===badId).length,2,'invalid source was not cached');
+    const validId=calls.find(id=>id!==badId);
+    assert.equal((await registry.getHtml(validId,revision)).html,html);
+    assert.equal(calls.length,4,'successful in-flight content retains its verified cache entry');
+  }
+});
+
 module.exports={input,hash,html,policy};
