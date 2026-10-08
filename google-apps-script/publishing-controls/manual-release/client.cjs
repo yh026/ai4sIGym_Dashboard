@@ -1,13 +1,15 @@
 'use strict';
 const crypto = require('node:crypto');
-const { unpack, stable } = require('./capsule.cjs');
+const { unpack, stable, CHUNK_SIZE, MAX_BYTES } = require('./capsule.cjs');
+const { enabled, valid, matches, createCache } = require('./cache.cjs');
 const DOMAIN = 'ais-manual-release-api-v1\n';
 function identity(env = process.env) {
   return { site_id: env.SITE_ID, build_id: env.BUILD_ID, deploy_id: env.DEPLOY_ID,
     commit_ref: env.COMMIT_REF, branch: env.BRANCH, context: env.CONTEXT };
 }
 function createClient({ env = process.env, fetchImpl = globalThis.fetch, now = () => new Date().toISOString(),
-  wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)) } = {}) {
+  wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)),
+  cache = enabled(env) ? createCache() : null, log = console.log } = {}) {
   const secret = env.AI4S_PREVIEW_CALLBACK_SECRET;
   if (typeof secret !== 'string' || secret.length < 32) throw new Error('Release API signing secret is unavailable.');
   let url;
@@ -85,13 +87,37 @@ function createClient({ env = process.env, fetchImpl = globalThis.fetch, now = (
   async function download(capsuleId, binding = {}) {
     const result = await call('read_capsule', { ...binding, capsule_id: capsuleId });
     const capsule = result.capsule; if (capsule?.id !== capsuleId) throw new Error('Release capsule identity mismatch.');
-    const chunks = [];
-    for (let index = 0; index < capsule.chunks.length; index++) {
-      const part = await call('read_chunk', { ...binding, capsule_id: capsuleId, index });
-      if (part.sha256 !== capsule.chunks[index].sha256 || typeof part.base64 !== 'string') throw new Error('Release chunk identity mismatch.');
-      chunks.push(Buffer.from(part.base64, 'base64'));
+    if (capsule.chunk_size !== CHUNK_SIZE || !Array.isArray(capsule.chunks) || !capsule.chunks.length
+      || capsule.chunks.length > Math.ceil(MAX_BYTES / CHUNK_SIZE)
+      || capsule.chunks.some((item, index) => !valid(item) || item.index !== index)
+      || !Number.isSafeInteger(capsule.archive_size) || capsule.archive_size > MAX_BYTES
+      || capsule.chunks.reduce((sum, item) => sum + item.size, 0) !== capsule.archive_size) {
+      throw new Error('Release capsule descriptor is invalid.');
     }
-    return { capsule, files: unpack(capsule, chunks) };
+    const chunks = []; let hits = 0, downloaded = 0;
+    for (let index = 0; index < capsule.chunks.length; index++) {
+      const expected = capsule.chunks[index]; let bytes;
+      try { bytes = cache?.get(expected); } catch {}
+      if (matches(bytes, expected)) { hits++; }
+      else {
+        const part = await call('read_chunk', { ...binding, capsule_id: capsuleId, index });
+        if (part.sha256 !== expected.sha256 || typeof part.base64 !== 'string') throw new Error('Release chunk identity mismatch.');
+        bytes = Buffer.from(part.base64, 'base64');
+        if (!matches(bytes, expected)) throw new Error('Release chunk content mismatch.');
+        downloaded += bytes.length;
+      }
+      chunks.push(bytes);
+    }
+    // Retain the full archive, provenance and per-file validation on cache hits.
+    const files = unpack(capsule, chunks);
+    if (cache) {
+      for (let index = 0; index < chunks.length; index++) {
+        try { cache.put(capsule.chunks[index], chunks[index]); } catch {}
+      }
+      log('Release download: ' + hits + '/' + chunks.length + ' cached chunks; '
+        + downloaded + ' bytes downloaded from Drive.');
+    }
+    return { capsule, files };
   }
   return { call, upload, download };
 }

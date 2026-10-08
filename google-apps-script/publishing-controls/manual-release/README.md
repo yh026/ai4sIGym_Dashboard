@@ -35,3 +35,28 @@ node --test google-apps-script/publishing-controls/production-release/*.test.cjs
 ```
 
 The local real-artifact verification record for this installation is `.local/reports/manual-publishing-20261008/node-flow-verification.json`. It covers all 13 projects, 12 projects excluding TBB, an empty library, and a subsequent production-source cycle. These checks perform no production network request.
+
+## Review download cache
+
+The review branch uses Netlify Build's standard cache utility to restore and save
+`.ais-release-cache-v1/` outside the published directory. Each download still reads
+an authenticated, current Drive capsule descriptor. Cached chunks are accepted
+only when their SHA-256 and length match that descriptor; the complete archive,
+provenance, inventory and individual files are validated exactly as before.
+Missing, corrupt or inaccessible cached bytes fall back to Drive. API authorization
+failures do not fall back to cached content.
+
+This initial rollout is limited to `codex/manual-production-review` branch deploys.
+Set `AIS_RELEASE_CACHE=off` to disable it. Main/production and develop are unchanged.
+The cache contains content bytes only, never credentials, descriptors, requests or
+release state. It retains at most 512 MiB when saved, evicting the least recently
+used chunks. Netlify may clear the cache; correctness does not depend on retention.
+No application TTL is needed because content hashes determine validity.
+
+Build logs report cached chunk counts and downloaded bytes. The first build warms
+the cache; later reviews can reuse unchanged source capsules. This does not yet
+cache mutable Preview inputs, deduplicate uploads, or avoid uploading the newly
+rendered candidate. No production publication is triggered by this feature.
+
+Run `node --test test/manual-release-cache.test.js` for cache fallback and integrity
+checks, plus the existing manual-release tests for publication gate coverage.
