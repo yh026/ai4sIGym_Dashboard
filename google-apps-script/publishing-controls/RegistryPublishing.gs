@@ -128,7 +128,7 @@ function registryPublishingRefreshPreview_() {
     if(error.httpStatus===401&&state.phase!=='replaced') {
       var fallback=registryPublishingSignedPreview_(state,state.ready_at,true);
       if(!fallback&&['requested','accepted','failed','retry-approved'].indexOf(state.phase)!==-1
-        &&saved&&saved.known&&saved.source==='signed_callback'&&saved.request_id
+        &&saved&&saved.known&&['signed_callback','signed_artifact'].indexOf(saved.source)!==-1&&saved.request_id
         &&/^[a-f0-9]{24}$/.test(saved.deploy_id||'')&&/^sha256:[a-f0-9]{64}$/.test(saved.registry_revision||'')
         &&Number.isFinite(Date.parse(saved.checked_at||''))) {
         fallback=saved;fallback.stale=true;
@@ -241,7 +241,9 @@ function registryPublishingUpdatePreview() {
     // Applying checkbox settings and taking the snapshot share the backend lock.
     locked_(registryPublishingApplyPreview_);
     registryUiPatch_({last_sync_at:new Date().toISOString(),last_sync_result:'Selection applied; files validated',last_error:''});
-    publishPreview();
+    // The manual runtime may need one fresh build to save a verified artifact.
+    // Only this explicit Update action enables that narrowly guarded refresh.
+    publishPreview(true);
   }catch(error){registryUiPatch_({last_error:registryUiMessage_(error)});registryUiWriteStatus_(registryUiGetStatus());throw error;}
   return registryPublishingRefreshStatus();
 }

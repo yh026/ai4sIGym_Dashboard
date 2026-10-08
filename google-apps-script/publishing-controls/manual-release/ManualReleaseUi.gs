@@ -68,6 +68,13 @@ function registryManualPreview_() {
     throw new Error('Update preview first and wait for its artifact to finish saving.');
   return capsule;
 }
+/** Only the explicit Update preview action requests this check under the build lock. */
+function registryManualNeedsPreviewArtifact_(state,revision) {
+  if(!state||state.phase!=='ready'||state.revision!==revision)return false;
+  var capsule=registryReleaseStoreGetActive_('preview'),proof=capsule&&capsule.provenance||{};
+  return !capsule||!capsule.complete||proof.deploy_id!==state.deploy_id
+    ||proof.request_id!==state.request_id||proof.registry_revision!==state.revision;
+}
 function registryManualChangeRows_(review) {
   if(!review||!review.plan)return [];
   var changes=(review.plan.projects||[]).concat((review.plan.removals||[]).map(function(r){return Object.assign({},r,{action:'remove'});}));

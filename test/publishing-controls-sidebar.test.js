@@ -119,6 +119,16 @@ test('in-progress preview or production disables further deployment actions', ()
   assert.equal(h.elements.refresh.disabled, false);
 });
 
+test('a previously ready release cannot be confirmed while a newer preview is pending', () => {
+  const h = harness(); h.load({phase: 'accepted', publishing: {...h.ready.publishing, review: {
+    id: 'older-review', phase: 'ready', production_enabled: true, changes: [{action: 'Update', title: 'TBB'}],
+  }}});
+  assert.equal(h.elements.review.hidden, false);
+  assert.equal(h.elements.confirm.disabled, true);
+  h.context.confirmProduction();
+  assert.deepEqual(h.calls.map(call => call.name), ['registryUiGetStatus']);
+});
+
 test('project titles and backend errors are rendered as text', () => {
   const h = harness(); h.load();
   const title = '<img src=x onerror=alert(1)>';

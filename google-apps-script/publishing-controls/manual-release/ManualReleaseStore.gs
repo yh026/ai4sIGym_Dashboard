@@ -9,6 +9,16 @@ var AIS_RELEASE_STORE = { schema: 1, chunkSize: 8388608, maxChunks: 256,
 function registryReleaseStoreNeed_(condition, message) {
   if (!condition) { var error = new Error(message); error.releaseStoreSafe = true; throw error; }
 }
+function registryReleaseStoreWithLock_(fn) {
+  try { return locked_(fn); }
+  catch (error) {
+    if (error && error.message === 'Another sandbox operation is running') {
+      var busy = new Error('Release metadata is busy. Retry only the same artifact operation.');
+      busy.releaseStoreSafe = true; busy.releaseStoreCode = 'release_busy'; throw busy;
+    }
+    throw error;
+  }
+}
 function registryReleaseStoreClone_(value) { return JSON.parse(JSON.stringify(value)); }
 function registryReleaseStoreStable_(value) {
   if (Array.isArray(value)) return '[' + value.map(registryReleaseStoreStable_).join(',') + ']';
@@ -122,12 +132,15 @@ function registryReleaseStoreRequestFor_(payload, kind, claim, reconciled) {
       'Claimed release build expired.'); registryReleaseStoreOwner_(request, payload); }
   return {request:request,review:review};
 }
-function registryReleaseStoreGetCapsule_(id) {
-  var record = registryReleaseStoreRecord_('capsule', id); if (!record) return null;
+function registryReleaseStoreCapsuleValue_(record) {
+  if (!record) return null;
   var value = registryReleaseStoreClone_(record.capsule); value.complete = record.phase === 'complete';
   if (record.receipt) value.receipt = registryReleaseStoreClone_(record.receipt);
   if (record.activated_at) value.activated_at = record.activated_at;
   return value;
+}
+function registryReleaseStoreGetCapsule_(id) {
+  return registryReleaseStoreCapsuleValue_(registryReleaseStoreRecord_('capsule', id));
 }
 function registryReleaseStoreGetActive_(kind) {
   registryReleaseStoreNeed_(['preview','production'].indexOf(kind) !== -1, 'Invalid release environment.');
@@ -203,30 +216,82 @@ function registryReleaseStoreUploadRecord_(payload) {
   registryReleaseStoreAuthorizeUpload_(payload, record.capsule.kind); return record;
 }
 function registryReleaseStorePut_(payload) {
-  var record = registryReleaseStoreUploadRecord_(payload), expected = record.capsule.chunks[payload.index];
+  // Snapshot authorization and metadata briefly. Hashing and Drive byte I/O must
+  // not hold the ScriptLock shared with the spreadsheet's control actions.
+  var record = registryReleaseStoreWithLock_(function() { return registryReleaseStoreUploadRecord_(payload); });
+  var expected = record.capsule.chunks[payload.index];
   registryReleaseStoreNeed_(Number.isInteger(payload.index) && expected && expected.index === payload.index &&
     payload.sha256 === expected.sha256 && typeof payload.base64 === 'string' &&
     payload.base64.length === Math.ceil(expected.size / 3) * 4 && !/[^A-Za-z0-9+/=]/.test(payload.base64), 'Invalid capsule chunk.');
   var bytes = Utilities.base64Decode(payload.base64);
   registryReleaseStoreNeed_(bytes.length === expected.size && Utilities.base64Encode(bytes) === payload.base64 &&
     registryReleaseStoreHash_(bytes) === expected.sha256, 'Capsule chunk checksum mismatch.');
-  var name = 'chunk-' + record.id + '-' + payload.index + '.bin', file = registryReleaseStoreFile_(registryReleaseStoreRoot_(), name);
-  if (file) registryReleaseStoreNeed_(file.getSize() === expected.size && registryReleaseStoreHash_(file.getBlob().getBytes()) === expected.sha256, 'Stored capsule chunk changed.');
-  else { registryReleaseStoreNeed_(record.phase === 'uploading', 'Complete capsules are immutable.'); file = registryReleaseStoreRoot_().createFile(Utilities.newBlob(bytes, 'application/octet-stream', name)); }
+  var stored = record.chunks[String(payload.index)], created = false, file;
+  if (stored) {
+    registryReleaseStoreNeed_(stored.sha256 === expected.sha256 && stored.size === expected.size, 'Stored capsule metadata changed.');
+    file = DriveApp.getFileById(stored.file_id);
+    registryReleaseStoreNeed_(!file.isTrashed() && file.getSize() === expected.size &&
+      registryReleaseStoreHash_(file.getBlob().getBytes()) === expected.sha256, 'Stored capsule chunk changed.');
+  } else {
+    registryReleaseStoreNeed_(record.phase === 'uploading', 'Complete capsules are immutable.');
+    // Independent attempt names make concurrent identical retries harmless. The
+    // first successful metadata commit chooses the sole canonical file ID.
+    var name = 'chunk-' + record.id + '-' + payload.index + '-' + Utilities.getUuid() + '.bin';
+    file = registryReleaseStoreRoot_().createFile(Utilities.newBlob(bytes, 'application/octet-stream', name)); created = true;
+  }
   registryReleaseStoreNeed_(file.getSize() === expected.size, 'Capsule chunk was not stored durably.');
-  record.chunks[String(payload.index)] = {file_id:file.getId(),size:expected.size,sha256:expected.sha256};
-  registryReleaseStoreWrite_('capsule', record, false); return {capsule_id:record.id,index:payload.index,stored:true};
+  var fileId = file.getId();
+  var canonical = registryReleaseStoreWithLock_(function() {
+    var latest = registryReleaseStoreUploadRecord_(payload), current = latest.chunks[String(payload.index)];
+    registryReleaseStoreNeed_(registryReleaseStoreStable_(latest.capsule) === registryReleaseStoreStable_(record.capsule), 'Capsule identity changed during upload.');
+    if (current) {
+      registryReleaseStoreNeed_(current.sha256 === expected.sha256 && current.size === expected.size,
+        'Concurrent capsule chunk metadata differs.');
+      return current.file_id;
+    }
+    registryReleaseStoreNeed_(latest.phase === 'uploading', 'Complete capsules are immutable.');
+    latest.chunks[String(payload.index)] = {file_id:fileId,size:expected.size,sha256:expected.sha256};
+    registryReleaseStoreWrite_('capsule', latest, false); return fileId;
+  });
+  // Never delete after an uncertain commit failure. An unreferenced attempt may
+  // remain in the release archive; upload_status determines durable progress.
+  if (created && canonical !== fileId) { try { file.setTrashed(true); } catch (_) {} }
+  return {capsule_id:record.id,index:payload.index,stored:true};
 }
 function registryReleaseStoreComplete_(payload) {
-  var record = registryReleaseStoreUploadRecord_(payload);
+  var record = registryReleaseStoreWithLock_(function() { return registryReleaseStoreUploadRecord_(payload); });
   record.capsule.chunks.forEach(function(expected) {
     var stored = record.chunks[String(expected.index)];
     registryReleaseStoreNeed_(stored && stored.sha256 === expected.sha256 && stored.size === expected.size, 'Capsule upload is incomplete.');
     var file = DriveApp.getFileById(stored.file_id);
     registryReleaseStoreNeed_(file.getSize() === expected.size && !file.isTrashed(), 'Capsule chunk is not durably available.');
   });
-  record.phase = 'complete'; record.completed_at = record.completed_at || new Date().toISOString();
-  registryReleaseStoreWrite_('capsule', record, false); return {capsule:registryReleaseStoreGetCapsule_(record.id)};
+  return registryReleaseStoreWithLock_(function() {
+    var latest = registryReleaseStoreUploadRecord_(payload);
+    registryReleaseStoreNeed_(registryReleaseStoreStable_(latest.capsule) === registryReleaseStoreStable_(record.capsule) &&
+      registryReleaseStoreStable_(latest.chunks) === registryReleaseStoreStable_(record.chunks),
+      'Capsule upload changed during completion. Retry the same completion request.');
+    latest.phase = 'complete'; latest.completed_at = latest.completed_at || new Date().toISOString();
+    registryReleaseStoreWrite_('capsule', latest, false); return {capsule:registryReleaseStoreCapsuleValue_(latest)};
+  });
+}
+/** Owner-bound, read-only progress inspection after an uncertain upload response.
+ * This reports durable indexed chunks, not uncommitted attempt files or activation.
+ */
+function registryReleaseStoreUploadStatus_(payload) {
+  var record = registryReleaseStoreRecord_('capsule', payload.capsule_id);
+  registryReleaseStoreNeed_(!!record, 'Release capsule is missing.'); registryReleaseStoreOwner_(record, payload);
+  registryReleaseStoreNeed_(record.request_id === (payload.request_id || '') && record.review_id === (payload.review_id || ''), 'Capsule request mismatch.');
+  var indices = [];
+  record.capsule.chunks.forEach(function(expected) {
+    var stored = record.chunks[String(expected.index)]; if (!stored) return;
+    registryReleaseStoreNeed_(stored.sha256 === expected.sha256 && stored.size === expected.size, 'Stored capsule chunk metadata changed.');
+    var file = DriveApp.getFileById(stored.file_id);
+    registryReleaseStoreNeed_(!file.isTrashed() && file.getSize() === expected.size, 'Stored capsule chunk is unavailable.');
+    indices.push(expected.index);
+  });
+  registryReleaseStoreNeed_(record.phase !== 'complete' || indices.length === record.capsule.chunks.length, 'Complete capsule has missing chunks.');
+  return {capsule:registryReleaseStoreCapsuleValue_(record),uploaded_indices:indices,complete:record.phase === 'complete'};
 }
 function registryReleaseStoreAuthorizeRead_(payload, id) {
   var request = registryReleaseStoreGetRequest_(payload.request_id);
@@ -395,13 +460,16 @@ function registryReleaseStoreHandlePost_(event) {
     }).join('');
     registryReleaseStoreNeed_(safeEqual_(signature, envelope.signature), 'Unauthorized release request.');
     var payload = JSON.parse(envelope.payload); registryReleaseStoreIdentity_(payload);
-    return locked_(function() {
-      var actions = {begin_capsule:registryReleaseStoreBegin_,put_chunk:registryReleaseStorePut_,complete_capsule:registryReleaseStoreComplete_,
+    var actions = {begin_capsule:registryReleaseStoreBegin_,put_chunk:registryReleaseStorePut_,complete_capsule:registryReleaseStoreComplete_,
         read_capsule:function(p) { return registryReleaseStoreRead_(p, false); },read_chunk:function(p) { return registryReleaseStoreRead_(p, true); },
+        upload_status:registryReleaseStoreUploadStatus_,
         claim_review:registryReleaseStoreClaimReview_,candidate_ready:registryReleaseStoreCandidateReady_,
         claim_production:registryReleaseStoreClaimProduction_,deployment_succeeded:registryReleaseStoreSucceeded_,deployment_failed:registryReleaseStoreFailed_};
-      registryReleaseStoreNeed_(Object.prototype.hasOwnProperty.call(actions, payload.action), 'Unknown release action.');
-      return json_(Object.assign({ok:true}, actions[payload.action](payload)));
-    });
-  } catch (error) { return json_({ok:false,error:error.releaseStoreSafe ? error.message : 'Release storage operation failed. Retry only the same request identity.'}); }
+    registryReleaseStoreNeed_(Object.prototype.hasOwnProperty.call(actions, payload.action), 'Unknown release action.');
+    // Reads are immutable. Upload and completion perform their own short commits.
+    var unlocked = ['put_chunk','complete_capsule','read_capsule','read_chunk','upload_status'].indexOf(payload.action) !== -1;
+    var result = unlocked ? actions[payload.action](payload) : registryReleaseStoreWithLock_(function() { return actions[payload.action](payload); });
+    return json_(Object.assign({ok:true}, result));
+  } catch (error) { return json_(Object.assign({ok:false,error:error.releaseStoreSafe ? error.message : 'Release storage operation failed. Retry only the same request identity.'},
+    error.releaseStoreCode ? {code:error.releaseStoreCode,retryable:error.releaseStoreCode === 'release_busy'} : {})); }
 }

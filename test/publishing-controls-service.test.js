@@ -267,6 +267,22 @@ test('pending-build 401 retains only cached signed evidence without advancing it
   assert.equal(h.context.registryPublishingRefreshPreview_().known, false);
 });
 
+test('pending-build 401 retains signed-artifact membership as historical, never as the latest preview', () => {
+  const h = harness(); h.routes.set(previewUrl + 'deploy-receipt.json', () => ({status: 401}));
+  const original = h.context.registryPublishingRefreshPreview_();
+  const cache = {...JSON.parse(h.properties.get('AIS_PUBLISHING_PREVIEW_ACTUAL_V1')), source: 'signed_artifact'};
+  h.properties.set('AIS_PUBLISHING_PREVIEW_ACTUAL_V1', JSON.stringify(cache));
+  h.setSigned({...h.getSigned(), phase: 'accepted', request_id: 'next-request', revision: sha('f')});
+  const status = h.context.registryPublishingRefreshStatus();
+  const saved = JSON.parse(h.properties.get('AIS_PUBLISHING_PREVIEW_ACTUAL_V1'));
+  assert.equal(saved.known, true); assert.equal(saved.stale, true); assert.equal(saved.source, 'signed_artifact');
+  assert.equal(saved.checked_at, original.checked_at); assert.equal(saved.deploy_id, prevDeploy);
+  assert.equal(saved.request_id, original.request_id); assert.equal(saved.registry_revision, original.registry_revision);
+  assert.equal(status.preview_state, 'accepted', 'pending build status remains separate from historical membership');
+  assert.equal(status.publishing.preview_stale, true); assert.equal(status.publishing.production_enabled, false);
+  assert.ok(h.sheets._PublishingState.data.slice(1).every(row => row[2] === 'Published' && row[5] === original.checked_at));
+});
+
 test('a later successful live receipt read clears stale status', () => {
   const h = harness(); h.routes.set(previewUrl + 'deploy-receipt.json', () => ({status: 401}));
   assert.equal(h.context.registryPublishingRefreshPreview_().stale, true);

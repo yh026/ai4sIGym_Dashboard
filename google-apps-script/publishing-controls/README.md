@@ -26,7 +26,10 @@ Opening the sheet or sidebar, editing checkboxes, refreshing status, and hourly 
 
 `sidebar.html` is the operator interface. `PublishingControlsModel.gs` and `RegistryPublishing.gs` provide project selection and Preview behavior. `manual-release/` adds the signed release store, isolated review build, explicit Production confirmation, and immutable artifact pipeline. See its [README](manual-release/README.md) for installation and build details.
 
+Use the versioned [runtime installer](runtime-install/README.md) to generate the three installable Apps Script files. Do not copy an adapter source file directly into the bound project.
+
 ```sh
 node --test test/publishing-controls-model.test.js test/publishing-controls-service.test.js test/publishing-controls-sidebar.test.js test/manual-release-ui.test.js
 node --test google-apps-script/publishing-controls/production-release/*.test.cjs google-apps-script/publishing-controls/manual-release/*.test.cjs
+node --test google-apps-script/publishing-controls/runtime-install/runtime-install.test.cjs
 ```

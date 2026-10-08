@@ -14,29 +14,40 @@ const identity = (kind, digit) => ({ site_id: SITE, build_id: digit.repeat(24), 
   context: kind === 'production' ? 'production' : 'branch-deploy' });
 
 function runtime() {
-  let time = NOW, next = 0;
+  let time = NOW, next = 0, lockHeld = false, failLocks = 0, duringChunkCreate = null, duringChunkSize = null;
   const values = new Map([['AIS_RELEASE_ROOT_FOLDER_ID','root-folder'], ['AI4S_PREVIEW_CALLBACK_SECRET',SECRET]]), files = new Map();
   const blob = (value, type, name) => { const bytes = Buffer.isBuffer(value) ? value : Buffer.from(typeof value === 'string' ? value : value || []);
     return { bytes, name, getBytes: () => [...bytes], getDataAsString: () => bytes.toString('utf8') }; };
   class File {
     constructor(b) { this.id = 'file-' + (++next); this.name = b.name; this.bytes = Buffer.from(b.bytes); this.trashed = false; }
-    getId() { return this.id; } getSize() { return this.bytes.length; } isTrashed() { return this.trashed; }
-    getBlob() { return blob(this.bytes); } setContent(value) { this.bytes = Buffer.from(value); return this; }
+    getId() { return this.id; } getSize() { if(this.name.startsWith('chunk-')) {
+      assert.equal(lockHeld,false,'Chunk metadata I/O must not hold the shared lock.');
+      if(duringChunkSize) {const callback=duringChunkSize;duringChunkSize=null;callback(this);}
+    } return this.bytes.length; } isTrashed() { return this.trashed; }
+    getBlob() { if(this.name.startsWith('chunk-'))assert.equal(lockHeld,false,'Chunk bytes must not be read under the shared lock.');return blob(this.bytes); }
+    setContent(value) { this.bytes = Buffer.from(value); return this; }
+    setTrashed(value) { assert.equal(lockHeld,false);this.trashed=value;return this; }
   }
   const root = { getFilesByName(name) { const matches = [...files.values()].filter(f => f.name === name && !f.trashed); let cursor = 0;
     return { hasNext: () => cursor < matches.length, next: () => matches[cursor++] }; },
-  createFile(b) { const file = new File(b); files.set(file.id,file); return file; } };
+  createFile(b) { const file = new File(b); files.set(file.id,file);
+    if(file.name.startsWith('chunk-')) {assert.equal(lockHeld,false,'Drive byte upload must not hold the shared lock.');
+      if(duringChunkCreate){const callback=duringChunkCreate;duringChunkCreate=null;callback(file);}}
+    return file; } };
   class Clock extends Date { constructor(...args) { super(...(args.length ? args : [time])); } static now() { return time; } }
   const props = { getProperty: key => values.get(key) || null, setProperty(key,value) { values.set(key,value); return this; }, deleteProperty: key => values.delete(key) };
   let preview = { phase:'accepted',request_id:'preview-request',revision:'sha256:'+'d'.repeat(64) }, publicReceipt = null;
   const context = vm.createContext({ console, Date: Clock, SANDBOX: {site_id:SITE},
     PropertiesService:{getScriptProperties:()=>props}, DriveApp:{getFolderById:()=>root,getFileById:id=>{
       if (!files.has(id)) throw new Error('Injected missing Drive object token=DO_NOT_LEAK'); return files.get(id); }},
-    Utilities:{DigestAlgorithm:{SHA_256:'sha256'},newBlob:blob,computeDigest:(algorithm,value)=>[...crypto.createHash('sha256').update(Buffer.from(value)).digest()],
+    Utilities:{DigestAlgorithm:{SHA_256:'sha256'},newBlob:blob,getUuid:()=>crypto.randomUUID(),computeDigest:(algorithm,value)=>{
+      if(value.length>1048576)assert.equal(lockHeld,false,'Large chunk hashing must not hold the shared lock.');
+      return [...crypto.createHash('sha256').update(Buffer.from(value)).digest()];},
       computeHmacSha256Signature:(value,key)=>[...crypto.createHmac('sha256',key).update(value).digest()],
       base64Decode:value=>[...Buffer.from(value,'base64')],base64Encode:value=>Buffer.from(value).toString('base64')},
     UrlFetchApp:{fetch:()=>({getResponseCode:()=>publicReceipt?200:404,getContentText:()=>JSON.stringify(publicReceipt)})},
-    safeEqual_:(a,b)=>a===b, locked_:fn=>fn(), json_:value=>JSON.parse(JSON.stringify(value)), previewState_:()=>preview,
+    safeEqual_:(a,b)=>a===b, locked_:fn=>{if(lockHeld||failLocks>0){if(failLocks>0)failLocks--;throw new Error('Another sandbox operation is running');}
+      lockHeld=true;try{return fn();}finally{lockHeld=false;}}, json_:value=>JSON.parse(JSON.stringify(value)), previewState_:()=>preview,
     savePreviewState_:value=>{preview=value;} });
   vm.runInContext(source,context);
   function call(id, action, data={}, options={}) {
@@ -102,7 +113,8 @@ function runtime() {
     return {...setup,prepared,data};
   }
   return {context,call,success,prepare,upload,receipt,bootstrap,previewReady,reviewSetup,candidateReady,files,values,
-    setTime:delta=>{time=NOW+delta;},setPreview:value=>{preview=value;},setPublicReceipt:value=>{publicReceipt=value;}};
+    setTime:delta=>{time=NOW+delta;},setPreview:value=>{preview=value;},setPublicReceipt:value=>{publicReceipt=value;},
+    onChunkCreate:fn=>{duringChunkCreate=fn;},onChunkSize:fn=>{duringChunkSize=fn;},failNextLocks:count=>{failLocks=count;}};
 }
 
 test('signed preview artifacts stay inactive until the matching signed deployment succeeds',()=>{
@@ -156,7 +168,7 @@ test('a review reads only its pinned sources and exact immutable provenance surv
 });
 test('read detects post-upload Drive chunk tampering',()=>{
   const r=runtime(), setup=r.reviewSetup();
-  [...r.files.values()].find(f=>f.name==='chunk-'+setup.development.capsule.id+'-0.bin').bytes=Buffer.from('changed');
+  [...r.files.values()].find(f=>f.name.startsWith('chunk-'+setup.development.capsule.id+'-0-')).bytes=Buffer.from('changed');
   assert.match(r.call(setup.id,'read_chunk',{...setup.binding,capsule_id:setup.development.capsule.id,index:0}).error,/checksum/);
 });
 test('candidate success changes review state without activating production',()=>{
@@ -201,7 +213,7 @@ test('request expiry blocks new claims but allows already claimed builds to fini
 test('immutable review fields cannot be changed by UI saves and Drive errors are redacted',()=>{
   const r=runtime(), setup=r.reviewSetup(), review=r.context.registryReleaseStoreGetReview_(setup.review.id);
   assert.throws(()=>r.context.registryReleaseStoreSaveReview_({...review,baseline_deploy_id:'9'.repeat(24)}),/identity changed/);
-  const file=[...r.files.values()].find(f=>f.name==='chunk-'+setup.development.capsule.id+'-0.bin'); r.files.delete(file.id);
+  const file=[...r.files.values()].find(f=>f.name.startsWith('chunk-'+setup.development.capsule.id+'-0-')); r.files.delete(file.id);
   const result=r.call(setup.id,'read_chunk',{...setup.binding,capsule_id:setup.development.capsule.id,index:0});
   assert.equal(result.ok,false); assert.equal(result.error.includes('DO_NOT_LEAK'),false);
 });
@@ -270,5 +282,56 @@ test('a full 8 MiB chunk fits the signed envelope and base64 validation does not
   r.success(r.call(id,'begin_capsule',{...binding,capsule:prepared.capsule}));
   r.success(r.call(id,'put_chunk',{...binding,capsule_id:prepared.capsule.id,index:0,
     sha256:prepared.capsule.chunks[0].sha256,base64:prepared.chunks[0].toString('base64')}));
-  assert.equal([...r.files.values()].find(f=>f.name==='chunk-'+prepared.capsule.id+'-0.bin').getSize(),8388608);
+  assert.equal([...r.files.values()].find(f=>f.name.startsWith('chunk-'+prepared.capsule.id+'-0-')).getSize(),8388608);
+});
+test('duplicate concurrent chunk uploads commit one canonical file without losing either response',()=>{
+  const r=runtime(), id=identity('preview','2'), binding={request_id:'preview-request'};
+  const prepared=r.prepare('preview',id,binding,{registry_revision:'sha256:'+'d'.repeat(64)});
+  r.success(r.call(id,'begin_capsule',{...binding,capsule:prepared.capsule}));
+  const data={...binding,capsule_id:prepared.capsule.id,index:0,sha256:prepared.capsule.chunks[0].sha256,base64:prepared.chunks[0].toString('base64')};
+  let simultaneous;
+  r.onChunkCreate(()=>{simultaneous=r.call(id,'put_chunk',data);r.success(simultaneous);});
+  r.success(r.call(id,'put_chunk',data));
+  const chunks=[...r.files.values()].filter(f=>f.name.startsWith('chunk-'+prepared.capsule.id+'-0-'));
+  assert.equal(chunks.length,2);assert.equal(chunks.filter(f=>!f.trashed).length,1);
+  const status=r.success(r.call(id,'upload_status',{...binding,capsule_id:prepared.capsule.id}));
+  assert.deepEqual(status.uploaded_indices,[0]);assert.equal(status.complete,false);
+  r.success(r.call(id,'complete_capsule',{...binding,capsule_id:prepared.capsule.id}));
+  assert.equal(r.success(r.call(id,'upload_status',{...binding,capsule_id:prepared.capsule.id})).complete,true);
+});
+test('request changes during byte upload are rechecked before committing the chunk',()=>{
+  const r=runtime(), id=identity('preview','2'), binding={request_id:'preview-request'};
+  const prepared=r.prepare('preview',id,binding,{registry_revision:'sha256:'+'d'.repeat(64)});
+  r.success(r.call(id,'begin_capsule',{...binding,capsule:prepared.capsule}));
+  r.onChunkCreate(()=>r.setPreview({phase:'accepted',request_id:'new-preview-request',revision:'sha256:'+'e'.repeat(64)}));
+  const result=r.call(id,'put_chunk',{...binding,capsule_id:prepared.capsule.id,index:0,sha256:prepared.capsule.chunks[0].sha256,base64:prepared.chunks[0].toString('base64')});
+  assert.equal(result.ok,false);assert.match(result.error,/request identity/);
+  assert.deepEqual(r.success(r.call(id,'upload_status',{...binding,capsule_id:prepared.capsule.id})).uploaded_indices,[]);
+});
+test('a busy metadata commit preserves uncertain files and upload_status distinguishes committed progress',()=>{
+  const r=runtime(), id=identity('preview','2'), binding={request_id:'preview-request'};
+  const prepared=r.prepare('preview',id,binding,{registry_revision:'sha256:'+'d'.repeat(64)});
+  r.success(r.call(id,'begin_capsule',{...binding,capsule:prepared.capsule}));
+  const data={...binding,capsule_id:prepared.capsule.id,index:0,sha256:prepared.capsule.chunks[0].sha256,base64:prepared.chunks[0].toString('base64')};
+  r.onChunkCreate(()=>r.failNextLocks(1));const result=r.call(id,'put_chunk',data);
+  assert.equal(result.code,'release_busy');assert.equal(result.retryable,true);
+  assert.deepEqual(r.success(r.call(id,'upload_status',{...binding,capsule_id:prepared.capsule.id})).uploaded_indices,[]);
+  r.success(r.call(id,'put_chunk',data));
+  assert.deepEqual(r.success(r.call(id,'upload_status',{...binding,capsule_id:prepared.capsule.id})).uploaded_indices,[0]);
+});
+test('completion rejects a request invalidated during out-of-lock durable file checks',()=>{
+  const r=runtime(), id=identity('preview','2'), binding={request_id:'preview-request'};
+  const prepared=r.prepare('preview',id,binding,{registry_revision:'sha256:'+'d'.repeat(64)});
+  r.success(r.call(id,'begin_capsule',{...binding,capsule:prepared.capsule}));
+  r.success(r.call(id,'put_chunk',{...binding,capsule_id:prepared.capsule.id,index:0,sha256:prepared.capsule.chunks[0].sha256,base64:prepared.chunks[0].toString('base64')}));
+  r.onChunkSize(()=>r.setPreview({phase:'failed',request_id:binding.request_id,revision:'sha256:'+'d'.repeat(64)}));
+  assert.equal(r.call(id,'complete_capsule',{...binding,capsule_id:prepared.capsule.id}).ok,false);
+  assert.equal(r.context.registryReleaseStoreGetCapsule_(prepared.capsule.id).complete,false);
+});
+test('upload_status is owner-bound and reports completed bootstrap after one-time authorization closes',()=>{
+  const r=runtime(), setup=r.bootstrap();
+  const status=r.success(r.call(setup.id,'upload_status',{capsule_id:setup.capsule.id}));
+  assert.equal(status.complete,true);assert.deepEqual(status.uploaded_indices,[0]);
+  assert.equal(r.call(identity('production','9'),'upload_status',{capsule_id:setup.capsule.id}).ok,false);
+  assert.equal(r.call(setup.id,'upload_status',{capsule_id:setup.capsule.id,request_id:'foreign-request'}).ok,false);
 });
