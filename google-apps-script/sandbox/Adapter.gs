@@ -56,12 +56,13 @@ function writeRows_(ss,name,rows){
 function tableRows_(ss,name){var sh=ss.getSheetByName(name);if(!sh)throw new Error('Missing sheet '+name);return sh.getDataRange().getValues().filter(function(r,i){return i===0||r.some(function(v){return v!==''&&v!==false;});});}
 function objects_(rows){return rows.slice(1).map(function(r){return Object.fromEntries(rows[0].map(function(k,i){return [k,r[i]===undefined?'':r[i]];}));});}
 function fileId_(value){var s=String(value||'').trim();var m=s.match(/\/d\/([A-Za-z0-9_-]+)/)||s.match(/[?&]id=([A-Za-z0-9_-]+)/);if(m)return m[1];if(/^[A-Za-z0-9_-]{20,}$/.test(s))return s;throw new Error('Use a valid Drive file link');}
-function sourceFile_(id){
+function sourceBinding_(id){
   var f=DriveApp.getFileById(id);if(f.isTrashed())throw new Error('Source file is in Trash');
-  sourceParentPath_(f);return f;
+  return {file:f,parent_path:sourceParentPath_(f)};
 }
+function sourceFile_(id){return sourceBinding_(id).file;}
 function source_(id,previous){
-  var f=sourceFile_(id),stamp=f.getLastUpdated().toISOString(),size=f.getSize(),mime=f.getMimeType(),parent=sourceParentPath_(f);
+  var binding=sourceBinding_(id),f=binding.file,stamp=f.getLastUpdated().toISOString(),size=f.getSize(),mime=f.getMimeType(),parent=binding.parent_path;
   if(previous && previous.modified_at===stamp && previous.size===size && previous.mime_type===mime && previous.parent_path===parent)return Object.assign({in_scope:true},previous);
   var blob=f.getBlob(),bytes=blob.getBytes();if(!bytes.length||bytes.length>25*1024*1024)throw new Error('Source size out of range');
   if(mime==='text/html'){var html=blob.getDataAsString('UTF-8');if(!/<head\b/i.test(html)||!/<body\b/i.test(html)||!/<\/body>/i.test(html))throw new Error('Incomplete HTML source');}
@@ -186,7 +187,7 @@ function syncSandbox_(){
   audit_(ss,'sync',result.manifest.registry_revision,result.manifest.demos.length+' projects');
   console.log('Validated '+result.manifest.demos.length+' projects; '+result.manifest.registry_revision);return result.manifest;
 }
-function assertStamp_(descriptor){var f=sourceFile_(descriptor.file_id);if(f.getLastUpdated().toISOString()!==descriptor.modified_at||f.getSize()!==descriptor.size||f.getMimeType()!==descriptor.mime_type||sourceParentPath_(f)!==descriptor.parent_path)throw new Error('Source changed; synchronize before building');return f;}
+function assertStamp_(descriptor){var binding=sourceBinding_(descriptor.file_id),f=binding.file;if(f.getLastUpdated().toISOString()!==descriptor.modified_at||f.getSize()!==descriptor.size||f.getMimeType()!==descriptor.mime_type||binding.parent_path!==descriptor.parent_path)throw new Error('Source changed; synchronize before building');return f;}
 function checkedSnapshot_(revision,allFiles){var ss=sandboxGuard_(),snapshot=currentSnapshot_();if(!snapshot)throw new Error('Synchronize first');if(revision&&snapshot.manifest.registry_revision!==revision)throw new Error('Registry revision changed');if(hash_(V3.stable(readInput_(ss)))!==snapshot.input_hash)throw new Error('Sheet changed; synchronize before building');if(allFiles)snapshot.files.forEach(assertStamp_);return snapshot;}
 function json_(value){return ContentService.createTextOutput(JSON.stringify(value)).setMimeType(ContentService.MimeType.JSON);}
 function safeEqual_(a,b){a=String(a||'');b=String(b||'');var diff=a.length^b.length;for(var i=0;i<Math.max(a.length,b.length);i++)diff|=(a.charCodeAt(i)||0)^(b.charCodeAt(i)||0);return diff===0;}
