@@ -10,7 +10,7 @@ const test = require("node:test");
 
 const execFileAsync = promisify(execFile);
 const repositoryRoot = resolve(__dirname, "..");
-const kitRoot = join(repositoryRoot, "payload-dashboard-kit");
+const kitRoot = join(repositoryRoot, "tools/payload-dashboard");
 const packageRoot = join(kitRoot, "examples", "tess-real-package");
 const compilerPath = join(kitRoot, "scripts", "render-dashboard.mjs");
 const sourceSha256 = "56cf0e720c5a3a16e08cb2dd9cafd453662038e85fe7750135991f4805def20c";

@@ -10,7 +10,7 @@ const root=path.resolve(__dirname,'..'),source=path.join(root,'local-content/bac
 const pack=JSON.parse(fs.readFileSync(process.argv[2]||path.join(source,'import-config.json')));
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
 const sources=new Map(pack.files.map((f,i)=>{const bytes=fs.readFileSync(path.join(source,'import',f.path));assert.equal(hash(bytes),f.sha256);return [f.path,{...f,file_id:'test-source-'+i,in_scope:true,modified_at:'2026-09-23T00:00:00.000Z',parent_path:path.posix.dirname(f.path),bytes}];}));
-const registry=loadLocalRegistry(path.join(root,'local-content/drive-current'));
+const registry=loadLocalRegistry(path.join(root,'content/sources/drive'));
 const input={environment:'sandbox',branch:'develop',spreadsheet_id:'test-sheet',drive_root_id:'test-root',registry_instance:pack.registry_instance,audience:'preview',taxonomy:registry.taxonomy,site:registry.site,projects:pack.projects.map(p=>({...p,development_version_id:pack.versions.find(v=>v.demo_id===p.demo_id).version_id})),versions:pack.versions,pages:pack.pages.map(p=>({...p,source:p.source_path?sources.get(p.source_path):null})),resources:pack.resources.map(r=>({...r,source:sources.get(r.source_path)}))};
 const snapshot=compileRegistryV3(input,hash);
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),'ais-v3-build-'));

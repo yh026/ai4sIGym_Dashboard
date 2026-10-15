@@ -10,7 +10,7 @@ const { loadLocalDemoCollection, integrateLocalDemoPages } = require('../lib/loc
 function fixture(t) {
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'ais-collection-'));
   t.after(() => fs.rmSync(workspace, { recursive: true, force: true }));
-  const directory = path.join(workspace, 'demos_v4');
+  const directory = path.join(workspace, 'content');
   fs.mkdirSync(directory);
   const html = '<!doctype html><html><head><title>Study</title></head><body><canvas id="plot"></canvas><script type="application/json" id="payload">{"values":[1,2,3]}</script></body></html>';
   fs.writeFileSync(path.join(directory, 'insight.html'), html);
@@ -71,7 +71,7 @@ test('pending Dataset pages keep project navigation when their shared source is 
     assert.match(pages[0].html, /href="dataset.html#overview"/);
     assert.equal(dataset.path, 'demos/' + slug + '/dataset.html');
   }
-  const source = path.resolve(sample.directory, '../datasets_v4/shared-data/shared-data_dataset.html');
+  const source = path.resolve(sample.directory, 'datasets/shared-data/shared-data_dataset.html');
   fs.mkdirSync(path.dirname(source), { recursive: true });
   fs.writeFileSync(source, sample.html.replace('<canvas', '<h1>Supplied Dataset</h1><canvas'));
   for (const [slug, pages] of build()) {
@@ -128,7 +128,7 @@ test('a supplied Dataset replaces the existing shared route once and keeps workf
     preserve_workflow_resources: true,
   });
   sample.write();
-  const source = path.resolve(sample.directory, '../datasets_v4/example/example_dataset.html');
+  const source = path.join(sample.directory, 'datasets/example/example_dataset.html');
   fs.mkdirSync(path.dirname(source), { recursive: true });
   fs.writeFileSync(source, sample.html.replace('<canvas', '<h1>New Dataset</h1><canvas'));
   const asset = { path: 'demos/example/resources/notebook.ipynb', bytes: Buffer.from('notebook') };

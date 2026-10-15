@@ -5,7 +5,7 @@ const { pathToFileURL } = require("node:url");
 const test = require("node:test");
 
 const repositoryRoot = resolve(__dirname, "..");
-const kitRoot = join(repositoryRoot, "payload-dashboard-kit");
+const kitRoot = join(repositoryRoot, "tools/payload-dashboard");
 const corePath = join(kitRoot, "scripts", "lib", "payload-v3.mjs");
 const capabilitiesPath = join(kitRoot, "scripts", "lib", "v3-capabilities.mjs");
 const tessFixturePath = join(kitRoot, "references", "payload-v3-pca.fixture.json");

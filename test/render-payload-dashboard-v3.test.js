@@ -8,7 +8,7 @@ const { gzipSync } = require("node:zlib");
 const test = require("node:test");
 
 const repositoryRoot = resolve(__dirname, "..");
-const skillRoot = join(repositoryRoot, "payload-dashboard-kit");
+const skillRoot = join(repositoryRoot, "tools/payload-dashboard");
 const compilerPath = join(skillRoot, "scripts", "render-dashboard.mjs");
 const corePath = join(skillRoot, "scripts", "lib", "payload-v3.mjs");
 const recipesPath = join(skillRoot, "scripts", "lib", "v3-recipes.mjs");

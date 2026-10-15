@@ -1,6 +1,6 @@
 # Registry v2 Apps Script：单一控制面部署说明
 
-[`Code.gs`](./Code.gs) 只用于绑定在正式 Registry v2 Google Sheet 上的 Apps
+[`Code.gs`](Code.gs) 只用于绑定在正式 Registry v2 Google Sheet 上的 Apps
 Script 项目。V2 是唯一 Registry、唯一菜单入口和唯一同步目标；归档后的 V1 不再提供
 `Demos`、`Config`、`Log`、发布配置或 Web App 数据。
 

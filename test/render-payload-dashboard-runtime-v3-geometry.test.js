@@ -5,10 +5,10 @@ const { pathToFileURL } = require("node:url");
 const test = require("node:test");
 const vm = require("node:vm");
 
-const runtimePath = resolve(__dirname, "..", "payload-dashboard-kit", "assets", "dashboard-runtime-v3.js");
-const cssPath = resolve(__dirname, "..", "payload-dashboard-kit", "assets", "dashboard.css");
-const corePath = resolve(__dirname, "..", "payload-dashboard-kit", "scripts", "lib", "payload-v3.mjs");
-const capabilityFixturePath = resolve(__dirname, "..", "payload-dashboard-kit", "references", "payload-v3-capabilities.fixture.json");
+const runtimePath = resolve(__dirname, "..", "tools/payload-dashboard", "assets", "dashboard-runtime-v3.js");
+const cssPath = resolve(__dirname, "..", "tools/payload-dashboard", "assets", "dashboard.css");
+const corePath = resolve(__dirname, "..", "tools/payload-dashboard", "scripts", "lib", "payload-v3.mjs");
+const capabilityFixturePath = resolve(__dirname, "..", "tools/payload-dashboard", "references", "payload-v3-capabilities.fixture.json");
 
 class FakeNode {
   constructor(tagName) {

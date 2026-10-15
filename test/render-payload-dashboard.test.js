@@ -6,10 +6,10 @@ const { pathToFileURL } = require("node:url");
 const test = require("node:test");
 
 const repositoryRoot = resolve(__dirname, "..");
-const kitRoot = join(repositoryRoot, "payload-dashboard-kit");
+const kitRoot = join(repositoryRoot, "tools/payload-dashboard");
 const rendererPath = join(kitRoot, "scripts", "render-dashboard.mjs");
 const minimalPayloadPath = join(kitRoot, "references", "minimal.payload.json");
-const realPayloadPath = join(repositoryRoot, "payloads", "payload.json");
+const realPayloadPath = join(kitRoot, "examples", "legacy-v2", "payload.json");
 
 let renderer;
 

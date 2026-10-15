@@ -13,7 +13,7 @@
  * Netlify's CONTEXT and BRANCH select a fail-closed content policy:
  *   production/main       -> Live only
  *   branch-deploy/develop -> Live + Draft
- * Local website: node build.js --local (outputs to local-content/site/)
+ * Local website: node build.js --local (outputs to .local/site/)
  * Mock fixtures: node build.js --mock
  */
 
@@ -24,7 +24,7 @@ const MOCK = process.argv.includes('--mock');
 const LOCAL = process.argv.includes('--local');
 const INCLUDE_DRAFTS = process.argv.includes('--include-drafts');
 const ROOT = __dirname;
-const DIST = LOCAL ? path.join(ROOT, 'local-content', 'site') : path.join(ROOT, 'dist');
+const DIST = LOCAL ? path.join(ROOT, '.local', 'site') : path.join(ROOT, 'dist');
 const SITE = path.join(ROOT, 'site');
 const NEW_WINDOW_DAYS = 14;
 const DEPLOY_RECEIPT_SCHEMA = 1;
@@ -1250,7 +1250,7 @@ function isPublishableDemo(demo, policy, schemaVersion = 1) {
 async function loadRegistry(policy, expectedRevision) {
   if (LOCAL) {
     return require('./lib/local-content').loadLocalRegistry(
-      process.env.AIS_LOCAL_CONTENT_DIR || path.join(ROOT, 'local-content', 'drive-current'),
+      process.env.AIS_LOCAL_CONTENT_DIR || path.join(ROOT, 'content', 'sources', 'drive'),
     );
   }
   if (MOCK) {
@@ -1772,7 +1772,7 @@ async function main() {
   console.log('  deploy receipt: ' + (trigger.verified ? 'verified Preview request' : 'unverified build'));
   const registry = await loadRegistry(policy, trigger.registryRevision);
   const localCollection = LOCAL
-    ? require('./lib/local-demo-collection').loadLocalDemoCollection(path.join(ROOT, 'demos_v4'), registry.demos)
+    ? require('./lib/local-demo-collection').loadLocalDemoCollection(path.join(ROOT, 'content'), registry.demos)
     : null;
   if (localCollection) registry.demos = localCollection.demos;
   if (trigger.verified && registry.audience !== policy.audience) {
@@ -1806,7 +1806,7 @@ async function main() {
   }
 
   const localPreviewIds = LOCAL
-    ? require('./lib/local-project-pages').localPreviewProjectIds(path.join(ROOT, 'local-content', 'v2'), demos)
+    ? require('./lib/local-project-pages').localPreviewProjectIds(path.join(ROOT, 'content'), demos)
     : new Set();
   if (localCollection) {
     localCollection.previewIds.forEach(id => localPreviewIds.add(id));
@@ -1902,7 +1902,7 @@ async function main() {
   // Authoring pages are loaded only for an explicit local build and are kept
   // outside the dist/ directory used by Netlify. Read them before clearing output.
   let localProjects = LOCAL
-    ? require('./lib/local-project-pages').loadLocalProjectPages(path.join(ROOT, 'local-content', 'v2'), demos)
+    ? require('./lib/local-project-pages').loadLocalProjectPages(path.join(ROOT, 'content'), demos)
     : new Map();
   if (localCollection) {
     localProjects = require('./lib/local-demo-collection').integrateLocalDemoPages(localCollection, demos, localProjects);

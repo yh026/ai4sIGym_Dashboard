@@ -9,6 +9,6 @@
     "content:build": "node build.js --local",
     "content:preview": "node scripts/preview-local.cjs",
     "test": "node --test --test-concurrency=1 test/*.test.js",
-    "render:payload": "node payload-dashboard-kit/render.mjs"
+    "render:payload": "node tools/payload-dashboard/render.mjs"
   }
 }

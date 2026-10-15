@@ -65,6 +65,21 @@ test('an incomplete page package fails before it can be emitted', t => {
   assert.throws(() => loadLocalProjectPages(sample.workspace, sample.demos), /ENOENT/);
 });
 
+test('a relocated resource directory stays inside its project, including through symlinks', t => {
+  const sample = packageFixture(t);
+  fs.mkdirSync(path.join(sample.directory, 'resources'));
+  sample.project.resource_directory = 'resources';
+  sample.writeProject();
+  assert.equal(loadLocalProjectPages(sample.workspace, sample.demos).get(TBB_SLUG).length, 3);
+  sample.project.resource_directory = '../outside';
+  sample.writeProject();
+  assert.throws(() => loadLocalProjectPages(sample.workspace, sample.demos), /Unsafe local content path/);
+  fs.symlinkSync(sample.workspace, path.join(sample.directory, 'escaped-resources'), 'dir');
+  sample.project.resource_directory = 'escaped-resources';
+  sample.writeProject();
+  assert.throws(() => loadLocalProjectPages(sample.workspace, sample.demos), /escapes its directory/);
+});
+
 function addInsightPackage(sample, slug, options = {}) {
   const directory = path.join(sample.workspace, 'projects', options.folder || slug);
   const project = { schema_version: 2, project_id: 'demo-' + slug, slug,

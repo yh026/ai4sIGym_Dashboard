@@ -135,7 +135,7 @@ Registry revision 需要覆盖角色映射、三个页面的 hash、Placeholder 
 
 **阶段 D：让 Netlify 使用同一套页面装配逻辑**
 
-将当前本地的导航、Dataset 占位模板和必要的资源处理整理成可复用模块，使本地构建与正式构建读取不同来源、使用同一份三页输出逻辑。build 从 Registry 的页面角色读取 HTML，不把 `demos_v4` 本地路径作为线上必需条件。
+将当前本地的导航、Dataset 占位模板和必要的资源处理整理成可复用模块，使本地构建与正式构建读取不同来源、使用同一份三页输出逻辑。build 从 Registry 的页面角色读取 HTML，不把 `content/projects` 本地路径作为线上必需条件。
 
 保留首页、学科分类、筛选、封面、稳定 slug 和一个项目一张卡片的约定。公开输出不携带内部 Drive ID、Sheet ID、私密源路径或凭据；受保护的构建接口可使用必要内部标识。
 
@@ -210,4 +210,4 @@ Registry revision 需要覆盖角色映射、三个页面的 hash、Placeholder 
 
 当前建议先执行阶段 A–E，达到测试后台完整可用。阶段 8 的原后台迁移以完整验收报告为前提；Production 发布另行安排。这样每次推进都有可检查的结果，而不是一次性切换所有层。
 
-本计划依据仓库的 `build.js`、`lib/registry-v2.js`、`lib/registry-v2-sheet-adapter.js`、`google-apps-script/Code.gs`、`netlify/plugins/preview-ready/`、`docs/registry-v2-contract.md` 和本地三页集成现状。历史 runbook 的原环境升级步骤不直接用于初始化这个独立 Sandbox。
+本计划依据仓库的 `build.js`、`lib/registry-v2.js`、`lib/registry-v2-sheet-adapter.js`、`google-apps-script/Code.gs`、`netlify/plugins/preview-ready/`、`docs/references/registry-v2-contract.md` 和本地三页集成现状。历史 runbook 的原环境升级步骤不直接用于初始化这个独立 Sandbox。
