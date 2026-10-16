@@ -82,7 +82,7 @@
       canvas.dataset.zoom = zoom.toFixed(2);
       canvas.style.touchAction = zoom > 1 ? 'none' : 'pan-y';
       if (hint) {
-        const label = matchMedia('(pointer:coarse)').matches ? (zoom > 1 ? 'DRAG TO PAN · TAP TO DISCOVER' : 'TAP A POINT · + TO ZOOM') : defaultHint;
+        const label = matchMedia('(pointer:coarse)').matches ? (zoom > 1 ? 'DRAG TO PAN · TAP A POINT' : 'TAP A POINT · + TO ZOOM') : defaultHint;
         if (hint.textContent !== label) hint.textContent = label;
       }
       canvas.dataset.selected = selected == null ? '' : String(selected);
@@ -203,7 +203,7 @@
   const state = { metric: 'ari', lens: 'type', model: 'hdbscan', view: 'umap', filter: null, clusterFocus: null, selected: null };
   const pretty = value => value.replace(/_/g, ' ');
   const category = i => state.lens === 'donor' ? donors[i] : state.lens === 'cluster' ? assignments[state.model][i] : labels[i];
-  const name = c => state.lens === 'donor' ? D.meta.donors[c] : state.lens === 'type' ? pretty(D.cells.types[c]) : c < 0 ? 'Unassigned / noise' : 'Cluster ' + c;
+  const name = c => state.lens === 'donor' ? D.meta.donors[c] : state.lens === 'type' ? pretty(D.cells.types[c]) : c < 0 ? 'Unassigned' : 'Cluster ' + c;
   const color = c => c < 0 ? css('--muted') : state.lens === 'cluster' ? clusterColour(c) : colour(c);
   const cv = q('#gene-map'), legend = q('#gene-legend'), menu = q('.il-group-menu');
   const describe = i => `Cell ${fmt(i + 1)} · ${pretty(D.cells.types[labels[i]])} · ${D.meta.donors[donors[i]]}` + (state.lens === 'cluster' ? ' · ' + name(category(i)) : '');
@@ -212,7 +212,7 @@
   function selectCell(index, notify = true) {
     state.selected = index; q('#gene-cell').value = index === null ? '' : index + 1;
     if (index === null) {
-      q('#gene-selected').textContent = 'All cells shown. Select a point to inspect its group.';
+      q('#gene-selected').textContent = 'All cells shown. Click a cell to see its cell type, donor and cluster.';
       q('#gene-selected').dataset.cell = ''; plot.select(null);
       if (notify) document.dispatchEvent(new CustomEvent('insight:overview'));
       return;
@@ -237,11 +237,11 @@
     plot.setData({ xy: views[state.view], layers, hitIndices: active, keyboardIndices: active }, { motion, reset: motion === 'morph' });
     cv.dataset.lens = state.lens; cv.dataset.model = state.model; cv.dataset.view = state.view; cv.dataset.filter = state.filter === null ? '' : String(state.filter);
     cv.dataset.clusterFocus = state.clusterFocus === null ? '' : String(state.clusterFocus);
-    const mode = state.lens === 'type' ? `All ${fmt(all.length)} cells · 14 annotated types` : state.lens === 'donor' ? 'Four donors · one population' : state.model.toUpperCase() + ` · ${scores[state.model].n_clusters} clusters + noise`;
+    const mode = state.lens === 'type' ? `All ${fmt(all.length)} cells · 14 cell types` : state.lens === 'donor' ? 'Four donors · one population' : state.model.toUpperCase() + ` · ${scores[state.model].n_clusters} clusters + noise`;
     q('#map-tag').textContent = state.filter === null ? mode : name(state.filter) + ' · ' + fmt(active.length) + ' cells';
-    if (state.clusterFocus !== null) q('#map-tag').textContent = `HDBSCAN cluster ${state.clusterFocus} · ${fmt(active.length)} cells · ${state.lens === 'type' ? 'coloured by identity' : state.lens === 'donor' ? 'coloured by donor' : 'one fitted group'}`;
-    const display = state.view === 'umap' ? 'UMAP · 15 neighbours · min_dist 0.1.' : state.view === 'tsne' ? 't-SNE · perplexity 30.' : 'PCA · PC1 × PC2.';
-    q('#gene-view-note').textContent = display + ' Clustering is fitted in 50-PC space; changing the display does not refit it.';
+    if (state.clusterFocus !== null) q('#map-tag').textContent = `HDBSCAN cluster ${state.clusterFocus} · ${fmt(active.length)} cells · ${state.lens === 'type' ? 'coloured by cell type' : state.lens === 'donor' ? 'coloured by donor' : 'one cluster'}`;
+    const display = state.view === 'umap' ? 'UMAP layout (15 neighbours, min_dist 0.1): each dot is one cell, and cells with similar gene activity sit close together.' : state.view === 'tsne' ? 't-SNE layout (perplexity 30): each dot is one cell, and cells with similar gene activity sit close together.' : 'PCA layout (first two principal components): each dot is one cell.';
+    q('#gene-view-note').textContent = display + ' The clusters were computed on 50 principal components (a compressed summary of 2,000 genes), not on this picture, so changing the layout moves the dots but does not change the clusters.';
     pressed('[data-lens]', state.lens, 'lens');
     pressed('[data-model]', state.lens === 'cluster' ? state.model : '', 'model');
     selectCell(state.selected, false);
@@ -281,8 +281,8 @@
     q('#score-db').textContent = db.toFixed(3); q('#score-hd').textContent = hd.toFixed(3);
     q('#bar-db').style.width = db * 100 + '%'; q('#bar-hd').style.width = hd * 100 + '%';
     pressed('[data-metric]', metric, 'metric');
-    q('#score-verdict').textContent = metric === 'ari' ? 'DBSCAN leads on overall agreement in the selected runs.' : 'HDBSCAN recovers more cell types: 12 / 14 vs. 4 / 14 above F1 0.5.';
-    q('#score-explanation').textContent = metric === 'ari' ? 'Best-ARI runs from 72 DBSCAN and 6 HDBSCAN settings; this is not general method performance.' : 'Equal weight per type. The cutoff is descriptive; several types can share one best cluster.';
+    q('#score-verdict').textContent = metric === 'ari' ? 'DBSCAN scores higher on overall agreement.' : 'HDBSCAN recovers more cell types: 12 of 14 reach F1 0.5, against 4 of 14 for DBSCAN.';
+    q('#score-explanation').textContent = metric === 'ari' ? 'ARI measures how well the clusters match the published cell types overall: 1 is a perfect match, 0 is what random grouping would give. Each method is shown at its best-ARI setting, chosen from 72 DBSCAN and 6 HDBSCAN runs.' : 'Cell-type recovery gives every cell type equal weight, so rare types count as much as common ones. Each type is scored by the F1 of its best-matching cluster; several types can share one best cluster.';
   }
   qa('[data-metric]').forEach(button => button.addEventListener('click', () => {
     state.clusterFocus = null;
@@ -331,7 +331,7 @@
     state.model = 'hdbscan'; state.clusterFocus = S.mixed_cluster.id; state.filter = null;
     state.selected = all.find(i => assignments.hdbscan[i] === state.clusterFocus && D.cells.types[labels[i]] === 'delta');
     changeLens('cluster'); selectCell(state.selected); plot.reset();
-    announce('Mixed HDBSCAN cluster highlighted. Choose Cell identities to see its annotated populations.');
+    announce('HDBSCAN Cluster 23 highlighted. Choose Cell types to see which cell types it contains.');
   };
   q('#reset-mixed').addEventListener('click', IL.showMixedCluster);
   updateScores(); rebuildLegend(); redraw();
@@ -363,12 +363,12 @@
   function showOverview() {
     q('#atlas-overview').hidden = false; q('#cluster-inspector').hidden = true;
     q('#group-result-title').textContent = 'All cell types';
-    q('#group-result-description').textContent = `${fmt(labels.length)} cells across ${S.types.length} annotated types.`;
+    q('#group-result-description').textContent = `${fmt(labels.length)} cells in ${S.types.length} cell types, as labelled by the original study.`;
   }
   function showInspector() {
     q('#atlas-overview').hidden = true; q('#cluster-inspector').hidden = false;
     q('#group-result-title').textContent = 'Inside the selected cluster';
-    q('#group-result-description').textContent = 'Compare its cell identities and marker expression.';
+    q('#group-result-description').textContent = 'Which cell types it contains, and how their marker genes compare.';
   }
   for (const row of [...S.types].sort((a, b) => b.count - a.count)) {
     const segment = document.createElement('i'); segment.style.width = row.count / labels.length * 100 + '%';
@@ -391,7 +391,7 @@
     const composition = S.types.map(row => ({ row, indices: members.filter(i => labels[i] === row.index) })).filter(r => r.indices.length).sort((a, b) => b.indices.length - a.indices.length);
     const overlap = composition.find(r => r.row.index === selected.index)?.indices.length || 0;
     q('#cluster-heading').textContent = groupName(cluster) + ' · ' + fmt(members.length) + ' cells';
-    q('#matrix-selection').textContent = `${fmt(overlap)} of ${fmt(selected.count)} ${pretty(selected.name)} cells are here (${(100 * overlap / selected.count).toFixed(1)}%). ` + (cluster < 0 ? '“Unassigned” is an outcome, not a biological cell type.' : `${composition.length} annotated types share this cluster.`);
+    q('#matrix-selection').textContent = `${fmt(overlap)} of ${fmt(selected.count)} ${pretty(selected.name)} cells are here (${(100 * overlap / selected.count).toFixed(1)}%). ` + (cluster < 0 ? 'These cells were not placed in any cluster.' : `${composition.length} cell types share this cluster.`);
     const root = q('#cluster-composition'); root.replaceChildren();
     for (const { row, indices } of composition) {
       const button = document.createElement('button'); button.type = 'button'; button.style.setProperty('--type-color', colour(row.index));

@@ -1,6 +1,9 @@
 These are exact, complete author scripts extracted from the six battery pages in
-the 2026-09-30 preview baseline. Their complete SHA-256 hashes gate the transforms
-in `lib/battery-startup-optimization.js`. They intentionally contain no copies of
+the 2026-09-30 preview baseline. The two Workflow scripts were replaced on
+2026-10-16 by their copy-edited versions (display text only; the transformed
+initializers are unchanged). Their complete SHA-256 hashes gate the transforms
+in `lib/battery-startup-optimization.js`, which also still accepts the previous
+Workflow hashes until Drive serves the copy-edited pages. They intentionally contain no copies of
 the large scientific JSON payloads or images. A changed upstream program must be
 reviewed before adding a new accepted hash.
 

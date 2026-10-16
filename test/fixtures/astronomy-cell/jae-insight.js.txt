@@ -76,10 +76,10 @@ function paintLegend(){
   const chip=document.createElement('span');chip.className='legend-chip';
   chip.style.setProperty('--chip',color);chip.textContent=label;host.append(chip);
  }
- const ringNote=q('showNeighbours').checked?` The cell you click is the filled marker with a heavy ring; the ${K} thin rings around it are its nearest neighbours across all ${DIM} values, counted directly below the map.`:'';
+ const ringNote=q('showNeighbours').checked?` The cell you picked is the filled marker with a heavy ring. The ${K} thin rings mark its nearest neighbours, found over all ${DIM} numbers rather than on the map, so they need not be the closest dots. The two cards below the map count how many share its cell type and its batch.`:'';
  q('mapNote').textContent=(colorBy==='type'
-  ? `Every dot is one of ${N.toLocaleString()} cells, placed by its embedding and coloured by lineage. ${typeNames.length} cell types are grouped into ${D.lineage_order.length} lineages so the colours stay readable.`
-  : `The same ${N.toLocaleString()} cells in the same places, now coloured by which of the ${donorNames.length} batches each came from.`)+ringNote;
+  ? `Every dot is one of ${N.toLocaleString()} bone-marrow cells, placed on the saved 2-D map of its embedding. Colour shows its lineage: the ${typeNames.length} cell types are grouped into ${D.lineage_order.length} families of related types (T cells, B cells and so on) so the colours stay readable. Click a dot to pick that cell, or use the arrow keys to step through cells.`
+  : `The same ${N.toLocaleString()} cells in the same places, now coloured by which of the ${donorNames.length} batches each came from (a batch is one donor’s cells measured at one site).`)+ringNote;
 }
 
 function bar(g,x,y,w,h,fill){g.fillStyle=fill;g.fillRect(x,y,w,h)}
@@ -120,9 +120,9 @@ function paintBlocks(){
   }
   if(top>=0){g.strokeStyle=PC.css('--text-primary');g.lineWidth=1;g.strokeRect(top*step-.5,.5,Math.max(2,step-gap)+1,h-1)}
   if(dead){g.fillStyle=PC.css('--text-primary');g.font='600 13px '+PC.css('--font');g.textAlign='center';g.textBaseline='middle';
-   g.fillText(`all ${count} values display as 0`,w/2,h/2)}
+   g.fillText(`all ${count} stored values are 0`,w/2,h/2)}
   const okLine=wrap.querySelector('[data-success]');
-  if(okLine){okLine.textContent=dead?b.success:`This cell has a non-zero stored batch value. Non-zero values alone do not mean the target was missed: equal values also give equal probabilities.`}
+  if(okLine){okLine.textContent=dead?b.success:`This cell has at least one non-zero batch value. The target is met whenever all nine values are equal, zero or not.`}
  }
  const t=readType(selected);
  const typeOk=t===cellType[selected],donorEmpty=blockPeak('batch')<=0;
@@ -132,8 +132,8 @@ function paintBlocks(){
   ? 'The cell-type block names this cell correctly. '
   : `The cell-type block misreads this cell as ${typeNames[t]}${lineage[t]===lineage[cellType[selected]]?' \u2014 the wrong type, but the right lineage. ':'. '}`)
   +(donorEmpty
-  ? `Its nine batch values all display as zero, as they do for ${pct(D.decode.occupancy.batch.all_zero)} of display cells. These values give equal batch probabilities; batch-related information may still remain elsewhere.`
-  : `Its batch block has at least one non-zero stored value, as in ${pct(1-D.decode.occupancy.batch.all_zero)} of display cells. The target concerns equal probabilities, not zeros specifically.`);
+  ? `Its nine batch values are all zero, as in ${pct(D.decode.occupancy.batch.all_zero)} of the ${N.toLocaleString()} cells, so no batch is more likely than another.`
+  : `Its batch block has at least one non-zero value, as in ${pct(1-D.decode.occupancy.batch.all_zero)} of the ${N.toLocaleString()} cells.`);
 }
 function blockPeak(key){const sp=block(key).span;let hi=0;for(let d=sp[0];d<sp[1];d++)hi=Math.max(hi,val(selected,d));return hi}
 function mark(ok){const s=document.createElement('span');s.className='mark '+(ok===null?'off':ok?'ok':'no');s.textContent=ok===null?'0':ok?'✓':'✗';return s}
@@ -155,8 +155,8 @@ function paintTallies(){
  ];
  for(const b of D.blocks){
   const o=occ[b.key];
-  rows.push({label:`${b.label} block displays all zeros`,value:o.all_zero,ref:null,
-   refLabel:`${o.dims} value${o.dims>1?'s':''} \u00b7 mean peak ${o.mean_peak.toFixed(2)}`,muted:true});
+  rows.push({label:`${b.label} block is all zeros`,value:o.all_zero,ref:null,
+   refLabel:`${o.dims} value${o.dims>1?'s':''} \u00b7 mean top value ${o.mean_peak.toFixed(2)}`,muted:true});
  }
  for(const r of rows){
   const row=document.createElement('div');row.className='tally';
@@ -169,7 +169,7 @@ function paintTallies(){
   const ref=document.createElement('span');ref.className='tally-ref';ref.textContent=r.refLabel;
   row.append(lab,track,num,ref);host.append(row);
  }
- q('tallyNote').textContent=`Measured over all ${N.toLocaleString()} display cells, including training-labelled and held-out examples. The last four rows count blocks whose stored 8-bit values are all zero; small positive values can round to zero. All-zero batch values give uniform probabilities, satisfying that block’s target at display precision. Zero cycle outputs have a different meaning: their target is the cell’s S/G2M scores, not uniform probabilities.`;
+ q('tallyNote').textContent=`Measured over all ${N.toLocaleString()} cells shown, both those whose labels were used in training and those held out. The first two rows read the highest value of the cell-type block; the tick on the first bar marks chance. The last four rows count cells in which every stored value of a block is zero (values are stored at 8-bit precision). For the batch block, all zeros meet its target of equal probabilities. A zero cell-cycle block means something different: that block’s target is the cell’s S and G2M scores.`;
 }
 function paintTwist(){
  const sameType=nb.filter(i=>cellType[i]===cellType[selected]).length;
@@ -177,7 +177,7 @@ function paintTwist(){
  const host=q('twist');host.replaceChildren();
  for(const [title,count,chance,chanceLabel] of [
    ['share its cell type',sameType,null,''],
-   ['share its batch',sameDonor,D.neighbours.donor_chance,`${pct(D.neighbours.donor_chance)} expected by chance \u00b7 ${pct(D.neighbours.same_donor)} across all ${N.toLocaleString()} cells`]]){
+   ['share its batch',sameDonor,D.neighbours.donor_chance,`${pct(D.neighbours.donor_chance)} expected by chance \u00b7 ${pct(D.neighbours.same_donor)} on average over all ${N.toLocaleString()} cells`]]){
   const cell=document.createElement('div');cell.className='twist-card';
   const h=document.createElement('p');h.className='twist-count';h.textContent=`${count} of ${K}`;
   const s=document.createElement('p');s.className='twist-title';s.textContent=title;
@@ -195,7 +195,7 @@ function paintEvidence(){
  for(const key of ['latent','blocks','dead_blocks','neighbours','heldout']){const p=document.createElement('p');p.textContent=D.evidence[key];host.append(p)}
  const p=document.createElement('p');p.textContent=D.reference.note;host.append(p);
  const r=document.createElement('p');r.className='note';
- r.textContent=`For comparison, the saved analysis reports ${pct(D.reference.knn_same_batch_fraction)} same-batch neighbours against ${pct(D.reference.expected_same_batch_fraction)} expected, ${pct(D.reference.celltype_knn_purity)} cell-type purity, batch ASW ${D.reference.asw_batch.toFixed(3)} and NMI ${D.reference.nmi.toFixed(3)}.`;
+ r.textContent=`In the saved analysis: ${pct(D.reference.knn_same_batch_fraction)} of neighbours come from the same batch against ${pct(D.reference.expected_same_batch_fraction)} expected by chance, ${pct(D.reference.celltype_knn_purity)} share the cell type, batch ASW is ${D.reference.asw_batch.toFixed(3)} (how well batches mix within each cell type) and NMI is ${D.reference.nmi.toFixed(3)} (how well clusters of the embedding agree with the cell types).`;
  host.append(r);
 }
 

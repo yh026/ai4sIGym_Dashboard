@@ -313,8 +313,8 @@
     ring(g,cx,sy(TBB[node*T+scene]/SCALE),2.2);
     view.curve={sx,pad,w,h};
     const lat=nodeLat(node).toFixed(2),lon=nodeLon(node).toFixed(2);
-    $("nodeReadout").textContent="Node "+fmt(node+1)+" · C"+(labels()[node]+1);
-    $("curveReadout").innerHTML=lat+"° N · "+lon+"° E<br>day mean <b>"+f2(nodeMean[node])+" K</b><br>"
+    $("nodeReadout").textContent="Location "+fmt(node+1)+" · C"+(labels()[node]+1);
+    $("curveReadout").innerHTML=lat+"° N · "+lon+"° E<br>daily average <b>"+f2(nodeMean[node])+" K</b><br>"
       +clock(TSMS[scene])+" UTC · <b>"+f2(TBB[node*T+scene]/SCALE)+" K</b>";
     cv.setAttribute("aria-label","All "+T+" measurements for node "+(node+1)+", "+clock(T0)+" to "+clock(T1)+" UTC");
   }
@@ -324,12 +324,12 @@
   function updateLabels(){
     const p=param();
     $("embeddingSub").textContent=(state.method==="pca"?"first two components":state.method==="tsne"?"perplexity "+p:"n_neighbors "+p)
-      +(isFilm()?" · painted by this scene"
-        :state.focus!=null?" · C"+(state.focus+1)+" isolated"
+      +(isFilm()?" · coloured by the current scene"
+        :state.focus!=null?" · only C"+(state.focus+1)+" shown"
         :state.hidden.size?" · "+state.hidden.size+" cluster"+(state.hidden.size>1?"s":"")+" dimmed":"");
     $("mapSub").textContent=isFilm()
       ?clock(sceneTime(state.scene))+" UTC · scene "+(state.scene+1)+" of "+T
-      :state.k+" linked clusters";
+      :"same "+state.k+" clusters";
     $("mapPaneLabel").textContent="north ↑ · "+(state.basemap?"coastline revealed":"coastline hidden")
       +" · "+Math.round(state.opacity*100)+" % opacity";
     $("ptOpVal").textContent=Math.round(state.opacity*100)+" %";
@@ -405,8 +405,8 @@
     const tip=$(kind+"Tip"),wrap=$(kind+"Wrap"),r=wrap.getBoundingClientRect(),x=evt.clientX-r.left,y=evt.clientY-r.top;
     const scene=sceneNow();
     tip.hidden=false;
-    tip.innerHTML="<b>Node "+fmt(node+1)+" · C"+(labels()[node]+1)+"</b><br>"
-      +'<span class="k">day mean</span> '+f2(nodeMean[node])+" K"
+    tip.innerHTML="<b>Location "+fmt(node+1)+" · C"+(labels()[node]+1)+"</b><br>"
+      +'<span class="k">daily average</span> '+f2(nodeMean[node])+" K"
       +(isFilm()?'<br><span class="k">'+clock(sceneTime(scene))+" UTC</span> "+f2(TBB[node*T+scene]/SCALE)+" K":"")
       +'<br><span class="k">click to keep this curve</span>';
     const half=tip.offsetWidth/2+6;
