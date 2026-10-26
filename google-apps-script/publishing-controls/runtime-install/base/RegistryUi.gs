@@ -12,30 +12,7 @@ var REGISTRY_UI = {
 };
 
 function registryUiOnOpen_() {
-  var ui = SpreadsheetApp.getUi();
-  ui.createMenu('AIS Control')
-    .addItem('Update preview', 'registryPublishingUpdatePreviewFromMenu')
-    .addItem('Publish to production', 'registryPublishingReviewProductionFromMenu')
-    .addItem('Refresh status', 'registryPublishingRefreshStatusFromMenu')
-    .addSubMenu(ui.createMenu('Advanced tables')
-      .addItem('Project metadata', 'registryUiShowProjects')
-      .addItem('Page sources', 'registryUiShowPages')
-      .addItem('Website assets', 'registryUiShowResources')
-      .addItem('Data and instrument options', 'registryUiShowOptions')
-      .addItem('Development versions', 'registryUiShowVersions'))
-    .addSubMenu(ui.createMenu('Maintenance')
-      .addItem('Return to daily view', 'registryUiReturnToDailyView')
-      .addItem('Restore action buttons', 'registryUiInstallActionButtons')
-      .addSeparator()
-      .addItem('Validate and sync only', 'syncSandbox')
-      .addItem('Retry failed or unverified preview', 'retryPreviewAfterFailure')
-      .addItem('Enable hourly status checks', 'registryManualEnableStatusChecks')
-      .addItem('Disable hourly status checks', 'disableSandboxAutomation')
-      .addSeparator()
-      .addItem('Initialize backend', 'initializeSandbox')
-      .addItem('Import pilot projects', 'importPilot')
-      .addItem('Import next project', 'importNextProject'))
-    .addToUi();
+  // Daily actions live on the worksheet; maintenance helpers have no menu entry.
   // Simple onOpen: no Drive reads, network requests, sync, state writes or triggers.
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   if (!ss || ss.getId() !== SANDBOX.spreadsheet_id) return;

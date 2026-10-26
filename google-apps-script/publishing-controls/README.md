@@ -8,7 +8,7 @@ Use `develop` to inspect all proposed changes. Publish the checked content to Pr
 4. Confirm publication to start the main production build, or close/cancel to leave Production unchanged.
 5. Click **Refresh status** to check completion. Do not retry an uncertain request until its status is reconciled.
 
-All three actions are also available in the **AIS Control** menu. Daily use does not require an HTML sidebar. Preparing, viewing or cancelling a confirmation never publishes. Changed selection, catalog or deployment identity invalidates the confirmation. Worksheet image buttons run in a desktop web browser; Google Sheets does not execute assigned image scripts on mobile.
+All three actions run directly from **Control panel**. There is no custom menu or sidebar entry. Status checks, Preview updates and Production releases are manual; hourly status checks are disabled in the active installation. Preparing, viewing or cancelling a confirmation never publishes. Changed selection, catalog or deployment identity invalidates the confirmation. Worksheet image buttons run in a desktop web browser; Google Sheets does not execute assigned image scripts on mobile.
 
 ## Project selection
 
@@ -22,6 +22,6 @@ Source files are preserved. Existing homepage introduction and TBB resource-publ
 
 ## Implementation
 
-The worksheet buttons and menu use the native confirmation dialog. `sidebar.html` remains as a legacy interface, with no daily menu entry. `PublishingControlsModel.gs` and `RegistryPublishing.gs` manage project selection and Preview. `manual-release/` stores immutable artifacts and signed explicit publication requests. Its [README](manual-release/README.md) describes the two-environment protocol.
+The worksheet Publish button uses the native confirmation dialog. Maintenance helpers and `sidebar.html` remain available in the script source, with no daily menu entry. `PublishingControlsModel.gs` and `RegistryPublishing.gs` manage project selection and Preview. `manual-release/` stores immutable artifacts and signed explicit publication requests. Its [README](manual-release/README.md) describes the two-environment protocol.
 
 Build the reproducible [Apps Script runtime](runtime-install/README.md) before installing changes. The previous branch-based publication records are historical; retain them for audit and recovery.
