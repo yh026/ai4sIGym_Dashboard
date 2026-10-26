@@ -3,12 +3,12 @@
 Use `develop` to inspect all proposed changes. Publish the checked content to Production only after confirming the selected changes. There is no additional release-preview website.
 
 1. Select **Include in preview** and **Include in production** for each project.
-2. Choose **AIS Control → Update preview**. Wait for **Preview ready**, then inspect the private develop website.
-3. Choose **Publish to production** in the menu or sidebar. A confirmation lists additions, updates and removals immediately; it does not start a build.
+2. Click **更新预览** at the top of **Control panel**. Wait for **Preview ready**, then inspect the private develop website.
+3. Click **发布正式版**. A native confirmation lists additions, updates and removals immediately; it does not start a build.
 4. Confirm publication to start the main production build, or close/cancel to leave Production unchanged.
-5. Use **Refresh status** to check completion. Do not retry an uncertain request until its status is reconciled.
+5. Click **刷新状态** to check completion. Do not retry an uncertain request until its status is reconciled.
 
-The native menu confirmation remains available if Sheets cannot load the HTML sidebar. Preparing, viewing or cancelling a confirmation never publishes. Changed selection, catalog or deployment identity invalidates the confirmation.
+All three actions are also available in the **AIS Control** menu. Daily use does not require an HTML sidebar. Preparing, viewing or cancelling a confirmation never publishes. Changed selection, catalog or deployment identity invalidates the confirmation. Worksheet image buttons run in a desktop web browser; Google Sheets does not execute assigned image scripts on mobile.
 
 ## Project selection
 
@@ -22,6 +22,6 @@ Source files are preserved. Existing homepage introduction and TBB resource-publ
 
 ## Implementation
 
-`sidebar.html` and the native dialog provide confirmation. `PublishingControlsModel.gs` and `RegistryPublishing.gs` manage project selection and Preview. `manual-release/` stores immutable artifacts and signed explicit publication requests. Its [README](manual-release/README.md) describes the two-environment protocol.
+The worksheet buttons and menu use the native confirmation dialog. `sidebar.html` remains as a legacy interface, with no daily menu entry. `PublishingControlsModel.gs` and `RegistryPublishing.gs` manage project selection and Preview. `manual-release/` stores immutable artifacts and signed explicit publication requests. Its [README](manual-release/README.md) describes the two-environment protocol.
 
 Build the reproducible [Apps Script runtime](runtime-install/README.md) before installing changes. The previous branch-based publication records are historical; retain them for audit and recovery.

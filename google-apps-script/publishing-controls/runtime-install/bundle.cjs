@@ -9,6 +9,7 @@ const ROOT = path.resolve(__dirname, '..');
 const SOURCE_NAMES = [
   'runtime-install/base/Code.gs',
   'runtime-install/base/RegistryUi.gs',
+  'control-panel-buttons/artwork.json',
   'PublishingControlsModel.gs',
   'RegistryPublishing.gs',
   'sidebar.html',
@@ -46,6 +47,10 @@ function assembleRuntime(sources) {
   const core = sources['runtime-install/base/Code.gs'];
   validateCore(core);
   let ui = replaceOnce(sources['runtime-install/base/RegistryUi.gs'], '__AIS_SIDEBAR_HTML__', JSON.stringify(sources['sidebar.html']));
+  const artwork = JSON.parse(sources['control-panel-buttons/artwork.json']);
+  need(['preview', 'production', 'refresh'].every(key => typeof artwork[key] === 'string'
+    && /^[A-Za-z0-9+/]+={0,2}$/.test(artwork[key])), 'invalid action-button artwork');
+  ui = replaceOnce(ui, '__AIS_CONTROL_BUTTON_ARTWORK__', JSON.stringify(artwork));
   need(ui.includes('function registryUiLegacyGetStatus_() {') && ui.includes('function registryUiLegacyWriteStatus_(status) {'),
     'the base UI must expose its legacy adapters');
   ui += '\n' + sources['PublishingControlsModel.gs'] + '\n' + sources['RegistryPublishing.gs'];
