@@ -11,10 +11,10 @@ const out=path.join(root,'local-content/backend-sandbox/import');
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
 
 async function main(){
-  const registry=loadLocalRegistry(path.join(root,'local-content/drive-current'));
-  const collection=loadLocalDemoCollection(path.join(root,'demos_v4'),registry.demos);
-  const authored=loadLocalProjectPages(path.join(root,'local-content/v2'),collection.demos);
-  const authoredDatasets=new Map(projectPackages(path.join(root,'local-content/v2'),collection.demos)
+  const registry=loadLocalRegistry(path.join(root,'content/sources/drive'));
+  const collection=loadLocalDemoCollection(path.join(root,'content'),registry.demos);
+  const authored=loadLocalProjectPages(path.join(root,'content'),collection.demos);
+  const authoredDatasets=new Map(projectPackages(path.join(root,'content'),collection.demos)
     .map(({project})=>[project.slug,project.dataset]));
   const pages=integrateLocalDemoPages(collection,collection.demos,authored);
   const legacy=['air-quality-day-segment-pca-and-amp-umap-by-sensor','singapore-road-speed-clusters-umap'];

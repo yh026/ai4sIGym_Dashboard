@@ -21,7 +21,7 @@ const test = require("node:test");
 
 const execFileAsync = promisify(execFile);
 const repositoryRoot = resolve(__dirname, "..");
-const kitRoot = join(repositoryRoot, "payload-dashboard-kit");
+const kitRoot = join(repositoryRoot, "tools/payload-dashboard");
 const cliPath = join(kitRoot, "scripts", "payload.mjs");
 const corePath = join(kitRoot, "scripts", "lib", "payload-v3.mjs");
 const compilerPath = join(kitRoot, "scripts", "render-dashboard.mjs");

@@ -7,20 +7,20 @@ be rebuilt from their source inputs.
 Render it with:
 
 ```sh
-node ../payload-dashboard-kit/render.mjs \
+node ../../render.mjs \
   --input payload.json \
   --output tess-dashboard-standalone.html
 ```
 
-New visualization packages should use the v3 contract and explicit Figure → Panel → Layer views. The contract, JSON Schema, and PCA/embedding/model-validation fixtures live in `../payload-dashboard-kit/references/`. Large arrays may live in verified package-relative JSON/JSONL sidecars; the compiler inlines them and still emits one self-contained offline HTML file.
+New visualization packages should use the v3 contract and explicit Figure → Panel → Layer views. The contract, JSON Schema, and PCA/embedding/model-validation fixtures live in `../../references/`. Large arrays may live in verified package-relative JSON/JSONL sidecars; the compiler inlines them and still emits one self-contained offline HTML file.
 
 `v3-renderer-capabilities-demo.html` can be generated from the v3 capability
 fixture. It includes 10 panels, tree and flow layouts, horizontal uncertainty
 marks, a log scale, and an interactive Canvas panel:
 
 ```sh
-node ../payload-dashboard-kit/render.mjs \
-  --input ../payload-dashboard-kit/references/payload-v3-capabilities.fixture.json \
+node ../../render.mjs \
+  --input ../../references/payload-v3-capabilities.fixture.json \
   --output v3-renderer-capabilities-demo.html
 ```
 

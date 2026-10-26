@@ -143,25 +143,6 @@ test('a failed initial read offers Refresh status but no deployment action', () 
   assert.equal(h.elements.refresh.disabled, false);
 });
 
-test('asynchronous review waits for an explicitly refreshed ready candidate before enabling Publish', () => {
-  const h = harness(); h.load(); h.review({phase: 'preparing', production_enabled: false, message: 'Preparing release preview.'});
-  assert.equal(h.elements.reviewSummary.textContent, 'Preparing release preview.');
-  assert.equal(h.elements.confirm.disabled, true); assert.equal(h.elements.reviewButton.disabled, true);
-  assert.equal(h.elements.update.disabled, true); assert.equal(h.elements.refresh.disabled, false);
-  h.context.confirmProduction(); h.context.reviewProduction();
-  assert.equal(h.calls.length, 2);
-  h.context.act('refresh');
-  h.calls.at(-1).success({...h.ready, publishing: {...h.ready.publishing, review: {
-    id: 'review-ready', phase: 'ready', changes: [{action: 'Update', title: 'TBB'}], production_enabled: true,
-    preview_url: 'https://' + 'b'.repeat(24) + '--aisigym.netlify.app/',
-  }}});
-  assert.equal(h.elements.confirm.disabled, false);
-  assert.equal(h.elements.candidateLink.hidden, false);
-  assert.equal(h.calls.length, 3);
-  h.context.confirmProduction();
-  assert.equal(h.calls.at(-1).name, 'registryPublishingConfirmProduction');
-  assert.deepEqual(h.calls.at(-1).args, ['review-ready']);
-});
 
 test('opening an existing ready review displays it but still never publishes', () => {
   const h = harness(); h.load({publishing: {...h.ready.publishing, review: {
@@ -172,13 +153,6 @@ test('opening an existing ready review displays it but still never publishes', (
   assert.deepEqual(h.calls.map(call => call.name), ['registryUiGetStatus']);
 });
 
-test('failed candidate preparation is visible and cannot publish', () => {
-  const h = harness(); h.load(); h.review({phase: 'failed', production_enabled: false, error: 'Candidate validation failed.'});
-  assert.equal(h.elements.message.textContent, 'Candidate validation failed.');
-  assert.equal(h.elements.message.attributes.role, 'alert');
-  assert.equal(h.elements.confirm.disabled, true);
-  assert.equal(h.elements.reviewButton.disabled, false);
-});
 
 test('a ready flag without the ready phase or a verified publication capability is insufficient', () => {
   const h = harness(); h.load(); h.review({phase: 'expired', production_enabled: true});
@@ -188,12 +162,6 @@ test('a ready flag without the ready phase or a verified publication capability 
   assert.equal(h.elements.connection.textContent, 'Selection changed. Review again.');
 });
 
-test('only expected HTTPS Netlify candidate links are displayed', () => {
-  const h = harness(); h.load(); h.review({preview_url: 'javascript:alert(1)'});
-  assert.equal(h.elements.candidateLink.hidden, true);
-  h.review({preview_url: 'https://aisigym.netlify.app.evil.test/'});
-  assert.equal(h.elements.candidateLink.hidden, true);
-});
 
 test('a failed live production status check is not hidden by a cached Published state', () => {
   const h = harness(); h.load({production_warning: 'Production status could not be checked.',
@@ -224,4 +192,10 @@ test('a signed production failure displays its reason prominently', () => {
   assert.equal(h.elements.production.textContent, 'Publish failed');
   assert.equal(h.elements.message.textContent, 'The reviewed artifact failed validation.');
   assert.equal(h.elements.message.attributes.role, 'alert');
+});
+
+test('publication preparation is immediate and has no separate candidate website or waiting step',()=>{
+  const h=harness();h.load();h.review();assert.equal(h.elements.confirm.disabled,false);
+  assert.equal(h.calls.length,2);assert.doesNotMatch(html,/candidatePreview|release preview|Preparing a release/);
+  assert.match(html,/>Publish to production<\/button>/);assert.match(html,/>Confirm publication<\/button>/);
 });

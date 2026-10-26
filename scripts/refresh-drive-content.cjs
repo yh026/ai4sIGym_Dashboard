@@ -44,9 +44,9 @@ module.exports = async function refreshDriveContent({ tools, root, report = () =
     return label;
   }
   const local = JSON.parse(await python(`from pathlib import Path
-p=Path(arg)/'local-content'
+p=Path(arg)/'content/sources'
 config=json.loads((p/'source.json').read_text())
-inventory=p/'drive-current'/'inventory.json'
+inventory=p/'drive'/'inventory.json'
 print(json.dumps({'config':config,'inventory':json.loads(inventory.read_text()) if inventory.exists() else None}))`, root));
   const config = local.config;
   if (!/^[A-Za-z0-9_-]+$/.test(config.drive_root_id) || !/^[A-Za-z0-9_-]+$/.test(config.spreadsheet_id)) throw new Error('Invalid source.json.');
@@ -134,7 +134,7 @@ print(json.dumps(p))`, null));
     excluded_folders: rootFiles.filter(f => f.mime_type === 'application/vnd.google-apps.folder'
       && !projects.some(p => p.folder_id === f.id)).map(f => ({ id: f.id, name: f.title, reason: 'not an active registered project' })) };
   const snapshot = { schema: 1, spreadsheet_id: config.spreadsheet_id, sheets };
-  const stage = root + '/local-content/.incoming-' + Date.now();
+  const stage = root + '/.local/imports/.incoming-' + Date.now();
   await python(`from pathlib import Path
 p=Path(arg['stage']); p.mkdir(parents=True,exist_ok=False)
 (p/'inventory.json').write_text(json.dumps(arg['inventory'],indent=2)+'\\n')
@@ -156,7 +156,7 @@ p=Path(arg['stage']); p.mkdir(parents=True,exist_ok=False)
     });
     await python(`from pathlib import Path
 import urllib.request,hashlib,concurrent.futures
-stage=Path(arg['stage']); current=Path(arg['root'])/'local-content/drive-current'
+stage=Path(arg['stage']); current=Path(arg['root'])/'content/sources/drive'
 def materialize(job):
     target=stage/job['path']; target.parent.mkdir(parents=True,exist_ok=True)
     if 'cached_path' in job:

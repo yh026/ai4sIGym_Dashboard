@@ -24,9 +24,6 @@
 [context.develop]
   command = "node google-apps-script/publishing-controls/manual-release/preview-build.cjs"
 
-[context."codex/manual-production-review"]
-  command = "node google-apps-script/publishing-controls/manual-release/review-build.cjs"
-
 # Branch callbacks are ordered: verify Preview first, then activate its capsule.
 [[context.branch-deploy.plugins]]
   package = "./google-apps-script/publishing-controls/manual-release/netlify-plugin"

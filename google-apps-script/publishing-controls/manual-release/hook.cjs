@@ -1,13 +1,11 @@
 'use strict';
 const crypto = require('node:crypto');
 const DOMAIN = 'ais-manual-release-hook-v1\n';
-const REVIEW_BRANCH = 'codex/manual-production-review';
 const SITE_ID = '2fe21bb6-70b5-47c6-a810-18f6bd8f4973';
 const need = (value, message) => { if (!value) throw new Error('Manual publishing: ' + message); };
 function validateHook(env = process.env, target = 'production', now = Date.now(), { failureReport = false } = {}) {
-  const review = target === 'production-review';
-  need(String(env.NETLIFY).toLowerCase() === 'true' && env.SITE_ID === SITE_ID
-    && env.CONTEXT === (review ? 'branch-deploy' : 'production') && env.BRANCH === (review ? REVIEW_BRANCH : 'main'), 'deployment context is not authorized');
+  need(target === 'production' && String(env.NETLIFY).toLowerCase() === 'true' && env.SITE_ID === SITE_ID
+    && env.CONTEXT === 'production' && env.BRANCH === 'main', 'deployment context is not authorized');
   need(/^[a-f0-9]{40}$/.test(env.COMMIT_REF || '') && /^[a-zA-Z0-9_-]{1,128}$/.test(env.BUILD_ID || '')
     && /^[a-f0-9]{24}$/.test(env.DEPLOY_ID || ''), 'deployment identity is missing');
   let envelope;
@@ -20,12 +18,20 @@ function validateHook(env = process.env, target = 'production', now = Date.now()
   const signature = crypto.createHmac('sha256', secret).update(DOMAIN + envelope.payload).digest();
   need(crypto.timingSafeEqual(signature, Buffer.from(envelope.signature, 'hex')), 'manual request signature is invalid');
   const request = JSON.parse(envelope.payload), issued = Date.parse(request.requested_at), expires = Date.parse(request.expires_at);
-  need(request.schema === 1 && request.target === target && request.site_id === SITE_ID && request.branch === env.BRANCH
+  need(request.schema === 2 && request.target === target && request.site_id === SITE_ID && request.branch === env.BRANCH
     && /^[a-zA-Z0-9_-]{8,128}$/.test(request.review_id || '') && /^[a-zA-Z0-9_-]{8,128}$/.test(request.request_id || ''), 'manual request identity does not match');
   need(Number.isFinite(issued) && Number.isFinite(expires) && issued <= now + 60000 && (expires > now || failureReport && now - issued <= 2 * 60 * 60000)
     && expires > issued && expires - issued <= 30 * 60000, 'manual request has expired');
-  if (!review) need(/^[a-zA-Z0-9_-]{8,128}$/.test(request.candidate_capsule_id || '')
-    && /^sha256:[a-f0-9]{64}$/.test(request.artifact_digest || '') && /^[a-f0-9]{24}$/.test(request.baseline_deploy_id || ''), 'reviewed artifact identity is missing');
+  need(/^[a-zA-Z0-9_-]{8,128}$/.test(request.preview_capsule_id || '')
+    && /^sha256:[a-f0-9]{64}$/.test(request.confirmation_digest || '')
+    && /^[a-f0-9]{24}$/.test(request.baseline_deploy_id || ''), 'confirmed preview identity is missing');
   return request;
 }
-module.exports = { DOMAIN, REVIEW_BRANCH, SITE_ID, validateHook };
+const CONFIRMATION_FIELDS = ['schema', 'id', 'site_id', 'created_at', 'expires_at', 'selection', 'catalog',
+  'baseline_capsule_id', 'preview_capsule_id', 'baseline_deploy_id', 'preview_deploy_id', 'renderer_digest', 'changes'];
+function confirmationDigest(review) {
+  const { stable } = require('./capsule.cjs');
+  return 'sha256:' + crypto.createHash('sha256').update(stable(Object.fromEntries(
+    CONFIRMATION_FIELDS.map(key => [key, review[key]])))).digest('hex');
+}
+module.exports = { DOMAIN, SITE_ID, validateHook, confirmationDigest };

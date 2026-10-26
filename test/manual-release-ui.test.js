@@ -6,13 +6,13 @@ const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
 const {createReleaseIntent, stable} = require('../google-apps-script/publishing-controls/production-release/release-plan.cjs');
+const {validateHook, confirmationDigest} = require('../google-apps-script/publishing-controls/manual-release/hook.cjs');
 const code = fs.readFileSync(path.join(__dirname, '../google-apps-script/publishing-controls/manual-release/ManualReleaseUi.gs'), 'utf8');
 const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
 const NOW = '2026-10-08T08:00:00.000Z';
 const SITE = '2fe21bb6-70b5-47c6-a810-18f6bd8f4973';
 const sha = digit => 'sha256:' + digit.repeat(64);
 const productionDeploy = 'a'.repeat(24), previewDeploy = 'b'.repeat(24);
-const reviewHook = 'https://api.netlify.com/build_hooks/' + 'c'.repeat(24);
 const productionHook = 'https://api.netlify.com/build_hooks/' + 'd'.repeat(24);
 const ids = ['demo-add', 'demo-update', 'demo-remove', 'demo-keep'];
 
@@ -25,7 +25,7 @@ function harness() {
   }
   const events = [], posts = [], reads = [], reviews = new Map(), requests = new Map();
   const properties = new Map(Object.entries({AIS_RELEASE_ROOT_FOLDER_ID: 'release-folder-test',
-    AIS_RELEASE_REVIEW_HOOK: reviewHook, AIS_RELEASE_PRODUCTION_HOOK: productionHook,
+    AIS_RELEASE_PRODUCTION_HOOK: productionHook,
     AIS_RELEASE_RENDERER_DIGEST: sha('f'), AI4S_PREVIEW_CALLBACK_SECRET: 'ui-test-signing-secret',
     AIS_RELEASE_ACTIVE_PRODUCTION_CAPSULE_ID: 'capsule-production'}));
   const propertyApi = {getProperty: name => properties.get(name) || null,
@@ -41,11 +41,13 @@ function harness() {
     inventory_digest: sha('4'), receipt_digest: sha('5'), branch: 'develop', context: 'branch-deploy',
     verified: true, registry_revision: sha('6'), projects: ids.filter(id => id !== 'demo-remove').map(id => ({demo_id: id,
       slug: id.replace(/^demo-/, ''), content_digest: sha(id === 'demo-update' ? '7' : '3')}))}};
-  const productionReceipt = {deploy_id: productionDeploy, target: 'production', audience: 'production', site_id: SITE};
+  const productionReceipt = {deploy_id: productionDeploy, target: 'production', audience: 'production', site_id: SITE,
+    projects: clone(snapshots.production.projects), publication_overrides: [], renderer_digest: sha('f')};
   const previewState = {phase: 'ready', deploy_id: previewDeploy, request_id: 'preview-request-1234', revision: sha('6')};
   const capsules = {production: {id: 'capsule-production', complete: true, provenance: {deploy_id: productionDeploy}},
     preview: {id: 'capsule-preview', complete: true, provenance: {deploy_id: previewDeploy,
-      request_id: previewState.request_id, registry_revision: previewState.revision}}};
+      request_id: previewState.request_id, registry_revision: previewState.revision, renderer_digest: sha('f'),
+      project_snapshots: {standard: clone(snapshots.preview.projects),without_tbb_resources: clone(snapshots.preview.projects)}}}};
   const rows = selection.map(s => [s.demo_id, s.demo_id === 'demo-add' ? 'Not published' : 'Published',
     s.demo_id === 'demo-remove' ? 'Not published' : 'Published', '', '', '', '', '', '', '', '']);
   const context = vm.createContext({Date: Clock, Number, JSON, Object, encodeURIComponent,
@@ -55,23 +57,23 @@ function harness() {
       [...crypto.createHmac('sha256', secret).update(payload).digest()].map(byte => byte > 127 ? byte - 256 : byte)},
     registryPublishingSelection_: () => clone(selection), registryPublishingCatalog_: () => clone(catalog),
     registryPublishingState_: () => ({getRange: () => ({getValues: () => clone(rows)})}),
+    registryReleaseStoreConfirmationDigest_: confirmationDigest,
     registryReleaseStoreGetActive_: name => clone(capsules[name]),
     registryReleaseStoreGetReview_: id => clone(reviews.get(id)), registryReleaseStoreGetRequest_: id => clone(requests.get(id)),
     registryReleaseStoreCreateReview_(review) {
       assert.ok(lockDepth > 0, 'review decision must be persisted under a lock');
-      assert.equal(review.phase, 'requested'); assert.equal(review.site_id, SITE);
+      assert.equal(review.phase, 'ready'); assert.equal(review.schema, 2); assert.equal(review.site_id, SITE);
       assert.ok(!reviews.has(review.id)); events.push('create-review'); reviews.set(review.id, clone(review));
     },
     registryReleaseStoreCreateRequest_(request) {
       assert.ok(lockDepth > 0, 'explicit release decision must be persisted under a lock');
       const review = reviews.get(request.review_id); assert.ok(review);
       assert.equal(request.phase, 'requested'); assert.equal(request.baseline_deploy_id, review.baseline_deploy_id);
-      assert.equal(request.branch, request.kind === 'review' ? 'codex/manual-production-review' : 'main');
-      assert.equal(request.target, request.kind === 'review' ? 'production-review' : 'production');
-      if (request.kind === 'production') {
-        assert.equal(review.phase, 'ready'); assert.equal(request.candidate_capsule_id, review.candidate_capsule_id);
-        assert.equal(request.artifact_digest, review.artifact_digest);
-      } else assert.equal(request.id, review.request_id);
+      assert.equal(request.branch,'main'); assert.equal(request.target,'production');
+      assert.equal(request.schema,2); assert.equal(request.kind,'production');
+      assert.equal(request.preview_capsule_id,review.preview_capsule_id);
+      assert.equal(request.confirmation_digest,confirmationDigest(review));
+      assert.equal(request.candidate_capsule_id,undefined);
       assert.ok(!requests.has(request.id)); events.push('create-request:' + request.kind);
       requests.set(request.id, {...clone(request), ui_created: true});
     },
@@ -91,15 +93,8 @@ function harness() {
   });
   vm.runInContext(code, context);
   function readyReview(patch = {}) {
-    const selected = selection.map(s => ({demo_id: s.demo_id, include_in_production: s.includeProduction, include_in_preview: s.includePreview}));
-    const plan = createReleaseIntent({catalog, selection: selected, baseline: snapshots.production, preview: snapshots.preview, now: NOW});
-    const review = {id: 'ready-review-1234', schema: 1, site_id: SITE, created_at: NOW,
-      expires_at: '2026-10-08T10:00:00.000Z', ready_at: NOW, phase: 'ready', request_id: 'review-request-1234',
-      selection: selected, catalog: clone(catalog), baseline_capsule_id: capsules.production.id, preview_capsule_id: capsules.preview.id,
-      baseline_deploy_id: productionDeploy, preview_deploy_id: previewDeploy, renderer_digest: sha('f'),
-      candidate_capsule_id: 'candidate-capsule-1234', artifact_digest: sha('8'), review_deploy_id: 'e'.repeat(24), plan,
-      ...patch};
-    reviews.set(review.id, clone(review)); properties.set('AIS_RELEASE_CURRENT_REVIEW_ID', review.id); return review;
+    const view=context.registryManualReviewProduction(),review=reviews.get(view.id);
+    Object.assign(review,patch); review.confirmation_digest=confirmationDigest(review);return clone(review);
   }
   return {context, selection, catalog, snapshots, productionReceipt, previewState, capsules, properties, posts, reads, events, reviews, requests,
     readyReview, clock: value => { clock = Date.parse(value); }, hookStatus: value => { hookStatus = value; }, hookError: value => { hookError = value; }};
@@ -110,148 +105,91 @@ function assertNoProduction(h) {
   assert.equal([...h.requests.values()].filter(request => request.kind === 'production').length, 0);
 }
 
-test('real release-plan projects and removals yield Add, Update, Remove, and Keep rows', () => {
-  const h = harness(), review = h.readyReview();
-  assert.equal(review.plan.changes, undefined, 'the real intent has projects/removals, not a synthetic changes field');
-  const rows = clone(h.context.registryManualChangeRows_(review));
-  assert.deepEqual(Object.fromEntries(rows.map(row => [row.demo_id, row.action])), {
-    'demo-add': 'Add', 'demo-update': 'Update', 'demo-remove': 'Remove', 'demo-keep': 'Keep',
-  });
-  const view = h.context.registryManualReviewView_(review);
-  assert.equal(view.change_count, 3); assert.equal(view.production_enabled, true);
+test('publication preparation is immediate and never creates a request or starts a build',()=>{
+  const h=harness(),view=h.context.registryManualReviewProduction();
+  assert.equal(view.phase,'ready');assert.equal(view.production_enabled,true);assert.equal(view.change_count,3);
+  assert.deepEqual(Object.fromEntries(view.changes.map(r=>[r.demo_id,r.action])),{
+    'demo-add':'Add','demo-update':'Update','demo-remove':'Remove','demo-keep':'Keep'});
+  assert.equal(view.preview_url,'https://develop--aisigym.netlify.app/');
+  assert.equal(h.posts.length,0);assert.equal(h.requests.size,0);
 });
-
-test('status reads never create requests or invoke either hook', () => {
-  const h = harness(); h.readyReview();
-  const before = clone([...h.requests.values()]);
-  h.context.registryManualSummary_(); h.context.registryManualCurrentReview_(); h.context.registryManualPendingRequest_();
-  assert.equal(h.posts.length, 0); assert.deepEqual([...h.requests.values()], before);
+test('opening and status reads do not create a confirmation or publication request',()=>{
+  const h=harness();h.context.registryManualSummary_();
+  assert.equal(h.posts.length,0);assert.equal(h.reviews.size,0);assert.equal(h.requests.size,0);
 });
-
-test('Review creates only an isolated review request and sends its hook once', () => {
-  const h = harness(), first = h.context.registryManualReviewProduction();
-  assert.equal(first.phase, 'preparing'); assert.equal(first.production_enabled, false);
-  assert.equal(h.posts.length, 1); assert.equal(h.posts[0].url, reviewHook + '?trigger_branch=codex%2Fmanual-production-review');
-  const body = JSON.parse(JSON.parse(h.posts[0].payload).payload);
-  assert.equal(body.target, 'production-review'); assert.equal(body.branch, 'codex/manual-production-review');
-  assert.ok(h.events.indexOf('create-request:review') < h.events.indexOf('post-hook'));
-  const second = h.context.registryManualReviewProduction();
-  assert.equal(second.id, first.id); assert.equal(h.posts.length, 1);
-  assertNoProduction(h);
+test('one explicit confirmation sends one signed schema-2 main request with fixed develop identity',()=>{
+  const h=harness(),review=h.readyReview();
+  h.properties.set('AI4S_PREVIEW_CALLBACK_SECRET','ui-test-signing-secret-with-at-least-32-chars');
+  h.context.registryManualConfirmProduction(review.id);
+  assert.equal(h.posts.length,1);const post=h.posts[0],body=JSON.parse(JSON.parse(post.payload).payload);
+  assert.ok(post.url.startsWith(productionHook));assert.match(post.url,/trigger_branch=main$/);
+  assert.equal(body.preview_capsule_id,h.capsules.preview.id);assert.equal(body.confirmation_digest,confirmationDigest(review));
+  assert.equal(body.candidate_capsule_id,undefined);
+  const env={NETLIFY:'true',SITE_ID:SITE,CONTEXT:'production',BRANCH:'main',COMMIT_REF:'1'.repeat(40),
+    BUILD_ID:'main-build-1234',DEPLOY_ID:'c'.repeat(24),AI4S_PREVIEW_CALLBACK_SECRET:h.properties.get('AI4S_PREVIEW_CALLBACK_SECRET'),INCOMING_HOOK_BODY:post.payload};
+  assert.equal(validateHook(env,'production',Date.parse(NOW)).request_id,body.request_id);
+  assert.throws(()=>h.context.registryManualConfirmProduction(review.id),/in progress/);assert.equal(h.posts.length,1);
 });
-
-test('only explicit Confirm submits the exact candidate and blocks a second confirmation', () => {
-  const h = harness(), review = h.readyReview();
-  h.context.registryManualSummary_(); assertNoProduction(h);
-  const result = h.context.registryManualConfirmProduction(review.id);
-  assert.match(result.message, /requested/i); assert.equal(h.posts.length, 1);
-  assert.equal(h.posts[0].url, productionHook + '?trigger_branch=main');
-  const sent = JSON.parse(JSON.parse(h.posts[0].payload).payload);
-  assert.equal(sent.candidate_capsule_id, review.candidate_capsule_id); assert.equal(sent.artifact_digest, review.artifact_digest);
-  assert.equal(sent.baseline_deploy_id, review.baseline_deploy_id); assert.equal(sent.review_id, review.id);
-  assert.throws(() => h.context.registryManualConfirmProduction(review.id), /already in progress/);
-  assert.equal(h.posts.length, 1);
+test('slow UUID creation and persistence preserve the exact hook lifetime',()=>{
+  const h=harness(),review=h.readyReview();
+  h.context.Utilities.getUuid=()=>{h.clock('2026-10-08T08:00:03.000Z');return 'slow-request-1234';};
+  h.context.registryManualConfirmProduction(review.id);
+  const body=JSON.parse(JSON.parse(h.posts[0].payload).payload);
+  assert.equal(Date.parse(body.expires_at)-Date.parse(body.requested_at),15*60000);
 });
-
-test('changing either checkbox after review blocks confirmation without creating a release', () => {
-  for (const field of ['includeProduction', 'includePreview']) {
-    const h = harness(), review = h.readyReview(); h.selection[0][field] = !h.selection[0][field];
-    assert.throws(() => h.context.registryManualConfirmProduction(review.id), /Selection changed/); assertNoProduction(h);
+test('either changed checkbox invalidates the confirmation',()=>{
+  for(const field of ['includeProduction','includePreview']){
+    const h=harness(),review=h.readyReview();h.selection[0][field]=!h.selection[0][field];
+    assert.throws(()=>h.context.registryManualConfirmProduction(review.id),/Selection changed/);assertNoProduction(h);
   }
 });
-
-test('changed active production or preview capsule blocks a reviewed release', () => {
-  for (const environment of ['production', 'preview']) {
-    const h = harness(), review = h.readyReview(); h.capsules[environment].id += '-new';
-    assert.throws(() => h.context.registryManualConfirmProduction(review.id), /changed/); assertNoProduction(h);
+test('changed catalog or confirmation fields cannot be silently published',()=>{
+  const h=harness(),review=h.readyReview();h.catalog[0].title='Edited';
+  assert.throws(()=>h.context.registryManualConfirmProduction(review.id),/Project details changed/);assertNoProduction(h);
+  const other=harness(),r=other.readyReview();other.reviews.get(r.id).preview_deploy_id='c'.repeat(24);
+  assert.throws(()=>other.context.registryManualConfirmProduction(r.id),/confirmation changed/);assertNoProduction(other);
+});
+test('changed active capsules, public production or current preview identity block confirmation',()=>{
+  for(const mutate of [h=>h.capsules.production.id='new-production',h=>h.capsules.preview.id='new-preview',
+    h=>h.productionReceipt.deploy_id='c'.repeat(24),h=>h.previewState.phase='accepted',
+    h=>h.previewState.request_id='new-preview-request',h=>h.previewState.revision=sha('a')]){
+    const h=harness(),review=h.readyReview();mutate(h);
+    assert.throws(()=>h.context.registryManualConfirmProduction(review.id),/changed|Update preview|reconciliation/);assertNoProduction(h);
   }
 });
-
-test('changed public production receipt cannot be ignored even when the stored capsule is unchanged', () => {
-  const h = harness(), review = h.readyReview(); h.productionReceipt.deploy_id = '9'.repeat(24);
-  assert.throws(() => h.context.registryManualConfirmProduction(review.id), /reconciliation|Production changed/);
-  assertNoProduction(h);
+test('expired confirmations and unknown or historical review identities cannot publish',()=>{
+  const h=harness(),review=h.readyReview();h.clock('2026-10-08T08:30:00.000Z');
+  assert.throws(()=>h.context.registryManualConfirmProduction(review.id),/expired/);assertNoProduction(h);
+  assert.throws(()=>h.context.registryManualConfirmProduction('other'),/confirmation again/);
+  h.reviews.get(review.id).schema=1;assert.equal(h.context.registryManualCurrentReview_(),null);
 });
-
-test('changed current preview request or deploy identity blocks confirmation', () => {
-  for (const field of ['request_id', 'deploy_id', 'revision']) {
-    const h = harness(), review = h.readyReview(); h.previewState[field] = 'changed';
-    assert.throws(() => h.context.registryManualConfirmProduction(review.id), /Update preview first/); assertNoProduction(h);
-  }
+test('a legacy preview requires one explicit Update to save publication metadata',()=>{
+  const h=harness();delete h.capsules.preview.provenance.project_snapshots;
+  assert.throws(()=>h.context.registryManualReviewProduction(),/Update preview once/);assertNoProduction(h);
+  assert.equal(h.context.registryManualNeedsPreviewArtifact_(h.previewState,h.previewState.revision),true);
 });
-
-test('all three review expiry bounds prevent a production request', () => {
-  for (const field of ['expires_at', 'plan', 'ready_at']) {
-    const h = harness(), review = h.readyReview();
-    if (field === 'plan') review.plan.expires_at = '2026-10-08T07:59:00.000Z';
-    else review[field] = field === 'ready_at' ? '2026-10-08T07:00:00.000Z' : '2026-10-08T07:59:00.000Z';
-    h.reviews.set(review.id, review);
-    assert.throws(() => h.context.registryManualConfirmProduction(review.id), /expired/); assertNoProduction(h);
-  }
+test('equal project bytes have no publication action; renderer changes remain visible',()=>{
+  const h=harness();h.selection.forEach(s=>{s.includeProduction=s.demo_id!=='demo-add';s.includePreview=false;});
+  const r=h.readyReview();assert.equal(h.context.registryManualReviewView_(r).production_enabled,false);
+  assert.throws(()=>h.context.registryManualConfirmProduction(r.id),/No production changes/);assertNoProduction(h);
+  h.capsules.preview.provenance.renderer_digest=sha('9');
+  const view=h.context.registryManualReviewProduction();assert.equal(view.change_count,1);
+  assert.equal(view.changes.at(-1).title,'Website layout');assert.equal(view.production_enabled,true);
 });
-
-test('an unchanged release cannot be submitted', () => {
-  const h = harness(), review = h.readyReview();
-  review.plan.projects.forEach(project => { project.action = 'keep'; }); review.plan.removals = [];
-  h.reviews.set(review.id, review);
-  assert.throws(() => h.context.registryManualConfirmProduction(review.id), /No production changes/); assertNoProduction(h);
+test('a pending or uncertain production request prevents new preparation and duplicate submission',()=>{
+  const h=harness(),review=h.readyReview();h.hookError(new Error('Connection timed out'));
+  assert.throws(()=>h.context.registryManualConfirmProduction(review.id),/timed out/);
+  assert.equal(h.requests.size,1);assert.equal(h.posts.length,1);
+  assert.throws(()=>h.context.registryManualReviewProduction(),/in progress/);
+  assert.throws(()=>h.context.registryManualConfirmProduction(review.id),/in progress/);assert.equal(h.posts.length,1);
 });
-
-test('a prepared but not successfully deployed review cannot publish', () => {
-  const h = harness(), review = h.readyReview({phase: 'prepared'});
-  assert.equal(h.context.registryManualReviewView_(review).phase, 'preparing');
-  assert.throws(() => h.context.registryManualConfirmProduction(review.id), /Wait for the release preview/); assertNoProduction(h);
+test('missing production hook blocks requests while the retired review hook is unnecessary',()=>{
+  const h=harness();assert.equal(h.context.registryManualConfigured_(),true);
+  const review=h.readyReview();h.properties.delete('AIS_RELEASE_PRODUCTION_HOOK');
+  assert.throws(()=>h.context.registryManualConfirmProduction(review.id),/not connected/);assertNoProduction(h);
 });
-
-test('expired preparation allows a fresh review without a production request', () => {
-  const h = harness(), review = h.readyReview({phase: 'requested', expires_at: '2026-10-08T07:59:00.000Z'});
-  const view = h.context.registryManualReviewView_(review);
-  assert.equal(view.phase, 'expired'); assert.match(view.production_disabled_reason, /expired/);
-  const next = h.context.registryManualReviewProduction();
-  assert.notEqual(next.id, review.id); assert.equal(next.phase, 'preparing'); assertNoProduction(h);
-});
-
-test('failed production request exposes its actionable error', () => {
-  const h = harness();
-  h.requests.set('failed-request', {phase:'failed', error:'Candidate verification failed.'});
-  h.properties.set('AIS_RELEASE_ACTIVE_REQUEST_ID', 'failed-request');
-  assert.equal(h.context.registryManualSummary_().production_error, 'Candidate verification failed.');
-  assertNoProduction(h);
-});
-
-test('a pending requested or claimed production request prevents new reviews and duplicate confirmations', () => {
-  for (const phase of ['requested', 'claimed']) {
-    const h = harness(), review = h.readyReview();
-    h.requests.set('already-pending', {id: 'already-pending', kind: 'production', phase});
-    h.properties.set('AIS_RELEASE_ACTIVE_REQUEST_ID', 'already-pending');
-    assert.throws(() => h.context.registryManualReviewProduction(), /already in progress/);
-    assert.throws(() => h.context.registryManualConfirmProduction(review.id), /already in progress/);
-    assert.equal(h.posts.length, 0);
-  }
-});
-
-test('uncertain hook responses retain the durable production request and never retry automatically', () => {
-  for (const failure of ['http', 'network']) {
-    const h = harness(), review = h.readyReview();
-    if (failure === 'http') h.hookStatus(502); else h.hookError(new Error('Network timeout'));
-    assert.throws(() => h.context.registryManualConfirmProduction(review.id), /not acknowledged|timeout/);
-    assert.ok(h.properties.get('AIS_RELEASE_ACTIVE_REQUEST_ID')); assert.equal(h.posts.length, 1);
-    assert.throws(() => h.context.registryManualConfirmProduction(review.id), /already in progress/);
-    assert.equal(h.posts.length, 1);
-  }
-});
-
-test('invalid transport configuration is rejected before a durable production request is created', () => {
-  for (const [field, value] of [['AIS_RELEASE_PRODUCTION_HOOK', ''], ['AIS_RELEASE_PRODUCTION_HOOK', 'https://example.test/'], ['AI4S_PREVIEW_CALLBACK_SECRET', '']]) {
-    const h = harness(), review = h.readyReview(); h.properties.set(field, value);
-    assert.throws(() => h.context.registryManualConfirmProduction(review.id), /not configured|not connected|connection/i);
-    assert.equal(h.properties.get('AIS_RELEASE_ACTIVE_REQUEST_ID'), undefined);
-    assertNoProduction(h);
-  }
-});
-
-test('wrong or missing review identity cannot submit a production request', () => {
-  const h = harness(); h.readyReview();
-  assert.throws(() => h.context.registryManualConfirmProduction('other-review'), /Review the changes again/);
-  assert.throws(() => h.context.registryManualConfirmProduction(''), /Review the changes again/); assertNoProduction(h);
+test('failed publication exposes its error without retrying',()=>{
+  const h=harness();h.requests.set('failed-request',{kind:'production',phase:'failed',error:'Build failed before publication'});
+  h.properties.set('AIS_RELEASE_ACTIVE_REQUEST_ID','failed-request');
+  assert.equal(h.context.registryManualSummary_().production_error,'Build failed before publication');assert.equal(h.posts.length,0);
 });

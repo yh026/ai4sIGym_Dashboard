@@ -11,10 +11,10 @@ const fixturePaths = [
   path.join(root, 'fixtures', 'preview-auto-e2e-v2.html'),
 ];
 const contractPath = path.join(root, 'fixtures', 'preview-automation-contract.json');
-const runbookPath = path.join(root, 'docs', 'phase3-preview-automation-runbook.md');
+const runbookPath = path.join(root, 'docs', 'guides', 'preview-automation.md');
 const netlifyConfigPath = path.join(root, 'netlify.toml');
 const appsScriptPath = path.join(root, 'google-apps-script', 'Code.gs');
-const readmePath = path.join(root, 'README.md');
+const readmePath = path.join(root, 'docs/guides/registry-setup.md');
 const appsReadmePath = path.join(root, 'google-apps-script', 'README.md');
 
 function read(filename) {

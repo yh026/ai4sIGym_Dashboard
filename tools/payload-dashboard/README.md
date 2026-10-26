@@ -7,10 +7,10 @@ payloads. This tool is separate from the Drive/Registry website build.
 From the repository root:
 
 ```sh
-node payload-dashboard-kit/scripts/payload.mjs init local-content/new-report
-node payload-dashboard-kit/scripts/payload.mjs validate local-content/new-report/payload.json
-node payload-dashboard-kit/scripts/payload.mjs render local-content/new-report/payload.json
-node payload-dashboard-kit/scripts/payload.mjs conformance local-content/new-report/payload.json
+node tools/payload-dashboard/scripts/payload.mjs init .local/exports/new-report
+node tools/payload-dashboard/scripts/payload.mjs validate .local/exports/new-report/payload.json
+node tools/payload-dashboard/scripts/payload.mjs render .local/exports/new-report/payload.json
+node tools/payload-dashboard/scripts/payload.mjs conformance .local/exports/new-report/payload.json
 ```
 
 The package contains `payload.json` and any declared data sidecars. Rendering
@@ -20,7 +20,7 @@ and file containment before emitting one offline HTML file.
 - [Producer guide](PRODUCER_GUIDE.md): package creation and CLI commands.
 - [Payload v3 contract](references/payload-v3-contract.md): supported structure.
 - [Renderer authoring](references/renderer-authoring.md): implementation guide.
-- [Examples](examples/): small generic packages and TESS reference inputs.
+- [Examples](examples): small generic packages and TESS reference inputs.
 - [Skill instructions](SKILL.md): optional agent workflow, exposed through
   relative directory links in `.agents/skills` and `.claude/skills`.
 

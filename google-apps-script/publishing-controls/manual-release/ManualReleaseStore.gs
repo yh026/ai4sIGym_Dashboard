@@ -61,44 +61,51 @@ function registryReleaseStoreExpiry_(record) {
   registryReleaseStoreNeed_(record && Number.isFinite(Date.parse(record.expires_at)) &&
     Date.parse(record.expires_at) > Date.now(), 'Release request expired. Review the changes again.');
 }
+function registryReleaseStoreConfirmationDigest_(review) {
+  var body = {};
+  ['schema','id','site_id','created_at','expires_at','selection','catalog','baseline_capsule_id',
+    'preview_capsule_id','baseline_deploy_id','preview_deploy_id','renderer_digest','changes'].forEach(function(k) { body[k] = review[k]; });
+  return 'sha256:' + registryReleaseStoreHash_(Utilities.newBlob(registryReleaseStoreStable_(body)).getBytes());
+}
 function registryReleaseStoreCreateReview_(review) {
-  registryReleaseStoreNeed_(review && review.schema === 1 && review.site_id === SANDBOX.site_id &&
-    review.phase === 'requested' && Array.isArray(review.selection) && Array.isArray(review.catalog), 'Invalid release review.');
-  ['id', 'request_id', 'baseline_capsule_id', 'preview_capsule_id'].forEach(function(k) { registryReleaseStoreId_(review[k]); });
+  registryReleaseStoreNeed_(review && review.schema === 2 && review.site_id === SANDBOX.site_id &&
+    review.phase === 'ready' && Array.isArray(review.selection) && Array.isArray(review.catalog) && Array.isArray(review.changes)
+    && review.confirmation_digest === registryReleaseStoreConfirmationDigest_(review), 'Invalid publication confirmation.');
+  ['id','baseline_capsule_id','preview_capsule_id'].forEach(function(k) { registryReleaseStoreId_(review[k]); });
   registryReleaseStoreExpiry_(review);
   return registryReleaseStoreWrite_('review', review, true);
 }
+
 function registryReleaseStoreGetReview_(id) { return registryReleaseStoreRecord_('review', id); }
 function registryReleaseStoreSaveReview_(review) {
-  var old = registryReleaseStoreGetReview_(review.id); registryReleaseStoreNeed_(!!old, 'Release review is missing.');
-  ['id','schema','created_at','expires_at','site_id','selection','catalog','baseline_capsule_id',
-    'preview_capsule_id','baseline_deploy_id','preview_deploy_id','renderer_digest','request_id'].forEach(function(k) {
-    registryReleaseStoreNeed_(registryReleaseStoreStable_(old[k]) === registryReleaseStoreStable_(review[k]), 'Release review identity changed.');
-  });
+  var old = registryReleaseStoreGetReview_(review.id); registryReleaseStoreNeed_(!!old, 'Publication confirmation is missing.');
+  registryReleaseStoreNeed_(old.confirmation_digest === review.confirmation_digest &&
+    review.confirmation_digest === registryReleaseStoreConfirmationDigest_(review), 'Publication confirmation changed.');
   return registryReleaseStoreWrite_('review', review, false);
 }
+
 function registryReleaseStoreCreateRequest_(request) {
-  registryReleaseStoreNeed_(request && ['review','production'].indexOf(request.kind) !== -1 && request.phase === 'requested', 'Invalid release request.');
-  var review = registryReleaseStoreGetReview_(request.review_id); registryReleaseStoreNeed_(!!review, 'Release review is missing.');
+  registryReleaseStoreNeed_(request && request.schema === 2 && request.kind === 'production' && request.phase === 'requested', 'Invalid release request.');
+  var review = registryReleaseStoreGetReview_(request.review_id);
+  registryReleaseStoreNeed_(review && review.schema === 2 && review.phase === 'ready', 'Publication confirmation is missing.');
   registryReleaseStoreExpiry_(request); registryReleaseStoreExpiry_(review);
-  registryReleaseStoreNeed_(request.baseline_deploy_id === review.baseline_deploy_id &&
-    request.branch === (request.kind === 'review' ? 'codex/manual-production-review' : 'main') &&
-    request.target === (request.kind === 'review' ? 'production-review' : 'production'), 'Release request identity mismatch.');
-  if (request.kind === 'review') registryReleaseStoreNeed_(request.id === review.request_id, 'Review request mismatch.');
-  else registryReleaseStoreNeed_(review.phase === 'ready' && request.candidate_capsule_id === review.candidate_capsule_id &&
-    request.artifact_digest === review.artifact_digest, 'Production must use the ready reviewed artifact.');
-  // No API action calls this helper. Creation therefore records the explicit UI decision.
+  registryReleaseStoreNeed_(request.baseline_deploy_id === review.baseline_deploy_id && request.branch === 'main'
+    && request.target === 'production' && request.preview_capsule_id === review.preview_capsule_id
+    && request.confirmation_digest === review.confirmation_digest
+    && request.confirmation_digest === registryReleaseStoreConfirmationDigest_(review), 'Release request identity mismatch.');
+  // Only the explicit UI confirmation can create a publication request.
   var saved = registryReleaseStoreClone_(request); saved.ui_created = true;
   return registryReleaseStoreWrite_('request', saved, true);
 }
+
 function registryReleaseStoreGetRequest_(id) { return registryReleaseStoreRecord_('request', id); }
 function registryReleaseStoreSaveRequest_(request) {
   var old = registryReleaseStoreGetRequest_(request.id); registryReleaseStoreNeed_(!!old, 'Release request is missing.');
-  ['id','kind','review_id','created_at','expires_at','branch','target','baseline_deploy_id',
-    'candidate_capsule_id','artifact_digest','ui_created'].forEach(function(k) {
+  ['id','schema','kind','review_id','created_at','expires_at','branch','target','baseline_deploy_id',
+    'preview_capsule_id','confirmation_digest','ui_created'].forEach(function(k) {
     registryReleaseStoreNeed_(registryReleaseStoreStable_(old[k]) === registryReleaseStoreStable_(request[k]), 'Release request identity changed.');
   });
-  ['owner','production_capsule_id'].forEach(function(k) {
+  ['owner','production_capsule_id','artifact_digest','production_inventory_digest'].forEach(function(k) {
     if (old[k]) registryReleaseStoreNeed_(registryReleaseStoreStable_(old[k]) === registryReleaseStoreStable_(request[k]), 'Claimed release output identity changed.');
   });
   return registryReleaseStoreWrite_('request', request, false);
@@ -118,9 +125,9 @@ function registryReleaseStoreOwner_(record, payload) {
 }
 function registryReleaseStoreRequestFor_(payload, kind, claim, reconciled) {
   var request = registryReleaseStoreGetRequest_(payload.request_id), review = registryReleaseStoreGetReview_(payload.review_id);
-  registryReleaseStoreNeed_(request && review && request.ui_created === true && request.kind === kind &&
-    request.review_id === review.id && payload.branch === request.branch &&
-    payload.context === (kind === 'review' ? 'branch-deploy' : 'production'), 'Release request identity mismatch.');
+  registryReleaseStoreNeed_(request && review && request.schema === 2 && review.schema === 2 && request.ui_created === true
+    && kind === 'production' && request.kind === kind && request.review_id === review.id
+    && request.branch === 'main' && payload.branch === 'main' && payload.context === 'production', 'Release request identity mismatch.');
   if (claim) {
     registryReleaseStoreExpiry_(request); registryReleaseStoreExpiry_(review);
     registryReleaseStoreNeed_(request.phase === 'requested' || request.phase === 'claimed', 'Release request cannot be claimed.');
@@ -163,11 +170,11 @@ function registryReleaseStoreAuthorizeUpload_(payload, kind) {
     return;
   }
   if (kind === 'production' && registryReleaseStoreBootstrap_(payload)) return;
-  var pair = registryReleaseStoreRequestFor_(payload, kind === 'candidate' ? 'review' : 'production', false);
+  var pair = registryReleaseStoreRequestFor_(payload, 'production', false);
   registryReleaseStoreNeed_(pair.request.phase === 'claimed', 'Release artifact is already finalized.');
 }
 function registryReleaseStoreCapsuleShape_(capsule, payload) {
-  registryReleaseStoreNeed_(capsule && ['preview','candidate','production'].indexOf(capsule.kind) !== -1, 'Invalid release artifact.');
+  registryReleaseStoreNeed_(capsule && ['preview','production'].indexOf(capsule.kind) !== -1, 'Invalid release artifact.');
   registryReleaseStoreId_(capsule.id);
   registryReleaseStoreNeed_(/^[a-f0-9]{64}$/.test(capsule.archive_sha256 || '') &&
     /^sha256:[a-f0-9]{64}$/.test(capsule.inventory_digest || '') && Number.isSafeInteger(capsule.archive_size) &&
@@ -297,8 +304,8 @@ function registryReleaseStoreAuthorizeRead_(payload, id) {
   var request = registryReleaseStoreGetRequest_(payload.request_id);
   registryReleaseStoreNeed_(!!request, 'Release read is not authorized.');
   var pair = registryReleaseStoreRequestFor_(payload, request.kind, false), review = pair.review;
-  registryReleaseStoreNeed_([review.baseline_capsule_id,review.preview_capsule_id,review.candidate_capsule_id].indexOf(id) !== -1,
-    'Capsule does not belong to this review.'); return id;
+  registryReleaseStoreNeed_([review.baseline_capsule_id,review.preview_capsule_id].indexOf(id) !== -1,
+    'Capsule does not belong to this confirmation.'); return id;
 }
 function registryReleaseStoreRead_(payload, chunk) {
   var id = registryReleaseStoreAuthorizeRead_(payload, payload.capsule_id), record = registryReleaseStoreRecord_('capsule', id);
@@ -310,17 +317,28 @@ function registryReleaseStoreRead_(payload, chunk) {
   registryReleaseStoreNeed_(!file.isTrashed() && bytes.length === expected.size && registryReleaseStoreHash_(bytes) === expected.sha256, 'Stored capsule chunk checksum mismatch.');
   return {capsule_id:id,index:payload.index,sha256:expected.sha256,base64:Utilities.base64Encode(bytes)};
 }
-function registryReleaseStoreClaimReview_(payload) {
-  var pair = registryReleaseStoreRequestFor_(payload, 'review', true);
-  return {review:pair.review,request:pair.request};
+function registryReleaseStoreAssertCurrent_(review, request) {
+  var production = registryReleaseStoreGetActive_('production'), preview = registryReleaseStoreGetActive_('preview'), state = previewState_();
+  registryReleaseStoreNeed_(review.schema === 2 && review.confirmation_digest === registryReleaseStoreConfirmationDigest_(review)
+    && production && production.id === review.baseline_capsule_id && production.provenance.deploy_id === review.baseline_deploy_id
+    && preview && preview.id === review.preview_capsule_id && preview.provenance.deploy_id === review.preview_deploy_id
+    && preview.provenance.renderer_digest === review.renderer_digest
+    && state.phase === 'ready' && state.deploy_id === review.preview_deploy_id && state.request_id === preview.provenance.request_id
+    && state.revision === preview.provenance.registry_revision, 'Confirmed production or Preview changed.');
+  registryReleaseStoreNeed_(registryReleaseStoreStable_(registryManualSelection_()) === registryReleaseStoreStable_(review.selection)
+    && registryReleaseStoreStable_(registryManualCatalog_()) === registryReleaseStoreStable_(review.catalog), 'Confirmed project selection or catalog changed.');
+  registryReleaseStoreNeed_(PropertiesService.getScriptProperties().getProperty('AIS_RELEASE_ACTIVE_REQUEST_ID') === request.id,
+    'Publication request is no longer active.');
 }
-function registryReleaseStoreCandidateReady_(payload) {
-  var pair = registryReleaseStoreRequestFor_(payload, 'review', false), capsule = registryReleaseStoreGetCapsule_(payload.capsule_id);
+
+function registryReleaseStoreProductionPrepared_(payload) {
+  var pair = registryReleaseStoreRequestFor_(payload, 'production', false), capsule = registryReleaseStoreGetCapsule_(payload.capsule_id);
+  registryReleaseStoreAssertCurrent_(pair.review, pair.request);
   var record = registryReleaseStoreRecord_('capsule', payload.capsule_id); registryReleaseStoreOwner_(record, payload);
-  registryReleaseStoreNeed_(pair.request.phase === 'claimed' && capsule && capsule.complete && capsule.kind === 'candidate' &&
+  registryReleaseStoreNeed_(pair.request.phase === 'claimed' && capsule && capsule.complete && capsule.kind === 'production' &&
     capsule.provenance.review_id === pair.review.id && /^sha256:[a-f0-9]{64}$/.test(payload.artifact_digest || '') &&
-    payload.artifact_digest === capsule.provenance.artifact_digest && payload.artifact_digest === capsule.inventory_digest &&
-    payload.plan && payload.renderer_evidence, 'Candidate evidence mismatch.');
+    payload.artifact_digest === capsule.provenance.artifact_digest && capsule.provenance.confirmation_digest === pair.review.confirmation_digest &&
+    payload.plan && payload.renderer_evidence, 'Production artifact evidence mismatch.');
   var plan = payload.plan, evidence = payload.renderer_evidence, body = registryReleaseStoreClone_(plan);
   delete body.intent_digest;
   registryReleaseStoreNeed_(plan.schema === 1 && plan.site_id === SANDBOX.site_id && plan.target === 'production' &&
@@ -341,23 +359,26 @@ function registryReleaseStoreCandidateReady_(payload) {
     registryReleaseStoreStable_(plan.publication.required_overrides) &&
     (!plan.publication.omit_notebook_downloads || evidence.notebook_downloads_absent === true) &&
     (!plan.publication.preserve_homepage_introduction || evidence.homepage_introduction_unchanged === true), 'Production presentation overrides were not preserved.');
-  registryReleaseStoreNeed_(!pair.review.candidate_capsule_id || (pair.review.candidate_capsule_id === capsule.id &&
-    pair.review.artifact_digest === payload.artifact_digest), 'Review candidate is immutable.');
-  var review = pair.review; review.candidate_capsule_id = capsule.id; review.artifact_digest = payload.artifact_digest;
-  review.plan = payload.plan; review.renderer_evidence = payload.renderer_evidence; review.phase = 'prepared';
-  registryReleaseStoreSaveReview_(review); return {review:review};
+  registryReleaseStoreNeed_(!pair.request.artifact_digest || (pair.request.production_capsule_id === capsule.id
+    && pair.request.artifact_digest === payload.artifact_digest && pair.request.production_inventory_digest === capsule.inventory_digest),
+    'Prepared production artifact is immutable.');
+  var request = pair.request;
+  request.artifact_digest = payload.artifact_digest; request.production_inventory_digest = capsule.inventory_digest;
+  request.prepared_at = request.prepared_at || new Date().toISOString();
+  registryReleaseStoreSaveRequest_(request); return {capsule_id:capsule.id,prepared:true};
 }
+
 function registryReleaseStoreClaimProduction_(payload) {
   var request = registryReleaseStoreGetRequest_(payload.request_id), review = registryReleaseStoreGetReview_(payload.review_id);
-  var active = registryReleaseStoreGetActive_('production');
-  registryReleaseStoreNeed_(PropertiesService.getScriptProperties().getProperty('AIS_RELEASE_ACTIVE_REQUEST_ID') === payload.request_id &&
-    request && review && review.phase === 'ready' && active && active.provenance.deploy_id === payload.baseline_deploy_id &&
-    request.baseline_deploy_id === payload.baseline_deploy_id && request.candidate_capsule_id === payload.candidate_capsule_id &&
-    request.artifact_digest === payload.artifact_digest && review.candidate_capsule_id === payload.candidate_capsule_id &&
-    review.artifact_digest === payload.artifact_digest, 'Production review or baseline changed.');
+  registryReleaseStoreNeed_(request && review && review.schema === 2 && review.phase === 'ready'
+    && request.baseline_deploy_id === payload.baseline_deploy_id && request.preview_capsule_id === payload.preview_capsule_id
+    && request.confirmation_digest === payload.confirmation_digest && review.confirmation_digest === payload.confirmation_digest,
+    'Production confirmation or baseline changed.');
+  registryReleaseStoreAssertCurrent_(review, request);
   var pair = registryReleaseStoreRequestFor_(payload, 'production', true);
   return {release:pair.request,review:pair.review};
 }
+
 function registryReleaseStoreReceipt_(payload) {
   var receipt = payload.receipt, identity = registryReleaseStoreIdentity_(payload);
   var bootstrap = payload.kind === 'production' && registryReleaseStoreBootstrap_(payload);
@@ -386,21 +407,18 @@ function registryReleaseStoreSucceeded_(payload, reconciled) {
     props.deleteProperty('AIS_RELEASE_BOOTSTRAP_PRODUCTION_DEPLOY'); props.deleteProperty('AIS_RELEASE_BOOTSTRAP_UPLOADER');
     return {capsule_id:record.id,activated:true};
   }
-  registryReleaseStoreNeed_(['review','production'].indexOf(payload.kind) !== -1, 'Invalid deployment environment.');
+  registryReleaseStoreNeed_(payload.kind === 'production', 'Invalid deployment environment.');
   var pair = registryReleaseStoreRequestFor_(payload, payload.kind, false, reconciled), review = pair.review, request = pair.request;
   registryReleaseStoreNeed_(record.request_id === request.id && record.review_id === review.id && receipt.request_id === request.id &&
     receipt.review_id === review.id && receipt.target === request.target, 'Deployment request mismatch.');
-  if (payload.kind === 'review') {
-    registryReleaseStoreNeed_(record.capsule.kind === 'candidate' && review.candidate_capsule_id === record.id &&
-      receipt.artifact_digest === review.artifact_digest && ['prepared','ready'].indexOf(review.phase) !== -1, 'Review deployment does not match its candidate.');
-    review.phase = 'ready'; review.ready_at = review.ready_at || now; review.review_deploy_id = payload.deploy_id;
-    review.review_url = 'https://' + payload.deploy_id + '--aisigym.netlify.app/'; registryReleaseStoreSaveReview_(review);
-  } else {
-    var active = registryReleaseStoreGetActive_('production');
-    registryReleaseStoreNeed_(record.capsule.kind === 'production' && receipt.reviewed_artifact_digest === request.artifact_digest &&
-      record.capsule.provenance.artifact_digest === request.artifact_digest && active &&
-      (active.provenance.deploy_id === request.baseline_deploy_id || active.id === record.id), 'Production capsule or baseline changed.');
-  }
+  var active = registryReleaseStoreGetActive_('production');
+  registryReleaseStoreNeed_(record.capsule.kind === 'production' && request.prepared_at
+    && receipt.publication_method === 'develop-promotion' && receipt.confirmation_digest === request.confirmation_digest
+    && receipt.preview_capsule_id === request.preview_capsule_id
+    && receipt.reviewed_artifact_digest === request.artifact_digest
+    && record.capsule.provenance.artifact_digest === request.artifact_digest
+    && record.capsule.inventory_digest === request.production_inventory_digest && active
+    && (active.provenance.deploy_id === request.baseline_deploy_id || active.id === record.id), 'Production capsule or baseline changed.');
   record.receipt = receipt; record.activated_at = now; registryReleaseStoreWrite_('capsule', record, false);
   if (payload.kind === 'production') props.setProperty(AIS_RELEASE_STORE.activeProduction, record.id);
   request.phase = 'succeeded'; request.succeeded_at = request.succeeded_at || now; request.deploy_id = payload.deploy_id;
@@ -410,7 +428,7 @@ function registryReleaseStoreSucceeded_(payload, reconciled) {
  * failures after deployment must retain the pending request for reconciliation.
  */
 function registryReleaseStoreFailed_(payload) {
-  registryReleaseStoreNeed_(['preview','review','production'].indexOf(payload.kind) !== -1 && payload.before_deployment === true,
+  registryReleaseStoreNeed_(['preview','production'].indexOf(payload.kind) !== -1 && payload.before_deployment === true,
     'Only a confirmed pre-deployment failure can close a request.');
   if (payload.kind === 'preview') {
     var state = previewState_();
@@ -427,8 +445,6 @@ function registryReleaseStoreFailed_(payload) {
   pair.request.phase = 'failed'; pair.request.failed_at = new Date().toISOString();
   pair.request.error = 'The deployment failed before publication. Review the changes before retrying.';
   registryReleaseStoreSaveRequest_(pair.request);
-  if (payload.kind === 'review') { pair.review.phase = 'failed'; pair.review.error = pair.request.error;
-    registryReleaseStoreSaveReview_(pair.review); }
   return {request_id:pair.request.id,phase:'failed'};
 }
 /** Reads the public production receipt itself. This private helper can repair a
@@ -463,7 +479,7 @@ function registryReleaseStoreHandlePost_(event) {
     var actions = {begin_capsule:registryReleaseStoreBegin_,put_chunk:registryReleaseStorePut_,complete_capsule:registryReleaseStoreComplete_,
         read_capsule:function(p) { return registryReleaseStoreRead_(p, false); },read_chunk:function(p) { return registryReleaseStoreRead_(p, true); },
         upload_status:registryReleaseStoreUploadStatus_,
-        claim_review:registryReleaseStoreClaimReview_,candidate_ready:registryReleaseStoreCandidateReady_,
+        production_prepared:registryReleaseStoreProductionPrepared_,
         claim_production:registryReleaseStoreClaimProduction_,deployment_succeeded:registryReleaseStoreSucceeded_,deployment_failed:registryReleaseStoreFailed_};
     registryReleaseStoreNeed_(Object.prototype.hasOwnProperty.call(actions, payload.action), 'Unknown release action.');
     // Reads are immutable. Upload and completion perform their own short commits.

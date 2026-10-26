@@ -122,6 +122,32 @@ test('each node can have zero, one or multiple methods; only associated methods 
   assert.equal(methodBindings(legacy).bindings.length, 4);
 });
 
+test('a portable project keeps its own download names, setup instructions and run files', t => {
+  const sample = fixture(t);
+  sample.index.package = { id: 'singapore-road-speed', title: 'Singapore road speed',
+    notebook_setup: 'Install requirements.txt; no project runtime is needed.',
+    workflow_summary: 'Prepare profiles, embed, cluster and inspect.',
+    notebook_note: 'Reference reconstruction and refitting are separate modes.' };
+  sample.index.step_skills = { umap: ['umap'], kmeans: ['kmeans'] };
+  sample.write('skills/index.json', JSON.stringify(sample.index));
+  sample.write('notebook/__pycache__/rebuild.pyc', 'machine cache');
+  sample.write('notebook/.ipynb_checkpoints/aisgym-checkpoint.ipynb', 'stale checkpoint');
+  const { data, files } = loadWorkflowResources(sample.root);
+  const downloads = new Map(files.map(file => [file.path, file.bytes]));
+  assert.equal(data.notebookPackage, 'resources/singapore-road-speed-notebook.zip');
+  assert.equal(data.all, 'resources/singapore-road-speed-analysis-skills.zip');
+  for (const skill of data.skills) {
+    assert.equal(skill.filename, 'singapore-road-speed-' + skill.id + '-skill.zip');
+    assert.ok(downloads.has(skill.zip));
+  }
+  const run = unpack(downloads.get(data.notebookPackage));
+  assert.deepEqual(run.get('singapore-road-speed-notebook/aisgym.ipynb'), sample.originals.get('notebook/aisgym.ipynb'));
+  assert.deepEqual(run.get('singapore-road-speed-notebook/inputs/data.bin'), sample.originals.get('notebook/inputs/data.bin'));
+  assert.match(run.get('README.md').toString(), /Install requirements.txt; no project runtime is needed/);
+  assert.ok(![...run.keys()].some(name => /tbb|__pycache__|checkpoints/.test(name)));
+  assert.equal(data.notebookNote, sample.index.package.notebook_note);
+});
+
 test('complete workflow is a current standalone download independent of method associations', t => {
   const sample = fixture(t);
   assert.equal(loadWorkflowResources(sample.root).data.workflow, null);

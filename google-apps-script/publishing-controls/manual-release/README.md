@@ -1,37 +1,48 @@
-# Manual publishing build lane
+# Publish the checked develop preview
 
-These Node modules move verified build artifacts through the signed Apps Script release store. They require no persistent Netlify account token. Google Sheets creates review and production requests; the build API cannot create either request or invoke a build hook.
+The active workflow has two environments: the private `develop` Preview and public `main` Production. The control panel prepares a confirmation immediately from saved artifact metadata. Only the explicit final confirmation invokes a production build. There is no separate review branch, build hook, deployment, or candidate website.
 
 ## Build commands
 
 - Develop: `node google-apps-script/publishing-controls/manual-release/preview-build.cjs`
-- Review branch `codex/manual-production-review`: `node google-apps-script/publishing-controls/manual-release/review-build.cjs`
-- Production main: `node google-apps-script/publishing-controls/manual-release/production-build.cjs`
-- Ignore command: `node google-apps-script/publishing-controls/manual-release/ignore-build.cjs`
+- Production: `node google-apps-script/publishing-controls/manual-release/production-build.cjs`
+- Ignore ordinary pushes: `node google-apps-script/publishing-controls/manual-release/ignore-build.cjs`
 
-Register `./google-apps-script/publishing-controls/manual-release/netlify-plugin` after the existing preview-ready plugin. The existing callback verifies a successful develop deployment before the new capsule activation callback runs. Build hooks bypass Netlify's ignore command, so the build commands also reject missing, unsigned, expired, wrong-context, or mismatched requests. Ordinary Git pushes do not publish these three branches.
+Build hooks bypass Netlify's ignore command. Both build entry points therefore validate the intended site, branch, context and explicit request before publishing. The production envelope uses schema 2 and an HMAC signature. Old review/production envelopes are rejected. The existing Preview callback plugin must run before the manual-release activation plugin.
 
-## Artifacts and publication
+## Confirmed inputs and immutable artifacts
 
-Preview stores its exact final build files before deployment. Its signed success callback activates that capsule. Review pins the active production capsule and reviewed preview capsule, explicit project selection, and catalog-renderer digest. It uses the selective renderer to preserve project scientific bytes, retain production-only projects, omit excluded routes, rebuild navigation and counts, preserve the homepage introduction, and keep the TBB notebook links hidden.
+Preview saves its final files, renderer source digest, and per-project content digests in an immutable capsule before deployment. It records both standard digests and digests normalized for the established TBB download policy. The signed successful-deployment callback activates that exact capsule. A Preview created before this protocol needs one explicit **Update preview** to save the additional metadata.
 
-Review stores the candidate before deploying a separate review URL. Only successful review deployment enables the final confirmation. Production consumes the exact candidate selected by that confirmation. It changes only the deployment receipt to record its real main build identity, stores the resulting production capsule before deployment, and activates the capsule after success. The next release uses this new capsule rather than the old frozen Git archive.
+**Publish to production** prepares a confirmation covering the Preview capsule, current production capsule, deploy identities, complete project selection, catalog, renderer digest and displayed changes. This creates no build request. The confirmation expires after 30 minutes. The existing internal `review` record names now describe this confirmation; they do not represent a deployed review site.
 
-The archive is gzip-compressed `ais-files-v1`: a four-byte unsigned big-endian JSON-header length, the UTF-8 header, and concatenated file bytes in header order. The header contains a safe path, size, and SHA256 for each file and the immutable provenance. Archives use 8 MiB chunks, each independently hashed. The complete archive and extracted inventory are also verified. Files are never extracted through an external archive utility. Capsule descriptors and their provenance must remain immutable; activation receipts are stored separately.
+**Confirm publication** rechecks those inputs and the public production receipt. It records one durable, 15-minute production request before posting the main hook. The build claims that request, downloads only its pinned capsules, verifies their bytes and identities, and uses the existing selective renderer. It preserves production-only projects, the homepage introduction and the TBB publication policy while omitting excluded routes. The main checkout's renderer digest must match the checked Preview. Code changes therefore need to reach main before publication; a different renderer cannot silently publish the Preview.
 
-## API
+The build uploads the completed production capsule and sends `production_prepared` with its render plan, source evidence and digests. The store rechecks the active sources, selection and catalog under its lock. Only accepted output reaches `dist`. A successful deployment activates the staged capsule; the next release uses that capsule as its production baseline. The served receipt records `publication_method=develop-promotion`, the confirmation digest and source Preview identity.
 
-POST to the configured Apps Script URL with `action=manual_release`. Each request is `{payload, signature}`, with a string JSON payload signed by HMAC-SHA256 using `AI4S_PREVIEW_CALLBACK_SECRET` and the domain prefix `ais-manual-release-api-v1\n`. All requests carry the site, branch, context, build, deploy, commit and timestamp identities. Hook envelopes use the distinct prefix `ais-manual-release-hook-v1\n`.
+The gzip-compressed `ais-files-v1` archive contains a four-byte header length, a UTF-8 JSON header and concatenated file bytes. Safe paths, sizes, SHA256 inventory, provenance and 8 MiB chunks are verified. Descriptors and provenance remain immutable; activation receipts are separate.
 
-Actions: `begin_capsule`, `put_chunk`, `complete_capsule`, `upload_status`, `read_capsule`, `read_chunk`, `claim_review`, `candidate_ready`, `claim_production`, `deployment_succeeded`, `deployment_failed`. Claims are single-use and bound to the exact build; artifact reads remain bound to that claim. Production additionally pins the current baseline deploy and reviewed candidate digest. A review record is not authority to publish.
+## API and failure handling
 
-Publication requests, claims and success acknowledgements are never retried after an uncertain result. Immutable upload recovery first reads `upload_status` and verifies the exact original capsule descriptor. An already stored chunk is not sent again. An authoritatively missing chunk permits one resend of identical bytes; status reads themselves have at most three attempts. An unknown begin or completion acknowledgement can only be recovered by evidence that the original operation completed, without repeating that operation. A signed pre-deploy failure can mark the request failed. Once deployment may have begun, failures remain uncertain until status is reconciled against the served production receipt. An error in the post-deploy callback must never be labelled as a failed publication.
+The signed Apps Script API retains its `ais-manual-release-api-v1\n` domain. Hook envelopes use `ais-manual-release-hook-v1\n` with schema 2.
 
-## Verification
+Actions: `begin_capsule`, `put_chunk`, `complete_capsule`, `upload_status`, `read_capsule`, `read_chunk`, `claim_production`, `production_prepared`, `deployment_succeeded`, `deployment_failed`. No API action creates a publication request or invokes a hook. Claims and artifact reads are bound to one exact build. The old review-claim and candidate-ready actions are unavailable.
+
+Unknown hook, claim, preparation and success responses are not retried automatically. Immutable upload recovery queries `upload_status`, checks the original descriptor, and resends only authoritatively missing identical chunks. A pre-deployment failure can close its matching request. A post-deployment callback failure remains uncertain until the public receipt reconciles it; it must never be labelled a failed publication.
+
+## Verified download cache
+
+Production uses Netlify Build's standard cache for `.ais-release-cache-v1/`, outside the published directory. Every download still reads the authenticated capsule descriptor and validates chunk hashes, complete archive, provenance and individual files. Missing or corrupt cache bytes fall back to Drive; authorization failures do not. The cache stores content only, has a 512 MiB size bound, and can be disabled with `AIS_RELEASE_CACHE=off`.
+
+## Installation and verification
+
+Use the versioned [runtime bundle](../runtime-install/README.md), keeping the current Apps Script deployment URL and access settings. Production needs `AIS_RELEASE_PRODUCTION_HOOK`; Preview keeps `AI4S_NETLIFY_PREVIEW_BUILD_HOOK`. Both environments need their scoped Registry URL, instance and signing secret. A separate review hook or renderer-digest property is no longer needed. Keep historical release records and existing active capsules during migration.
 
 ```sh
+node --test test/manual-release-*.test.js test/publishing-controls-sidebar.test.js
 node --test google-apps-script/publishing-controls/manual-release/*.test.cjs
 node --test google-apps-script/publishing-controls/production-release/*.test.cjs
+node --test google-apps-script/publishing-controls/runtime-install/*.test.cjs
 ```
 
-The local real-artifact verification record for this installation is `.local/reports/manual-publishing-20261008/node-flow-verification.json`. It covers all 13 projects, 12 projects excluding TBB, an empty library, and a subsequent production-source cycle. These checks perform no production network request.
+These tests use local fixtures and mocked transports. They cannot prove a real production publication succeeded. Validate a new private develop build after installation, and verify that preparing or cancelling a confirmation creates no Netlify deployment. A live Production publication remains a separate operator action.

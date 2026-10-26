@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { verifySnapshot, compareSnapshots, sha256, inside, loadLocalRegistry } = require('../lib/local-content');
 const root = path.resolve(__dirname, '..');
-const current = path.join(root, 'local-content', 'drive-current');
+const current = path.join(root, 'content', 'sources', 'drive');
 
 function seal(directory) {
   const file = path.join(directory, 'inventory.json');
@@ -46,7 +46,9 @@ function install(directory) {
   if (moved) fs.rmSync(previous, { recursive: true });
   const report = { captured_at: next.inventory.captured_at, projects: next.inventory.projects.length,
     files: next.files.size, bytes: next.bytes, ...changes };
-  fs.writeFileSync(path.join(root, 'local-content', 'last-refresh.json'), JSON.stringify(report, null, 2) + '\n');
+  const reportDirectory = path.join(root, '.local', 'reports');
+  fs.mkdirSync(reportDirectory, { recursive: true });
+  fs.writeFileSync(path.join(reportDirectory, 'last-refresh.json'), JSON.stringify(report, null, 2) + '\n');
   return report;
 }
 

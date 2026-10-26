@@ -1,10 +1,15 @@
 'use strict';
 const { exportSuccessfulBuild, reportFailedBuild } = require('../plugin.cjs');
+const { cacheLifecycle } = require('../cache.cjs');
 const fs = require('node:fs');
 const path = require('node:path');
 const boundary = () => path.join(process.cwd(), '.ais-release-deploy-boundary.json');
 module.exports = {
-  onPostBuild: () => { fs.writeFileSync(boundary(), JSON.stringify({ deploy_id: process.env.DEPLOY_ID })); },
+  onPreBuild: async ({ utils } = {}) => { await cacheLifecycle('restore', { utils }); },
+  onPostBuild: async ({ utils } = {}) => {
+    await cacheLifecycle('save', { utils });
+    fs.writeFileSync(boundary(), JSON.stringify({ deploy_id: process.env.DEPLOY_ID }));
+  },
   onSuccess: async ({ constants = {} } = {}) => {
     const result = await exportSuccessfulBuild({ publishDir: constants.PUBLISH_DIR || 'dist' });
     if (result.sent) console.log('Manual publishing source recorded for ' + result.kind + '.');

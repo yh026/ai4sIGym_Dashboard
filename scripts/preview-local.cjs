@@ -8,7 +8,7 @@ const crypto = require('node:crypto');
 const { inside } = require('../lib/local-content');
 const root = path.resolve(__dirname, '..');
 
-function createServer(siteDirectory = path.join(root, 'local-content', 'site')) {
+function createServer(siteDirectory = path.join(root, '.local', 'site')) {
   const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.svg': 'image/svg+xml', '.webp': 'image/webp', '.ico': 'image/x-icon' };
   Object.assign(types, { '.zip': 'application/zip', '.ipynb': 'application/x-ipynb+json', '.md': 'text/plain; charset=utf-8', '.gif': 'image/gif', '.avif': 'image/avif' });
   return http.createServer((req, res) => {

@@ -9,7 +9,7 @@ const test = require("node:test");
 
 const execFileAsync = promisify(execFile);
 const repositoryRoot = resolve(__dirname, "..");
-const skillRoot = join(repositoryRoot, "payload-dashboard-kit");
+const skillRoot = join(repositoryRoot, "tools/payload-dashboard");
 const generatorPath = join(skillRoot, "scripts", "generate-tess-reference-package.mjs");
 const compilerPath = join(skillRoot, "scripts", "render-dashboard.mjs");
 

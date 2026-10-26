@@ -3,15 +3,18 @@ node_modules/
 .DS_Store
 .preview/
 local-content/
+/content
+/.local/
+/archive/
 
 # Local delivery packages and generated payload dashboards
 /payload-dashboard-*.zip
 /payload-dashboard-session-test/
-/payload-dashboard-kit/input/
-/payload-dashboard-kit/output/
-/payload-dashboard-kit/examples/*/dashboard.html
-/payload-dashboard-kit/examples/*/*.dashboard.html
-/payloads/*.html
+/tools/payload-dashboard/input/
+/tools/payload-dashboard/output/
+/tools/payload-dashboard/examples/*/dashboard.html
+/tools/payload-dashboard/examples/*/*.dashboard.html
+/tools/payload-dashboard/examples/legacy-v2/*.html
 
 # Python caches from optional example analysis
 __pycache__/
@@ -19,3 +22,21 @@ __pycache__/
 
 # Local Netlify folder
 .netlify
+
+# Local pipeline review artifacts
+/tools/pipeline/review
+
+# Expendable Netlify release download cache
+/.ais-release-cache-v1/
+
+# Local research and authoring materials; preserved separately, not published.
+/notebooks/
+/skills/
+/B3W1/
+/gym-video/
+/tools/pipeline/
+/docs/reproduction-plans/
+/docs/references/gene-insight-*.md
+/docs/plans/gene-insight-improvement-plan-zh.md
+/scripts/gene-pages/
+/scripts/migrate-gene-projects.py

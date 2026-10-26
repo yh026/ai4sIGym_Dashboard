@@ -7,7 +7,7 @@ const test = require("node:test");
 const vm = require("node:vm");
 
 const repositoryRoot = resolve(__dirname, "..");
-const kitRoot = join(repositoryRoot, "payload-dashboard-kit");
+const kitRoot = join(repositoryRoot, "tools/payload-dashboard");
 const runtimePath = join(kitRoot, "assets", "dashboard-runtime-v3.js");
 const cssPath = join(kitRoot, "assets", "dashboard.css");
 const compilerPath = join(kitRoot, "scripts", "render-dashboard.mjs");

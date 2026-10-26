@@ -3,8 +3,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { pack, readDirectory } = require('./capsule.cjs');
 const { identity, createClient } = require('./client.cjs');
-const { STATE_FILE } = require('./build.cjs');
-const { REVIEW_BRANCH, SITE_ID, validateHook } = require('./hook.cjs');
+const { STATE_FILE, capsuleSource, artifactDigest } = require('./build.cjs');
+const { deploymentSnapshot } = require('../production-release/artifact-renderer.cjs');
+const { rendererDigest } = require('../production-release/catalog-renderer.cjs');
+const { SITE_ID, validateHook } = require('./hook.cjs');
 
 async function exportSuccessfulBuild({ env = process.env, publishDir = 'dist', checkout = process.cwd(), client } = {}) {
   if (env.NETLIFY !== 'true' || env.SITE_ID !== SITE_ID) return { sent: false, reason: 'not-release-site' };
@@ -22,7 +24,7 @@ async function exportSuccessfulBuild({ env = process.env, publishDir = 'dist', c
       if (staged.kind === 'preview' && staged.receipt?.deploy_id === env.DEPLOY_ID
         && staged.request_id === receipt.request_id) state = staged;
     }
-  } else if ((env.BRANCH === REVIEW_BRANCH && env.CONTEXT === 'branch-deploy') || (env.BRANCH === 'main' && env.CONTEXT === 'production')) {
+  } else if (env.BRANCH === 'main' && env.CONTEXT === 'production') {
     state = JSON.parse(fs.readFileSync(path.join(checkout, STATE_FILE), 'utf8'));
     if (state.receipt.deploy_id !== env.DEPLOY_ID || state.request_id !== receipt.request_id) throw new Error('Release completion state differs.');
   } else return { sent: false, reason: 'not-manual-release' };
@@ -48,7 +50,18 @@ async function stagePreviewBuild({ env = process.env, publishDir = 'dist', check
   for (const [field, value] of Object.entries(identity(env))) if (receipt[field] !== value) throw new Error('Preview receipt differs: ' + field);
   client ||= createClient({ env });
   const binding = { request_id: receipt.request_id };
-  const prepared = pack(files, { kind: 'preview', ...identity(env), ...binding, registry_revision: receipt.registry_revision });
+  receipt.renderer_digest = rendererDigest(checkout);
+  const receiptBytes = Buffer.from(JSON.stringify(receipt, null, 2) + '\n');
+  files.set('deploy-receipt.json', receiptBytes);
+  fs.writeFileSync(path.join(publishDir, 'deploy-receipt.json'), receiptBytes);
+  const provenance = { kind: 'preview', ...identity(env), ...binding, registry_revision: receipt.registry_revision,
+    renderer_digest: receipt.renderer_digest };
+  const source = capsuleSource({ files, capsule: { kind: 'preview', provenance, inventory_digest: artifactDigest(files) } }, 'preview');
+  provenance.project_snapshots = {
+    standard: deploymentSnapshot(source, []).projects,
+    without_tbb_resources: deploymentSnapshot(source, ['hide-tbb-notebook-resources-v1']).projects,
+  };
+  const prepared = pack(files, provenance);
   await client.upload(prepared, binding);
   fs.writeFileSync(path.join(checkout, STATE_FILE), JSON.stringify({ kind: 'preview', ...binding, capsule_id: prepared.capsule.id, receipt }, null, 2) + '\n');
   return prepared.capsule.id;
@@ -58,9 +71,9 @@ async function reportFailedBuild({ env = process.env, checkout = process.cwd(), 
   if (env.NETLIFY !== 'true' || env.SITE_ID !== SITE_ID) return { sent: false };
   let binding, kind;
   try {
-    if (env.BRANCH === 'main' || env.BRANCH === REVIEW_BRANCH) {
-      kind = env.BRANCH === 'main' ? 'production' : 'review';
-      const request = validateHook(env, kind === 'review' ? 'production-review' : 'production', now, { failureReport: true });
+    if (env.BRANCH === 'main') {
+      kind = 'production';
+      const request = validateHook(env, 'production', now, { failureReport: true });
       binding = { request_id: request.request_id, review_id: request.review_id };
     } else if (env.BRANCH === 'develop' && env.CONTEXT === 'branch-deploy') {
       const build = require(path.join(checkout, 'build.js'));

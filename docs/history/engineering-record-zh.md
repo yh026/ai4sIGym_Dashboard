@@ -1060,15 +1060,15 @@ Phase 12 补充边界：auto-ingest 遇到已有 slug/demo ID 但不同 `file_id
 ## 11. 相关文件
 
 - [负责人项目状态汇报](project-progress-zh.md)
-- [Phase 3 Preview 自动化手册](phase3-preview-automation-runbook.md)
-- [根 README](../README.md)
-- [Apps Script README](../google-apps-script/README.md)
-- [Apps Script 源码](../google-apps-script/Code.gs)
-- [构建脚本](../build.js)
-- [Netlify 配置](../netlify.toml)
-- [Preview callback plugin](../netlify/plugins/preview-ready/index.js)
-- [Preview automation contract](../fixtures/preview-automation-contract.json)
-- [Registry v2 技术契约](registry-v2-contract.md)
+- [Phase 3 Preview 自动化手册](../guides/preview-automation.md)
+- [根 README](../guides/registry-setup.md)
+- [Apps Script README](../../google-apps-script/README.md)
+- [Apps Script 源码](../../google-apps-script/Code.gs)
+- [构建脚本](../../build.js)
+- [Netlify 配置](../../netlify.toml)
+- [Preview callback plugin](../../netlify/plugins/preview-ready/index.js)
+- [Preview automation contract](../../fixtures/preview-automation-contract.json)
+- [Registry v2 技术契约](../references/registry-v2-contract.md)
 
 ## 12. 最近工程变更记录
 

@@ -7,7 +7,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const root = path.resolve(__dirname, '..');
-const source = path.resolve(process.argv[2] || path.join(root, 'datasets_upload'));
+const source = path.resolve(process.argv[2] || path.join(root, '.local/imports/inbox'));
 const mappings = [
   ['tbb-cluster-explorer-2', 'himawari-9-ahi', 'Himawari-9 AHI band 7'],
   ['pleiades-membership-explorer', 'gaia-edr3-pleiades', 'Gaia DR3'],
@@ -19,7 +19,7 @@ const mappings = [
   ['battery-curve-shape-explorer', 'calce-cs2-shape', 'CALCE CS2 · voltage-shape matrix'],
   ['ceemdan-battery-forecasting', 'nasa-battery-capacity', 'NASA PCoE battery capacity'],
 ];
-const manifestPath = path.join(root, 'demos_v4/collection.json');
+const manifestPath = path.join(root, 'content/collection.json');
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 const prepared = mappings.map(([slug, dataset_id, expectedTitle]) => {
   const project = manifest.projects.find(item => item.slug === slug);
@@ -32,18 +32,18 @@ const prepared = mappings.map(([slug, dataset_id, expectedTitle]) => {
       || !/<\/body\s*>/i.test(html) || !/<\/html\s*>/i.test(html)) {
     throw new Error('Unexpected Dataset document: ' + filename);
   }
-  project.dataset_source = dataset_id + '/' + filename;
+  project.dataset_source = dataset_id + '/index.html';
   project.dataset_version = slug === 'tbb-cluster-explorer-2' ? 'v2' : 'v1';
   return { slug, dataset_id, dataset_version: project.dataset_version,
     filename, title, route: project.dataset, bytes,
     sha256: crypto.createHash('sha256').update(bytes).digest('hex') };
 });
-const audit = path.join(root, 'local-content/dataset-import');
+const audit = path.join(root, '.local/imports/datasets');
 fs.mkdirSync(audit, { recursive: true });
 const backup = path.join(audit, 'collection-before.json');
 if (!fs.existsSync(backup)) fs.copyFileSync(manifestPath, backup);
 for (const page of prepared) {
-  const target = path.join(root, 'datasets_v4', page.dataset_id, page.filename);
+  const target = path.join(root, 'content/datasets', page.dataset_id, 'index.html');
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(target, page.bytes);
 }

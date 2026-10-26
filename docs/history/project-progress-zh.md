@@ -428,9 +428,9 @@ Production V2 cutover、taxonomy-6 发布、V1 归档和旧控制路径清理均
 
 - 本文件：负责人状态汇报，只保留结论、费用、风险和需要决策的事项。
 - [工程实施记录](engineering-record-zh.md)：技术基线、实施历史、测试证据和详细待办。
-- [Phase 3 自动 Preview 验收手册](phase3-preview-automation-runbook.md)：自动 Preview 的操作与回滚步骤。
-- [项目 README](../README.md)：项目功能、开发和部署说明。
-- [Apps Script 使用说明](../google-apps-script/README.md)：Sheet 与 Apps Script 操作说明。
+- [Phase 3 自动 Preview 验收手册](../guides/preview-automation.md)：自动 Preview 的操作与回滚步骤。
+- [项目 README](../guides/registry-setup.md)：项目功能、开发和部署说明。
+- [Apps Script 使用说明](../../google-apps-script/README.md)：Sheet 与 Apps Script 操作说明。
 
 ## 一句话汇报
 

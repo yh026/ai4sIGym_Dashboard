@@ -17,7 +17,7 @@ function registryUiOnOpen_() {
     .addItem('Open actions', 'registryUiOpenSidebar')
     .addSeparator()
     .addItem('Update preview', 'registryPublishingUpdatePreviewFromMenu')
-    .addItem('Review changes', 'registryPublishingReviewProductionFromMenu')
+    .addItem('Publish to production', 'registryPublishingReviewProductionFromMenu')
     .addItem('Refresh status', 'registryPublishingRefreshStatusFromMenu')
     .addSubMenu(ui.createMenu('Advanced tables')
       .addItem('Project metadata', 'registryUiShowProjects')
@@ -221,3 +221,27 @@ function registryUiSidebarHtml_() { return __AIS_SIDEBAR_HTML__; }
 // Embedded local button artwork: 376 x 30 pixels, no external image request.
 var REGISTRY_UI_ACTION_BUTTON_PNG = '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';
 
+
+/** Native confirmation also works when Sheets cannot load the HTML sidebar.
+ * No lock is held while the operator reads the dialog. Confirm revalidates all
+ * pinned sources and selections and never retries an uncertain hook response.
+ */
+function registryUiPublishProductionDialog() {
+  registryUiSpreadsheet_();
+  var ui=SpreadsheetApp.getUi();
+  try {
+    var review=registryPublishingReviewProduction();
+    if(!review.production_enabled) {
+      ui.alert('Publish to production',review.production_disabled_reason||'Publishing is unavailable.',ui.ButtonSet.OK);return;
+    }
+    var lines=review.changes.filter(function(c){return ['Add','Update','Remove'].indexOf(c.action)!==-1;})
+      .map(function(c){return c.action+': '+(c.title||c.demo_id);});
+    var answer=ui.alert('Publish to production?',lines.join('\n')+
+      '\n\nPublish these selected changes from the develop preview you checked? No or Close cancels.',ui.ButtonSet.YES_NO);
+    if(answer!==ui.Button.YES)return;
+    var result=registryPublishingConfirmProduction(review.id);
+    ui.alert('Publish to production',result.message,ui.ButtonSet.OK);
+  } catch(error) {
+    ui.alert('Publish to production',registryUiMessage_(error)+'\n\nUse Refresh status before trying again.',ui.ButtonSet.OK);
+  }
+}
