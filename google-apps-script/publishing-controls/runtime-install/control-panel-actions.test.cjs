@@ -53,7 +53,7 @@ test('the sheet gets three direct actions, with publication bound to the native 
     ['E4', 'registryUiPublishProductionDialog'],
     ['I4', 'registryPublishingRefreshStatusFromMenu'],
   ]);
-  assert.deepEqual(h.images.map(i => i.description), ['更新预览', '发布正式版', '刷新状态']);
+  assert.deepEqual(h.images.map(i => i.description), ['Update preview', 'Publish to production', 'Refresh status']);
   assert.equal(h.rowHeights.get(4), 56);
   for (const image of h.images) {
     assert.equal(image.width, 220); assert.equal(image.height, 36);

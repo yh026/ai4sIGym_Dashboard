@@ -3,10 +3,10 @@
 Use `develop` to inspect all proposed changes. Publish the checked content to Production only after confirming the selected changes. There is no additional release-preview website.
 
 1. Select **Include in preview** and **Include in production** for each project.
-2. Click **更新预览** at the top of **Control panel**. Wait for **Preview ready**, then inspect the private develop website.
-3. Click **发布正式版**. A native confirmation lists additions, updates and removals immediately; it does not start a build.
+2. Click **Update preview** at the top of **Control panel**. Wait for **Preview ready**, then inspect the private develop website.
+3. Click **Publish to production**. A native confirmation lists additions, updates and removals immediately; it does not start a build.
 4. Confirm publication to start the main production build, or close/cancel to leave Production unchanged.
-5. Click **刷新状态** to check completion. Do not retry an uncertain request until its status is reconciled.
+5. Click **Refresh status** to check completion. Do not retry an uncertain request until its status is reconciled.
 
 All three actions are also available in the **AIS Control** menu. Daily use does not require an HTML sidebar. Preparing, viewing or cancelling a confirmation never publishes. Changed selection, catalog or deployment identity invalidates the confirmation. Worksheet image buttons run in a desktop web browser; Google Sheets does not execute assigned image scripts on mobile.
 

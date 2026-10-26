@@ -10,16 +10,16 @@ from PIL import Image, ImageDraw, ImageFont
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--font", default="/System/Library/Fonts/STHeiti Medium.ttc")
+    parser.add_argument("--font", default="/System/Library/Fonts/Supplemental/Arial.ttf")
     parser.add_argument("--preview-dir", type=Path)
     args = parser.parse_args()
     scale = 3
     font = ImageFont.truetype(args.font, 15 * scale)
     artwork = {}
     for key, label, fill, text in [
-        ("preview", "更新预览", "#345968", "#ffffff"),
-        ("production", "发布正式版", "#fffefa", "#203341"),
-        ("refresh", "刷新状态", "#fffefa", "#203341"),
+        ("preview", "Update preview", "#345968", "#ffffff"),
+        ("production", "Publish to production", "#fffefa", "#203341"),
+        ("refresh", "Refresh status", "#fffefa", "#203341"),
     ]:
         image = Image.new("RGBA", (220 * scale, 36 * scale))
         draw = ImageDraw.Draw(image)

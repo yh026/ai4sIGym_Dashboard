@@ -14,8 +14,6 @@ var REGISTRY_UI = {
 function registryUiOnOpen_() {
   var ui = SpreadsheetApp.getUi();
   ui.createMenu('AIS Control')
-    .addItem('Open control panel', 'registryUiOpenControlPanel')
-    .addSeparator()
     .addItem('Update preview', 'registryPublishingUpdatePreviewFromMenu')
     .addItem('Publish to production', 'registryPublishingReviewProductionFromMenu')
     .addItem('Refresh status', 'registryPublishingRefreshStatusFromMenu')
@@ -81,9 +79,9 @@ function registryUiInstallActionButtons() {
     throw new Error('The action row A4:L4 contains content. Move it before installing buttons.');
   }
   var actions = [
-    {key: 'preview', label: '更新预览', anchor: 'A4', column: 1, script: 'registryPublishingUpdatePreviewFromMenu'},
-    {key: 'production', label: '发布正式版', anchor: 'E4', column: 5, script: 'registryUiPublishProductionDialog'},
-    {key: 'refresh', label: '刷新状态', anchor: 'I4', column: 9, script: 'registryPublishingRefreshStatusFromMenu'}
+    {key: 'preview', label: 'Update preview', anchor: 'A4', column: 1, script: 'registryPublishingUpdatePreviewFromMenu'},
+    {key: 'production', label: 'Publish to production', anchor: 'E4', column: 5, script: 'registryUiPublishProductionDialog'},
+    {key: 'refresh', label: 'Refresh status', anchor: 'I4', column: 9, script: 'registryPublishingRefreshStatusFromMenu'}
   ];
   // Validate all embedded assets before making any worksheet change.
   actions.forEach(function(action) {
