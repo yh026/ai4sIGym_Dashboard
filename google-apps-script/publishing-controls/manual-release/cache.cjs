@@ -5,8 +5,8 @@ const crypto = require('node:crypto');
 const { hash, CHUNK_SIZE } = require('./capsule.cjs');
 const DIRECTORY = '.ais-release-cache-v1';
 const LIMIT = 512 * 1024 * 1024;
-const enabled = env => env.NETLIFY === 'true' && env.CONTEXT === 'branch-deploy'
-  && env.BRANCH === 'codex/manual-production-review' && env.AIS_RELEASE_CACHE !== 'off';
+const enabled = env => env.NETLIFY === 'true' && env.CONTEXT === 'production'
+  && env.BRANCH === 'main' && env.AIS_RELEASE_CACHE !== 'off';
 const valid = item => item && /^[a-f0-9]{64}$/.test(item.sha256)
   && Number.isSafeInteger(item.size) && item.size > 0 && item.size <= CHUNK_SIZE;
 const matches = (bytes, item) => valid(item) && Buffer.isBuffer(bytes)

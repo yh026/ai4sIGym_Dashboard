@@ -298,4 +298,4 @@ function registryPublishingConfirmProduction(reviewId) {
 }
 function registryPublishingUpdatePreviewFromMenu(){var s=registryPublishingUpdatePreview();registryUiSpreadsheet_().toast(s.preview_state,'AIS Control',8);}
 function registryPublishingRefreshStatusFromMenu(){registryPublishingRefreshStatus();registryUiSpreadsheet_().toast('Project deployment states refreshed.','AIS Control',8);}
-function registryPublishingReviewProductionFromMenu(){registryUiOpenSidebar();}
+function registryPublishingReviewProductionFromMenu(){registryUiPublishProductionDialog();}

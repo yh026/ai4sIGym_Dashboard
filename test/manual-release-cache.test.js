@@ -10,7 +10,7 @@ const { createClient } = require(base + 'client.cjs');
 const { createCache, enabled, cacheLifecycle } = require(base + 'cache.cjs');
 const env = { AI4S_PREVIEW_CALLBACK_SECRET: 'test-only-secret-that-is-at-least-32-characters',
   REGISTRY_URL: 'https://script.google.com/macros/s/test/exec', NETLIFY: 'true',
-  BRANCH: 'codex/manual-production-review', CONTEXT: 'branch-deploy' };
+  BRANCH: 'main', CONTEXT: 'production' };
 function fixture(t) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'release-cache-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
@@ -76,15 +76,15 @@ test('store rejects unsafe keys and symlinks, prunes bytes without following lin
   fs.symlinkSync(target, path.join(f.directory, 'chunks', item.sha256));
   assert.equal(f.cache.get(item), null);
 });
-test('rollout is limited to review and cache service failures are nonfatal', async () => {
+test('cache is limited to explicit main production builds and cache service failures are nonfatal', async () => {
   assert.equal(enabled(env), true);
-  for (const patch of [{ BRANCH: 'main' }, { BRANCH: 'develop' }, { CONTEXT: 'production' }, { NETLIFY: 'false' }, { AIS_RELEASE_CACHE: 'off' }]) {
+  for (const patch of [{ BRANCH: 'feature/review' }, { BRANCH: 'develop' }, { CONTEXT: 'branch-deploy' }, { NETLIFY: 'false' }, { AIS_RELEASE_CACHE: 'off' }]) {
     assert.equal(enabled({ ...env, ...patch }), false);
   }
   const calls = [], logs = [];
   const utils = { cache: { restore: async dir => { calls.push(dir); throw new Error('Unavailable'); } } };
   await cacheLifecycle('restore', { env, utils, log: text => logs.push(text) });
   assert.equal(calls.length, 1); assert.match(logs[0], /fallback/);
-  await cacheLifecycle('restore', { env: { ...env, BRANCH: 'main' }, utils });
+  await cacheLifecycle('restore', { env: { ...env, BRANCH: 'develop' }, utils });
   assert.equal(calls.length, 1);
 });

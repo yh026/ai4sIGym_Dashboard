@@ -1,5 +1,7 @@
 # AIS Instrument Gym
 
+> Current publishing workflow: use **Update preview** to inspect changes on `develop`, then **Publish to production** and confirm the change list. There is no separate release-preview branch. See [Project publishing controls](../../google-apps-script/publishing-controls/README.md) for the current operator workflow; the setup and historical automation notes below describe earlier installations.
+
 An interactive science map for the AIS Instrument Gym demo collection. The
 home page is a hand-drawn world of the seven NUS Science departments: visitors can select a
 region, preview its subtopics and current projects, then enter its full

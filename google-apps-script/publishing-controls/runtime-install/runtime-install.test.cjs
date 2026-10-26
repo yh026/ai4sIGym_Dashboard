@@ -139,7 +139,7 @@ test('explicit Update creates a fresh artifact build for a previously ready prev
 
 test('a matching completed preview capsule preserves normal ready-state deduplication', () => {
   const h = previewPublisher(), state = h.state();
-  h.setCapsule({complete: true, provenance: {deploy_id: state.deploy_id, request_id: state.request_id, registry_revision: state.revision}});
+  h.setCapsule({complete: true, provenance: {deploy_id: state.deploy_id, request_id: state.request_id, registry_revision: state.revision,renderer_digest: "sha256:"+"f".repeat(64),project_snapshots:{standard:[],without_tbb_resources:[]}}});
   assert.equal(h.context.publishPreview(true).phase, 'ready'); assert.equal(h.posts.length, 0);
 });
 
@@ -159,11 +159,35 @@ test('artifact refresh cannot bypass the failed-request guard or refresh a diffe
 
 test('stale or incomplete preview capsules require explicit artifact refresh', () => {
   const h = previewPublisher(), state = h.state();
-  const valid = {complete: true, provenance: {deploy_id: state.deploy_id, request_id: state.request_id, registry_revision: state.revision}};
+  const valid = {complete: true, provenance: {deploy_id: state.deploy_id, request_id: state.request_id, registry_revision: state.revision,renderer_digest: "sha256:"+"f".repeat(64),project_snapshots:{standard:[],without_tbb_resources:[]}}};
   for (const key of ['deploy_id', 'request_id', 'registry_revision']) {
     h.setCapsule({...valid, provenance: {...valid.provenance, [key]: 'old'}});
     assert.equal(h.context.registryManualNeedsPreviewArtifact_(state, state.revision), true);
   }
   h.setCapsule({...valid, complete: false});
   assert.equal(h.context.registryManualNeedsPreviewArtifact_(state, state.revision), true);
+});
+
+for(const answer of ['YES','NO','CLOSE'])test('native publication dialog requires explicit YES: '+answer,()=>{
+  const {context}=runtime(),calls=[];let confirms=0;
+  context.registryUiSpreadsheet_=()=>({});context.registryUiMessage_=e=>e.message;
+  context.registryPublishingReviewProduction=()=>({id:'confirmation-1',production_enabled:true,
+    changes:[{demo_id:'demo-one',title:'One',action:'Update'}]});
+  context.registryPublishingConfirmProduction=id=>{assert.equal(id,'confirmation-1');confirms++;return {message:'Requested'};};
+  context.SpreadsheetApp={getUi:()=>({Button:{YES:'YES'},ButtonSet:{YES_NO:'YES_NO',OK:'OK'},
+    alert:(title,message,buttons)=>{calls.push({title,message,buttons});return answer;}})};
+  context.registryUiPublishProductionDialog();
+  assert.equal(confirms,answer==='YES'?1:0);assert.equal(calls[0].buttons,'YES_NO');
+  assert.match(calls[0].message,/develop preview/);
+});
+test('native dialog blocks publication when confirmation is stale or preparation fails',()=>{
+  const {context}=runtime(),messages=[];
+  context.registryUiSpreadsheet_=()=>({});context.registryUiMessage_=e=>e.message;
+  context.SpreadsheetApp={getUi:()=>({Button:{YES:'YES'},ButtonSet:{YES_NO:'YES_NO',OK:'OK'},
+    alert:(title,message)=>{messages.push(message);return 'YES';}})};
+  context.registryPublishingConfirmProduction=()=>{throw Error('Must not publish');};
+  context.registryPublishingReviewProduction=()=>({production_enabled:false,production_disabled_reason:'Preview changed'});
+  context.registryUiPublishProductionDialog();assert.equal(messages[0],'Preview changed');
+  context.registryPublishingReviewProduction=()=>{throw Error('Preview unavailable');};
+  context.registryUiPublishProductionDialog();assert.match(messages[1],/Preview unavailable/);
 });

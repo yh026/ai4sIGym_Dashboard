@@ -1,35 +1,27 @@
 # Project publishing controls
 
-This directory implements manual Preview and Production publishing from the Registry. Installation status must be verified separately; the instructions below apply after the manual release runtime and build hooks are configured.
+Use `develop` to inspect all proposed changes. Publish the checked content to Production only after confirming the selected changes. There is no additional release-preview website.
 
-## Daily use
+1. Select **Include in preview** and **Include in production** for each project.
+2. Choose **AIS Control → Update preview**. Wait for **Preview ready**, then inspect the private develop website.
+3. Choose **Publish to production** in the menu or sidebar. A confirmation lists additions, updates and removals immediately; it does not start a build.
+4. Confirm publication to start the main production build, or close/cancel to leave Production unchanged.
+5. Use **Refresh status** to check completion. Do not retry an uncertain request until its status is reconciled.
 
-1. Select each project's **Include in preview** and **Include in production** checkboxes in the Control panel. These stage the next release; they do not change a website.
-2. Choose **AIS Control → Update preview**. Wait for **Preview ready**, using **Refresh status** to check progress, then inspect the preview website.
-3. Open **AIS Control → Open actions** and click **Review changes**. This builds a separate release preview. Use **Refresh status** when preparation finishes.
-4. Review the **Add**, **Update**, and **Remove** list and open the release preview. Only click **Publish to production** when that exact release is approved.
-5. Use **Refresh status** to check completion. The actual published state changes only after a successful deployment.
+The native menu confirmation remains available if Sheets cannot load the HTML sidebar. Preparing, viewing or cancelling a confirmation never publishes. Changed selection, catalog or deployment identity invalidates the confirmation.
 
-To take a project offline, clear its checkbox for the relevant environment and follow the corresponding update or publication flow. Excluding a project does not delete its Drive files, datasets, notebooks, or skills. A project retained in Production but excluded from Preview keeps its current Production version.
+## Project selection
 
-Opening the sheet or sidebar, editing checkboxes, refreshing status, and hourly status checks do not publish. Routine timestamps, synchronization information, and automation details are collapsed under **Details**. Displayed times use Singapore time.
+| Include in production | Include in preview | Next Production version |
+| --- | --- | --- |
+| On | On | Exact checked develop project content |
+| On | Off | Retain the existing Production project |
+| Off | Either | Omit the project from Production |
 
-## A disabled Publish button
+Source files are preserved. Existing homepage introduction and TBB resource-publication rules remain in effect. A project without an existing Production version must be included in a verified Preview before it can be published.
 
-- **Preparing:** wait for the release preview, then refresh status.
-- **No changes:** there is nothing to publish.
-- **Expired or changed:** review again after changing selections or updating either website.
-- **Failed or uncertain:** read the error and refresh status before another attempt. An uncertain submission is never retried automatically.
-- **Not connected:** the manual publishing runtime has not been fully configured.
+## Implementation
 
-## Implementation and checks
+`sidebar.html` and the native dialog provide confirmation. `PublishingControlsModel.gs` and `RegistryPublishing.gs` manage project selection and Preview. `manual-release/` stores immutable artifacts and signed explicit publication requests. Its [README](manual-release/README.md) describes the two-environment protocol.
 
-`sidebar.html` is the operator interface. `PublishingControlsModel.gs` and `RegistryPublishing.gs` provide project selection and Preview behavior. `manual-release/` adds the signed release store, isolated review build, explicit Production confirmation, and immutable artifact pipeline. See its [README](manual-release/README.md) for installation and build details.
-
-Use the versioned [runtime installer](runtime-install/README.md) to generate the three installable Apps Script files. Do not copy an adapter source file directly into the bound project.
-
-```sh
-node --test test/publishing-controls-model.test.js test/publishing-controls-service.test.js test/publishing-controls-sidebar.test.js test/manual-release-ui.test.js
-node --test google-apps-script/publishing-controls/production-release/*.test.cjs google-apps-script/publishing-controls/manual-release/*.test.cjs
-node --test google-apps-script/publishing-controls/runtime-install/runtime-install.test.cjs
-```
+Build the reproducible [Apps Script runtime](runtime-install/README.md) before installing changes. The previous branch-based publication records are historical; retain them for audit and recovery.

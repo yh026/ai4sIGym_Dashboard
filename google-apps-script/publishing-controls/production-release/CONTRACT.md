@@ -1,5 +1,7 @@
 # Project publishing controls: production contract
 
+> Current runtime: the selective planner and renderer below are used by the direct develop-to-main publication flow. The deployment-boundary and cloud-installation notes in this document record the original 2026-10-07 implementation, before the signed capsule store was installed. See [the current publishing contract](../manual-release/README.md) for active configuration and confirmation behavior.
+
 These files provide a local selective artifact renderer, release planner, and transport. They are not an installed cloud publishing service. Nothing in this directory runs on a schedule. One isolated 12-project Netlify draft was prepared and verified during implementation; no production publish or Git branch change was performed.
 
 ## Current deployment boundary
