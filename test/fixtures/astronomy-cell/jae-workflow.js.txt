@@ -235,7 +235,7 @@ function drawMatrix(){
   VIEWID('mx-cap').innerHTML =
     `Drawn here: a <b>${mxRows.length}</b> row × <b>${NCOL}</b> column display slice, sorted by cell type.
      The full matrix is ${D.dataset.n_cells.toLocaleString()} × ${(D.dataset.n_genes+D.dataset.n_proteins).toLocaleString()}.
-     The three colour bands on the right are the labels <b>y</b>; they are <b>not columns of X</b>.
+     The three colour bands at the right edge are the labels <b>y</b> (cell type coloured by lineage, batch, S score); they are <b>not columns of X</b>.
      Clicking the heatmap changes the selected row and column at once.`;
 }
 
@@ -302,9 +302,9 @@ function drawRow(){
   VIEWID('row-cap').innerHTML =
     `Selected cell <span class="mono">${D.cells.barcodes[i]}</span> · true type <b>${ct}</b> ·
      batch <b>${D.batch_names[cellBatch[i]]}</b>${heldout[i]?' · <b>its label was never seen during training</b>':''}.
-     Note that <b>${nHouse}</b> of these ${NTOP} genes are housekeeping genes (mitochondrial, ribosomal, MALAT1) —
-     "most strongly expressed" is not the same as "most informative", which is exactly why the model needs
-     SVD and supervision to find the directions that actually separate cell types.`;
+     <b>${nHouse}</b> of its ${NTOP} most strongly expressed genes are housekeeping genes, which most cells use heavily
+     (mitochondrial, ribosomal, MALAT1 and similar). The most strongly expressed genes are not the most informative,
+     which is why the model needs the SVD and the labels to find what separates cell types.`;
 }
 
 function drawCol(){
@@ -361,9 +361,9 @@ function drawCol(){
 
   VIEWID('col-cap').innerHTML =
     `Column j = <b>${name}</b> (${kind==='gene'?'gene mRNA':'surface protein'}).
-     The vertical bars are per-lineage means. The further apart a feature pushes the lineages, the more
-     biological information it carries — direct evidence that these features are biologically meaningful,
-     and the reason the model can recover cell type from X at all.`;
+     Each dot is one cell of the display sample, in its lineage's row; the short vertical bar is that lineage's mean,
+     and the long line marks the selected cell. The further apart the lineage means, the better this column tells
+     cell types apart, which is what lets the model recover cell type from X.`;
 }
 
 /* ================= STAGE 2: scree ================= */
@@ -399,9 +399,10 @@ function drawScree(){
     i => `<b>PC${i+1}</b><br>explains ${(evr[i]*100).toFixed(2)}% of GEX variance`+
          `<br>cumulative ${(cums[i]*100).toFixed(2)}% over ${i+1} component${i?'s':''}`);
   VIEWID('scree-cap').innerHTML =
-    `All 100 components together explain only <b>${(D.dataset.svd_explained_variance*100).toFixed(1)}%</b> of the
-     original GEX variance. That is not a bug — single-cell data is extremely sparse, and most of the
-     remaining "variance" is sequencing noise. Here, dimensionality reduction is denoising, not lossless compression.`;
+    `Bars: the share of gene-expression variance each component explains; line: the running total. Hover a bar to read it.
+     All 100 components together explain <b>${(D.dataset.svd_explained_variance*100).toFixed(1)}%</b>. Single-cell gene data
+     are extremely sparse, and most of the remaining variance is sequencing noise, so here the reduction removes noise
+     rather than compressing without loss.`;
 }
 
 /* ================= STAGE 3: latent blocks + training ================= */
@@ -446,7 +447,7 @@ function drawLatent(){
   const y=h-30;
   txt(g,`softmax over the first 45 → predicts "${D.cell_type_names[am]}" p=${pCt[am].toFixed(2)}   |   true "${D.cell_type_names[trueCt]}" ${am===trueCt?'✓':'✗'}`,
       padL,y,{size:11.5,col: am===trueCt? css('--good'):css('--critical'),weight:600});
-  txt(g,`normalised entropy of the middle 9 = ${ent.toFixed(3)} (1.000 = batch unguessable; true batch ${D.batch_names[trueBt]})   |   S=${sScore[i].toFixed(2)}  G2M=${gScore[i].toFixed(2)}`,
+  txt(g,`normalised entropy of the middle 9 = ${ent.toFixed(3)} (1.000 = all batches equally likely; true batch ${D.batch_names[trueBt]})   |   S=${sScore[i].toFixed(2)}  G2M=${gScore[i].toFixed(2)}`,
       padL,y+15,{size:11,col:css('--ink3')});
 
   /* one point per latent dimension, at the top of its bar; the readout names the
@@ -460,9 +461,9 @@ function drawLatent(){
     k => `<b>z[${k}] = ${z[k].toFixed(4)}</b><br>block: ${blockOf(k)}`+
          `<br>cell ${D.cells.barcodes[i]}`);
   VIEWID('latent-cap').innerHTML =
-    `JAE in one sentence: <b>the first 45 dimensions should be peaked</b> (cell type is recognisable),
-     <b>the middle 9 should be flat</b> (the donor is not), the next 2 should track the cell cycle, and the
-     last 5 carry no constraint at all — left free for the network to use as it likes.`;
+    `JAE in one sentence: <b>the first 45 numbers should peak</b> at the cell's type, <b>the middle 9 should be flat</b>
+     (no batch stands out), the next 2 should track the cell cycle, and the last 5 have no target, left free for the
+     network to use. Hover a bar to read its value.`;
 }
 
 function drawTrain(){
@@ -506,10 +507,11 @@ function drawTrain(){
          `<br>reconstruction loss ${c[i].r.toFixed(4)}`);
   const last=c[n-1];
   VIEWID('train-cap').innerHTML =
-    `After ${n} epochs: cell-type accuracy <b>${(last.acc*100).toFixed(1)}%</b>,
+    `Solid lines: how often the cell-type block names the right type, and the batch block the right batch, after each
+     epoch (one pass over the training cells). After ${n} epochs: cell-type accuracy <b>${(last.acc*100).toFixed(1)}%</b>,
      batch accuracy <b>${(last.bacc*100).toFixed(1)}%</b> (chance is ${(chance*100).toFixed(1)}%).
-     The dashed line is reconstruction loss (right axis, auto-scaled). Biological signal climbing while batch
-     information is pressed down to chance is exactly those two losses doing their separate jobs.`;
+     The dashed line is the reconstruction loss, scaled to the chart height. Cell-type accuracy climbing while batch
+     accuracy falls to chance shows the two label losses doing their separate jobs. Hover the chart to read each epoch.`;
 }
 
 /* ================= STAGE 4: metrics, trade-off, embedding ================= */
@@ -518,7 +520,7 @@ const METRIC_LABELS = [
   ['asw_cell_type','cell type ASW','are cell types well separated','bio'],
   ['cell_cycle_conservation','cell cycle cons.','did the cell-cycle signal survive','bio'],
   ['trajectory_conservation','trajectory cons.','did the erythroid trajectory survive','bio'],
-  ['asw_batch','batch ASW','are donors mixed within a cell type','batch'],
+  ['asw_batch','batch ASW','are batches mixed within a cell type','batch'],
   ['graph_connectivity','graph conn.','does each cell type stay in one piece','batch'],
 ];
 function buildMetrics(){
@@ -544,13 +546,9 @@ function buildMetrics(){
 
   const cfg=D.metrics.config||{};
   VIEWID('metrics-cap').innerHTML =
-    `Four metrics reward keeping biological structure, two reward removing batch effects, and the headline
-     number is their arithmetic mean. The second column scores only the
-     ${(cfg.n_heldout||0).toLocaleString()} cells whose labels the model never saw.
-     Read that gap carefully: switching column also drops the cell count from
-     ${(cfg.n_cells||0).toLocaleString()} to ${(cfg.n_heldout||0).toLocaleString()}, and metrics like NMI and
-     graph connectivity drift with sample size on their own. It changes <b>two</b> factors at once, so treat it
-     as a direction, not a clean generalisation gap.`;
+    `Higher is better for every metric. Four reward keeping biological structure, two reward removing batch effects,
+     and the last row is their plain average. The first column scores all ${(cfg.n_cells||0).toLocaleString()} cells;
+     the second only the ${(cfg.n_heldout||0).toLocaleString()} held-out cells, whose labels the model never saw.`;
 }
 
 function drawTradeoff(){
@@ -668,10 +666,11 @@ function drawEmb(){
   const vt=D.training[state.variant];
   VIEWID('emb-cap').innerHTML =
     `Variant <b>${state.variant}</b>${vt&&vt.weights? ', loss weights <span class="mono">['+vt.weights.join(', ')+']</span>':''}.
-     Each point is one cell (${NC.toLocaleString()} shown, stratified by cell type).
-     UMAPs from different variants are aligned by orthogonal Procrustes, which removes only rotation and
-     reflection — cluster shapes are untouched.
-     <b>But be careful</b>: a visually separated blob is not automatically a real biological category.`;
+     Each point is one cell (${NC.toLocaleString()} shown, sampled across cell types), placed by a UMAP of that
+     variant's 61 numbers. Use Colour by and Variant to change the view; the lineage filter in the Design matrix
+     section applies here too. Hover a point to identify it, and click it to select that cell here and in the
+     Design matrix section. Maps of different variants are rotated or reflected to line up (orthogonal Procrustes);
+     their shapes are unchanged.`;
 }
 
 function drawTrace(){
@@ -686,7 +685,7 @@ function drawTrace(){
   }
   g.globalAlpha=1;
   line(g,7,h-22,w-7,h-22,css('--line2'),1);
-  txt(g,'134 surface proteins (the same cell selected on the left)',7,12,{size:10,col:css('--ink3')});
+  txt(g,'134 surface proteins of the selected cell',7,12,{size:10,col:css('--ink3')});
   // label the 3 strongest proteins
   const vals=[]; for(let c=0;c<134;c++) vals.push([MAT[i*NCOL+nGene+c],c]);
   vals.sort((a,b)=>b[0]-a[0]);
@@ -700,20 +699,19 @@ function drawTrace(){
          `<br>cell ${D.cells.barcodes[i]}`);
   const ct=D.cell_type_names[cellType[i]];
   VIEWID('trace-cap').innerHTML =
-    `The 61 numbers the model produces have to map back to <b>one real cell</b>: its barcode, donor, annotated
-     type, strongest genes and this protein profile. The model's output is not the destination — being able
-     to get back to reality is.`;
+    `Every point on the map is <b>one real cell</b>: here are its barcode, batch, annotated cell type and strongest
+     genes, and the bars show its 134 surface-protein values (the three largest are labelled; hover a bar to read it).`;
   const kv=VIEWID('kv-cell');
   const topG=[]; for(let k=0;k<Math.min(5,NTOP);k++) topG.push(D.gene_names_all[topIdx[i*NTOP+k]]);
   kv.innerHTML =
     `<dt>barcode</dt><dd style="font-size:11px">${D.cells.barcodes[i]}</dd>`+
     `<dt>true type</dt><dd>${ct}</dd>`+
     `<dt>lineage</dt><dd style="color:${LINCOL[lineageOf[cellType[i]]]}">${lineageOf[cellType[i]]}</dd>`+
-    `<dt>donor batch</dt><dd>${D.batch_names[cellBatch[i]]}</dd>`+
+    `<dt>batch</dt><dd>${D.batch_names[cellBatch[i]]}</dd>`+
     `<dt>S / G2M</dt><dd>${sScore[i].toFixed(2)} / ${gScore[i].toFixed(2)}</dd>`+
     `<dt>erythroid pseudotime</dt><dd>${pTime[i]<0?'not applicable':pTime[i].toFixed(3)}</dd>`+
     `<dt>strongest genes</dt><dd style="font-size:11.5px">${topG.join(', ')}</dd>`+
-    `<dt>label visibility</dt><dd>${heldout[i]?'held out (never trained on)':'training set'}</dd>`;
+    `<dt>training label</dt><dd>${heldout[i]?'held out (never trained on)':'training set'}</dd>`;
 }
 
 /* ================= static fills ================= */
@@ -733,8 +731,8 @@ function fillStatics(){
     `<dt>ADT</dt><dd>${d.n_proteins} protein counts</dd>`+
     `<dt>shape of X</dt><dd>${d.n_cells.toLocaleString()} × ${(d.n_genes+d.n_proteins).toLocaleString()}</dd>`;
   VIEWID('kv-y').innerHTML =
-    `<dt>cell type</dt><dd>${d.n_cell_types} classes (manual)</dd>`+
-    `<dt>batch</dt><dd>${d.n_batches} donor × site</dd>`+
+    `<dt>cell type</dt><dd>${d.n_cell_types} types, annotated by hand</dd>`+
+    `<dt>batch</dt><dd>${d.n_batches} site × donor</dd>`+
     `<dt>cell cycle</dt><dd>continuous S / G2M scores</dd>`+
     `<dt>pseudotime</dt><dd>erythroid only, 10,373 cells</dd>`;
 
@@ -745,45 +743,25 @@ function fillStatics(){
     `<dt>train / val split</dt><dd>90/10, seed 42</dd>`+
     `<dt>display sample</dt><dd>${NC.toLocaleString()} cells, stratified, seed 7</dd>`+
     `<dt>cycle genes matched</dt><dd>${cc.s_genes_used||43} S + ${cc.g2m_genes_used||54} G2M / 97</dd>`+
-    `<dt>page generated</dt><dd>${D.generated}</dd>`;
+    `<dt>analysis saved</dt><dd>${D.generated}</dd>`;
 
   const div=D.metrics.divergences_from_scib||{};
   const nDiv=Object.keys(div).length;
   const sub=(D.metrics.config&&D.metrics.config.subsample)||8000;
   VIEWID('honesty').innerHTML =
-    `<b>These six numbers are local approximations, not the reference implementations.</b>
-     The metrics are defined by the <span class="mono">scib</span> package, which is not installable on this
-     machine, so each one is reimplemented on numpy/sklearn. The substantive differences: NMI sweeps KMeans
-     <span class="mono">k</span> instead of optimising Louvain resolution; trajectory conservation uses a kNN
-     graph geodesic instead of diffusion pseudotime; and the silhouette-based metrics are computed on a
-     stratified subsample of ${sub.toLocaleString()} cells because silhouette is O(n²).
-     ${nDiv? 'All '+nDiv+' metrics carry implementation differences, recorded in <span class="mono">tools/metrics.py</span>.':''}
-     <b>So these values are only meaningful for comparing configurations within this demo</b> — they should
-     not be read against numbers published elsewhere.`;
+    `<b>How the six metrics are computed.</b>
+     They follow the definitions of the <span class="mono">scib</span> benchmarking package, reimplemented with
+     numpy and scikit-learn. The main differences: NMI runs KMeans over a range of <span class="mono">k</span>
+     instead of tuning Louvain resolution; trajectory conservation uses distances along a nearest-neighbour graph
+     instead of diffusion pseudotime; and the silhouette-based metrics use a stratified subsample of
+     ${sub.toLocaleString()} cells.
+     ${nDiv? 'All '+nDiv+' metrics differ from scib in implementation; the Source evidence section lists each difference.':''}`;
 
   const ccMix = cc.our_phase_mix||{}, dsMix = cc.dataset_phase_mix||{};
   const pct = (m,k) => {
     const tot = Object.values(m).reduce((a,b)=>a+b,0);
     return tot? (m[k]/tot*100).toFixed(0)+'%' : '—';
   };
-  VIEWID('limit-list').innerHTML = [
-    `<b>The SVD is fitted on every cell</b>, which is a transductive setup rather than a strict
-     split-then-transform. The competition allowed it; in a real prediction setting it is a hazard.`,
-    `<b>The six metrics are local approximations</b>, suitable only for comparing configurations inside this
-     demo — not against results published elsewhere.`,
-    `<b>The 45 cell types are manual annotations</b> and carry their own uncertainty. Two blobs that fail to
-     separate in the embedding may be the model's fault, or may mean the annotation is finer than the data supports.`,
-    `<b>"Batch accuracy fell to chance" is not the same as "batch effect is gone."</b> It only shows those 9
-     dimensions carry no batch information; the other 52 may still carry plenty — so switch the colouring to
-     donor batch and judge for yourself.`,
-    `<b>Visually separated clusters are not automatically real biological categories.</b> UMAP exaggerates gaps,
-     and it will happily draw a continuous differentiation process as discrete islands.`,
-    `<b>The dataset's own <span class="mono">obs/phase</span> column labels ${pct(dsMix,'G2M')} of cells G2M</b>,
-     which is not plausible for bone-marrow mononuclear cells. Our numpy reimplementation of scanpy's scoring
-     gives ${pct(ccMix,'G1')} G1, and the two agree only
-     ${cc.agreement_with_obs_phase!=null? (cc.agreement_with_obs_phase*100).toFixed(0):'—'}% of the time.
-     This page uses our own S/G2M scores.`,
-  ].map(s=>`<li style="margin-bottom:7px">${s}</li>`).join('');
 }
 
 /* ================= wiring ================= */
@@ -1020,7 +998,7 @@ const EXP = {
         to <b>${num(c.batch_removal_mean)}</b> while the biological-conservation mean moves from
         <b>${num(a.bio_conservation_mean)}</b> to <b>${num(c.bio_conservation_mean)}</b>. The paper's 0.05 sits at
         <b>${num(b.batch_removal_mean)} / ${num(b.bio_conservation_mean)}</b>.
-        Before reading anything into these gaps, check them against the seed-to-seed spread in experiment 6.`;
+        Compare these gaps with the seed-to-seed spread in Experiment 6.`;
     }
   },
   e2: {
@@ -1040,7 +1018,7 @@ const EXP = {
         should be near the ${(100/D.cell_type_names.length).toFixed(1)}% chance level), rising to
         <b>${t('ae_celltype')}</b> once type supervision is added, and <b>${t('jae_full')}</b> for the full JAE.
         No surprise there.
-        <br><br><b>The surprise is the NMI column: ${num(s.nmi)} → ${num(a.nmi)} → ${num(c.nmi)} → ${num(f.nmi)}.</b>
+        <br><br><b>The surprise is the NMI column (agreement between clusters and cell types): ${num(s.nmi)} → ${num(a.nmi)} → ${num(c.nmi)} → ${num(f.nmi)}.</b>
         The plain autoencoder (${num(a.nmi)}) is <b>worse than not training at all</b> (${num(s.nmi)}).
         A 61-dimensional bottleneck optimised purely for reconstruction does not organise cell-type structure
         better — it actually scrambles structure the SVD already had (remember the output ReLU truncates half
@@ -1101,13 +1079,11 @@ const EXP = {
       const a=V()['jae_full'], b=V()['jae_linear_out'];
       if(!a||!b) return '';
       const d=b.all.overall_mean_of_six-a.all.overall_mean_of_six;
-      return `Mean of six: <b>${num(a.all.overall_mean_of_six)}</b> (as published) versus
+      return `Mean of six: <b>${num(a.all.overall_mean_of_six)}</b> (as upstream) versus
         <b>${num(b.all.overall_mean_of_six)}</b> (ReLUs removed), a difference of
         <b style="color:${d>0?'var(--good)':'var(--critical)'}">${d>0?'+':''}${num(d)}</b>.
         Cycle conservation alone: ${num(a.all.cell_cycle_conservation)} → ${num(b.all.cell_cycle_conservation)}.
-        The value of this experiment is not deciding a winner. It is that
-        <b>a suspicion raised by reading the source can be settled with a controlled experiment</b> —
-        no guessing required, and no need to assume every line of a winning method is optimal.`;
+        <b>A question raised by reading the source code is settled by a controlled experiment.</b>`;
     }
   },
   e6: {
@@ -1128,8 +1104,7 @@ const EXP = {
       }).join(', ');
       return `The three seeds land between <b>${num(mn)}</b> and <b>${num(mx)}</b> on the mean of six, a spread of
         <b>${num(spread)}</b>. Half-ranges per metric: ${per}.
-        <b>Conclusion: treat any difference above smaller than roughly ${num(spread,3)} as noise, and do not
-        describe it as "this configuration is better".</b>`;
+        <b>Differences in the mean of six smaller than about ${num(spread,3)} are within seed-to-seed variation.</b>`;
     }
   },
 };
@@ -1169,25 +1144,21 @@ function renderAllTable(){
   const cfg=D.metrics.config||{};
   VIEWID('c-all').innerHTML =
     SCOPE==='all'
-      ? `Scored on all ${(cfg.n_cells||0).toLocaleString()} cells, including the ones whose labels the model
-         trained on. Switch to the held-out scope to see how much of each score depends on that.`
-      : `Scored on the ${(cfg.n_heldout||0).toLocaleString()} held-out cells only, whose labels the model never
-         saw. Most variants drop here, and that drop is the optimism of evaluating on cells you trained on.
-         <b>But note that some variants go up</b>: changing scope also drops the cell count from
-         ${(cfg.n_cells||0).toLocaleString()} to ${(cfg.n_heldout||0).toLocaleString()}, and metrics like NMI and
-         graph connectivity drift with sample size on their own. This column therefore changes <b>two</b>
-         factors, so read it as a direction, not a clean generalisation gap.`;
+      ? `Scored on all ${(cfg.n_cells||0).toLocaleString()} cells, including those whose labels the model trained on.
+         Click “Held-out 10% only” to score only the cells it never saw.`
+      : `Scored on the ${(cfg.n_heldout||0).toLocaleString()} held-out cells only, whose labels the model never saw.
+         Most variants score lower here and some score higher: this scope also has fewer cells
+         (${(cfg.n_heldout||0).toLocaleString()} instead of ${(cfg.n_cells||0).toLocaleString()}), and metrics such as NMI
+         and graph connectivity change with the number of cells.`;
   const div=D.metrics.divergences_from_scib||{};
   VIEWID('controls-note').innerHTML =
-    `<b>What this page holds fixed, and what it does not.</b>
-     Held fixed: the data, the train/validation split (seed 42), the architecture, the optimiser, batch size,
+    `<b>What every variant shares.</b>
+     The data, the train/validation split (seed 42), the architecture, the optimiser, batch size,
      learning rate, the early-stopping rule, the UMAP parameters and seed, and the metric implementations and
      their sampling seed.<br>
-     Not held fixed: <span class="mono">jae_full_faithful</span> changes both batch size and learning rate
-     (two factors at once), so it belongs in none of the ablations above as a control.<br>
-     The metrics themselves are local numpy/sklearn approximations of the
-     <span class="mono">scib</span> definitions — all ${Object.keys(div).length} of them differ in
-     implementation, as described in Part 1. They are comparable to each other on this page and to nothing else.`;
+     The one exception is <span class="mono">jae_full_faithful</span>, which uses the upstream batch size and
+     learning rate (batch 32, learning rate 1e-4) and so changes two factors at once; it is not part of any
+     experiment above.`;
 }
 
 /* ---------- init ---------- */

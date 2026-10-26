@@ -82,7 +82,7 @@
       canvas.dataset.zoom = zoom.toFixed(2);
       canvas.style.touchAction = zoom > 1 ? 'none' : 'pan-y';
       if (hint) {
-        const label = matchMedia('(pointer:coarse)').matches ? (zoom > 1 ? 'DRAG TO PAN · TAP TO DISCOVER' : 'TAP A POINT · + TO ZOOM') : defaultHint;
+        const label = matchMedia('(pointer:coarse)').matches ? (zoom > 1 ? 'DRAG TO PAN · TAP A POINT' : 'TAP A POINT · + TO ZOOM') : defaultHint;
         if (hint.textContent !== label) hint.textContent = label;
       }
       canvas.dataset.selected = selected == null ? '' : String(selected);
@@ -243,9 +243,9 @@
     q('#map-tag').textContent = `${state.anchor} · ${candidateIds.length} recurring candidates`;
     pressed('[data-anchor]', state.anchor, 'anchor'); pressed('[data-stage]', state.stage, 'stage'); pressed('[data-colour]', state.colour, 'colour');
     q('#focus-candidates').setAttribute('aria-pressed', String(state.focus));
-    q('#focus-candidates').firstChild.textContent = state.focus ? 'Show context ' : 'Isolate shortlist ';
+    q('#focus-candidates').firstChild.textContent = state.focus ? 'Show all probes ' : 'Show candidates only ';
     const key = q('#map-key>span:last-child');
-    key.lastChild.textContent = state.focus ? 'Context hidden' : state.colour === 'anchor' ? 'This stage’s neighbours' : A.stages[state.stage].cluster_counts.length + ' fitted clusters';
+    key.lastChild.textContent = state.focus ? 'Other probes hidden' : state.colour === 'anchor' ? 'In the anchor’s cluster at this stage only' : A.stages[state.stage].cluster_counts.length + ' clusters, one colour each';
     q('i', key).style.background = state.focus ? css('--muted') : state.colour === 'anchor' ? css('--neighbour') : 'conic-gradient(#2a78d6,#eb6834,#1baf7a,#8a57b5,#2a78d6)';
     updateReadout(); plot.select(state.selected);
   }
@@ -254,10 +254,10 @@
     const strong = document.createElement('strong'); strong.textContent = gene(index);
     const probe = document.createElement('span'); probe.textContent = A.lookup.probe_ids[index];
     const status = document.createElement('span'); status.className = 'il-probe-meta';
-    status.textContent = index === anchorIndex() ? 'Anchor probe' : inList ? 'Retained in all 3 stages' : 'Outside this shortlist';
+    status.textContent = index === anchorIndex() ? 'Anchor probe' : inList ? 'Candidate: in the anchor’s cluster in all 3 stages' : 'Not a candidate';
     q('#probe-selected').replaceChildren(strong, probe, status); q('#probe-selected').dataset.probe = String(index);
     const notice = q('#comparison-state'); notice.hidden = inList;
-    if (!inList) notice.textContent = `${gene(index)} is ${index === anchorIndex() ? 'the anchor' : 'outside the recurring shortlist'}. The comparison below still shows ${state.candidate.gene}; choose a blue candidate to update it.`;
+    if (!inList) notice.textContent = `${gene(index)} is ${index === anchorIndex() ? 'the anchor' : 'not a candidate'}. This panel still shows ${state.candidate.gene}; choose a blue candidate to update it.`;
   }
   function inspectProbe(index) {
     state.selected = index;
@@ -302,22 +302,22 @@
   function renderEvidence() {
     const counts = S.results[state.anchor].counts;
     q('#evidence-counts').replaceChildren();
-    for (const [key, label] of [['all', 'Recurring candidates'], ['sign_stable', 'Stable in disease groups'], ['stable_in_control_too', 'Also stable in controls']]) {
+    for (const [key, label] of [['all', 'Candidates'], ['sign_stable', 'Stable in all three disease stages'], ['stable_in_control_too', 'Also stable in controls']]) {
       const item = document.createElement('div'); item.className = 'gs-ad-evidence-step'; item.dataset.check = key;
       const value = document.createElement('strong'); value.textContent = counts[key];
       const heading = document.createElement('span'); heading.textContent = label;
       item.append(value, heading); q('#evidence-counts').append(item);
     }
-    const answer = document.createElement('strong'); answer.textContent = `${counts.stable_in_control_too} of ${counts.sign_stable} stable ${state.anchor} links are also stable in controls. `;
-    q('#ad-story-answer').replaceChildren(answer, document.createTextNode('A shared cluster alone does not establish a disease-specific connection.'));
-    q('#control-conclusion').textContent = `${counts.stable_in_control_too} of ${counts.sign_stable} stable ${state.anchor} links also remain positive in every control omission.`;
+    const answer = document.createElement('strong'); answer.textContent = `${counts.stable_in_control_too} of ${counts.sign_stable} stable ${state.anchor} links are also stable in the control group, people without Alzheimer’s. `;
+    q('#ad-story-answer').replaceChildren(answer, document.createTextNode('So a link that recurs in every disease stage is not necessarily specific to the disease.'));
+    q('#control-conclusion').textContent = `${counts.stable_in_control_too} of ${counts.sign_stable} stable ${state.anchor} links are also stable in the control group.`;
     const shared = q('#shared-links'); shared.replaceChildren();
     const stable = S.results[state.anchor].candidates.filter(c => c.positive_all_omissions)
       .sort((a, b) => Number(b.control.loo_min > 0) - Number(a.control.loo_min > 0) || a.gene.localeCompare(b.gene));
     for (const candidate of stable) {
       const button = document.createElement('button'); button.type = 'button';
       button.dataset.shared = String(candidate.control.loo_min > 0); button.dataset.probe = candidate.probe_id; button.dataset.index = candidate.index;
-      button.title = `${candidate.gene} · ${candidate.probe_id}: ${candidate.control.loo_min > 0 ? 'also stable in controls' : 'not stable in every control omission'}`;
+      button.title = `${candidate.gene} · ${candidate.probe_id}: ${candidate.control.loo_min > 0 ? 'also stable in controls' : 'not stable in controls'}`;
       button.setAttribute('aria-label', button.title + '. Inspect this candidate on the map.');
       button.addEventListener('click', () => { IL.ad.select(state.anchor, candidate.index); openEvidence('map'); });
       shared.append(button);
@@ -332,7 +332,7 @@
   }));
   qa('[data-stage]').forEach(button => button.addEventListener('click', () => {
     state.stage = button.dataset.stage; renderDetail(); renderMap('fade', true);
-    announce(title(state.stage) + ' stage. Independently fitted map; the shortlist is unchanged.');
+    announce(title(state.stage) + ' stage, shown on its own map. The candidates stay the same.');
   }));
   qa('[data-colour]').forEach(button => button.addEventListener('click', () => { state.colour = button.dataset.colour; state.focus = false; renderMap(); }));
   q('#focus-candidates').addEventListener('click', () => {
@@ -370,10 +370,10 @@
     const allPassing = endpoint === 'either' ? genome.passing_unique_probe_sets : genome.endpoints[endpoint].passing;
     const candidatePassing = shortlist.filter(c => passes(c, endpoint)).length;
     const scope = endpoint === 'either' ? 'either measure' : endpoint === 'mmse' ? 'cognition (MMSE)' : 'pathology (NFT)';
-    const result = document.createElement('strong'); result.textContent = `${candidatePassing} of ${shortlist.length} shortlisted probes pass q < 0.05`;
+    const result = document.createElement('strong'); result.textContent = `${candidatePassing} of ${shortlist.length} candidates pass q < 0.05`;
     q('#clinical-summary-reading').replaceChildren(result, document.createTextNode(` for ${scope}.`));
     const chart = q('#clinical-pass-bars'); chart.replaceChildren(); chart.dataset.measure = endpoint;
-    for (const [key, label, passing, total] of [['all', 'All measured probes', allPassing, genome.n_probe_sets], ['shortlist', 'Both shortlists', candidatePassing, shortlist.length]]) {
+    for (const [key, label, passing, total] of [['all', 'All measured probes', allPassing, genome.n_probe_sets], ['shortlist', 'All candidates (PLD2 and TPP2)', candidatePassing, shortlist.length]]) {
       const percent = 100 * passing / total, row = document.createElement('div'); row.className = 'gs-ad-pass-row';
       row.dataset.set = key; row.dataset.passing = passing; row.dataset.total = total;
       const name = document.createElement('div'); name.textContent = label;
