@@ -61,6 +61,43 @@ test('local previews revalidate changed files and reuse unchanged bytes without 
   await checked.text();
 });
 
+test('local MP4 previews support playback metadata and seeking without changing bytes', async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ais-video-'));
+  const bytes = Buffer.from('0123456789');
+  fs.writeFileSync(path.join(root, 'film.mp4'), bytes);
+  const server = createServer(root).listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  t.after(async () => { await new Promise(resolve => server.close(resolve)); fs.rmSync(root, { recursive: true, force: true }); });
+  const url = `http://127.0.0.1:${server.address().port}/film.mp4`;
+  const head = await fetch(url, { method: 'HEAD', headers: { Range: 'bytes=0-1' } });
+  assert.equal(head.status, 200);
+  assert.equal(head.headers.get('content-type'), 'video/mp4');
+  assert.equal(head.headers.get('content-length'), '10');
+  assert.equal(head.headers.get('accept-ranges'), 'bytes');
+  assert.equal(await head.text(), '');
+  for (const [range, expected, contentRange] of [
+    ['bytes=0-1', '01', 'bytes 0-1/10'],
+    ['bytes=6-', '6789', 'bytes 6-9/10'],
+    ['bytes=-3', '789', 'bytes 7-9/10'],
+    ['bytes=8-99', '89', 'bytes 8-9/10'],
+  ]) {
+    const response = await fetch(url, { headers: { Range: range, 'If-Range': head.headers.get('etag') } });
+    assert.equal(response.status, 206);
+    assert.equal(response.headers.get('content-range'), contentRange);
+    assert.equal(response.headers.get('content-length'), String(expected.length));
+    assert.equal(await response.text(), expected);
+  }
+  for (const range of ['bytes=10-', 'bytes=5-2', 'bytes=-0']) {
+    const response = await fetch(url, { headers: { Range: range } });
+    assert.equal(response.status, 416);
+    assert.equal(response.headers.get('content-range'), 'bytes */10');
+    assert.equal(await response.text(), '');
+  }
+  const stale = await fetch(url, { headers: { Range: 'bytes=2-3', 'If-Range': '"old-video"' } });
+  assert.equal(stale.status, 200);
+  assert.deepEqual(Buffer.from(await stale.arrayBuffer()), bytes);
+});
+
 test('protected preview cache rules target only generated assets; production rules stay unchanged', () => {
   const preview = deployHeaders({ audience: 'preview', context: 'branch-deploy' });
   assert.match(preview, /\/assets\/embedded\/\*\n  Cache-Control: private, max-age=31536000, immutable/);

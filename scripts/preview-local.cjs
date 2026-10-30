@@ -10,7 +10,7 @@ const root = path.resolve(__dirname, '..');
 
 function createServer(siteDirectory = path.join(root, '.local', 'site')) {
   const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.svg': 'image/svg+xml', '.webp': 'image/webp', '.ico': 'image/x-icon' };
-  Object.assign(types, { '.zip': 'application/zip', '.ipynb': 'application/x-ipynb+json', '.md': 'text/plain; charset=utf-8', '.gif': 'image/gif', '.avif': 'image/avif' });
+  Object.assign(types, { '.zip': 'application/zip', '.ipynb': 'application/x-ipynb+json', '.md': 'text/plain; charset=utf-8', '.gif': 'image/gif', '.avif': 'image/avif', '.mp4': 'video/mp4' });
   return http.createServer((req, res) => {
     res.setHeader('X-Robots-Tag', 'noindex, nofollow');
     res.setHeader('Cache-Control', 'private, no-cache');
@@ -41,6 +41,22 @@ function createServer(siteDirectory = path.join(root, '.local', 'site')) {
       res.setHeader('ETag', etag);
       if (!receipt && req.headers['if-none-match'] === etag) {
         res.writeHead(304); return res.end();
+      }
+      // Browsers request byte ranges when loading or seeking through an MP4.
+      if (type === 'video/mp4') {
+        res.setHeader('Accept-Ranges', 'bytes');
+        const range = req.method === 'GET' && (!req.headers['if-range'] || req.headers['if-range'] === etag)
+          && /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+        if (range && (range[1] || range[2])) {
+          const start = range[1] ? Number(range[1]) : Math.max(0, bytes.length - Number(range[2]));
+          const end = range[1] && range[2] ? Math.min(Number(range[2]), bytes.length - 1) : bytes.length - 1;
+          if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start > end) {
+            res.writeHead(416, { 'Content-Range': `bytes */${bytes.length}` });
+            return res.end();
+          }
+          res.writeHead(206, { 'Content-Type': type, 'Content-Range': `bytes ${start}-${end}/${bytes.length}`, 'Content-Length': end - start + 1 });
+          return res.end(bytes.subarray(start, end + 1));
+        }
       }
       res.writeHead(200, { 'Content-Type': type, 'Content-Length': bytes.length });
       res.end(req.method === 'HEAD' ? undefined : bytes);

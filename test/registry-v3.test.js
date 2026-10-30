@@ -92,6 +92,32 @@ test('client assembles compact Dataset placeholders with independent round-trip 
   assert.equal(await registry.getRevision(snapshot.manifest.registry_revision),snapshot.manifest.registry_revision);
 });
 
+test('MP4 resources retain exact bytes within their project and bound size',async()=>{
+  const a=input(),video=Buffer.from([0,0,0,24,102,116,121,112,109,112,52,50,128,255]);
+  const resource={resource_id:'battery-a-film',version_id:'battery-a-v1',role:'download',
+    route:'demos/battery-a/resources/film.mp4',source:{...a.pages[0].source,
+      file_id:'film-drive-file',sha256:hash(video),size:video.length,mime_type:'video/mp4',
+      parent_path:'projects/battery-a/battery-a-v1/resources'}};
+  a.resources.push(resource);
+  const snapshot=compileRegistryV3(a,hash),revision=snapshot.manifest.registry_revision;
+  const getJson=async address=>{
+    const u=new URL(address),id=u.searchParams.get('id');
+    if(u.searchParams.get('action')==='manifest')return {ok:true,...snapshot.manifest};
+    authorizedFile(snapshot,id,'preview',u.searchParams.get('registry_revision'));
+    return {ok:true,id,registry_instance:'test-registry',registry_revision:revision,
+      ...(id===resource.resource_id?{base64:video.toString('base64')}:{html})};
+  };
+  const registry=await loadV3Registry('https://example.com/exec?token=test',policy,getJson,revision,{AIS_REGISTRY_INSTANCE:'test-registry'});
+  const pages=await registry.getProjectPages(snapshot.manifest.demos,revision);
+  assert.deepEqual(pages.get('battery-a').find(p=>p.path===resource.route).bytes,video);
+  resource.source.size=25*1024*1024+1;
+  assert.throws(()=>compileRegistryV3(a,hash),/invalid file size/);
+  resource.source.size=video.length;resource.route='demos/battery-b/resources/film.mp4';
+  assert.throws(()=>compileRegistryV3(a,hash),/outside project resources/);
+  resource.route='demos/battery-a/resources/film.exe';
+  assert.throws(()=>compileRegistryV3(a,hash),/unsupported resource type/);
+});
+
 test('V3 continuous readers cap concurrency at three and refill past a slow first page',async()=>{
   const snapshot=compileRegistryV3(input(),hash),revision=snapshot.manifest.registry_revision;
   let releaseFirst;
