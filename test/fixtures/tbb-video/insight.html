@@ -1,0 +1,19 @@
+<!doctype html><html><head><title>TBB fixture</title></head><body><section id="storyVideoCard"><video id="storyVideo" controls preload="metadata" playsinline aria-labelledby="storyVideoTitle"></video></section>
+<script type="application/json" id="payload">{"n_nodes":2,"values":[1.25,2.5],"tbb_i16_b64":"AQACAA==","video":{"mp4_b64":"AAAAGGZ0eXBpc29tAAACAGlzb21tcDQy","bytes":24,"poster":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lXcAAAAASUVORK5CYII="}}</script>
+<script>
+(function(){
+  const D=JSON.parse(document.getElementById("payload").textContent);
+  const $=id=>document.getElementById(id);
+  /* the narrated video ships inside the payload; decoded after the figure has drawn */
+  (function mountVideo(){
+    const card=$("storyVideoCard");
+    if(!D.video||!D.video.mp4_b64){card.remove();return}
+    if(D.video.poster)$("storyVideo").poster=D.video.poster;
+    setTimeout(()=>{
+      const bin=atob(D.video.mp4_b64),u8=new Uint8Array(bin.length);
+      for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
+      $("storyVideo").src=URL.createObjectURL(new Blob([u8],{type:"video/mp4"}));
+    },0);
+  })();
+})();
+</script></body></html>
