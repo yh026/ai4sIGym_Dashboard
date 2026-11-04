@@ -56,7 +56,7 @@ function harness() {
     Utilities: {getUuid: () => 'ui-identity-' + (++sequence), computeHmacSha256Signature: (payload, secret) =>
       [...crypto.createHmac('sha256', secret).update(payload).digest()].map(byte => byte > 127 ? byte - 256 : byte)},
     registryPublishingSelection_: () => clone(selection), registryPublishingCatalog_: () => clone(catalog),
-    registryPublishingState_: () => ({getRange: () => ({getValues: () => clone(rows)})}),
+    registryPublishingStateRows_: () => clone(rows),
     registryReleaseStoreConfirmationDigest_: confirmationDigest,
     registryReleaseStoreGetActive_: name => clone(capsules[name]),
     registryReleaseStoreGetReview_: id => clone(reviews.get(id)), registryReleaseStoreGetRequest_: id => clone(requests.get(id)),

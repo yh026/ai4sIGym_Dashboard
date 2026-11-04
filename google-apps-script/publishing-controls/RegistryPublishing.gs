@@ -24,12 +24,20 @@ function registryPublishingState_() {
   return sheet;
 }
 function registryPublishingCatalog_() {
-  return registryUiSpreadsheet_().getSheetByName('Project files').getRange(5,1,13,11).getValues().map(function(r) {
+  return registryPublishingRows_(registryUiSpreadsheet_().getSheetByName('Project files'),5,11,10).map(function(r) {
     return {demo_id: r[10], title: String(r[1]), number: String(r[0])};
   });
 }
+/** Read the registered rows, excluding empty rows and the worksheet footer. */
+function registryPublishingRows_(sheet,start,width,idColumn) {
+  return sheet.getDataRange().getValues().slice(start-1).filter(function(r){return r[idColumn]!==''&&r[idColumn]!==undefined;})
+    .map(function(r){return Array.from({length:width},function(_,i){return r[i]===undefined?'':r[i];});});
+}
+function registryPublishingStateRows_() {
+  return registryPublishingRows_(registryPublishingState_(),2,11,0);
+}
 function registryPublishingSelection_() {
-  var rows = registryPublishingPanel_().getRange(10,1,13,13).getValues();
+  var rows = registryPublishingRows_(registryPublishingPanel_(),10,13,12);
   return RegistryPublishingModel.normalizeSelection(registryPublishingCatalog_(), rows.map(function(r) {
     return {demo_id:r[12],includeProduction:r[3],includePreview:r[5]};
   }));
@@ -141,7 +149,7 @@ function registryPublishingRefreshPreview_() {
   return {known:false,projects:[],warning:'The live preview does not match a verified release. Update preview and refresh status.'};
 }
 function registryPublishingWriteStates_(production,preview) {
-  var sheet=registryPublishingState_(),old=sheet.getRange(2,1,13,11).getValues(),catalog=registryPublishingCatalog_();
+  var sheet=registryPublishingState_(),old=registryPublishingStateRows_(),catalog=registryPublishingCatalog_();
   var versions=objects_(tableRows_(registryUiSpreadsheet_(),'Versions'));
   var productionTime=Date.parse(production.checked_at||''),previewTime=Date.parse(preview.checked_at||'');
   var checked=production.known&&preview.known&&Number.isFinite(productionTime)&&Number.isFinite(previewTime)
@@ -157,7 +165,8 @@ function registryPublishingWriteStates_(production,preview) {
       pd?pd.route:'',vd?vd.route:'',checked,active.length?active[0]['Version ID']:prev[6]||'',
       pd&&pd.fingerprint||'',vd&&vd.fingerprint||'',production.known?production.deploy_id:'',preview.known?preview.deploy_id:''];
   });
-  sheet.getRange(2,1,13,11).setValues(rows);
+  if(rows.length)sheet.getRange(2,1,rows.length,11).setValues(rows);
+  if(old.length>rows.length)sheet.getRange(rows.length+2,1,old.length-rows.length,11).clearContent();
   return rows;
 }
 /** This operation only reads deployments and updates status cells. */
@@ -175,7 +184,7 @@ function registryPublishingRefreshStatus() {
   return status;
 }
 function registryPublishingSummary_(preview) {
-  var selected=registryPublishingSelection_(),rows=registryPublishingState_().getRange(2,1,13,11).getValues();
+  var selected=registryPublishingSelection_(),rows=registryPublishingStateRows_();
   var pending=selected.filter(function(s){var r=rows.filter(function(x){return x[0]===s.demo_id;})[0];
     return r&&(r[1]!=='Not checked'&&s.includeProduction!==(r[1]==='Published')||r[2]!=='Not checked'&&s.includePreview!==(r[2]==='Published'));});
   preview=preview||registryPublishingStored_(REGISTRY_PUBLISHING.previewProperty);
@@ -189,7 +198,7 @@ function registryPublishingSummary_(preview) {
 /** Called only by the explicit Update preview action, never on edit/open/hourly. */
 function registryPublishingApplyPreview_() {
   var ss=registryUiSpreadsheet_(),selected=registryPublishingSelection_();
-  var state=registryPublishingState_().getRange(2,1,13,11).getValues();
+  var state=registryPublishingStateRows_();
   var sheet=ss.getSheetByName('Versions'),rows=sheet.getDataRange().getValues();
   var before=rows.slice(1).map(function(r){return [r[5]];}),next=before.map(function(r){return r.slice();});
   selected.forEach(function(s){
@@ -204,7 +213,7 @@ function registryPublishingApplyPreview_() {
   });
   // Keep a rollback copy of the inputs and generated tables touched by syncSandbox_.
   // A new immutable Drive snapshot may remain after failure, but is never activated.
-  var ranges=[registryPublishingState_().getRange(2,7,13,1),sheet.getRange(2,6,before.length,1),
+  var ranges=[registryPublishingState_().getRange(2,7,state.length,1),sheet.getRange(2,6,before.length,1),
     sheet.getRange(2,8,before.length,2)];
   var projectSheet=ss.getSheetByName('Projects'),projectCount=projectSheet.getDataRange().getValues().length-1;
   if(projectCount>0)ranges.push(projectSheet.getRange(2,2,projectCount,2),projectSheet.getRange(2,19,projectCount,2));
@@ -218,7 +227,7 @@ function registryPublishingApplyPreview_() {
   // Save preferred versions before exclusion clears generated Projects pointers.
   state.forEach(function(r){var active=rows.slice(1).filter(function(v){return v[1]===r[0]&&v[5]===true;});if(active.length===1)r[6]=active[0][0];});
   try {
-    registryPublishingState_().getRange(2,7,13,1).setValues(state.map(function(r){return [r[6]];}));
+    registryPublishingState_().getRange(2,7,state.length,1).setValues(state.map(function(r){return [r[6]];}));
     sheet.getRange(2,6,next.length,1).setValues(next);SpreadsheetApp.flush();
     return syncSandbox_();
   } catch(error) {
@@ -249,7 +258,7 @@ function registryPublishingUpdatePreview() {
 }
 function registryPublishingReviewProduction() {
   registryPublishingRefreshStatus();
-  var selection=registryPublishingSelection_(),rows=registryPublishingState_().getRange(2,1,13,11).getValues();
+  var selection=registryPublishingSelection_(),rows=registryPublishingStateRows_();
   var prod=registryPublishingStored_(REGISTRY_PUBLISHING.productionProperty),prev=registryPublishingStored_(REGISTRY_PUBLISHING.previewProperty);
   var signed=previewState_();
   if(rows.some(function(r){return r[1]==='Not checked'||r[2]==='Not checked';}))throw new Error('Refresh both deployment states before preparing a release.');

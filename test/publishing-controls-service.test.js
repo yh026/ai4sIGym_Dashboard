@@ -12,8 +12,8 @@ const prodDeploy = 'a'.repeat(24), prevDeploy = 'b'.repeat(24);
 const previewUrl = 'https://develop--aisigym.netlify.app/';
 const productionUrl = 'https://aisigym.netlify.app/';
 
-function harness() {
-  const ids = Array.from({length: 13}, (_, i) => 'demo-' + String(i + 1).padStart(3, '0'));
+function harness(projectCount = 13) {
+  const ids = Array.from({length: projectCount}, (_, i) => 'demo-' + String(i + 1).padStart(3, '0'));
   const sheets = {}, writes = [], fetches = [], events = [], properties = new Map();
   let syncFailure = '', writeFailure = '', lockDepth = 0;
   let signed = {phase: 'ready', revision: sha('c'), deploy_id: prevDeploy, request_id: 'reviewed-request',
@@ -48,7 +48,7 @@ function harness() {
       return this.getRange(1, 1, Math.max(lastRow, 1), Math.max(lastCol, 1));
     }
   }
-  new Sheet('Control panel', Array.from({length: 22}, (_, i) => {
+  new Sheet('Control panel', Array.from({length: projectCount + 9}, (_, i) => {
     const row = Array(13).fill('');
     if (i === 8) { row[3] = 'Include in production'; row[5] = 'Include in preview'; row[12] = 'demo_id'; }
     if (i > 8) { row[3] = true; row[5] = true; row[12] = ids[i - 9]; }
@@ -139,6 +139,22 @@ function harness() {
   };
 }
 function allSheetValues(h) { return Object.fromEntries(Object.entries(h.sheets).map(([name, s]) => [name, clone(s.getDataRange().getValues())])); }
+
+test('new registered projects beyond row thirteen participate in selection and status without an implicit build',()=>{
+  const h=harness(14);
+  h.sheets['Project files'].data.push([],['Worksheet footer']);
+  h.setSelection(13,'production',false);h.setSelection(13,'preview',false);
+  const before=clone(h.sheets.Versions.data);
+  const selection=h.context.registryPublishingSelection_();
+  assert.equal(selection.length,14);assert.equal(selection[13].includeProduction,false);
+  h.context.registryPublishingRefreshStatus();
+  assert.equal(h.sheets._PublishingState.data.length,15);
+  assert.deepEqual(h.sheets.Versions.data,before);assert.ok(!h.events.includes('publish-preview'));
+  h.setSelection(13,'preview',true);h.context.registryPublishingUpdatePreview();
+  assert.equal(h.sheets.Versions.data[14][5],true);
+  assert.equal(h.sheets._PublishingState.data[14][6],h.ids[13]+'-v1');
+  assert.equal(h.events.filter(e=>e==='publish-preview').length,1);
+});
 
 test('editing a staged checkbox and refreshing never changes canonical build inputs', () => {
   const h = harness(), before = clone(h.sheets.Versions.data);

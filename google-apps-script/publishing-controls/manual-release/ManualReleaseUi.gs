@@ -130,7 +130,7 @@ function registryManualReviewView_(review) {
 }
 
 function registryManualSummary_() {
-  var selected=registryPublishingSelection_(),rows=registryPublishingState_().getRange(2,1,13,11).getValues();
+  var selected=registryPublishingSelection_(),rows=registryPublishingStateRows_();
   var pending=selected.filter(function(s){var r=rows.filter(function(x){return x[0]===s.demo_id;})[0];
     return r&&(r[1]!=='Not checked'&&s.includeProduction!==(r[1]==='Published')||r[2]!=='Not checked'&&s.includePreview!==(r[2]==='Published'));});
   var review=registryManualCurrentReview_(),request=registryManualPendingRequest_();

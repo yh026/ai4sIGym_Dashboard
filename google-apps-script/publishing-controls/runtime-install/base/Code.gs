@@ -2079,7 +2079,6 @@ module.exports = {
 
 return module.exports;})();
 var V3=(function(){var module={exports:{}};
-
 'use strict';
 
 // Shared, deterministic contract. No I/O: the Google adapter supplies verified
@@ -2087,6 +2086,9 @@ var V3=(function(){var module={exports:{}};
 const ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const SHA = /^[a-f0-9]{64}$/;
 const ROLES = ['insight', 'dataset', 'workflow', 'legacy', 'resource_page'];
+const MAX_HTML_SOURCE_BYTES = 48 * 1024 * 1024;
+const MAX_RESOURCE_SOURCE_BYTES = 25 * 1024 * 1024;
+const sourceSizeLimit = mime => mime === 'text/html' ? MAX_HTML_SOURCE_BYTES : MAX_RESOURCE_SOURCE_BYTES;
 const FORBIDDEN_SHEET = '1oRs8xrszKqbJwQuVQGGOm21aC6aTXPPPrwoys6VSijE';
 const FORBIDDEN_ROOT = '1TNFstSJC4xqz7mcZx9qyKvicwTtlqoHH';
 
@@ -2122,7 +2124,7 @@ function sourceDescriptor(source, html) {
   need(source && source.in_scope === true && source.trashed !== true, 'file missing or outside sandbox');
   need(typeof source.file_id === 'string' && source.file_id.length > 0, 'missing source file');
   need(SHA.test(source.sha256 || ''), 'invalid file hash');
-  need(Number.isSafeInteger(source.size) && source.size > 0 && source.size <= 25 * 1024 * 1024, 'invalid file size');
+  need(Number.isSafeInteger(source.size) && source.size > 0 && source.size <= sourceSizeLimit(source.mime_type), 'invalid file size');
   need(typeof source.modified_at === 'string' && Number.isFinite(Date.parse(source.modified_at)), 'invalid file timestamp');
   if (html) need(source.mime_type === 'text/html', 'HTML source required');
   return { file_id: source.file_id, sha256: source.sha256, size: source.size,
@@ -2152,7 +2154,7 @@ function compileRegistryV3(input, hash) {
     need(versions.has(p.version_id), 'page has no version');
     need(ROLES.includes(p.role), 'invalid page role');
     need(['Ready', 'Placeholder'].includes(p.state), 'invalid page state');
-    need(p.state !== 'Placeholder' || (p.role === 'dataset' && !p.source), 'only Dataset may be an empty placeholder');
+    need(p.state !== 'Placeholder' || (['dataset', 'workflow'].includes(p.role) && !p.source), 'only Dataset or Workflow may be an empty placeholder');
   }
   for (const r of resources.values()) {
     need(versions.has(r.version_id), 'resource has no version');
@@ -2248,7 +2250,7 @@ function authorizedFile(snapshot, id, audience, revision) {
 }
 
 module.exports = { stable, safeRoute, assertSandbox, compileRegistryV3, authorizedFile,
-  sourceDescriptor, FORBIDDEN_ROOT, FORBIDDEN_SHEET };
+  sourceDescriptor, sourceSizeLimit, MAX_HTML_SOURCE_BYTES, MAX_RESOURCE_SOURCE_BYTES, FORBIDDEN_ROOT, FORBIDDEN_SHEET };
 
 return module.exports;})();
 /** Independent V3 sandbox. This file is bundled with the tested pure compilers.
@@ -2308,7 +2310,8 @@ function sourceFile_(id){return sourceBinding_(id).file;}
 function source_(id,previous){
   var binding=sourceBinding_(id),f=binding.file,stamp=f.getLastUpdated().toISOString(),size=f.getSize(),mime=f.getMimeType(),parent=binding.parent_path;
   if(previous && previous.modified_at===stamp && previous.size===size && previous.mime_type===mime && previous.parent_path===parent)return Object.assign({in_scope:true},previous);
-  var blob=f.getBlob(),bytes=blob.getBytes();if(!bytes.length||bytes.length>25*1024*1024)throw new Error('Source size out of range');
+  if(!size||size>V3.sourceSizeLimit(mime))throw new Error('Source size out of range');
+  var blob=f.getBlob(),bytes=blob.getBytes();if(bytes.length!==size)throw new Error('Source changed during read');
   if(mime==='text/html'){var html=blob.getDataAsString('UTF-8');if(!/<head\b/i.test(html)||!/<body\b/i.test(html)||!/<\/body>/i.test(html))throw new Error('Incomplete HTML source');}
   if(f.getLastUpdated().toISOString()!==stamp||f.getSize()!==size)throw new Error('Source changed during read');
   return {in_scope:true,file_id:id,modified_at:stamp,size:size,mime_type:mime,sha256:hash_(bytes),parent_path:parent};

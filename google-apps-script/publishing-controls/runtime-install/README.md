@@ -32,6 +32,15 @@ The base files preserve the established V3 runtime and its non-secret installati
 
 A UI-only update may replace only `RegistryUi.gs` when the other two generated file hashes are unchanged. Bound worksheet actions use saved source, so this does not require a new Web App deployment version.
 
+The 2026-11-04 CT Pattern Atlas update was installed as Web App version 11.
+It increases the HTML source limit to 48 MiB, accepts empty Workflow placeholders,
+and reads registered project rows dynamically. Binary resource limits remain
+25 MiB. The fourteen-project registry and the CT bundle passed validation;
+Preview and Production publication remain pending the user's instruction.
+The update preserved the deployment URL, access settings, release snapshots,
+manual mode and all existing project selections. Installation evidence is in
+`docs/evidence/ct-pattern-atlas-onboarding-20261104.json` at the repository root.
+
 The PNG artwork is embedded from `control-panel-buttons/artwork.json`; no external image host is used. Regenerate it with `python3 google-apps-script/publishing-controls/control-panel-buttons/render.py --font <font-path>` using Pillow. The buttons are anchored at A4, E4 and I4 without inserting rows. Their scripts execute in the desktop web version of Sheets, not the mobile apps.
 
 The build hooks, signed callbacks, release-store folder, initial production capsule, and Netlify build commands are separate installation requirements described in [manual-release/README.md](../manual-release/README.md). This bundler does not configure them.

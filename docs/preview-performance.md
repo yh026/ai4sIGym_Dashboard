@@ -53,3 +53,74 @@ speed improvement is claimed without browser measurement.
 The September 30 local browser inspection was denied by browser access approval.
 Visual rendering and live interactions therefore remain an explicit acceptance
 step; static and numerical checks do not substitute for that step.
+
+## MSK / CT Pattern Atlas video delivery
+
+`lib/ct-pattern-atlas-video-assets.js` handles the `ct-pattern-atlas` Insight in
+the same `optimizeSiteOutput` chain as TBB. Its authored HTML contains ordered
+`application/octet-stream` script chunks and a JPEG poster on `video#film`.
+The adapter recognizes the complete imported player by hash, decodes each
+chunk separately, and writes byte-identical MP4/JPEG files under
+`/assets/embedded/<sha256>.<extension>`. Unknown players, malformed media,
+ambiguous markup, CSP meta policies and base URLs remain untouched.
+
+The generated player has `preload="none"` and a `data-video-src` attribute;
+it assigns `src` only after the Play button is clicked. The old chunk scripts
+and decoder are removed from generated HTML. The source stays self-contained,
+and the poster, video, narrative, CSS and other scripts retain their contents.
+The TBB adapter and its matching rules are unchanged.
+
+To build this demo independently of Drive/Registry, run
+`node scripts/build-ct-pattern-atlas.cjs` from the repo root. It reads
+`content/projects/ct-pattern-atlas/ct_pattern_atlas_insight.html`, runs the
+normal delivery optimizer in a staging directory, and writes the result to
+`.local/ct-pattern-atlas-site/`. The local build refuses to replace an
+unrecognized output directory or complete without successful video extraction.
+`build-info.json` records source/output hashes and media sizes;
+`performance-report.json` records the transformation. Neither file is a
+deployment receipt.
+
+To serve the generated directory locally, run:
+
+```sh
+node -e "require('./scripts/preview-local.cjs').createServer('./.local/ct-pattern-atlas-site').listen(4176,'127.0.0.1')"
+```
+
+Open `http://127.0.0.1:4176/demos/ct-pattern-atlas/`. The existing local server
+provides MP4 byte-range responses. The standalone build does not register the
+demo, add homepage/navigation entries, edit Drive/Sheets, or deploy to Netlify.
+Only Insight is currently available. The Registry bundle renders Dataset and
+Workflow as Coming soon pages with shared project navigation.
+
+The 2026-11-04 local build reduced HTML from 38,062,080 to 13,220 bytes, with a
+28,418,149-byte MP4 and a 117,674-byte JPEG. Local browser checks observed only
+HTML/poster requests before clicking, then an HTTP 206 MP4 response and working
+playback/pause after clicking. Theme switching and justified text were retained;
+23 focused media/performance tests passed. Local evidence is in
+`.local/reviews/ct-pattern-atlas-20261104/external-video-verification.json`
+and the accompanying browser/network records. These checks cover local output,
+not a Preview or Production deployment.
+
+On 2026-11-04, CT Pattern Atlas was registered as project 014 in the existing
+Google Drive and Registry workflow. Drive folder `014-ct-pattern-atlas` holds
+the intact offline `insight.html` and its byte-identical `card.jpg`. The draft
+version is `ct-pattern-atlas-draft-v1`; its explicit source-file mount was
+verified against Drive ancestry, sizes, MIME types and SHA-256 hashes. Dataset
+and Workflow use empty Placeholder records, without fabricated source files.
+
+The Registry compiler and installed Apps Script runtime accept HTML sources up
+to 48 MiB, while binary resources retain their 25 MiB limit. The page transport
+allows 64 MiB for the JSON envelope. Control-panel readers now use registered
+IDs rather than a fixed thirteen-row range. The existing backend Web App was
+updated to version 11 with the same URL and access settings.
+
+Validation compiled all fourteen projects in memory without activating a new
+snapshot. A local build of the cloud-validated CT bundle produced a 16,194-byte
+Insight with navigation, two Coming soon pages and the existing media bytes.
+Browser checks confirmed deferred video loading, successful playback after
+Play and Insight/Dataset/Workflow round-trip navigation. A bounded video request
+also verified HTTP 206 byte-range serving. The 119 relevant tests
+passed. The new project's Preview and Production selections remain false;
+no Netlify build hook or website deployment was requested. See
+`docs/evidence/ct-pattern-atlas-onboarding-20261104.json` and the local evidence
+directory recorded there for the verified source IDs and release-state checks.

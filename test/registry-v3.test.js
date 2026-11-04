@@ -18,6 +18,46 @@ test('sandbox rejects original Sheet, original root, Production hook and audienc
   for(const patch of [{spreadsheet_id:FORBIDDEN_SHEET},{drive_root_id:FORBIDDEN_ROOT},{production_hook:'secret'},{branch:'main'},{audience:'production'}])assert.throws(()=>compileRegistryV3({...input(),...patch},hash));
   assert.doesNotThrow(()=>assertSandbox(input()));
 });
+
+test('large offline HTML is accepted with bounded transport while binary resource limits stay unchanged',async()=>{
+  const a=input(),page=a.pages[0],largeHtml=html.replace('Core result','x'.repeat(38*1024*1024));
+  page.source.size=Buffer.byteLength(largeHtml);page.source.sha256=hash(largeHtml);
+  const snapshot=compileRegistryV3(a,hash),revision=snapshot.manifest.registry_revision;
+  const getJson=async(address,label,maxBytes)=>{
+    const url=new URL(address),id=url.searchParams.get('id');
+    if(url.searchParams.get('action')==='manifest')return {ok:true,...snapshot.manifest};
+    const response={ok:true,id,registry_instance:'test-registry',registry_revision:revision,html:largeHtml};
+    assert.ok(Buffer.byteLength(JSON.stringify(response))<maxBytes);
+    return response;
+  };
+  const registry=await loadV3Registry('https://example.com/exec',policy,getJson,revision,{AIS_REGISTRY_INSTANCE:'test-registry'});
+  assert.equal((await registry.getHtml(page.page_id,revision)).html,largeHtml);
+  page.source.size=48*1024*1024+1;
+  assert.throws(()=>compileRegistryV3(a,hash),/invalid file size/);
+});
+
+test('an Insight-only project renders Dataset and Workflow placeholders without fetching absent files',async()=>{
+  const a=input();
+  a.pages.filter(p=>p.role==='workflow').forEach(p=>{p.state='Placeholder';p.source=null;});
+  const snapshot=compileRegistryV3(a,hash),revision=snapshot.manifest.registry_revision,calls=[];
+  const getJson=async address=>{
+    const url=new URL(address),id=url.searchParams.get('id');
+    if(url.searchParams.get('action')==='manifest')return {ok:true,...snapshot.manifest};
+    calls.push(id);assert.ok(id.endsWith('insight'));
+    return {ok:true,id,registry_instance:'test-registry',registry_revision:revision,html};
+  };
+  const registry=await loadV3Registry('https://example.com/exec',policy,getJson,revision,{AIS_REGISTRY_INSTANCE:'test-registry'});
+  const pages=await registry.getProjectPages(snapshot.manifest.demos,revision);
+  assert.equal(calls.length,2);
+  for(const output of pages.values())for(const role of ['dataset','workflow']){
+    const content=output.find(p=>p.path.endsWith(role+'.html')).html;
+    assert.match(content,new RegExp('data-'+role+'-state="pending"'));
+    assert.match(content,/Content coming soon\./);assert.match(content,/href="index.html"/);
+    assert.doesNotMatch(content,/__PAGE_|__PROJECT_NAME__/);
+  }
+  a.pages[0].state='Placeholder';a.pages[0].source=null;
+  assert.throws(()=>compileRegistryV3(a,hash),/only Dataset or Workflow/);
+});
 test('deterministic revision binds Workflow, metadata, Placeholder and resource content',()=>{
   const a=input(),first=compileRegistryV3(a,hash);a.projects.reverse();a.pages.reverse();a.versions.reverse();
   assert.equal(compileRegistryV3(a,hash).manifest.registry_revision,first.manifest.registry_revision);

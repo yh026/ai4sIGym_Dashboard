@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en"><head><title>CT fixture</title></head><body>
+<!-- Synthetic media verifies byte extraction, not codec support. -->
+<h1>What Patterns Repeat Across CT Scans?</h1>
+<p>Retained narrative and CT/MRI alignment goal.</p>
+<video id="film" playsinline preload="metadata" poster="data:image/jpeg;base64,/9j/4AAEQ1T/2Q==" aria-label="Concept film"></video>
+<button id="play" type="button">Play the film</button>
+<p id="status" hidden>Preparing the film…</p>
+<script type="application/json" id="scientific-data">{ "points": [1, 2.50, -3], "text": "retain exact spacing" }</script>
+<script id="theme-control">window.themeControlRetained = true;</script>
+<script type="application/octet-stream" data-video-chunk>AAAAGGZ0eXBjdC0=</script>
+<script type="application/octet-stream" data-video-chunk>dmlkZW8tYnk=</script>
+<script type="application/octet-stream" data-video-chunk>dGUtc2VxdWVuY2U=</script>
+<script>
+// page.js: the film lives in this file as base64 chunks (<script data-video-chunk>). Soon after the page loads they are
+// turned back into one Blob, so pressing play starts at once and seeking works as with a normal video file.
+(() => {
+  const video = document.getElementById('film');
+  const button = document.getElementById('play');
+  const status = document.getElementById('status');
+  const chunks = [...document.querySelectorAll('script[data-video-chunk]')];
+  const decode = b64 => {
+    const bin = atob(b64), out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  };
+  const pause = () => new Promise(r => setTimeout(r, 0));
+  async function prepare() {
+    const parts = [];
+    for (const el of chunks) { parts.push(decode(el.textContent.trim())); await pause(); }
+    video.src = URL.createObjectURL(new Blob(parts, { type: 'video/mp4' }));
+  }
+  const ready = new Promise(r => window.addEventListener('load', r, { once: true })).then(pause).then(prepare);
+  button.addEventListener('click', () => {
+    button.hidden = true;
+    video.controls = true;
+    if (video.src) { video.play().catch(() => {}); return; }
+    status.hidden = false;
+    ready.then(() => { status.hidden = true; video.play().catch(() => {}); })
+      .catch(() => { status.textContent = 'The film could not be loaded in this browser.'; });
+  });
+  video.addEventListener('play', () => { button.hidden = true; });
+})();
+
+</script>
+</body></html>

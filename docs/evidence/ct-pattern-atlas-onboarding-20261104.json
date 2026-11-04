@@ -1,0 +1,128 @@
+{
+  "date": "2026-11-04",
+  "scope": "CT Pattern Atlas backend, Drive and Sheets onboarding; no Netlify Preview or Production publication",
+  "project_number": "014",
+  "demo_id": "demo-ct-pattern-atlas",
+  "slug": "ct-pattern-atlas",
+  "version_id": "ct-pattern-atlas-draft-v1",
+  "spreadsheet_id": "1LIoR1wJKW-qqaGLePnrQCmqz3YWatPWwZNtrLkEajXI",
+  "drive_folder_id": "129hppIm1gAnpkUoZqitriSqGpt-Sx4E_",
+  "sources": [
+    {
+      "role": "insight",
+      "file_id": "1y1BKXAdTyOEXwQ33U7A_H9WXeUzVaXf9",
+      "sha256": "d9cf95fbd6475bd4557319e5e3bcb0b38644cf805d0f871310dbe3e2fa98bc45",
+      "size": 38062080,
+      "mime_type": "text/html",
+      "modified_at": "2026-11-04T09:16:52.651Z",
+      "parent_path": "projects/ct-pattern-atlas/ct-pattern-atlas-draft-v1"
+    },
+    {
+      "role": "card",
+      "file_id": "1PjtJ2iCA-RXGQ91J5S-wxfdn0zKrb1Ej",
+      "sha256": "af6bd3e715f2ee2b0aca40abb7b385afc2be3e144f75e1a0e624b0ace5dc7346",
+      "size": 117674,
+      "mime_type": "image/jpeg",
+      "modified_at": "2026-11-04T09:17:12.375Z",
+      "parent_path": "projects/ct-pattern-atlas/ct-pattern-atlas-draft-v1"
+    }
+  ],
+  "page_states": {
+    "dataset": "Placeholder",
+    "insight": "Ready",
+    "workflow": "Placeholder"
+  },
+  "backend": {
+    "script_id": "13vUF9owEebxyjfuHzvMN6Cp3dI9zAQrdkkYCLrS-Syb1abkyeTbuKsy9",
+    "web_app_version": 11,
+    "deployment_id": "AKfycby71GLxU5iUjhhP_skyvCRk5VHyM1sAK6wLd7Guy_C5xP3eLCwgOrmXXbdnKxrl-20T",
+    "same_url_and_access": true,
+    "html_max_bytes": 50331648,
+    "binary_resource_max_bytes": 26214400,
+    "outputs": {
+      "Code.gs": "f48075f8f177c42dfd49d56bacf331b181531e8ccb518595a112b675d6d7046f",
+      "RegistryUi.gs": "7245169cb7e8af8fe39781a6e24e111e0be290fc5c6fba1abbbb33ca19fa62f0",
+      "ManualRelease.gs": "9808c7ca3344bf418f09abfd905819fb02393fd0a6ebd640c0436db2fb2edec4"
+    }
+  },
+  "checks": {
+    "relevant_tests_passed": 119,
+    "cloud_validation_ok": true,
+    "cloud_project_count": 14,
+    "cloud_registry_revision": "sha256:9b9c71ad281f93f8f114a914bb96b4dfbc15967c62a840996fb44043ac04f851",
+    "bundle_digest": "sha256:23c40b21c84556af146804506b9dd88b359edc9782cc95ef30fd00351d630360",
+    "sheet": {
+      "oldCellsChecked": 325,
+      "oldValueChanges": [],
+      "formulaErrors": [],
+      "includeProduction": {
+        "boolValue": false
+      },
+      "includePreview": {
+        "boolValue": false
+      },
+      "checkboxNativeTypes": {
+        "includeProduction": "BOOLEAN",
+        "includePreview": "BOOLEAN"
+      }
+    },
+    "local_files": [
+      {
+        "path": "demos/ct-pattern-atlas/dataset.html",
+        "bytes": 4036
+      },
+      {
+        "path": "demos/ct-pattern-atlas/index.html",
+        "bytes": 16194
+      },
+      {
+        "path": "demos/ct-pattern-atlas/workflow.html",
+        "bytes": 4048
+      },
+      {
+        "path": "assets/cards/ct-pattern-atlas.jpg",
+        "bytes": 117674
+      }
+    ],
+    "browser": {
+      "beforePlay": {
+        "paused": true,
+        "source": "/assets/embedded/875bd2f6aaf6748febcc86463c1e951511cd0b9089cddb9a5842374c613398ec.mp4",
+        "src": null
+      },
+      "playing": {
+        "currentTime": 12.002029,
+        "error": null,
+        "paused": false,
+        "preload": "none",
+        "readyState": 4
+      }
+    },
+    "navigation": "Insight -> Dataset -> Workflow -> Insight verified",
+    "range_probe": {
+      "status": 206,
+      "range": "bytes 0-1023/28418149",
+      "bytes": 1024
+    }
+  },
+  "publication": {
+    "include_preview": false,
+    "include_production": false,
+    "snapshot_activated": false,
+    "build_hook_requested": false,
+    "release_state_unchanged": true,
+    "status": {
+      "preview_phase": "ready",
+      "preview_deploy": "6aeac8fa8c04d0698e9dfa80",
+      "preview_request": "f5417f79-949f-4038-8d1c-57114d327b53",
+      "production_phase": "succeeded",
+      "production_request": "1bc8c407-9c15-4cc8-80d7-4480edb8c9d1",
+      "production_capsule": "b5a552fc-1797-4852-88bc-13c24b517829",
+      "preview_capsule": "cf4bb949-192f-4dff-8146-872edebba91b",
+      "snapshot_file": "1Y6H0sRWmM3PPkzR2hicy-m_kODFT20c7",
+      "automation": "off",
+      "triggers": 0
+    }
+  },
+  "evidence_directory": ".local/reports/ct-pattern-atlas-onboarding-20261104"
+}

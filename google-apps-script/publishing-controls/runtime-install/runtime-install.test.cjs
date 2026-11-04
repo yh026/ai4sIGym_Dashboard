@@ -56,6 +56,15 @@ test('runtime is deterministic and every output is covered by a byte digest', ()
   assert.doesNotMatch(JSON.stringify(first.manifest), /\/Users\/|\.local\//);
 });
 
+test('the Apps Script compiler matches the website compiler including large HTML and placeholder support',()=>{
+  const {context}=runtime();
+  const node=require('../../../lib/registry-v3');
+  assert.equal(context.V3.sourceSizeLimit('text/html'),node.sourceSizeLimit('text/html'));
+  assert.equal(context.V3.sourceSizeLimit('video/mp4'),25*1024*1024);
+  const core=buildRuntime().files['Code.gs'];
+  assert.ok(core.includes(fs.readFileSync(path.join(root,'../../lib/registry-v3.js'),'utf8').trim()));
+});
+
 test('assembled public Review and Confirm functions call the manual release adapter', () => {
   const {context} = runtime(), calls = [];
   context.registryManualReviewProduction = () => { calls.push('review'); return {phase: 'preparing'}; };
