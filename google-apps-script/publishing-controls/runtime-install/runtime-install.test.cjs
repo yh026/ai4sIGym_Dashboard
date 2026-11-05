@@ -60,7 +60,8 @@ test('the Apps Script compiler matches the website compiler including large HTML
   const {context}=runtime();
   const node=require('../../../lib/registry-v3');
   assert.equal(context.V3.sourceSizeLimit('text/html'),node.sourceSizeLimit('text/html'));
-  assert.equal(context.V3.sourceSizeLimit('video/mp4'),25*1024*1024);
+  assert.equal(context.V3.sourceSizeLimit('video/mp4'),node.sourceSizeLimit('video/mp4'));
+  assert.equal(context.V3.sourceSizeLimit('application/octet-stream'),25*1024*1024);
   const core=buildRuntime().files['Code.gs'];
   assert.ok(core.includes(fs.readFileSync(path.join(root,'../../lib/registry-v3.js'),'utf8').trim()));
 });

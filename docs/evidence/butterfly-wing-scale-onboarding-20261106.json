@@ -1,0 +1,258 @@
+{
+  "date": "2026-11-06",
+  "scope": "Butterfly Wing Scale Drive, Sheets and Apps Script onboarding; no website publication",
+  "project_number": "015",
+  "demo_id": "demo-butterfly-wing-scale",
+  "slug": "butterfly-wing-scale",
+  "version_id": "butterfly-wing-scale-draft-v1",
+  "spreadsheet_id": "1LIoR1wJKW-qqaGLePnrQCmqz3YWatPWwZNtrLkEajXI",
+  "drive_folder_id": "1uyIP6378VrttSWbNLiYQlMqueS2a1OWV",
+  "sources": [
+    {
+      "id": "1M8Z5oJ1i17L5PTNMw-LWHjQJjV5XbPnR",
+      "name": "butterfly_wing_scale_poster.jpg",
+      "size": 36719,
+      "mime": "image/jpeg",
+      "sha256": "6d9898d0e21911ff33734d01c712fbaf7b0a7ae84f8e9dbd558fb1acd4b6af52",
+      "modified_at": "2026-11-05T18:57:23.831Z",
+      "parent_path": "projects/butterfly-wing-scale/butterfly-wing-scale-draft-v1/resources"
+    },
+    {
+      "id": "1_A4HVU0qrrM3Kvse0cQrf__uyJAZoc-o",
+      "name": "wing_scale_reference.npy",
+      "size": 80128,
+      "mime": "application/octet-stream",
+      "sha256": "98473c7f54a97d06cc7828f635d056d989b4767d7037b3ba44f7729607a8e918",
+      "modified_at": "2026-11-05T18:54:35.030Z",
+      "parent_path": "projects/butterfly-wing-scale/butterfly-wing-scale-draft-v1/resources"
+    },
+    {
+      "id": "1kfjbXOnfWqbtcm28PxSiCvkLZvE9tb8v",
+      "name": "wing_scale_volume.npy",
+      "size": 5600128,
+      "mime": "application/octet-stream",
+      "sha256": "cddd1c347895af8dd403b4b99c39f70a78f4cc74aa5ea3cb7bcff8c05fece28a",
+      "modified_at": "2026-11-05T18:54:29.980Z",
+      "parent_path": "projects/butterfly-wing-scale/butterfly-wing-scale-draft-v1/resources"
+    },
+    {
+      "id": "1uYiGEDElnGpkyy2-VJapVeq_c4qITCaK",
+      "name": "workflow.html",
+      "size": 1951963,
+      "mime": "text/html",
+      "sha256": "edad87c0cbad2faa7317461f773af6260b8a25e3a00040a1d299df525b037985",
+      "modified_at": "2026-11-05T18:54:21.060Z",
+      "parent_path": "projects/butterfly-wing-scale/butterfly-wing-scale-draft-v1"
+    },
+    {
+      "id": "1T37IUoktfidvjpf7mw2o7DDTuGwG6KW6",
+      "name": "dataset.html",
+      "size": 3485737,
+      "mime": "text/html",
+      "sha256": "00ce42d57a84b41112b30ebf6a196e11c055b32d1c495dd751ce8c6be779569b",
+      "modified_at": "2026-11-05T18:54:15.585Z",
+      "parent_path": "datasets/butterfly-wing-scale/v1"
+    },
+    {
+      "id": "1Hdw5J0VdIK7pWWoKX7vRMGd3U43JugTm",
+      "name": "insight.html",
+      "size": 1764481,
+      "mime": "text/html",
+      "sha256": "73ff197c2388b8fa08549184221ae1c5a2dce9f8d80ff106b8a2b0f80c492a45",
+      "modified_at": "2026-11-05T18:54:09.639Z",
+      "parent_path": "projects/butterfly-wing-scale/butterfly-wing-scale-draft-v1"
+    },
+    {
+      "id": "1J4ggetBA-aeZ1LiPLNlVSStgdaqGCSpn",
+      "name": "card.jpg",
+      "size": 36719,
+      "mime": "image/jpeg",
+      "sha256": "6d9898d0e21911ff33734d01c712fbaf7b0a7ae84f8e9dbd558fb1acd4b6af52",
+      "modified_at": "2026-11-05T18:51:32.499Z",
+      "parent_path": "projects/butterfly-wing-scale/butterfly-wing-scale-draft-v1"
+    },
+    {
+      "id": "1RPuvCfnIblhmH7d-nTuwLJaeeohWFs4J",
+      "name": "butterfly_wing_scale.mp4",
+      "size": 98482484,
+      "mime": "video/mp4",
+      "sha256": "455a884a03caf405fe2d26f4259d11cf46b563d48e2bcafbf5261576320984ec",
+      "modified_at": "2026-11-05T18:50:32.818Z",
+      "parent_path": "projects/butterfly-wing-scale/butterfly-wing-scale-draft-v1/resources"
+    }
+  ],
+  "page_states": {
+    "dataset": "Ready",
+    "insight": "Ready",
+    "workflow": "Ready"
+  },
+  "backend": {
+    "script_id": "13vUF9owEebxyjfuHzvMN6Cp3dI9zAQrdkkYCLrS-Syb1abkyeTbuKsy9",
+    "web_app_version": 12,
+    "deployment_id": "AKfycby71GLxU5iUjhhP_skyvCRk5VHyM1sAK6wLd7Guy_C5xP3eLCwgOrmXXbdnKxrl-20T",
+    "same_url_and_access": true,
+    "outputs": {
+      "Code.gs": {
+        "bytes": 172805,
+        "sha256": "545c7a9e3215aec4188f7406567388c72883558ef0b20a751f2df7ee987a62e2"
+      },
+      "RegistryUi.gs": {
+        "bytes": 76516,
+        "sha256": "7245169cb7e8af8fe39781a6e24e111e0be290fc5c6fba1abbbb33ca19fa62f0"
+      },
+      "ManualRelease.gs": {
+        "bytes": 52502,
+        "sha256": "9808c7ca3344bf418f09abfd905819fb02393fd0a6ebd640c0436db2fb2edec4"
+      }
+    },
+    "video_max_bytes": 134217728,
+    "video_chunk_bytes": 8388608,
+    "html_max_bytes": 50331648,
+    "other_resource_max_bytes": 26214400,
+    "mount_config_bytes": 9474,
+    "mount_stored_bytes": 5062,
+    "mount_backup_file": "1SqjZQZEVAJydJQE35E7uco_yk0iDt4Ni"
+  },
+  "checks": {
+    "full_suite_passed": 847,
+    "runtime_bundle_tests_passed": 19,
+    "cloud_validation_ok": true,
+    "cloud_project_count": 15,
+    "cloud_registry_revision": "sha256:1e974d54306491ac77173325f0ab20c42049157183f182d8e89f46aa787a0e7b",
+    "bundle_digest": "sha256:02e4b90addc9cdfb99ed2dc303491ca26d2669a5bca86d144794192a17bca27e",
+    "sheet": {
+      "existing_cells_checked": 3204,
+      "unexpected_existing_cell_changes": [],
+      "new_row_formula_errors": []
+    },
+    "browser": {
+      "insight": {
+        "nav": [
+          {
+            "text": "\u2190Dataset",
+            "url": "dataset.html#overview"
+          },
+          {
+            "text": "Workflow\u2192",
+            "url": "workflow.html"
+          }
+        ],
+        "overflow": false,
+        "title": "Four clusters are not four structures \u00b7 Insight",
+        "video": [
+          {
+            "duration": 352.366667,
+            "error": null,
+            "paused": true,
+            "readyState": 4,
+            "src": "http://127.0.0.1:63993/demos/butterfly-wing-scale/resources/media/butterfly_wing_scale.mp4"
+          }
+        ]
+      },
+      "dataset": {
+        "downloads": [
+          {
+            "text": "Download the volume \u2193",
+            "url": "http://127.0.0.1:63993/demos/butterfly-wing-scale/resources/downloads/wing_scale_volume.npy"
+          },
+          {
+            "text": "Download the reference segmentation \u2193",
+            "url": "http://127.0.0.1:63993/demos/butterfly-wing-scale/resources/downloads/wing_scale_reference.npy"
+          }
+        ],
+        "nav": [
+          {
+            "text": "\u2190Insight",
+            "url": "index.html"
+          },
+          {
+            "text": "Workflow\u2192",
+            "url": "workflow.html"
+          }
+        ],
+        "overflow": false,
+        "title": "Butterfly wing scale \u00b7 Dataset"
+      },
+      "workflow": {
+        "nav": [
+          {
+            "text": "\u2190Insight",
+            "url": "index.html"
+          },
+          {
+            "text": "Dataset\u2192",
+            "url": "dataset.html#overview"
+          }
+        ],
+        "overflow": false,
+        "title": "Segmenting a butterfly wing scale \u00b7 Workflow"
+      },
+      "video": {
+        "currentTime": 36.006845,
+        "duration": 352.366667,
+        "error": null,
+        "paused": false,
+        "readyState": 4
+      },
+      "navigation": "Insight -> Dataset -> Workflow -> Insight"
+    },
+    "http": [
+      {
+        "file": "butterfly_wing_scale.mp4",
+        "status": 206,
+        "range": "bytes 0-1023/98482484",
+        "size": 1024
+      },
+      {
+        "file": "wing_scale_volume.npy",
+        "status": 200,
+        "bytes": 5600128,
+        "sha256": "cddd1c347895af8dd403b4b99c39f70a78f4cc74aa5ea3cb7bcff8c05fece28a",
+        "content_type": "application/octet-stream"
+      },
+      {
+        "file": "wing_scale_reference.npy",
+        "status": 200,
+        "bytes": 80128,
+        "sha256": "98473c7f54a97d06cc7828f635d056d989b4767d7037b3ba44f7729607a8e918",
+        "content_type": "application/octet-stream"
+      }
+    ],
+    "live_video_ranges_match_original": [
+      {
+        "offset": 0,
+        "size": 8388608,
+        "sha256": "6744c13cf208551d8caf00f80a11338f78a486f7b66a09917b675fed2ff6ab4f"
+      },
+      {
+        "offset": 92274688,
+        "size": 6207796,
+        "sha256": "5587848b431a40af68aa34283e7b49807acf49741971169f00d0ec71862a8907"
+      }
+    ],
+    "original_files_preserved": 7,
+    "local_bundle_matches_cloud": true
+  },
+  "publication": {
+    "include_preview": false,
+    "include_production": false,
+    "snapshot_activated": false,
+    "build_hook_requested": false,
+    "release_state_unchanged": true,
+    "status": {
+      "preview_phase": "ready",
+      "preview_deploy": "6aeb4008a24e4925b63dc559",
+      "preview_request": "b9790bd1-5ebe-4785-a037-23a6578f9bde",
+      "production_phase": "succeeded",
+      "production_request": "f680ab78-6c8a-42c1-906f-f191b53a6065",
+      "production_capsule": "e64f232f-9fe7-4882-8ffc-e6ad5c1d41c3",
+      "preview_capsule": "9db580b2-a983-4156-b3bf-1703cbc02d68",
+      "snapshot_file": "1_r-Q4uhkIMqTnb0jdm2BmT1eRMKXsV8p",
+      "automation": "off",
+      "triggers": 0
+    },
+    "git_pushed": false
+  },
+  "follow_up_before_website_publication": "Integrate the local registry-v3 client/compiler changes into the website build branch before selecting this 98 MB video project for Preview. Then validate the resulting Preview before any Production confirmation.",
+  "evidence_directory": ".local/reports/butterfly-wing-scale-onboarding-20261106"
+}

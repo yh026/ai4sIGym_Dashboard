@@ -2088,7 +2088,10 @@ const SHA = /^[a-f0-9]{64}$/;
 const ROLES = ['insight', 'dataset', 'workflow', 'legacy', 'resource_page'];
 const MAX_HTML_SOURCE_BYTES = 48 * 1024 * 1024;
 const MAX_RESOURCE_SOURCE_BYTES = 25 * 1024 * 1024;
-const sourceSizeLimit = mime => mime === 'text/html' ? MAX_HTML_SOURCE_BYTES : MAX_RESOURCE_SOURCE_BYTES;
+const MAX_VIDEO_SOURCE_BYTES = 128 * 1024 * 1024;
+const VIDEO_CHUNK_BYTES = 8 * 1024 * 1024;
+const sourceSizeLimit = mime => mime === 'text/html' ? MAX_HTML_SOURCE_BYTES
+  : mime === 'video/mp4' ? MAX_VIDEO_SOURCE_BYTES : MAX_RESOURCE_SOURCE_BYTES;
 const FORBIDDEN_SHEET = '1oRs8xrszKqbJwQuVQGGOm21aC6aTXPPPrwoys6VSijE';
 const FORBIDDEN_ROOT = '1TNFstSJC4xqz7mcZx9qyKvicwTtlqoHH';
 
@@ -2201,7 +2204,7 @@ function compileRegistryV3(input, hash) {
     else need(roles.size === 1 && roles.has('legacy'), 'single-page version requires legacy only');
     const attached = [...resources.values()].filter(r => r.version_id === pointer).map(r => {
       acceptRoute(r.route); need(r.route.startsWith(base + 'resources/') || r.role === 'card', 'resource outside project resources');
-      need(/\.(?:ipynb|zip|json|csv|txt|md|jpe?g|png|webp|mp4)$/.test(r.route), 'unsupported resource type');
+      need(/\.(?:ipynb|zip|json|csv|txt|md|jpe?g|png|webp|mp4|npy)$/.test(r.route), 'unsupported resource type');
       if (r.role === 'card') need(/^assets\/cards\/[a-z0-9-]+\.(?:jpe?g|png|webp)$/.test(r.route), 'invalid card route');
       const source = sourceDescriptor(r.source, false);
       const resourceFolder = sourceFolder + '/resources';
@@ -2250,7 +2253,8 @@ function authorizedFile(snapshot, id, audience, revision) {
 }
 
 module.exports = { stable, safeRoute, assertSandbox, compileRegistryV3, authorizedFile,
-  sourceDescriptor, sourceSizeLimit, MAX_HTML_SOURCE_BYTES, MAX_RESOURCE_SOURCE_BYTES, FORBIDDEN_ROOT, FORBIDDEN_SHEET };
+  sourceDescriptor, sourceSizeLimit, MAX_HTML_SOURCE_BYTES, MAX_RESOURCE_SOURCE_BYTES,
+  MAX_VIDEO_SOURCE_BYTES, VIDEO_CHUNK_BYTES, FORBIDDEN_ROOT, FORBIDDEN_SHEET };
 
 return module.exports;})();
 /** Independent V3 sandbox. This file is bundled with the tested pure compilers.
@@ -2307,10 +2311,45 @@ function sourceBinding_(id){
   return {file:f,parent_path:sourceParentPath_(f)};
 }
 function sourceFile_(id){return sourceBinding_(id).file;}
+function driveVideoMetadata_(id){
+  var response=UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(id)+'?fields=id,size,mimeType,modifiedTime,sha256Checksum,trashed&supportsAllDrives=true',{
+    headers:{Authorization:'Bearer '+ScriptApp.getOAuthToken()},muteHttpExceptions:true,followRedirects:false});
+  if(response.getResponseCode()!==200)throw new Error('Video metadata unavailable');
+  var data=JSON.parse(response.getContentText());
+  if(data.id!==id||data.trashed||data.mimeType!=='video/mp4'||!/^[a-f0-9]{64}$/.test(data.sha256Checksum||'')
+    ||!Number.isSafeInteger(Number(data.size))||Number(data.size)<=0||Number(data.size)>V3.MAX_VIDEO_SOURCE_BYTES
+    ||!Number.isFinite(Date.parse(data.modifiedTime)))throw new Error('Invalid video metadata');
+  return {sha256:data.sha256Checksum,size:Number(data.size),mime_type:data.mimeType,modified_at:data.modifiedTime};
+}
+function readVideoChunk_(descriptor,offset){
+  if(!/^(0|[1-9][0-9]*)$/.test(String(offset)))throw new Error('Video chunk offset required');
+  var start=Number(offset),size=descriptor.size;
+  if(descriptor.mime_type!=='video/mp4'||size<=V3.MAX_RESOURCE_SOURCE_BYTES||size>V3.MAX_VIDEO_SOURCE_BYTES
+    ||!Number.isSafeInteger(start)||start>=size||start%V3.VIDEO_CHUNK_BYTES!==0)throw new Error('Invalid video chunk offset');
+  var metadata=driveVideoMetadata_(descriptor.file_id);
+  if(metadata.sha256!==descriptor.sha256||metadata.size!==size||metadata.modified_at!==descriptor.modified_at)throw new Error('Video source changed');
+  var end=Math.min(start+V3.VIDEO_CHUNK_BYTES,size)-1;
+  var response=UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(descriptor.file_id)+'?alt=media&supportsAllDrives=true',{
+    headers:{Authorization:'Bearer '+ScriptApp.getOAuthToken(),Range:'bytes='+start+'-'+end,'Accept-Encoding':'identity'},
+    muteHttpExceptions:true,followRedirects:false});
+  if(response.getResponseCode()!==206)throw new Error('Video range request failed');
+  var headers=response.getAllHeaders(),range='';
+  Object.keys(headers).forEach(function(key){if(key.toLowerCase()==='content-range')range=String(headers[key]);});
+  if(range!=='bytes '+start+'-'+end+'/'+size)throw new Error('Video range response mismatch');
+  var bytes=response.getBlob().getBytes();
+  if(bytes.length!==end-start+1)throw new Error('Video chunk size changed');
+  assertStamp_(descriptor);
+  return {offset:start,total_size:size,source_sha256:descriptor.sha256,sha256:hash_(bytes),base64:Utilities.base64Encode(bytes)};
+}
 function source_(id,previous){
   var binding=sourceBinding_(id),f=binding.file,stamp=f.getLastUpdated().toISOString(),size=f.getSize(),mime=f.getMimeType(),parent=binding.parent_path;
   if(previous && previous.modified_at===stamp && previous.size===size && previous.mime_type===mime && previous.parent_path===parent)return Object.assign({in_scope:true},previous);
   if(!size||size>V3.sourceSizeLimit(mime))throw new Error('Source size out of range');
+  if(mime==='video/mp4'&&size>V3.MAX_RESOURCE_SOURCE_BYTES){
+    var metadata=driveVideoMetadata_(id);
+    if(metadata.modified_at!==stamp||metadata.size!==size||f.getLastUpdated().toISOString()!==stamp||f.getSize()!==size)throw new Error('Source changed during read');
+    return {in_scope:true,file_id:id,modified_at:stamp,size:size,mime_type:mime,sha256:metadata.sha256,parent_path:parent};
+  }
   var blob=f.getBlob(),bytes=blob.getBytes();if(bytes.length!==size)throw new Error('Source changed during read');
   if(mime==='text/html'){var html=blob.getDataAsString('UTF-8');if(!/<head\b/i.test(html)||!/<body\b/i.test(html)||!/<\/body>/i.test(html))throw new Error('Incomplete HTML source');}
   if(f.getLastUpdated().toISOString()!==stamp||f.getSize()!==size)throw new Error('Source changed during read');
@@ -2447,9 +2486,12 @@ function doGet(e){try{
   if(!['page','resource'].includes(q.action))throw new Error('Unknown action');
   var f=V3.authorizedFile(snapshot,q.id,q.audience,q.registry_revision);
   if((q.action==='page')!==(f.kind==='page'))throw new Error('Wrong file role');
-  var driveFile=assertStamp_(f),blob=driveFile.getBlob(),bytes=blob.getBytes();
-  if(hash_(bytes)!==f.sha256||bytes.length!==f.size)throw new Error('Source hash changed');assertStamp_(f);
+  var driveFile=assertStamp_(f);
   var response={ok:true,id:f.id,registry_instance:SANDBOX.registry_instance,registry_revision:snapshot.manifest.registry_revision};
+  if(f.kind==='resource'&&f.mime_type==='video/mp4'&&f.size>V3.MAX_RESOURCE_SOURCE_BYTES)return json_(Object.assign(response,readVideoChunk_(f,q.offset)));
+  if(q.offset!==undefined)throw new Error('Chunk offset is only supported for large videos');
+  var blob=driveFile.getBlob(),bytes=blob.getBytes();
+  if(hash_(bytes)!==f.sha256||bytes.length!==f.size)throw new Error('Source hash changed');assertStamp_(f);
   if(f.kind==='page')response.html=blob.getDataAsString('UTF-8');else response.base64=Utilities.base64Encode(bytes);
   return json_(response);
 }catch(error){return json_({ok:false,error:String(error.message).slice(0,400)});}}
@@ -2509,12 +2551,34 @@ function disableSandboxAutomation(){sandboxGuard_();ScriptApp.getProjectTriggers
 
 /** Map verified physical project folders to unchanged logical V3 paths. */
 function projectMounts_() {
-  var config = JSON.parse(PropertiesService.getScriptProperties().getProperty('AIS_PROJECT_MOUNTS_V1') || '{}');
+  var config = decodeProjectMounts_(PropertiesService.getScriptProperties().getProperty('AIS_PROJECT_MOUNTS_V1') || '{}');
   if (!config || typeof config !== 'object' || Array.isArray(config)) throw new Error('Invalid project mount configuration');
   if (config.schema !== undefined && config.schema !== 1 && config.schema !== 2 && config.schema !== 3) throw new Error('Unsupported project mount schema');
   if (config.schema === 2) validateCategoryMounts_(config);
   if (config.schema === 3) validateFlatMounts_(config);
   return config;
+}
+/** Preserve one atomic property while allowing the explicit file index to grow.
+ * Only configuration JSON is compressed; source file bytes are never changed. */
+function decodeProjectMounts_(encoded) {
+  var value = JSON.parse(encoded);
+  if (value && value.encoding !== undefined) {
+    if (value.encoding !== 'gzip-base64-v1' || typeof value.payload !== 'string'
+      || value.payload.length > 12000 || !/^[a-f0-9]{64}$/.test(value.sha256 || '')) throw new Error('Invalid encoded project mounts');
+    var text = Utilities.ungzip(Utilities.newBlob(Utilities.base64Decode(value.payload), 'application/gzip')).getDataAsString('UTF-8');
+    if (Utilities.newBlob(text).getBytes().length > 256 * 1024 || hash_(text) !== value.sha256) throw new Error('Project mount integrity check failed');
+    value = JSON.parse(text);
+    if (!value || value.encoding !== undefined) throw new Error('Invalid nested project mount encoding');
+  }
+  return value;
+}
+function encodeProjectMounts_(config) {
+  var text = JSON.stringify(config), blob = Utilities.newBlob(text), size = blob.getBytes().length;
+  if (size > 256 * 1024) throw new Error('Project mount configuration exceeds decoded size limit');
+  var encoded = size <= 9000 ? text : JSON.stringify({encoding:'gzip-base64-v1',sha256:hash_(text),
+    payload:Utilities.base64Encode(Utilities.gzip(blob).getBytes())});
+  if (Utilities.newBlob(encoded).getBytes().length > 9000) throw new Error('Project mount configuration exceeds property capacity');
+  return encoded;
 }
 function oneParent_(entry) {
   var it = entry.getParents();

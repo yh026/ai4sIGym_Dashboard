@@ -1,11 +1,33 @@
 /** Map verified physical project folders to unchanged logical V3 paths. */
 function projectMounts_() {
-  var config = JSON.parse(PropertiesService.getScriptProperties().getProperty('AIS_PROJECT_MOUNTS_V1') || '{}');
+  var config = decodeProjectMounts_(PropertiesService.getScriptProperties().getProperty('AIS_PROJECT_MOUNTS_V1') || '{}');
   if (!config || typeof config !== 'object' || Array.isArray(config)) throw new Error('Invalid project mount configuration');
   if (config.schema !== undefined && config.schema !== 1 && config.schema !== 2 && config.schema !== 3) throw new Error('Unsupported project mount schema');
   if (config.schema === 2) validateCategoryMounts_(config);
   if (config.schema === 3) validateFlatMounts_(config);
   return config;
+}
+/** Preserve one atomic property while allowing the explicit file index to grow.
+ * Only configuration JSON is compressed; source file bytes are never changed. */
+function decodeProjectMounts_(encoded) {
+  var value = JSON.parse(encoded);
+  if (value && value.encoding !== undefined) {
+    if (value.encoding !== 'gzip-base64-v1' || typeof value.payload !== 'string'
+      || value.payload.length > 12000 || !/^[a-f0-9]{64}$/.test(value.sha256 || '')) throw new Error('Invalid encoded project mounts');
+    var text = Utilities.ungzip(Utilities.newBlob(Utilities.base64Decode(value.payload), 'application/gzip')).getDataAsString('UTF-8');
+    if (Utilities.newBlob(text).getBytes().length > 256 * 1024 || hash_(text) !== value.sha256) throw new Error('Project mount integrity check failed');
+    value = JSON.parse(text);
+    if (!value || value.encoding !== undefined) throw new Error('Invalid nested project mount encoding');
+  }
+  return value;
+}
+function encodeProjectMounts_(config) {
+  var text = JSON.stringify(config), blob = Utilities.newBlob(text), size = blob.getBytes().length;
+  if (size > 256 * 1024) throw new Error('Project mount configuration exceeds decoded size limit');
+  var encoded = size <= 9000 ? text : JSON.stringify({encoding:'gzip-base64-v1',sha256:hash_(text),
+    payload:Utilities.base64Encode(Utilities.gzip(blob).getBytes())});
+  if (Utilities.newBlob(encoded).getBytes().length > 9000) throw new Error('Project mount configuration exceeds property capacity');
+  return encoded;
 }
 function oneParent_(entry) {
   var it = entry.getParents();

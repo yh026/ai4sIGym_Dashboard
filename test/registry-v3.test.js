@@ -150,7 +150,7 @@ test('MP4 resources retain exact bytes within their project and bound size',asyn
   const registry=await loadV3Registry('https://example.com/exec?token=test',policy,getJson,revision,{AIS_REGISTRY_INSTANCE:'test-registry'});
   const pages=await registry.getProjectPages(snapshot.manifest.demos,revision);
   assert.deepEqual(pages.get('battery-a').find(p=>p.path===resource.route).bytes,video);
-  resource.source.size=25*1024*1024+1;
+  resource.source.size=128*1024*1024+1;
   assert.throws(()=>compileRegistryV3(a,hash),/invalid file size/);
   resource.source.size=video.length;resource.route='demos/battery-b/resources/film.mp4';
   assert.throws(()=>compileRegistryV3(a,hash),/outside project resources/);
@@ -228,3 +228,51 @@ test('V3 workers stop scheduling on invalid bytes or identity and never cache th
 });
 
 module.exports={input,hash,html,policy};
+
+test('large MP4 transport reassembles exact bytes, rejects inconsistent chunks and preserves other limits',async()=>{
+  const {MAX_RESOURCE_SOURCE_BYTES,VIDEO_CHUNK_BYTES,sourceSizeLimit}=require('../lib/registry-v3');
+  assert.equal(sourceSizeLimit('application/octet-stream'),MAX_RESOURCE_SOURCE_BYTES);
+  const video=Buffer.alloc(MAX_RESOURCE_SOURCE_BYTES+12345,173);
+  video[video.length-1]=42;
+  for(const fault of [null,'offset','chunk-hash','full-hash','revision','size']){
+    const a=input(),resource={resource_id:'battery-a-film',version_id:'battery-a-v1',role:'download',
+      route:'demos/battery-a/resources/film.mp4',source:{...a.pages[0].source,file_id:'large-film',
+      sha256:fault==='full-hash'?hash('wrong file'):hash(video),size:video.length,mime_type:'video/mp4',parent_path:'projects/battery-a/battery-a-v1/resources'}};
+    a.resources.push(resource);
+    const snapshot=compileRegistryV3(a,hash),revision=snapshot.manifest.registry_revision,offsets=[];
+    const getJson=async(address,label,maxBytes)=>{
+      const url=new URL(address),id=url.searchParams.get('id');
+      if(url.searchParams.get('action')==='manifest')return {ok:true,...snapshot.manifest};
+      const response={ok:true,id,registry_instance:'test-registry',registry_revision:revision};
+      if(id!==resource.resource_id)return {...response,html};
+      const offset=Number(url.searchParams.get('offset'));offsets.push(offset);
+      const part=video.subarray(offset,offset+VIDEO_CHUNK_BYTES);
+      Object.assign(response,{offset,total_size:video.length,source_sha256:resource.source.sha256,sha256:hash(part),base64:part.toString('base64')});
+      if(fault==='offset')response.offset++;
+      if(fault==='chunk-hash')response.sha256=hash('wrong chunk');
+      if(fault==='revision')response.registry_revision='stale';
+      if(fault==='size')response.total_size++;
+      assert.ok(Buffer.byteLength(JSON.stringify(response))<maxBytes);
+      return response;
+    };
+    const registry=await loadV3Registry('https://example.com/exec?offset=99',policy,getJson,revision,{AIS_REGISTRY_INSTANCE:'test-registry'});
+    if(fault){
+      await assert.rejects(registry.getProjectPages(snapshot.manifest.demos,revision),/changed|mismatch/);
+      if(fault!=='full-hash')assert.deepEqual(offsets,[0]);
+    }else{
+      const output=await registry.getProjectPages(snapshot.manifest.demos,revision);
+      assert.deepEqual(output.get('battery-a').find(p=>p.path===resource.route).bytes,video);
+      assert.deepEqual(offsets,[0,VIDEO_CHUNK_BYTES,2*VIDEO_CHUNK_BYTES,3*VIDEO_CHUNK_BYTES]);
+      await registry.getProjectPages(snapshot.manifest.demos,revision);
+      assert.equal(offsets.length,4,'only fully verified media is reused');
+    }
+  }
+});
+
+test('NumPy resources stay in the project download boundary',()=>{
+  const a=input();a.resources.push({resource_id:'battery-a-volume',version_id:'battery-a-v1',role:'download',
+    route:'demos/battery-a/resources/data/volume.npy',source:{...a.pages[0].source,mime_type:'application/octet-stream',parent_path:'projects/battery-a/battery-a-v1/resources'}});
+  assert.doesNotThrow(()=>compileRegistryV3(a,hash));
+  a.resources[0].source.size=25*1024*1024+1;
+  assert.throws(()=>compileRegistryV3(a,hash),/invalid file size/);
+});

@@ -41,6 +41,21 @@ The update preserved the deployment URL, access settings, release snapshots,
 manual mode and all existing project selections. Installation evidence is in
 `docs/evidence/ct-pattern-atlas-onboarding-20261104.json` at the repository root.
 
+The 2026-11-06 Butterfly Wing Scale update was installed as Web App version 12,
+preserving the existing deployment URL and access settings. MP4 resources may
+now be up to 128 MiB; files above 25 MiB use authenticated 8 MiB Drive range
+requests. Each response binds the file, revision, offset, total size and chunk
+checksum. The build reconstructs and verifies the original full-file SHA256
+before writing it. HTML remains limited to 48 MiB and other resources to 25 MiB.
+NumPy `.npy` downloads are accepted within their project's resource directory.
+
+Large explicit source indexes use `encodeProjectMounts_` to store checksummed
+gzip/base64 JSON atomically in `AIS_PROJECT_MOUNTS_V1`, below its 9,000-byte
+budget. The reader still accepts the earlier plain JSON format and validates
+every decoded path, ancestor and file allowlist. This compresses configuration
+only; it never modifies video or dataset bytes. New setup helpers should use
+the encoder instead of writing oversized raw JSON.
+
 The PNG artwork is embedded from `control-panel-buttons/artwork.json`; no external image host is used. Regenerate it with `python3 google-apps-script/publishing-controls/control-panel-buttons/render.py --font <font-path>` using Pillow. The buttons are anchored at A4, E4 and I4 without inserting rows. Their scripts execute in the desktop web version of Sheets, not the mobile apps.
 
 The build hooks, signed callbacks, release-store folder, initial production capsule, and Netlify build commands are separate installation requirements described in [manual-release/README.md](../manual-release/README.md). This bundler does not configure them.
