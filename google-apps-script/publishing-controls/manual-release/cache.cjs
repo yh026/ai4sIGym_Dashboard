@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { hash, CHUNK_SIZE } = require('./capsule.cjs');
+const { startStage } = require('./metrics.cjs');
 const DIRECTORY = '.ais-release-cache-v1';
 const LIMIT = 512 * 1024 * 1024;
 const enabled = env => env.NETLIFY === 'true' && env.CONTEXT === 'production'
@@ -70,10 +71,13 @@ function createCache(directory = path.join(process.cwd(), DIRECTORY)) {
 }
 async function cacheLifecycle(operation, { utils = {}, env = process.env, log = console.log } = {}) {
   if (!enabled(env) || !utils.cache) return;
+  const finish = startStage('cache_' + operation, log); let status = 'unavailable';
   try {
     if (operation === 'save') createCache().prune();
     const found = await utils.cache[operation](DIRECTORY);
+    status = found ? 'available' : 'empty';
     log('Release cache ' + operation + ': ' + (found ? 'available' : 'empty') + '.');
   } catch { log('Release cache ' + operation + ' unavailable; Drive fallback remains enabled.'); }
+  finally { finish({ status }); }
 }
 module.exports = { DIRECTORY, LIMIT, enabled, valid, matches, createCache, cacheLifecycle };
