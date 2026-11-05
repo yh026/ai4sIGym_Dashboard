@@ -33,7 +33,7 @@ test('cold then warm build reuses exact bytes but always reads the authorized de
   const warm = await f.client.download('same-id');
   assert.deepEqual(warm.files, cold.files);
   assert.deepEqual(f.calls, ['read_capsule', 'read_chunk', 'read_capsule']);
-  assert.match(f.logs[1], /1\/1 cached chunks; 0 bytes/);
+  assert.match(f.logs.filter(line => line.startsWith('Release download: '))[1], /1\/1 cached chunks; 0 bytes/);
   // Simulate a separate build restoring only the on-disk directory.
   const reloaded = createCache(path.join(f.directory, 'chunks'));
   assert.deepEqual(reloaded.get(f.current().capsule.chunks[0]), f.current().chunks[0]);
@@ -87,4 +87,57 @@ test('cache is limited to explicit main production builds and cache service fail
   assert.equal(calls.length, 1); assert.match(logs[0], /fallback/);
   await cacheLifecycle('restore', { env: { ...env, BRANCH: 'develop' }, utils });
   assert.equal(calls.length, 1);
+});
+
+test('completed new Production is reusable by the next build without reading its bytes from Drive', async t => {
+  const f = fixture(t);
+  const prepared = pack(new Map([['index.html', Buffer.from('newly published version')]]), { kind: 'production' }, 'new-production');
+  const calls = [];
+  const client = createClient({ env, cache: f.cache, log: () => {}, fetchImpl: async (_, options) => {
+    const request = JSON.parse(JSON.parse(options.body).payload); calls.push(request.action);
+    if (request.action === 'complete_capsule') assert.equal(f.cache.get(prepared.capsule.chunks[0]), null);
+    return { ok: true, json: async () => ({ ok: true, capsule_id: prepared.capsule.id }) };
+  } });
+  await client.upload(prepared);
+  assert.deepEqual(calls, ['begin_capsule', 'put_chunk', 'complete_capsule']);
+  // A later client has only the restored bytes and must still read its newly
+  // authorized descriptor. No release identity/permission is taken from cache.
+  const restored = createCache(path.join(f.directory, 'chunks'));
+  const next = createClient({ env, cache: restored, log: () => {}, fetchImpl: async (_, options) => {
+    const request = JSON.parse(JSON.parse(options.body).payload);
+    assert.equal(request.action, 'read_capsule');
+    return { ok: true, json: async () => ({ ok: true, capsule: prepared.capsule }) };
+  } });
+  assert.equal((await next.download(prepared.capsule.id)).files.get('index.html').toString(), 'newly published version');
+});
+
+test('unconfirmed archives do not populate the output cache; cache write failure cannot fail a confirmed upload', async t => {
+  const f = fixture(t), prepared = pack(new Map([['index.html', Buffer.from('new output')]]), { kind: 'production' });
+  let complete = false;
+  const fetchImpl = async (_, options) => {
+    const request = JSON.parse(JSON.parse(options.body).payload);
+    if (request.action === 'complete_capsule' && !complete) throw new Error('not confirmed');
+    const result = request.action === 'upload_status'
+      ? { capsule: prepared.capsule, uploaded_indices: [0], complete }
+      : { capsule_id: prepared.capsule.id };
+    return { ok: true, json: async () => ({ ok: true, ...result }) };
+  };
+  const failed = createClient({ env, cache: f.cache, log: () => {}, fetchImpl });
+  await assert.rejects(failed.upload(prepared), /completion remains unconfirmed/);
+  assert.equal(f.cache.get(prepared.capsule.chunks[0]), null);
+  complete = true;
+  const logs = [];
+  const confirmed = createClient({ env, cache: { put() { throw new Error('disk unavailable'); } }, log: text => logs.push(text), fetchImpl });
+  assert.equal(await confirmed.upload(prepared), prepared.capsule.id);
+  assert.ok(logs.some(line => line.includes('"stage":"cache_output"') && line.includes('"cached_chunks":0')));
+});
+
+test('capacity pruning retains recently used content instead of older chunks', t => {
+  const f = fixture(t), old = f.current(), recent = pack(new Map([['index.html', Buffer.from('latest output')]]), { kind: 'production' });
+  f.cache.put(old.capsule.chunks[0], old.chunks[0]);
+  fs.utimesSync(path.join(f.directory, 'chunks', old.capsule.chunks[0].sha256), 1, 1);
+  f.cache.put(recent.capsule.chunks[0], recent.chunks[0]);
+  f.cache.prune(recent.chunks[0].length);
+  assert.equal(f.cache.get(old.capsule.chunks[0]), null);
+  assert.deepEqual(f.cache.get(recent.capsule.chunks[0]), recent.chunks[0]);
 });
