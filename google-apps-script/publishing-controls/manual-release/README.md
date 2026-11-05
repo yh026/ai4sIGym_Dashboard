@@ -30,9 +30,17 @@ Actions: `begin_capsule`, `put_chunk`, `complete_capsule`, `upload_status`, `rea
 
 Unknown hook, claim, preparation and success responses are not retried automatically. Immutable upload recovery queries `upload_status`, checks the original descriptor, and resends only authoritatively missing identical chunks. A pre-deployment failure can close its matching request. A post-deployment callback failure remains uncertain until the public receipt reconciles it; it must never be labelled a failed publication.
 
-## Verified download cache
+## Verified content cache and bounded transfers
 
 Production uses Netlify Build's standard cache for `.ais-release-cache-v1/`, outside the published directory. Every download still reads the authenticated capsule descriptor and validates chunk hashes, complete archive, provenance and individual files. Missing or corrupt cache bytes fall back to Drive; authorization failures do not. The cache stores content only, has a 512 MiB size bound, and can be disabled with `AIS_RELEASE_CACHE=off`.
+
+Confirmed Production uploads also cache their exact output chunks, so the next release can reuse its current production baseline. Output is cached only after `complete_capsule` is confirmed, including reconciliation of a lost acknowledgement. Cache failures never turn a confirmed archive upload into a failed upload. The existing `onPostBuild` save persists this directory for subsequent builds; this is not a checkpoint or a guarantee of recovery after a hard timeout. Saving prunes the least recently used chunks to the existing size limit.
+
+The client defaults to two concurrent API requests. Both production inputs share that one budget, including descriptor and upload-status requests. Chunk order is restored before full archive verification. Upload recovery is serialized and merges confirmed progress, so an older status snapshot cannot discard another worker's acknowledgement. A failed transfer stops assigning new chunks and drains requests already started before reporting failure. Claims, completion, preparation and success callbacks retain their existing phase ordering and retry rules. Set `AIS_RELEASE_TRANSFER_CONCURRENCY=1` in the relevant build environment to return to serial requests; only `1` and `2` are accepted.
+
+`Release metrics:` log lines contain JSON for input reads, assembly, packing, upload, output caching, Netlify cache restore/save, preparation and the success callback. Read metrics report verified downloaded bytes and cache hits; upload metrics report archive size, attempted chunk bytes (including resends), status reads, busy responses and chunk latency percentiles. These byte counts exclude Base64/HTTP overhead. Chunk latency includes client queueing; overlapping input elapsed times must not be added together. `production_build` excludes Netlify's later deployment and success callback. Use these stages with Netlify's own log timestamps when measuring an entire release.
+
+This change needs only the client-side build files on `develop` and `main`; it does not require a new Apps Script runtime, credentials, storage layout or page assets. Check transfers during the next normal Preview release; inspect output-cache saving during a normal Production release and cache hits when its successor reads that baseline. Do not create repeated live deployments solely to benchmark this change.
 
 ## Installation and verification
 

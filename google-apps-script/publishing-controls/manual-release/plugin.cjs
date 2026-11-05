@@ -7,6 +7,7 @@ const { STATE_FILE, capsuleSource, artifactDigest } = require('./build.cjs');
 const { deploymentSnapshot } = require('../production-release/artifact-renderer.cjs');
 const { rendererDigest } = require('../production-release/catalog-renderer.cjs');
 const { SITE_ID, validateHook } = require('./hook.cjs');
+const { measure } = require('./metrics.cjs');
 
 async function exportSuccessfulBuild({ env = process.env, publishDir = 'dist', checkout = process.cwd(), client } = {}) {
   if (env.NETLIFY !== 'true' || env.SITE_ID !== SITE_ID) return { sent: false, reason: 'not-release-site' };
@@ -37,7 +38,7 @@ async function exportSuccessfulBuild({ env = process.env, publishDir = 'dist', c
     const prepared = pack(files, provenance);
     capsuleId = await client.upload(prepared, binding);
   }
-  await client.call('deployment_succeeded', { kind: state.kind, capsule_id: capsuleId, ...binding, receipt });
+  await measure('deployment_succeeded', () => client.call('deployment_succeeded', { kind: state.kind, capsule_id: capsuleId, ...binding, receipt }));
   return { sent: true, kind: state.kind, capsule_id: capsuleId };
 }
 async function stagePreviewBuild({ env = process.env, publishDir = 'dist', checkout = process.cwd(), client } = {}) {

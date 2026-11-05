@@ -103,9 +103,10 @@ function publicationFixture() {
 }
 test('production renders pinned develop bytes, preserves publication policies and stages before writing dist',async()=>{
   const f=publicationFixture(),dir=fs.mkdtempSync(path.join(os.tmpdir(),'develop-promotion-'));
+  const logs=[];
   try{
     const e={...env(),INCOMING_HOOK_BODY:sign(f.r)};
-    await productionBuild({env:e,client:f.client,checkout:dir,rendererCheckout:f.root,now:NOW});
+    await productionBuild({env:e,client:f.client,checkout:dir,rendererCheckout:f.root,now:NOW,log:line=>logs.push(line)});
     assert.deepEqual(f.calls,['claim_production','download','download','upload','production_prepared']);
     const built=readDirectory(path.join(dir,'dist')),receipt=JSON.parse(built.get('deploy-receipt.json'));
     assert.equal(receipt.publication_method,'develop-promotion');assert.equal(receipt.confirmation_digest,f.r.confirmation_digest);
@@ -113,7 +114,29 @@ test('production renders pinned develop bytes, preserves publication policies an
     assert.deepEqual(built.get('assets/intro-video.mp4'),f.sources.production.files.get('assets/intro-video.mp4'));
     assert.equal(built.has('demos/tbb-cluster-explorer-2/resources/notebook.ipynb'),false);
     assert.equal(capsuleSource({capsule:f.stored().capsule,files:built},'production').metadata.id,e.DEPLOY_ID);
+    const metrics=logs.map(line=>JSON.parse(line.slice('Release metrics: '.length)));
+    assert.deepEqual(metrics.map(row=>row.stage),['claim_production','read_inputs','assemble','pack','production_prepared','production_build']);
+    assert.ok(metrics.every(row=>row.status==='complete'&&Number.isInteger(row.elapsed_ms)&&row.elapsed_ms>=0));
   }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});
+test('one rejected input drains the other download before failing without upload or output mutation',async()=>{
+  const f=publicationFixture(),dir=fs.mkdtempSync(path.join(os.tmpdir(),'develop-download-failure-'));
+  fs.mkdirSync(path.join(dir,'dist'));fs.writeFileSync(path.join(dir,'dist','existing'),'unchanged');
+  let release,previewStarted,settled=false;
+  const pending=new Promise(resolve=>{release=resolve;}),started=new Promise(resolve=>{previewStarted=resolve;});
+  f.client.download=async id=>{
+    if(id===f.review.baseline_capsule_id)throw Error('source unavailable');
+    previewStarted();await pending;return f.sources.preview;
+  };
+  const running=productionBuild({env:{...env(),INCOMING_HOOK_BODY:sign(f.r)},client:f.client,
+    checkout:dir,rendererCheckout:f.root,now:NOW,log:()=>{}});
+  running.then(()=>{settled=true;},()=>{settled=true;});
+  try{
+    await started;await new Promise(resolve=>setImmediate(resolve));assert.equal(settled,false);
+    release();await assert.rejects(running,/source unavailable/);
+    assert.equal(f.stored(),undefined);assert.deepEqual(f.calls,['claim_production']);
+    assert.equal(fs.readFileSync(path.join(dir,'dist','existing'),'utf8'),'unchanged');
+  }finally{release();fs.rmSync(dir,{recursive:true,force:true});}
 });
 test('changed confirmed inputs, source identity or renderer are rejected before output mutation',async()=>{
   for(const mutate of [f=>f.review.selection[0].include_in_production=false,
