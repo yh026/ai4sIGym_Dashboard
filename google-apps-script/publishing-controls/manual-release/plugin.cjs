@@ -11,7 +11,7 @@ const { measure } = require('./metrics.cjs');
 
 async function exportSuccessfulBuild({ env = process.env, publishDir = 'dist', checkout = process.cwd(), client } = {}) {
   if (env.NETLIFY !== 'true' || env.SITE_ID !== SITE_ID) return { sent: false, reason: 'not-release-site' };
-  const files = readDirectory(publishDir);
+  const files = readDirectory(publishDir, env.BRANCH === 'develop' && env.CONTEXT === 'branch-deploy' ? 'preview' : 'production');
   const receipt = JSON.parse(files.get('deploy-receipt.json')?.toString('utf8') || 'null');
   for (const [field, value] of Object.entries(identity(env))) if (receipt?.[field] !== value) throw new Error('Successful deployment receipt differs: ' + field);
   let state;
@@ -45,7 +45,7 @@ async function stagePreviewBuild({ env = process.env, publishDir = 'dist', check
   if (env.NETLIFY !== 'true' || env.SITE_ID !== SITE_ID || env.BRANCH !== 'develop' || env.CONTEXT !== 'branch-deploy') {
     throw new Error('Manual preview staging requires the configured develop deployment.');
   }
-  const files = readDirectory(publishDir), receipt = JSON.parse(files.get('deploy-receipt.json')?.toString('utf8') || 'null');
+  const files = readDirectory(publishDir, 'preview'), receipt = JSON.parse(files.get('deploy-receipt.json')?.toString('utf8') || 'null');
   if (!receipt || receipt.verified !== true || receipt.revision_bound !== true || receipt.target !== 'preview'
     || receipt.audience !== 'preview' || !receipt.request_id) throw new Error('Only a verified manual preview can be staged.');
   for (const [field, value] of Object.entries(identity(env))) if (receipt[field] !== value) throw new Error('Preview receipt differs: ' + field);
@@ -57,7 +57,7 @@ async function stagePreviewBuild({ env = process.env, publishDir = 'dist', check
   fs.writeFileSync(path.join(publishDir, 'deploy-receipt.json'), receiptBytes);
   const provenance = { kind: 'preview', ...identity(env), ...binding, registry_revision: receipt.registry_revision,
     renderer_digest: receipt.renderer_digest };
-  const source = capsuleSource({ files, capsule: { kind: 'preview', provenance, inventory_digest: artifactDigest(files) } }, 'preview');
+  const source = capsuleSource({ files, capsule: { kind: 'preview', provenance, inventory_digest: artifactDigest(files, 'preview') } }, 'preview');
   provenance.project_snapshots = {
     standard: deploymentSnapshot(source, []).projects,
     without_tbb_resources: deploymentSnapshot(source, ['hide-tbb-notebook-resources-v1']).projects,

@@ -138,6 +138,20 @@ test('signed preview artifacts stay inactive until the matching signed deploymen
   r.setPreview({phase:'ready',request_id:binding.request_id,revision,deploy_id:id.deploy_id});
   r.success(r.call(id,'deployment_succeeded',data)); assert.equal(r.context.registryReleaseStoreGetActive_('preview').id,prepared.capsule.id);
 });
+test('store permits 512 MiB only for Preview and retains the 256 MiB Production bound',()=>{
+  const r=runtime(),id=identity('preview','2'),binding={request_id:'preview-request'};
+  const {capsule}=r.prepare('preview',id,binding,{registry_revision:'sha256:'+'d'.repeat(64)});
+  const size=264*1024*1024;
+  capsule.archive_size=size; capsule.unpacked_size=size;
+  capsule.chunks=Array.from({length:33},(_,index)=>({index,size:8388608,sha256:'a'.repeat(64)}));
+  r.success(r.call(id,'begin_capsule',{...binding,capsule}));
+  assert.equal(r.context.registryReleaseStoreGetActive_('preview'),null);
+  for(const field of ['archive_size','unpacked_size']) {
+    assert.match(r.call(id,'begin_capsule',{...binding,capsule:{...capsule,id:crypto.randomUUID(),[field]:512*1024*1024+1}}).error,/Invalid capsule inventory/);
+  }
+  const production={...capsule,id:crypto.randomUUID(),kind:'production',provenance:{...capsule.provenance,kind:'production'}};
+  assert.match(r.call(identity('production','3'),'begin_capsule',{capsule:production}).error,/Invalid capsule inventory/);
+});
 test('wrong signing key, domain, stale timestamp and wrong site are rejected without writes',()=>{
   const r=runtime(), id=identity('preview','2');
   for (const options of [{secret:'wrong'},{domain:'wrong\n'},{sent_at:iso(-900001)}]) assert.equal(r.call(id,'claim_production',{},options).ok,false);

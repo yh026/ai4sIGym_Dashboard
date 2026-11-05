@@ -11,7 +11,7 @@ const { startStage, measure } = require('./metrics.cjs');
 const need = (value, message) => { if (!value) throw new Error('Manual release build: ' + message); };
 const STATE_FILE = '.ais-manual-release-build.json';
 const readJson = (files, name) => JSON.parse(files.get(name)?.toString('utf8') || 'null');
-const artifactDigest = files => 'sha256:' + hash(stable(inventory(files)));
+const artifactDigest = (files, kind) => 'sha256:' + hash(stable(inventory(files, kind)));
 
 // The API exposes a source only after a signed successful build callback. The
 // capsule inventory is a SHA256 artifact inventory, never a claimed API listing.

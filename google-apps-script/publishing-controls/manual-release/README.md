@@ -22,6 +22,8 @@ The build uploads the completed production capsule and sends `production_prepare
 
 The gzip-compressed `ais-files-v1` archive contains a four-byte header length, a UTF-8 JSON header and concatenated file bytes. Safe paths, sizes, SHA256 inventory, provenance and 8 MiB chunks are verified. Descriptors and provenance remain immutable; activation receipts are separate.
 
+Preview archives and unpacked files are limited to 512 MiB so the full catalog can retain larger original videos. Production retains its 256 MiB limit. Both the build client and Apps Script store enforce the environment-specific bounds; all existing chunk, checksum, provenance and activation checks still apply.
+
 ## API and failure handling
 
 The signed Apps Script API retains its `ais-manual-release-api-v1\n` domain. Hook envelopes use `ais-manual-release-hook-v1\n` with schema 2.

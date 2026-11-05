@@ -175,11 +175,12 @@ function registryReleaseStoreAuthorizeUpload_(payload, kind) {
 }
 function registryReleaseStoreCapsuleShape_(capsule, payload) {
   registryReleaseStoreNeed_(capsule && ['preview','production'].indexOf(capsule.kind) !== -1, 'Invalid release artifact.');
+  var maxBytes = capsule.kind === 'preview' ? 536870912 : 268435456;
   registryReleaseStoreId_(capsule.id);
   registryReleaseStoreNeed_(/^[a-f0-9]{64}$/.test(capsule.archive_sha256 || '') &&
     /^sha256:[a-f0-9]{64}$/.test(capsule.inventory_digest || '') && Number.isSafeInteger(capsule.archive_size) &&
-    capsule.archive_size > 0 && capsule.archive_size <= 268435456 && Number.isSafeInteger(capsule.unpacked_size) &&
-    capsule.unpacked_size > 0 && capsule.unpacked_size <= 268435456 &&
+    capsule.archive_size > 0 && capsule.archive_size <= maxBytes && Number.isSafeInteger(capsule.unpacked_size) &&
+    capsule.unpacked_size > 0 && capsule.unpacked_size <= maxBytes &&
     capsule.chunk_size === AIS_RELEASE_STORE.chunkSize && Array.isArray(capsule.chunks) &&
     capsule.chunks.length > 0 && capsule.chunks.length <= AIS_RELEASE_STORE.maxChunks, 'Invalid capsule inventory.');
   var total = 0;

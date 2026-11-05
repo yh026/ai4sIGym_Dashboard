@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { pack, unpack, hash, CHUNK_SIZE, readDirectory, writeDirectory } = require('./capsule.cjs');
+const { pack, unpack, hash, CHUNK_SIZE, MAX_BYTES, MAX_PREVIEW_BYTES, inventory, readDirectory, writeDirectory } = require('./capsule.cjs');
 const { validateHook, DOMAIN, SITE_ID, confirmationDigest } = require('./hook.cjs');
 const { createClient } = require('./client.cjs');
 const { productionBuild, artifactDigest, capsuleSource } = require('./build.cjs');
@@ -42,6 +42,22 @@ test('capsule rejects chunk corruption, altered metadata, unsafe and colliding p
   assert.throws(() => unpack({ ...prepared.capsule, provenance: { kind: 'production' } }, prepared.chunks), /identity/);
   for (const name of ['../secret', '/absolute', 'a//b', 'a/./b']) assert.throws(() => pack(new Map([[name, Buffer.from('x')]]), {}), /unsafe/);
   assert.throws(() => pack(new Map([['a', Buffer.from('x')], ['a/b', Buffer.from('y')]]), {}), /collision/);
+});
+test('Preview roundtrips above 256 MiB while Production and the 512 MiB Preview bound stay enforced', () => {
+  // Reuse one input buffer to exercise real archive bytes without retaining a second large source copy.
+  const bytes = Buffer.alloc(CHUNK_SIZE, 42);
+  const files = new Map(Array.from({ length: MAX_BYTES / CHUNK_SIZE + 1 }, (_, i) => [`assets/video-${i}.bin`, bytes]));
+  assert.throws(() => pack(files, { kind: 'production' }), /artifact too large/);
+  assert.throws(() => inventory(files), /artifact too large/);
+  const prepared = pack(files, { kind: 'preview' });
+  assert.ok(prepared.capsule.unpacked_size > MAX_BYTES);
+  const restored = unpack(prepared.capsule, prepared.chunks);
+  assert.equal(restored.size, files.size);
+  assert.deepEqual(restored.get('assets/video-32.bin'), bytes);
+  assert.throws(() => unpack({ ...prepared.capsule, kind: 'production', provenance: { kind: 'production' } }, prepared.chunks), /invalid descriptor/);
+  assert.throws(() => unpack({ ...prepared.capsule, unpacked_size: MAX_PREVIEW_BYTES + 1 }, prepared.chunks), /invalid descriptor/);
+  const tooLarge = new Map(Array.from({ length: MAX_PREVIEW_BYTES / CHUNK_SIZE + 1 }, (_, i) => [`assets/video-${i}.bin`, bytes]));
+  assert.throws(() => inventory(tooLarge, 'preview'), /artifact too large/);
 });
 test('production only accepts signed current manual request with exact environment identity', () => {
   const e = env(); e.INCOMING_HOOK_BODY = sign(request());

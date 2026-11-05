@@ -38,6 +38,18 @@ test('cold then warm build reuses exact bytes but always reads the authorized de
   const reloaded = createCache(path.join(f.directory, 'chunks'));
   assert.deepEqual(reloaded.get(f.current().capsule.chunks[0]), f.current().chunks[0]);
 });
+test('client accepts larger Preview descriptors but rejects the same Production size before downloading', async t => {
+  const f=fixture(t), original=f.current(), size=264*1024*1024;
+  const capsule={...original.capsule,archive_size:size,unpacked_size:size,
+    chunks:Array.from({length:33},(_,index)=>({index,size:8388608,sha256:'a'.repeat(64)}))};
+  f.replace({...original,capsule,chunks:Array(33).fill(original.chunks[0])});
+  await assert.rejects(f.client.download('same-id'), /content mismatch/);
+  assert.ok(f.calls.includes('read_chunk'));
+  f.calls.length=0;
+  f.replace({...original,capsule:{...capsule,kind:'production',provenance:{kind:'production'}}});
+  await assert.rejects(f.client.download('same-id'), /descriptor is invalid/);
+  assert.deepEqual(f.calls,['read_capsule']);
+});
 test('fresh descriptor changes invalidate bytes even when a capsule ID is reused', async t => {
   const f = fixture(t); await f.client.download('same-id');
   f.replace(pack(new Map([['index.html', Buffer.from('new Drive content')]]), { kind: 'preview' }, 'same-id'));

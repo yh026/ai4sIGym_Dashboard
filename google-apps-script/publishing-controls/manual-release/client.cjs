@@ -1,7 +1,7 @@
 'use strict';
 const crypto = require('node:crypto');
 const { performance } = require('node:perf_hooks');
-const { unpack, stable, CHUNK_SIZE, MAX_BYTES } = require('./capsule.cjs');
+const { unpack, stable, CHUNK_SIZE, sizeLimit } = require('./capsule.cjs');
 const { enabled, valid, matches, createCache } = require('./cache.cjs');
 const { createLimiter, mapConcurrent } = require('./concurrency.cjs');
 const { startStage, latencySummary } = require('./metrics.cjs');
@@ -134,10 +134,11 @@ function createClient({ env = process.env, fetchImpl = globalThis.fetch, now = (
     try {
       const result = await call('read_capsule', { ...binding, capsule_id: capsuleId });
       capsule = result.capsule; if (capsule?.id !== capsuleId) throw new Error('Release capsule identity mismatch.');
+      const limit = sizeLimit(capsule.kind);
       if (capsule.chunk_size !== CHUNK_SIZE || !Array.isArray(capsule.chunks) || !capsule.chunks.length
-        || capsule.chunks.length > Math.ceil(MAX_BYTES / CHUNK_SIZE)
+        || capsule.chunks.length > Math.ceil(limit / CHUNK_SIZE)
         || capsule.chunks.some((item, index) => !valid(item) || item.index !== index)
-        || !Number.isSafeInteger(capsule.archive_size) || capsule.archive_size > MAX_BYTES
+        || !Number.isSafeInteger(capsule.archive_size) || capsule.archive_size > limit
         || capsule.chunks.reduce((sum, item) => sum + item.size, 0) !== capsule.archive_size) {
         throw new Error('Release capsule descriptor is invalid.');
       }
