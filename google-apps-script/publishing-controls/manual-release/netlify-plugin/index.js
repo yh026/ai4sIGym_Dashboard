@@ -16,12 +16,18 @@ module.exports = {
   },
   // Netlify invokes onError for build/deploy failure. An onSuccess callback error
   // is a soft plugin failure and must never be reported as an unpublished build.
-  onError: async () => {
+  onError: async ({ utils } = {}) => {
     let deploymentMayHaveStarted = false;
     try { deploymentMayHaveStarted = JSON.parse(fs.readFileSync(boundary(), 'utf8')).deploy_id === process.env.DEPLOY_ID; } catch {}
     // A deploy transport error can be ambiguous. Only a pre-deploy failure is
     // final here; later errors require reconciliation against the served receipt.
-    const result = await reportFailedBuild({ beforeDeployment: !deploymentMayHaveStarted });
-    if (result.sent) console.log('Manual publishing build failure recorded.');
+    try {
+      const result = await reportFailedBuild({ beforeDeployment: !deploymentMayHaveStarted });
+      if (result.sent) console.log('Manual publishing build failure recorded.');
+    } finally {
+      // Preserve verified input chunks across a handled transfer failure. This
+      // cache contains no request state and cannot authorize publication.
+      await cacheLifecycle('save', { utils });
+    }
   },
 };
