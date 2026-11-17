@@ -10,14 +10,14 @@ function registryReleaseStoreNeed_(condition, message) {
   if (!condition) { var error = new Error(message); error.releaseStoreSafe = true; throw error; }
 }
 function registryReleaseStoreWithLock_(fn) {
-  try { return locked_(fn); }
-  catch (error) {
-    if (error && error.message === 'Another sandbox operation is running') {
-      var busy = new Error('Release metadata is busy. Retry only the same artifact operation.');
-      busy.releaseStoreSafe = true; busy.releaseStoreCode = 'release_busy'; throw busy;
-    }
-    throw error;
+  // Parallel chunk requests can overlap Drive-backed metadata reads and commits.
+  // Queue briefly on the same shared lock instead of forcing a chunk resend.
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) {
+    var busy = new Error('Release metadata is busy. Retry only the same artifact operation.');
+    busy.releaseStoreSafe = true; busy.releaseStoreCode = 'release_busy'; throw busy;
   }
+  try { return fn(); } finally { lock.releaseLock(); }
 }
 function registryReleaseStoreClone_(value) { return JSON.parse(JSON.stringify(value)); }
 function registryReleaseStoreStable_(value) {

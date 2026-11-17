@@ -15,7 +15,15 @@ const identity = (kind, digit) => ({ site_id: SITE, build_id: digit.repeat(24), 
   context: kind === 'preview' ? 'branch-deploy' : 'production' });
 
 function runtime() {
-  let time = NOW, next = 0, lockHeld = false, failLocks = 0, duringChunkCreate = null, duringChunkSize = null;
+  let time = NOW, next = 0, lockHeld = false, failLocks = 0, lockAvailableAt = NOW, duringChunkCreate = null, duringChunkSize = null;
+  const metadataLock = {
+    tryLock(milliseconds) {
+      if (lockHeld || failLocks > 0) { if (failLocks > 0) failLocks--; return false; }
+      if (lockAvailableAt > time + milliseconds) { time += milliseconds; return false; }
+      time = Math.max(time, lockAvailableAt); lockHeld = true; return true;
+    },
+    releaseLock() { assert.equal(lockHeld, true); lockHeld = false; },
+  };
   const values = new Map([['AIS_RELEASE_ROOT_FOLDER_ID','root-folder'], ['AI4S_PREVIEW_CALLBACK_SECRET',SECRET]]), files = new Map();
   const blob = (value, type, name) => { const bytes = Buffer.isBuffer(value) ? value : Buffer.from(typeof value === 'string' ? value : value || []);
     return { bytes, name, getBytes: () => [...bytes], getDataAsString: () => bytes.toString('utf8') }; };
@@ -49,8 +57,9 @@ function runtime() {
       computeHmacSha256Signature:(value,key)=>[...crypto.createHmac('sha256',key).update(value).digest()],
       base64Decode:value=>[...Buffer.from(value,'base64')],base64Encode:value=>Buffer.from(value).toString('base64')},
     UrlFetchApp:{fetch:()=>({getResponseCode:()=>publicReceipt?200:404,getContentText:()=>JSON.stringify(publicReceipt)})},
-    safeEqual_:(a,b)=>a===b, locked_:fn=>{if(lockHeld||failLocks>0){if(failLocks>0)failLocks--;throw new Error('Another sandbox operation is running');}
-      lockHeld=true;try{return fn();}finally{lockHeld=false;}}, json_:value=>JSON.parse(JSON.stringify(value)), previewState_:()=>preview,
+    LockService:{getScriptLock:()=>metadataLock},
+    safeEqual_:(a,b)=>a===b, locked_:fn=>{if(!metadataLock.tryLock(2000))throw new Error('Another sandbox operation is running');
+      try{return fn();}finally{metadataLock.releaseLock();}}, json_:value=>JSON.parse(JSON.stringify(value)), previewState_:()=>preview,
     savePreviewState_:value=>{preview=value;} });
   vm.runInContext(source,context);
   function call(id, action, data={}, options={}) {
@@ -126,7 +135,8 @@ function runtime() {
   }
   return {context,call,success,prepare,upload,receipt,bootstrap,previewReady,releaseSetup,productionPrepared,files,values,selection,catalog,
     setTime:delta=>{time=NOW+delta;},setPreview:value=>{preview=value;},setPublicReceipt:value=>{publicReceipt=value;},
-    onChunkCreate:fn=>{duringChunkCreate=fn;},onChunkSize:fn=>{duringChunkSize=fn;},failNextLocks:count=>{failLocks=count;}};
+    onChunkCreate:fn=>{duringChunkCreate=fn;},onChunkSize:fn=>{duringChunkSize=fn;},failNextLocks:count=>{failLocks=count;},
+    holdMetadataLock:milliseconds=>{lockAvailableAt=time+milliseconds;}};
 }
 
 test('store accepts the shared 512 MiB capsule boundary for both environments and rejects overflow',()=>{
@@ -310,6 +320,27 @@ test('a busy metadata commit preserves uncertain files and upload_status disting
   assert.deepEqual(r.success(r.call(id,'upload_status',{...binding,capsule_id:prepared.capsule.id})).uploaded_indices,[]);
   r.success(r.call(id,'put_chunk',data));
   assert.deepEqual(r.success(r.call(id,'upload_status',{...binding,capsule_id:prepared.capsule.id})).uploaded_indices,[0]);
+});
+test('chunk upload waits for a short competing metadata operation without a resend',()=>{
+  const r=runtime(), id=identity('preview','2'), binding={request_id:'preview-request'};
+  const prepared=r.prepare('preview',id,binding,{registry_revision:'sha256:'+'d'.repeat(64)});
+  r.success(r.call(id,'begin_capsule',{...binding,capsule:prepared.capsule}));
+  r.holdMetadataLock(5000);
+  r.onChunkCreate(()=>r.holdMetadataLock(5000));
+  r.success(r.call(id,'put_chunk',{...binding,capsule_id:prepared.capsule.id,index:0,
+    sha256:prepared.capsule.chunks[0].sha256,base64:prepared.chunks[0].toString('base64')}));
+  const chunks=[...r.files.values()].filter(f=>f.name.startsWith('chunk-'+prepared.capsule.id+'-0-'));
+  assert.equal(chunks.length,1);
+  assert.deepEqual(r.success(r.call(id,'upload_status',{...binding,capsule_id:prepared.capsule.id})).uploaded_indices,[0]);
+});
+test('metadata lock waiting stays bounded and releases after a callback error',()=>{
+  const r=runtime();
+  r.holdMetadataLock(31000);
+  assert.throws(()=>r.context.registryReleaseStoreWithLock_(()=>assert.fail('busy callback ran')),
+    error=>error.releaseStoreCode==='release_busy');
+  r.holdMetadataLock(0);
+  assert.throws(()=>r.context.registryReleaseStoreWithLock_(()=>{throw new Error('callback failed');}),/callback failed/);
+  assert.equal(r.context.registryReleaseStoreWithLock_(()=>42),42);
 });
 test('completion rejects a request invalidated during out-of-lock durable file checks',()=>{
   const r=runtime(), id=identity('preview','2'), binding={request_id:'preview-request'};
