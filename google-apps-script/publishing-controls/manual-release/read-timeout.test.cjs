@@ -23,8 +23,8 @@ function slowTransport(t, duration) {
       if (elapsed >= milliseconds) controller.abort(new DOMException('Simulated slow response', 'TimeoutError'));
       options.signal.throwIfAborted();
       const result = message.action === 'read_capsule' ? { capsule: prepared.capsule }
-        : { sha256: prepared.capsule.chunks[message.index].sha256,
-          base64: prepared.chunks[message.index].toString('base64') };
+        : message.action === 'read_chunk' ? { sha256: prepared.capsule.chunks[message.index].sha256,
+          base64: prepared.chunks[message.index].toString('base64') } : {};
       return { ok: true, json: async () => ({ ok: true, ...result }) };
     } });
   return { client, calls };
