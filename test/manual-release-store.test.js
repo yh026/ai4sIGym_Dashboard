@@ -129,6 +129,23 @@ function runtime() {
     onChunkCreate:fn=>{duringChunkCreate=fn;},onChunkSize:fn=>{duringChunkSize=fn;},failNextLocks:count=>{failLocks=count;}};
 }
 
+test('store accepts the shared 512 MiB capsule boundary for both environments and rejects overflow',()=>{
+  const { MAX_BYTES, CHUNK_SIZE } = require('../google-apps-script/publishing-controls/manual-release/capsule.cjs');
+  const r=runtime();
+  assert.equal(r.context.AIS_RELEASE_STORE.maxBytes, MAX_BYTES);
+  for (const kind of ['preview','production']) {
+    const id=identity(kind,'2'), binding={request_id:'preview-request',review_id:'capacity-review'};
+    const payload={schema:1,sent_at:iso(0),...id,...binding};
+    const {capsule}=r.prepare(kind,id,binding,{registry_revision:'sha256:'+'d'.repeat(64)});
+    capsule.archive_size=MAX_BYTES;capsule.unpacked_size=MAX_BYTES;
+    capsule.chunks=Array.from({length:MAX_BYTES/CHUNK_SIZE},(_,index)=>({index,size:CHUNK_SIZE,sha256:'a'.repeat(64)}));
+    assert.doesNotThrow(()=>r.context.registryReleaseStoreCapsuleShape_(capsule,payload));
+    for(const field of ['archive_size','unpacked_size']) {
+      assert.throws(()=>r.context.registryReleaseStoreCapsuleShape_({...capsule,[field]:MAX_BYTES+1},payload),/Invalid capsule inventory/);
+    }
+  }
+});
+
 test('signed preview artifacts stay inactive until the matching signed deployment succeeds',()=>{
   const r=runtime(), id=identity('preview','2'), binding={request_id:'preview-request'}, revision='sha256:'+'d'.repeat(64);
   const prepared=r.prepare('preview',id,binding,{registry_revision:revision}); r.upload(id,prepared,binding);

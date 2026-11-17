@@ -4,6 +4,7 @@
 // Publication never reads mutable Drive sources or changes a Git branch.
 const crypto = require('node:crypto');
 const { assertCurrentIntent, assertCandidate, createDraftRequest, digest } = require('./release-plan.cjs');
+const { MAX_BYTES, MAX_FILE_BYTES, MAX_VIDEO_BYTES } = require('../release-limits.cjs');
 const sha1 = bytes => crypto.createHash('sha1').update(bytes).digest('hex');
 const sha256 = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const need = (condition, message) => { if (!condition) throw new Error('Release bridge: ' + message); };
@@ -19,11 +20,11 @@ function validateArtifact(intent, artifact, reviewedArtifactDigest) {
   const files = {}, inventory = [];
   for (const [path, bytes] of artifact.files) {
     need(Buffer.isBuffer(bytes), 'artifact files must be immutable byte buffers');
-    need(bytes.length <= 64 * 1024 * 1024, 'artifact file exceeds size limit');
+    need(bytes.length <= (/\.mp4$/i.test(path) ? MAX_VIDEO_BYTES : MAX_FILE_BYTES), 'artifact file exceeds size limit');
     files['/' + path] = sha1(bytes);
     inventory.push({ path, size: bytes.length, sha256: sha256(bytes) });
   }
-  need(inventory.reduce((n, row) => n + row.size, 0) <= 256 * 1024 * 1024, 'artifact exceeds size limit');
+  need(inventory.reduce((n, row) => n + row.size, 0) <= MAX_BYTES, 'artifact exceeds size limit');
   createDraftRequest(intent, files);
   const artifactDigest = digest(inventory.sort((a, b) => a.path.localeCompare(b.path)));
   need(artifactDigest === reviewedArtifactDigest, 'artifact differs from the reviewed bytes');

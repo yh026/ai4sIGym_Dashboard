@@ -56,6 +56,23 @@ function mockService(input, options = {}) {
   return { bridge, calls };
 }
 
+test('production accepts original MP4s and a combined artifact above 256 MiB with bounded limits', () => {
+  const input = fixture();
+  const video = Buffer.alloc(103509706);
+  for (let i = 0; i < 3; i++) input.artifact.files.set('demos/a/video-' + i + '.mp4', video);
+  const reviewed = digest([...input.artifact.files].map(([path, bytes]) => ({ path, size: bytes.length,
+    sha256: crypto.createHash('sha256').update(bytes).digest('hex') })).sort((a, b) => a.path.localeCompare(b.path)));
+  assert.doesNotThrow(() => validateArtifact(input.intent, input.artifact, reviewed));
+  input.artifact.files.set('demos/a/oversize.html', video);
+  assert.throws(() => validateArtifact(input.intent, input.artifact, reviewed), /file exceeds size limit/);
+  input.artifact.files.delete('demos/a/oversize.html');
+  input.artifact.files.set('demos/a/oversize.mp4', Buffer.alloc(128 * 1024 * 1024 + 1));
+  assert.throws(() => validateArtifact(input.intent, input.artifact, reviewed), /file exceeds size limit/);
+  input.artifact.files.delete('demos/a/oversize.mp4');
+  for (let i = 3; i < 6; i++) input.artifact.files.set('demos/a/video-' + i + '.mp4', video);
+  assert.throws(() => validateArtifact(input.intent, input.artifact, reviewed), /artifact exceeds size limit/);
+});
+
 test('prepare creates only a draft and verifies exact immutable inventory without publishing', async () => {
   const input = fixture(), service = mockService(input);
   const candidate = await service.bridge.prepare(input);

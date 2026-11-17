@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const zlib = require('node:zlib');
 const CHUNK_SIZE = 8 * 1024 * 1024;
-const MAX_BYTES = 256 * 1024 * 1024;
+const { MAX_BYTES } = require('../release-limits.cjs');
 const MAX_FILES = 10000;
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 const stable = value => Array.isArray(value) ? '[' + value.map(stable).join(',') + ']'

@@ -20,7 +20,7 @@ Preview saves its final files, renderer source digest, and per-project content d
 
 The build uploads the completed production capsule and sends `production_prepared` with its render plan, source evidence and digests. The store rechecks the active sources, selection and catalog under its lock. Only accepted output reaches `dist`. A successful deployment activates the staged capsule; the next release uses that capsule as its production baseline. The served receipt records `publication_method=develop-promotion`, the confirmation digest and source Preview identity.
 
-The gzip-compressed `ais-files-v1` archive contains a four-byte header length, a UTF-8 JSON header and concatenated file bytes. Safe paths, sizes, SHA256 inventory, provenance and 8 MiB chunks are verified. Descriptors and provenance remain immutable; activation receipts are separate.
+The gzip-compressed `ais-files-v1` archive contains a four-byte header length, a UTF-8 JSON header and concatenated file bytes. Safe paths, sizes, SHA256 inventory, provenance and 8 MiB chunks are verified. Preview and production capsules share a 512 MiB compressed/unpacked limit. Production permits MP4 files up to 128 MiB and other individual files up to 64 MiB. Keep `release-limits.cjs` and the deployed Apps Script store's `maxBytes` aligned when changing capacity. Descriptors and provenance remain immutable; activation receipts are separate.
 
 ## API and failure handling
 
