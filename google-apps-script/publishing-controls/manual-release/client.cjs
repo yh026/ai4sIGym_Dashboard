@@ -32,10 +32,19 @@ function createClient({ env = process.env, fetchImpl = globalThis.fetch, now = (
     try { response = await fetchImpl(url, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ payload, signature }), signal: AbortSignal.timeout(timeout) });
       result = await response.json(); }
-    catch { throw new Error('Release API request was not confirmed. Check status before retrying.'); }
+    catch {
+      const error = new Error('Release API request was not confirmed. Check status before retrying.');
+      if (!response || response.ok || response.status === 429 || response.status >= 500 && response.status <= 599) {
+        error.code = 'release_transport_unconfirmed';
+      }
+      error.httpStatus = response?.status;
+      throw error;
+    }
     if (!response.ok || result?.ok !== true) {
       const error = new Error('Release API rejected ' + action + ': '
         + String(result?.error || 'request failed').replace(/https?:\/\/\S+/g, '[URL]').slice(0, 250));
+      if (response.status === 429 || response.status >= 500 && response.status <= 599) error.code = 'release_transport_unconfirmed';
+      error.httpStatus = response.status;
       if (result?.code === 'release_busy') error.code = 'release_busy';
       throw error;
     }
@@ -140,9 +149,21 @@ function createClient({ env = process.env, fetchImpl = globalThis.fetch, now = (
   }
   async function download(capsuleId, binding = {}) {
     const finish = startStage('download', log), latencies = [];
-    let hits = 0, downloaded = 0, completed = false, capsule;
+    let hits = 0, downloaded = 0, readAttempts = 0, readRetries = 0, completed = false, capsule;
+    async function read(action, data) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try { readAttempts++; return await call(action, data); }
+        catch (error) {
+          if (error.code !== 'release_transport_unconfirmed' || attempt === 2) throw error;
+          readRetries++;
+          log('Release read retry: ' + JSON.stringify({ action, index: data.index ?? null,
+            attempt: attempt + 2, http_status: error.httpStatus ?? null }));
+          await wait([500, 1500][attempt]);
+        }
+      }
+    }
     try {
-      const result = await call('read_capsule', { ...binding, capsule_id: capsuleId });
+      const result = await read('read_capsule', { ...binding, capsule_id: capsuleId });
       capsule = result.capsule; if (capsule?.id !== capsuleId) throw new Error('Release capsule identity mismatch.');
       if (capsule.chunk_size !== CHUNK_SIZE || !Array.isArray(capsule.chunks) || !capsule.chunks.length
         || capsule.chunks.length > Math.ceil(MAX_BYTES / CHUNK_SIZE)
@@ -157,22 +178,20 @@ function createClient({ env = process.env, fetchImpl = globalThis.fetch, now = (
         if (matches(bytes, expected)) { hits++; }
         else {
           const start = performance.now(); let part;
-          try { part = await call('read_chunk', { ...binding, capsule_id: capsuleId, index }); }
+          try { part = await read('read_chunk', { ...binding, capsule_id: capsuleId, index }); }
           finally { latencies.push(performance.now() - start); }
           if (part.sha256 !== expected.sha256 || typeof part.base64 !== 'string') throw new Error('Release chunk identity mismatch.');
           bytes = Buffer.from(part.base64, 'base64');
           if (!matches(bytes, expected)) throw new Error('Release chunk content mismatch.');
           downloaded += bytes.length;
+          // Only independently verified content bytes are cached. The complete
+          // archive and its provenance are still checked before returning files.
+          try { cache?.put(expected, bytes); } catch {}
         }
         return bytes;
       });
       // Retain the full archive, provenance and per-file validation on cache hits.
       const files = unpack(capsule, chunks);
-      if (cache) {
-        for (let index = 0; index < chunks.length; index++) {
-          try { cache.put(capsule.chunks[index], chunks[index]); } catch {}
-        }
-      }
       log('Release download: ' + hits + '/' + chunks.length + ' cached chunks; '
         + downloaded + ' bytes downloaded from Drive.');
       completed = true;
@@ -180,6 +199,7 @@ function createClient({ env = process.env, fetchImpl = globalThis.fetch, now = (
     } finally {
       finish({ status: completed ? 'complete' : 'failed', capsule_id: capsuleId, kind: capsule?.kind,
         concurrency, chunks: capsule?.chunks?.length, cached_chunks: hits, downloaded_bytes: downloaded,
+        read_attempts: readAttempts, read_retries: readRetries,
         ...latencySummary(latencies) });
     }
   }

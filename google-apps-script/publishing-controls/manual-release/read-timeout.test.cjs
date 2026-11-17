@@ -13,7 +13,7 @@ function slowTransport(t, duration) {
     deadlines.set(controller.signal, { milliseconds, controller });
     return controller.signal;
   });
-  const client = createClient({ cache: null, log: () => {},
+  const client = createClient({ cache: null, log: () => {}, wait: async () => {},
     env: { REGISTRY_URL: 'https://script.google.com/macros/s/test/exec',
       AI4S_PREVIEW_CALLBACK_SECRET: 'slow-read-test-only-secret-123456789' },
     fetchImpl: async (_, options) => {
@@ -36,10 +36,10 @@ test('a 138-second successful chunk read survives the transport deadline and ver
   assert.deepEqual(h.calls, ['read_capsule', 'read_chunk']);
 });
 
-test('an excessively slow read remains bounded without automatic retries', async t => {
+test('an excessively slow read remains bounded to three attempts', async t => {
   const h = slowTransport(t, 241000);
   await assert.rejects(h.client.download(prepared.capsule.id), /request was not confirmed/);
-  assert.deepEqual(h.calls, ['read_capsule', 'read_chunk']);
+  assert.deepEqual(h.calls, ['read_capsule', 'read_chunk', 'read_chunk', 'read_chunk']);
 });
 
 test('a slow release decision retains its original deadline and is never retried', async t => {
