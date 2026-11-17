@@ -25,9 +25,12 @@ function createClient({ env = process.env, fetchImpl = globalThis.fetch, now = (
   function call(action, data = {}) { return limited(async () => {
     const payload = JSON.stringify({ schema: 1, ...identity(env), ...data, action, sent_at: now() });
     const signature = crypto.createHmac('sha256', secret).update(DOMAIN + payload).digest('hex');
+    // Drive-backed immutable reads can finish successfully after two minutes.
+    // Keep decisions and writes on their existing deadline and retry rules.
+    const timeout = ['read_capsule', 'read_chunk'].includes(action) ? 240000 : 120000;
     let response, result;
     try { response = await fetchImpl(url, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ payload, signature }), signal: AbortSignal.timeout(120000) });
+      body: JSON.stringify({ payload, signature }), signal: AbortSignal.timeout(timeout) });
       result = await response.json(); }
     catch { throw new Error('Release API request was not confirmed. Check status before retrying.'); }
     if (!response.ok || result?.ok !== true) {

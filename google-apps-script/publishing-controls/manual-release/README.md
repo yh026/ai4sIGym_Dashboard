@@ -32,6 +32,8 @@ Unknown hook, claim, preparation and success responses are not retried automatic
 
 Release metadata operations wait up to 30 seconds for the existing shared ScriptLock. This accommodates overlapping Drive-backed metadata operations from the two transfer workers without immediately rejecting one and forcing reconciliation or a resend. Chunk hashing and byte I/O remain outside the lock; authorization is rechecked before committing. A longer competing operation still returns the bounded `release_busy` response. Deploy the updated `ManualReleaseStore.gs` to apply this server-side behavior.
 
+Immutable `read_capsule` and `read_chunk` requests have a four-minute transport deadline to accommodate slow Drive responses. Other API actions retain the two-minute deadline. Reads still verify every returned byte and are not automatically retried; this change does not alter write reconciliation or publication decisions.
+
 ## Verified content cache and bounded transfers
 
 Production uses Netlify Build's standard cache for `.ais-release-cache-v1/`, outside the published directory. Every download still reads the authenticated capsule descriptor and validates chunk hashes, complete archive, provenance and individual files. Missing or corrupt cache bytes fall back to Drive; authorization failures do not. The cache stores content only, has a 512 MiB size bound, and can be disabled with `AIS_RELEASE_CACHE=off`.
