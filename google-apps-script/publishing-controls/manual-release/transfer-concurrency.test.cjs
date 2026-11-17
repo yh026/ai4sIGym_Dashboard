@@ -87,11 +87,9 @@ test('concurrent lost acknowledgements reconcile serially and resend only missin
 test('fatal upload failure drains in-flight writes and never completes or caches a partial archive', async () => {
   const pending = deferred(), failed = deferred(); let settled = false;
   const h = harness({ async put_chunk(message, state, normal) {
-    if (message.index === 0) throw new Error('write never arrived');
+    if (message.index === 0) { failed.resolve(); throw new Error('write never arrived'); }
     if (message.index === 1) await pending.promise;
     return normal();
-  }, async upload_status(message, state, normal) {
-    if (state.count('upload_status') === 2) failed.resolve(); return normal();
   } });
   const running = h.client.upload(prepared);
   running.then(() => { settled = true; }, () => { settled = true; });
@@ -117,6 +115,26 @@ test('busy chunk metadata uses authoritative missing status and the same bounded
   assert.equal(h.state.calls.filter(call => call.action === 'put_chunk' && call.index === 0).length, 2);
   assert.ok(h.state.logs.some(line => line.includes('"release_busy":1')));
   assert.equal(h.state.count('complete_capsule'), 1);
+});
+
+test('busy upload recovery drains the other writer before checking status and resending', async () => {
+  const started = deferred(); let metadataLocked = false;
+  const h = harness({ async put_chunk(message, state, normal) {
+    if (message.index === 1) {
+      metadataLocked = true; started.resolve(); await tick();
+      const result = await normal(); metadataLocked = false; return result;
+    }
+    if (message.index === 0) {
+      await started.promise;
+      if (metadataLocked) return { ok: false, code: 'release_busy', error: 'Metadata is busy.' };
+    }
+    return normal();
+  } });
+  await h.client.upload(prepared);
+  assert.equal(h.state.calls.filter(call => call.action === 'put_chunk' && call.index === 0).length, 2);
+  assert.equal(h.state.count('upload_status'), 1);
+  assert.equal(h.state.count('complete_capsule'), 1);
+  assert.deepEqual(unpack(prepared.capsule, [...h.state.stored].sort(([a], [b]) => a - b).map(([, bytes]) => bytes)), files);
 });
 
 test('corrupt downloads drain started reads and stop assigning new chunks', async () => {
