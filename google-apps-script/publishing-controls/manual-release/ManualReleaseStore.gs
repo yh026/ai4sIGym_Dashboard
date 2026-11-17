@@ -1,7 +1,7 @@
 /** Immutable, signed build capsules. Only server-side UI functions create requests.
  * This API stores artifacts and acknowledgements; it never invokes a build hook.
  */
-var AIS_RELEASE_STORE = { schema: 1, chunkSize: 8388608, maxChunks: 256,
+var AIS_RELEASE_STORE = { schema: 1, chunkSize: 8388608, maxChunks: 256, maxBytes: 536870912,
   maxEnvelope: 11300000, rootProperty: 'AIS_RELEASE_ROOT_FOLDER_ID',
   activePreview: 'AIS_RELEASE_ACTIVE_PREVIEW_CAPSULE_ID',
   activeProduction: 'AIS_RELEASE_ACTIVE_PRODUCTION_CAPSULE_ID' };
@@ -178,8 +178,8 @@ function registryReleaseStoreCapsuleShape_(capsule, payload) {
   registryReleaseStoreId_(capsule.id);
   registryReleaseStoreNeed_(/^[a-f0-9]{64}$/.test(capsule.archive_sha256 || '') &&
     /^sha256:[a-f0-9]{64}$/.test(capsule.inventory_digest || '') && Number.isSafeInteger(capsule.archive_size) &&
-    capsule.archive_size > 0 && capsule.archive_size <= 268435456 && Number.isSafeInteger(capsule.unpacked_size) &&
-    capsule.unpacked_size > 0 && capsule.unpacked_size <= 268435456 &&
+    capsule.archive_size > 0 && capsule.archive_size <= AIS_RELEASE_STORE.maxBytes && Number.isSafeInteger(capsule.unpacked_size) &&
+    capsule.unpacked_size > 0 && capsule.unpacked_size <= AIS_RELEASE_STORE.maxBytes &&
     capsule.chunk_size === AIS_RELEASE_STORE.chunkSize && Array.isArray(capsule.chunks) &&
     capsule.chunks.length > 0 && capsule.chunks.length <= AIS_RELEASE_STORE.maxChunks, 'Invalid capsule inventory.');
   var total = 0;
