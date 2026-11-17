@@ -50,12 +50,14 @@ function createClient({ env = process.env, fetchImpl = globalThis.fetch, now = (
     const { capsule, chunks } = prepared;
     const finish = startStage('upload', log), latencies = [];
     let attempts = 0, sentBytes = 0, statusReads = 0, busy = 0, completed = false;
-    const acknowledged = new Set();
+    const acknowledged = new Set(), uploading = new Set();
     async function putChunk(part) {
+      let settle; const pending = new Promise(resolve => { settle = resolve; });
+      uploading.add(pending);
       const start = performance.now(); attempts++; sentBytes += chunks[part.index].length;
       try { await call('put_chunk', part); acknowledged.add(part.index); }
       catch (error) { if (error.code === 'release_busy') busy++; throw error; }
-      finally { latencies.push(performance.now() - start); }
+      finally { latencies.push(performance.now() - start); uploading.delete(pending); settle(); }
     }
     async function uploadStatus() {
       let result;
@@ -84,6 +86,9 @@ function createClient({ env = process.env, fetchImpl = globalThis.fetch, now = (
       const next = recovery.then(async () => {
         if (recoveryError) throw recoveryError;
         try {
+          // Existing writers can still hold the store's metadata lock. Drain
+          // them while new writes wait below, then reconcile in isolation.
+          await Promise.all([...uploading]);
           await uploadStatus();
           if (acknowledged.has(part.index)) return;
           // Exactly one resend, only after the store reports these bytes missing.
@@ -108,6 +113,8 @@ function createClient({ env = process.env, fetchImpl = globalThis.fetch, now = (
       }
       if (begin && begin.capsule_id !== capsule.id) throw new Error('Release capsule identity mismatch.');
       await mapConcurrent(chunks, concurrency, async (_, index) => {
+        await recovery;
+        if (recoveryError) throw recoveryError;
         if (acknowledged.has(index)) return;
         const part = { ...binding, capsule_id: capsule.id, index,
           sha256: capsule.chunks[index].sha256, base64: chunks[index].toString('base64') };
