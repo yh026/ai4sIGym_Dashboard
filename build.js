@@ -1,0 +1,2226 @@
+#!/usr/bin/env node
+/**
+ * AIS Instrumentation Gym build.
+ *
+ * Generates:
+ *   dist/index.html                         interactive science map
+ *   dist/domains/<domain>/index.html       domain project collections
+ *   dist/demos/<slug>/index.html           publishable demos with atlas navigation
+ *   dist/manifest.json                     public metadata (no Drive ids)
+ *   dist/deploy-receipt.json               secret-free build and Registry receipt
+ *
+ * Env: REGISTRY_URL is the Apps Script /exec URL including ?token=...
+ * Netlify's CONTEXT and BRANCH select a fail-closed content policy:
+ *   production/main       -> Live only
+ *   branch-deploy/develop -> Live + Draft
+ * Local website: node build.js --local (outputs to .local/site/)
+ * Mock fixtures: node build.js --mock
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+const MOCK = process.argv.includes('--mock');
+const LOCAL = process.argv.includes('--local');
+const INCLUDE_DRAFTS = process.argv.includes('--include-drafts');
+const ROOT = __dirname;
+const DIST = LOCAL ? path.join(ROOT, '.local', 'site') : path.join(ROOT, 'dist');
+const SITE = path.join(ROOT, 'site');
+const NEW_WINDOW_DAYS = 14;
+const DEPLOY_RECEIPT_SCHEMA = 1;
+const HOOK_BODY_MAX_BYTES = 2048;
+const REGISTRY_REVISION_PATTERN = /^sha256:[0-9a-f]{64}$/;
+const REQUEST_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const REGISTRY_SCHEMA_V2 = 2;
+const TAXONOMY_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const PUBLIC_CARD_ASSET_PATTERN = /^assets\/cards\/[a-z0-9][a-z0-9/_-]*\.(?:avif|gif|jpe?g|png|webp)$/;
+const MAX_CARD_ASSET_BYTES = 5 * 1024 * 1024;
+const MAX_CARD_ASSET_RESPONSE_BYTES = 4 * Math.ceil(MAX_CARD_ASSET_BYTES / 3) + 4096;
+const CARD_ASSET_MIME_BY_EXTENSION = Object.freeze({
+  avif: 'image/avif',
+  gif: 'image/gif',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+});
+const MAP_DATA = require(path.join(SITE, 'map-regions.js'));
+
+const DOMAIN_DEFINITIONS = [
+  {
+    id: 'space-astronomy',
+    name: 'Physics',
+    short: 'Physics',
+    description: 'Explore matter, energy, fields, condensed matter, atmospheric measurements, and the physical universe.',
+    color: '#6950b8',
+    soft: '#211b3b',
+    subtopics: [
+      { id: 'astrophysics', name: 'Astronomy & Astrophysics', aliases: ['astronomy', 'space science'], keywords: ['astronom*', 'astrophys*', 'galax*', 'cosmolog*', 'stellar', 'telescope*', 'exoplanet*', 'planetary'] },
+      { id: 'quantum-particles', name: 'Quantum & Particles', aliases: ['quantum science', 'particle physics'], keywords: ['quantum', 'particle*', 'atomic', 'nuclear'] },
+      { id: 'condensed-matter', name: 'Condensed Matter & Materials Physics', aliases: ['condensed matter', 'materials physics', 'solid state physics'], keywords: ['superconduct*', 'condensed matter', 'solid state', 'critical temperature'] },
+      { id: 'atmospheric-remote-sensing', name: 'Atmospheric Physics & Remote Sensing', aliases: ['atmospheric physics', 'remote sensing'], keywords: ['atmospher*', 'weather satellite*', 'brightness temperature*', 'remote sensing', 'himawari*'] },
+      { id: 'waves-fields', name: 'Waves, Optics & Fields', aliases: ['waves', 'fields', 'optics'], keywords: ['wave*', 'optic*', 'electromagnet*', 'field*', 'signal*'] },
+      { id: 'mechanics-simulation', name: 'Mechanics & Simulation', aliases: ['physical simulation', 'mechanics'], keywords: ['mechanic*', 'fluid*', 'thermodynamic*', 'dynamic*', 'simulation*'] },
+    ],
+    legacyIds: ['physics-simulation'],
+    aliases: ['space', 'space and astronomy', 'physics and astronomy', 'astronomy', 'astrophysics', 'planetary science', 'cosmology', 'physics', 'department of physics', 'physics and simulation', 'physics-simulation', 'physical science', 'simulation', 'mechanics', 'quantum science', 'atmospheric physics', 'remote sensing'],
+  },
+  {
+    id: 'chemistry-materials',
+    name: 'Chemistry',
+    short: 'Chemistry',
+    description: 'Examine molecules, reactions, materials, electrochemistry, and sustainable chemical systems across multiple scales.',
+    color: '#d97822',
+    soft: '#352219',
+    subtopics: [
+      { id: 'molecular-systems', name: 'Molecular Systems', aliases: ['molecular science'], keywords: ['molecule*', 'molecular'] },
+      { id: 'reactions-catalysis', name: 'Reactions & Catalysis', aliases: ['chemical reactions', 'catalysis'], keywords: ['reaction*', 'catalysis', 'catalyst*', 'kinetic*'] },
+      { id: 'materials', name: 'Materials Chemistry', aliases: ['materials science'], keywords: ['material*', 'crystal*', 'polymer*', 'alloy*', 'solid state'] },
+      { id: 'electrochemistry-energy', name: 'Electrochemistry & Energy Storage', aliases: ['electrochemistry', 'energy storage', 'battery science'], keywords: ['electrochemi*', 'battery', 'batteries', 'lithium-ion', 'lithium ion', 'state of health', 'capacity fade', 'charge cycle*', 'discharge cycle*'] },
+      { id: 'nanoscience', name: 'Nanoscience', aliases: ['nanomaterials'], keywords: ['nanoscience', 'nanomaterial*', 'nanoparticle*', 'nanostructure*', 'graphene', 'surface chemistry', 'thin film*'] },
+      { id: 'sustainable-chemistry', name: 'Sustainable Chemistry', aliases: ['green chemistry'], keywords: ['green chemistry', 'sustainable chemistry', 'circular chemistry', 'recycl*'], strongKeywords: ['green chemistry', 'sustainable chemistry', 'circular chemistry', 'recycl*'] },
+    ],
+    legacyIds: [],
+    aliases: ['chemistry', 'department of chemistry', 'chemistry and materials', 'materials', 'molecular science', 'chemical science', 'materials science', 'electrochemistry', 'battery science'],
+  },
+  {
+    id: 'biology-genomics',
+    name: 'Biological Sciences',
+    short: 'Biology',
+    description: 'Navigate DNA, RNA, proteins, cells, organisms, and ecosystems to see how living systems work.',
+    color: '#4d8b45',
+    soft: '#17301c',
+    subtopics: [
+      { id: 'genomics-rna', name: 'Genomics & Single-Cell Biology', aliases: ['genomics', 'bioinformatics', 'single-cell biology'], keywords: ['genom*', 'dna', 'rna', 'mrna', 'gene', 'genes', 'genetic*', 'bioinform*', 'single cell', 'single-cell'] },
+      { id: 'cell-biology', name: 'Cell Biology', aliases: ['cellular biology'], keywords: ['cell biology', 'cellular', 'cell', 'cells', 'microscopy'] },
+      { id: 'systems-biology', name: 'Genomics & Systems Biology', aliases: ['systems biology', 'gene networks'], keywords: ['co-expression', 'coexpression', 'gene network*', 'systems biology', 'pathway*'] },
+      { id: 'protein-science', name: 'Protein Science', aliases: ['proteomics'], keywords: ['protein*', 'proteom*', 'enzyme*', 'structure prediction'] },
+      { id: 'ecology-evolution', name: 'Ecology & Environmental Biology', aliases: ['ecology', 'evolution', 'environmental biology'], keywords: ['ecolog*', 'ecosystem*', 'evolution*', 'biodiversity', 'forest*', 'canopy', 'microclimate*'] },
+    ],
+    legacyIds: [],
+    aliases: ['biology', 'biology and genomics', 'genomics', 'bioinformatics', 'life science', 'biological sciences', 'department of biological sciences'],
+  },
+  {
+    id: 'pharmacy-biomedical',
+    name: 'Pharmacy and Pharmaceutical Sciences',
+    short: 'Pharmacy',
+    description: 'Discover medicines, therapeutics, drug delivery, pharmaceutical analysis, and data-driven approaches to human health.',
+    color: '#c95878',
+    soft: '#3a1c2a',
+    subtopics: [
+      { id: 'drug-discovery', name: 'Drug Discovery', aliases: ['molecular screening'], keywords: ['drug discovery', 'compound*', 'screening', 'qsar', 'molecular docking'] },
+      { id: 'therapeutics', name: 'Therapeutics', aliases: ['pharmacology'], keywords: ['therapeut*', 'pharmac*', 'medicine*', 'clinical trial*'] },
+      { id: 'medical-imaging', name: 'Medical Imaging', aliases: ['biomedical imaging'], keywords: ['medical imaging', 'mri', 'radiology', 'tomography', 'scan', 'scans', 'scanner*', 'scanning', 'imaging'] },
+      { id: 'pharmaceutical-analysis', name: 'Pharmaceutical Analysis', aliases: ['pharmaceutical science'], keywords: ['pharmaceutical analysis', 'formulation*', 'drug delivery', 'pharmacokinetic*'] },
+      { id: 'biomedical-data', name: 'Biomedical & Clinical Data', aliases: ['health data'], keywords: ['biomedical data', 'health data', 'patient*', 'clinical data', 'medical ai'] },
+    ],
+    legacyIds: [],
+    aliases: ['pharmacy', 'pharmacy and pharmaceutical sciences', 'department of pharmacy and pharmaceutical sciences', 'pharmaceutical science', 'pharmaceutical sciences', 'biomedicine', 'biomedical science', 'pharmacology', 'drug discovery'],
+  },
+  {
+    id: 'food-science-technology',
+    name: 'Food Science and Technology',
+    short: 'Food Science',
+    description: 'Explore nutrition, fermentation, food safety, analysis, and technologies across the food system.',
+    color: '#5d8e39',
+    soft: '#243219',
+    subtopics: [
+      { id: 'nutrition', name: 'Nutrition', aliases: ['nutritional science'], keywords: ['nutrition*', 'nutrient*', 'diet*', 'metabolism'] },
+      { id: 'fermentation-bioprocessing', name: 'Fermentation & Bioprocessing', aliases: ['fermentation'], keywords: ['ferment*', 'bioprocess*', 'microb*', 'culture', 'cultures', 'starter culture'] },
+      { id: 'food-safety', name: 'Food Safety', aliases: ['food quality'], keywords: ['food safety', 'contamin*', 'pathogen*', 'quality control'] },
+      { id: 'food-analysis-engineering', name: 'Food Analysis & Engineering', aliases: ['food analysis', 'food engineering'], keywords: ['food analysis', 'food technology', 'processing', 'sensor*', 'texture*'] },
+    ],
+    legacyIds: [],
+    aliases: ['food science', 'food science and technology', 'department of food science and technology', 'food technology', 'nutrition', 'fermentation', 'food safety', 'agriculture', 'food crops'],
+  },
+  {
+    id: 'mathematics',
+    name: 'Mathematics',
+    short: 'Mathematics',
+    description: 'Explore equations, geometry, topology, optimisation, and mathematical models that describe complex systems.',
+    color: '#4d5ba8',
+    soft: '#1d2340',
+    subtopics: [
+      { id: 'pure-mathematics', name: 'Pure Mathematics', aliases: ['pure math'], keywords: ['algebra*', 'number theory', 'analysis', 'proof*'] },
+      { id: 'mathematical-modelling', name: 'Mathematical Modelling', aliases: ['applied mathematics'], keywords: ['mathematical model*', 'modelling', 'modeling', 'differential equation*', 'simulation*'] },
+      { id: 'geometry-topology', name: 'Geometry & Topology', aliases: ['topology'], keywords: ['geometr*', 'topolog*', 'manifold*', 'shape*'] },
+      { id: 'optimisation', name: 'Optimisation', aliases: ['optimization'], keywords: ['optimisation', 'optimization', 'operations research'] },
+    ],
+    legacyIds: [],
+    aliases: ['mathematics', 'department of mathematics', 'mathematical sciences', 'applied mathematics', 'pure mathematics', 'topology', 'optimisation', 'optimization'],
+  },
+  {
+    id: 'ai-mathematics-data',
+    name: 'Statistics and Data Science',
+    short: 'Statistics & Data',
+    description: 'Discover statistical inference, machine learning, visualisation, and computational methods that connect every region of science.',
+    color: '#5267a9',
+    soft: '#102a39',
+    subtopics: [
+      { id: 'machine-learning', name: 'Machine Learning & Representation Learning', aliases: ['artificial intelligence', 'representation learning'], keywords: ['machine learning', 'deep learning', 'neural network*', 'clustering', 'k-means', 'classification', 'embedding*', 'regularisation', 'regularization'] },
+      { id: 'data-compression', name: 'Machine Learning & Data Compression', aliases: ['data compression', 'quantisation', 'quantization'], keywords: ['quantization', 'quantisation', 'codebook*', 'compression', 'compressed representation*'] },
+      { id: 'scientific-machine-learning', name: 'Scientific Machine Learning', aliases: ['scientific ml'], keywords: ['scientific machine learning', 'physics informed', 'physics-informed', 'pinn', 'neural operator*', 'surrogate model*'], strongKeywords: ['scientific machine learning', 'physics informed', 'physics-informed', 'pinn', 'neural operator*'] },
+      { id: 'statistics-inference', name: 'Statistics & Inference', aliases: ['statistics', 'inference'], keywords: ['statistics', 'statistical', 'inference', 'bayesian', 'probability', 'regression*'] },
+      { id: 'forecasting-time-series', name: 'Forecasting & Time Series', aliases: ['forecasting', 'time series'], keywords: ['forecast*', 'time series', 'temporal', 'prediction'] },
+      { id: 'spatiotemporal-data', name: 'Spatiotemporal Data Science', aliases: ['spatial data science'], keywords: ['spatiotemporal', 'spatial', 'road speed*', 'traffic', 'sensor*', 'air quality', 'umap'] },
+      { id: 'multivariate-visualisation', name: 'Multivariate Analysis & Visualisation', aliases: ['multivariate analysis', 'multivariate visualisation'], keywords: ['multivariate', 'pca', 'umap', 'air quality', 'day segment*', 'sensor*'] },
+      { id: 'data-visualisation', name: 'Visualisation & Exploration', aliases: ['data visualization', 'data visualisation', 'visualization', 'visualisation'], keywords: ['visualisation', 'visualization', 'interactive chart', 'dashboard', 'visual analytics'] },
+      { id: 'scientific-computing', name: 'Scientific Computing', aliases: ['computational science'], keywords: ['scientific computing', 'numerical method', 'numerical solver', 'high performance computing', 'parallel computing'] },
+    ],
+    legacyIds: [],
+    aliases: ['ai', 'ai and data', 'data', 'statistics', 'statistics and data science', 'department of statistics and data science', 'machine learning', 'data science', 'scientific computing', 'data visualisation', 'data visualization', 'AI, Mathematics & Data'],
+  },
+];
+
+// Explicit compatibility assignments for the current live collection. Registry
+// `department_id` values take precedence; these keep legacy records correct until
+// that canonical field is populated in the Sheet.
+const PROJECT_DOMAIN_OVERRIDES = new Map([
+  ['soh-battery', 'chemistry-materials'],
+  ['battery-soh-explorer', 'chemistry-materials'],
+  ['battery-soh-forecast-explorer', 'chemistry-materials'],
+  ['ceemdan-battery-forecasting', 'chemistry-materials'],
+  ['ceemdan-battery-forecast-explorer', 'chemistry-materials'],
+  ['ceemdan-battery-explorer', 'chemistry-materials'],
+  ['tbb-cluster-explorer', 'space-astronomy'],
+  ['tbb-cluster-explorer-himawari-9-band-07', 'space-astronomy'],
+  ['pleiades-membership-explorer', 'space-astronomy'],
+  ['superconductor-regression-explorer', 'space-astronomy'],
+  ['forest-microclimate-does-canopy-buffer-the-day', 'biology-genomics'],
+  ['microclimate-explorer', 'biology-genomics'],
+  ['galaxy2-does-rotation-augmentation-help', 'space-astronomy'],
+  ['galaxy-classification', 'space-astronomy'],
+  ['singapore-road-speed-clusters-umap', 'ai-mathematics-data'],
+  ['ltaspeedbands', 'ai-mathematics-data'],
+  ['from-twenty-thousand-genes-to-fourteen-cell-types', 'biology-genomics'],
+  ['pancreas-singlecell-clustering', 'biology-genomics'],
+  ['from-twelve-thousand-numbers-to-a-codebook', 'ai-mathematics-data'],
+  ['satellite-image-quantization', 'ai-mathematics-data'],
+  ['air-quality-day-segment-pca-and-amp-umap-by-sensor', 'ai-mathematics-data'],
+  ['airquality-dashboard', 'ai-mathematics-data'],
+  ['jae-regularisation-lab-what-each-loss-actually-does', 'ai-mathematics-data'],
+  ['jae-joint-embedding-how-one-cell-becomes-61-numbers', 'biology-genomics'],
+  ['mrna-joint-embedding', 'biology-genomics'],
+  ['alzheimer-s-gene-co-expression-explorer', 'biology-genomics'],
+  ['alzheimer-s-gene-co-expression-lab', 'biology-genomics'],
+]);
+
+const PROJECT_SUBTOPIC_OVERRIDES = new Map([
+  ['soh-battery', 'electrochemistry-energy'],
+  ['battery-soh-explorer', 'electrochemistry-energy'],
+  ['battery-soh-forecast-explorer', 'electrochemistry-energy'],
+  ['ceemdan-battery-forecasting', 'electrochemistry-energy'],
+  ['ceemdan-battery-forecast-explorer', 'electrochemistry-energy'],
+  ['ceemdan-battery-explorer', 'electrochemistry-energy'],
+  ['tbb-cluster-explorer', 'atmospheric-remote-sensing'],
+  ['tbb-cluster-explorer-himawari-9-band-07', 'atmospheric-remote-sensing'],
+  ['pleiades-membership-explorer', 'astrophysics'],
+  ['superconductor-regression-explorer', 'condensed-matter'],
+  ['forest-microclimate-does-canopy-buffer-the-day', 'ecology-evolution'],
+  ['microclimate-explorer', 'ecology-evolution'],
+  ['galaxy2-does-rotation-augmentation-help', 'astrophysics'],
+  ['galaxy-classification', 'astrophysics'],
+  ['singapore-road-speed-clusters-umap', 'spatiotemporal-data'],
+  ['ltaspeedbands', 'spatiotemporal-data'],
+  ['from-twenty-thousand-genes-to-fourteen-cell-types', 'genomics-rna'],
+  ['pancreas-singlecell-clustering', 'genomics-rna'],
+  ['from-twelve-thousand-numbers-to-a-codebook', 'data-compression'],
+  ['satellite-image-quantization', 'data-compression'],
+  ['air-quality-day-segment-pca-and-amp-umap-by-sensor', 'multivariate-visualisation'],
+  ['airquality-dashboard', 'multivariate-visualisation'],
+  ['jae-regularisation-lab-what-each-loss-actually-does', 'machine-learning'],
+  ['jae-joint-embedding-how-one-cell-becomes-61-numbers', 'genomics-rna'],
+  ['mrna-joint-embedding', 'genomics-rna'],
+  ['alzheimer-s-gene-co-expression-explorer', 'systems-biology'],
+  ['alzheimer-s-gene-co-expression-lab', 'systems-biology'],
+]);
+
+const PROJECT_PREVIEW_ALTS = new Map([
+  ['soh-battery', 'Four battery state-of-health curves decline as charge cycles increase.'],
+  ['ceemdan-battery-forecasting', 'Battery capacity curves decline across repeated charge cycles.'],
+  ['tbb-cluster-explorer', 'A blue Himawari-9 satellite brightness-temperature scene.'],
+  ['pleiades-membership-explorer', 'A proper-motion scatterplot separates likely Pleiades members from field stars.'],
+  ['superconductor-regression-explorer', 'A PCA scatterplot of held-out superconducting materials coloured by critical temperature.'],
+  ['forest-microclimate-does-canopy-buffer-the-day', 'Mean daily temperature curves compare four forest types across 24 hours.'],
+  ['galaxy2-does-rotation-augmentation-help', 'Ten real galaxy images illustrate the ten morphology classes.'],
+  ['singapore-road-speed-clusters-umap', 'A UMAP point cloud groups Singapore road-speed profiles by cluster.'],
+  ['from-twenty-thousand-genes-to-fourteen-cell-types', 'A sparse heatmap shows raw counts for 120 cells across 80 genes.'],
+  ['from-twelve-thousand-numbers-to-a-codebook', 'A wall of real Sentinel-2 image tiles shows the source satellite data.'],
+  ['air-quality-day-segment-pca-and-amp-umap-by-sensor', 'Five heatmaps show hourly readings across 357 days for five air-quality sensors.'],
+  ['jae-regularisation-lab-what-each-loss-actually-does', 'Two embedding plots compare uniform and batch-classifying regularisation objectives.'],
+  ['jae-joint-embedding-how-one-cell-becomes-61-numbers', 'A heatmap and profiles show the multi-omics design matrix for one cell.'],
+  ['alzheimer-s-gene-co-expression-explorer', 'Two gene-expression heatmaps compare raw values with global z-scores.'],
+]);
+
+const GENERAL_SUBTOPIC = {
+  id: 'general-interdisciplinary',
+  name: 'General & Interdisciplinary',
+  aliases: ['general', 'interdisciplinary'],
+  keywords: [],
+};
+
+// This former catch-all was split across Physics, Biological Sciences, and
+// Statistics and Data Science. Its old collection URL now returns to the map
+// rather than misleadingly redirecting every project into one department.
+const RETIRED_DOMAIN_IDS = ['earth-climate'];
+
+DOMAIN_DEFINITIONS.forEach(domain => {
+  domain.futurePaths = domain.subtopics.map(subtopic => subtopic.name);
+});
+
+function fail(msg) {
+  console.error('\nBUILD FAILED: ' + msg + '\n');
+  process.exit(1);
+}
+
+function esc(value) {
+  let text = String(value == null ? '' : value);
+  // Registry text occasionally arrives HTML-encoded. Decode the small safe
+  // entity set first, then escape once for the generated document.
+  for (let i = 0; i < 3; i++) text = text.replace(/&(?:amp|#0*38|#x0*26);/gi, '&');
+  text = text
+    .replace(/&(?:lt|#0*60|#x0*3c);/gi, '<')
+    .replace(/&(?:gt|#0*62|#x0*3e);/gi, '>')
+    .replace(/&(?:quot|#0*34|#x0*22);/gi, '"')
+    .replace(/&(?:apos|#0*39|#x0*27);/gi, "'")
+    .replace(/&nbsp;/gi, ' ');
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function slugSafe(value) {
+  const out = String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return out || 'demo';
+}
+
+function normalKey(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function toBoolean(value) {
+  if (value === true || value === 1) return true;
+  return ['true', 'yes', '1', 'y'].includes(String(value || '').trim().toLowerCase());
+}
+
+function isExplicitFalse(value) {
+  if (value === false || value === 0) return true;
+  return ['false', 'no', '0', 'n'].includes(String(value == null ? '' : value).trim().toLowerCase());
+}
+
+function toList(value) {
+  if (Array.isArray(value)) return value.map(String).map(s => s.trim()).filter(Boolean);
+  if (!value) return [];
+  return String(value).split(/[,;|]/).map(s => s.trim()).filter(Boolean);
+}
+
+function registrySchemaVersion(value) {
+  if (value == null || value === '') return 1;
+  const version = Number(value);
+  if (version !== 1 && version !== REGISTRY_SCHEMA_V2) {
+    throw new Error('Unsupported Registry schema_version.');
+  }
+  return version;
+}
+
+function v2ContractError(message) {
+  throw new Error('Registry v2 contract: ' + message);
+}
+
+function requireV2Text(value, label) {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (!text) v2ContractError(label + ' is required');
+  return text;
+}
+
+function requireV2Id(value, label) {
+  const id = requireV2Text(value, label);
+  if (!TAXONOMY_ID_PATTERN.test(id)) v2ContractError(label + ' has an invalid ID');
+  return id;
+}
+
+function requireV2String(value, label, required = false) {
+  if (typeof value !== 'string') v2ContractError(label + ' must be a string');
+  const text = value.trim();
+  if (required && !text) v2ContractError(label + ' is required');
+  return text;
+}
+
+function requireV2Enum(value, label, allowed) {
+  const text = requireV2String(value, label, true);
+  if (!allowed.includes(text)) v2ContractError(label + ' has an invalid value');
+  return text;
+}
+
+function requireV2Boolean(value, label) {
+  if (typeof value !== 'boolean') v2ContractError(label + ' must be a boolean');
+  return value;
+}
+
+function requireV2FiniteNumber(value, label) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    v2ContractError(label + ' must be a finite number');
+  }
+  return value;
+}
+
+function requireV2DateString(value, label) {
+  const text = requireV2String(value, label, true);
+  if (!Number.isFinite(Date.parse(text))) v2ContractError(label + ' must be a valid date string');
+  return text;
+}
+
+function v2TermIndex(terms, kind) {
+  if (!Array.isArray(terms)) v2ContractError('taxonomy.' + kind + ' must be an array');
+  const index = new Map();
+  terms.forEach((source, position) => {
+    if (!source || typeof source !== 'object' || Array.isArray(source)) {
+      v2ContractError('taxonomy.' + kind + '[' + position + '] must be an object');
+    }
+    const id = requireV2Id(source.id, 'taxonomy.' + kind + '[' + position + '].id');
+    if (index.has(id)) v2ContractError('duplicate taxonomy ' + kind + ' ID: ' + id);
+    const labelPrefix = 'taxonomy.' + kind + '[' + position + ']';
+    const term = {
+      id,
+      label: requireV2String(source.label, labelPrefix + '.label', true),
+      active: requireV2Boolean(source.active, labelPrefix + '.active'),
+    };
+    if (kind === 'departments') {
+      term.short_label = requireV2String(source.short_label, labelPrefix + '.short_label');
+      term.description = requireV2String(source.description, labelPrefix + '.description');
+      term.display_order = requireV2FiniteNumber(source.display_order, labelPrefix + '.display_order');
+      term.theme_key = requireV2String(source.theme_key, labelPrefix + '.theme_key');
+      term.icon_key = requireV2String(source.icon_key, labelPrefix + '.icon_key');
+    } else if (kind === 'subtopics') {
+      term.department_id = requireV2Id(source.department_id, labelPrefix + '.department_id');
+      term.display_order = requireV2FiniteNumber(source.display_order, labelPrefix + '.display_order');
+    } else if (kind === 'data_types' || kind === 'instrument_types') {
+      term.description = requireV2String(source.description, labelPrefix + '.description');
+      term.display_order = requireV2FiniteNumber(source.display_order, labelPrefix + '.display_order');
+    }
+    Object.defineProperty(term, '_position', { value: position, enumerable: false });
+    index.set(id, term);
+  });
+  return index;
+}
+
+/**
+ * Registry v2 owns labels, ordering, and relationships. Git still owns the
+ * seven map regions and their visual theme, so an active department must map
+ * to one of those stable region IDs.
+ */
+function normalizeV2Taxonomy(taxonomy) {
+  if (!taxonomy || typeof taxonomy !== 'object' || Array.isArray(taxonomy)) {
+    v2ContractError('taxonomy must be an object');
+  }
+  const departments = v2TermIndex(taxonomy.departments, 'departments');
+  const subtopics = v2TermIndex(taxonomy.subtopics, 'subtopics');
+  const tasks = v2TermIndex(taxonomy.tasks, 'tasks');
+  const methods = v2TermIndex(taxonomy.methods, 'methods');
+  const dataTypes = v2TermIndex(
+    hasOwn(taxonomy, 'data_types') ? taxonomy.data_types : [], 'data_types',
+  );
+  const instrumentTypes = v2TermIndex(
+    hasOwn(taxonomy, 'instrument_types') ? taxonomy.instrument_types : [],
+    'instrument_types',
+  );
+  const staticDomains = new Map(DOMAIN_DEFINITIONS.map(domain => [domain.id, domain]));
+  const usedRegions = new Set();
+
+  departments.forEach(term => {
+    if (!term.active) return;
+    const themeKey = requireV2Id(term.theme_key, 'active department ' + term.id + ' theme_key');
+    const regionId = staticDomains.has(themeKey) ? themeKey : '';
+    if (!regionId || !staticDomains.has(regionId)) {
+      v2ContractError('active department has an unknown theme_key: ' + term.id);
+    }
+    if (usedRegions.has(regionId)) v2ContractError('active departments share map region: ' + regionId);
+    usedRegions.add(regionId);
+    Object.defineProperty(term, '_regionId', { value: regionId, enumerable: false });
+  });
+  subtopics.forEach(term => {
+    if (!departments.has(term.department_id)) {
+      v2ContractError('subtopic ' + term.id + ' references unknown department ' + term.department_id);
+    }
+  });
+
+  const domains = [...departments.values()]
+    .filter(term => term.active)
+    .sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0)
+      || a._position - b._position)
+    .map(term => {
+      const visual = staticDomains.get(term._regionId);
+      const children = [...subtopics.values()]
+        .filter(subtopic => subtopic.active && subtopic.department_id === term.id)
+        .sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0)
+          || a._position - b._position)
+        .map(subtopic => ({ id: subtopic.id, name: subtopic.label, aliases: [], keywords: [] }));
+      return {
+        ...visual,
+        taxonomy_id: term.id,
+        name: term.label,
+        short: String(term.short_label || term.label).trim(),
+        description: String(term.description || '').trim(),
+        subtopics: children,
+        futurePaths: children.map(subtopic => subtopic.name),
+        theme_key: String(term.theme_key || '').trim(),
+        icon_key: String(term.icon_key || '').trim(),
+      };
+    });
+  if (!domains.length) v2ContractError('taxonomy has no active departments');
+
+  return {
+    departments,
+    subtopics,
+    tasks,
+    methods,
+    data_types: dataTypes,
+    instrument_types: instrumentTypes,
+    domains,
+  };
+}
+
+function v2Refs(value, field, index) {
+  if (!Array.isArray(value)) v2ContractError('demo ' + index + ' ' + field + ' must be an array');
+  const ids = value.map((item, position) => requireV2Id(
+    item, 'demo ' + index + ' ' + field + '[' + position + ']',
+  ));
+  if (new Set(ids).size !== ids.length) v2ContractError('demo ' + index + ' has duplicate ' + field);
+  return ids;
+}
+
+function optionalV2Refs(source, field, index) {
+  return v2Refs(hasOwn(source, field) ? source[field] : [], field, index);
+}
+
+function optionalV2SingletonRefs(source, field, index) {
+  const ids = optionalV2Refs(source, field, index);
+  if (ids.length > 1) {
+    v2ContractError('demo ' + index + ' ' + field + ' must contain at most one ID');
+  }
+  return ids;
+}
+
+function safePublicCardAssetUrl(value, hrefBase) {
+  const source = String(value || '').trim();
+  if (!source || /[\\?#%\s]/.test(source) || !PUBLIC_CARD_ASSET_PATTERN.test(source)) return '';
+  if (source.split('/').some(segment => !segment || segment === '.' || segment === '..')) return '';
+  return String(hrefBase || '') + source;
+}
+
+function normalizeV2Demo(source, taxonomy, seen, index) {
+  if (!source || typeof source !== 'object' || Array.isArray(source)) {
+    v2ContractError('demo ' + index + ' must be an object');
+  }
+  const demoId = requireV2Id(source.demo_id, 'demo ' + index + ' demo_id');
+  if (seen.demoIds.has(demoId)) v2ContractError('duplicate demo_id: ' + demoId);
+  seen.demoIds.add(demoId);
+
+  const entryType = requireV2Text(source.entry_type, 'demo ' + index + ' entry_type');
+  if (!['project', 'site'].includes(entryType)) v2ContractError('demo ' + demoId + ' has invalid entry_type');
+  const rawSlug = requireV2Text(source.slug, 'demo ' + demoId + ' slug');
+  if (!TAXONOMY_ID_PATTERN.test(rawSlug)) v2ContractError('demo ' + demoId + ' has an invalid slug');
+  if (seen.slugs.has(rawSlug)) v2ContractError('duplicate slug: ' + rawSlug);
+  seen.slugs.add(rawSlug);
+
+  const isProject = entryType === 'project';
+  const departmentId = requireV2String(source.department_id, 'demo ' + demoId + ' department_id');
+  const subtopicId = requireV2String(source.subtopic_id, 'demo ' + demoId + ' subtopic_id');
+  const taskIds = v2Refs(source.task_ids, 'task_ids', demoId);
+  const methodIds = v2Refs(source.method_ids, 'method_ids', demoId);
+  const dataTypeIds = optionalV2SingletonRefs(source, 'data_type_ids', demoId);
+  const instrumentTypeIds = optionalV2SingletonRefs(source, 'instrument_type_ids', demoId);
+  if (isProject && (!taskIds.length || !methodIds.length)) {
+    v2ContractError('demo ' + demoId + ' task_ids and method_ids must be non-empty');
+  }
+  const status = requireV2Enum(source.status, 'demo ' + demoId + ' status', ['Live', 'Draft']);
+  const permission = requireV2Enum(
+    source.public_page_permission,
+    'demo ' + demoId + ' public_page_permission',
+    ['Public', 'Preview only', 'Private'],
+  );
+  const normalised = {
+    demo_id: demoId,
+    entry_type: entryType,
+    slug: rawSlug,
+    status,
+    featured: requireV2Boolean(source.featured, 'demo ' + demoId + ' featured'),
+    sort_order: requireV2FiniteNumber(source.sort_order, 'demo ' + demoId + ' sort_order'),
+    title: requireV2String(source.title, 'demo ' + demoId + ' title', true),
+    card_summary: requireV2String(
+      source.card_summary, 'demo ' + demoId + ' card_summary', isProject,
+    ),
+    department_id: departmentId,
+    subtopic_id: subtopicId,
+    task_ids: taskIds,
+    method_ids: methodIds,
+    data_type_ids: dataTypeIds,
+    instrument_type_ids: instrumentTypeIds,
+    audience: isProject
+      ? requireV2Enum(
+        source.audience,
+        'demo ' + demoId + ' audience',
+        ['General', 'Intro', 'Intermediate', 'Advanced'],
+      )
+      : requireV2String(source.audience, 'demo ' + demoId + ' audience'),
+    data_source_label: requireV2String(
+      source.data_source_label, 'demo ' + demoId + ' data_source_label',
+    ),
+    public_page_permission: permission,
+    card_asset: null,
+    file_id: requireV2String(source.file_id, 'demo ' + demoId + ' file_id', true),
+    file_check: requireV2String(source.file_check, 'demo ' + demoId + ' file_check', true),
+    date_added: requireV2DateString(source.date_added, 'demo ' + demoId + ' date_added'),
+  };
+
+  if (!Object.prototype.hasOwnProperty.call(source, 'card_asset')) {
+    v2ContractError('demo ' + demoId + ' card_asset is required');
+  }
+  if (source.card_asset != null) {
+    if (!isProject) v2ContractError('site record ' + demoId + ' cannot have a card_asset');
+    if (typeof source.card_asset !== 'object' || Array.isArray(source.card_asset)) {
+      v2ContractError('demo ' + demoId + ' card_asset must be an object or null');
+    }
+    const assetId = requireV2Id(source.card_asset.asset_id, 'demo ' + demoId + ' card_asset.asset_id');
+    const publicPath = requireV2Text(
+      source.card_asset.public_path, 'demo ' + demoId + ' card_asset.public_path',
+    );
+    const altText = requireV2Text(
+      source.card_asset.alt_text, 'demo ' + demoId + ' card_asset.alt_text',
+    );
+    if (!safePublicCardAssetUrl(publicPath, '')) {
+      v2ContractError('demo ' + demoId + ' card_asset.public_path is unsafe');
+    }
+    seen.assetIds = seen.assetIds || new Set();
+    seen.assetPaths = seen.assetPaths || new Set();
+    if (seen.assetIds.has(assetId)) v2ContractError('duplicate card_asset.asset_id: ' + assetId);
+    if (seen.assetPaths.has(publicPath)) v2ContractError('duplicate card_asset.public_path: ' + publicPath);
+    seen.assetIds.add(assetId);
+    seen.assetPaths.add(publicPath);
+    normalised.card_asset = { asset_id: assetId, public_path: publicPath, alt_text: altText };
+  }
+
+  if (!isProject) {
+    if (status !== 'Live' || departmentId || subtopicId || taskIds.length || methodIds.length
+        || dataTypeIds.length || instrumentTypeIds.length) {
+      v2ContractError('site record ' + demoId + ' has project-only fields or status');
+    }
+    Object.defineProperty(normalised, '_registrySchemaVersion', {
+      value: REGISTRY_SCHEMA_V2, enumerable: false,
+    });
+    return normalised;
+  }
+
+  normalised.department_id = requireV2Id(departmentId, 'demo ' + demoId + ' department_id');
+  normalised.subtopic_id = requireV2Id(subtopicId, 'demo ' + demoId + ' subtopic_id');
+  const department = taxonomy.departments.get(normalised.department_id);
+  if (!department || !department.active) {
+    v2ContractError('demo ' + demoId + ' references an unknown or inactive department');
+  }
+  const subtopic = taxonomy.subtopics.get(normalised.subtopic_id);
+  if (!subtopic || !subtopic.active || subtopic.department_id !== normalised.department_id) {
+    v2ContractError('demo ' + demoId + ' references an invalid or inactive subtopic');
+  }
+  const resolveTerms = (ids, terms, field) => ids.map(id => {
+    const term = terms.get(id);
+    if (!term || !term.active) {
+      v2ContractError('demo ' + demoId + ' references an unknown or inactive ' + field + ': ' + id);
+    }
+    return term;
+  });
+  const taskTerms = resolveTerms(taskIds, taxonomy.tasks, 'task');
+  const methodTerms = resolveTerms(methodIds, taxonomy.methods, 'method');
+  const dataTypeTerms = resolveTerms(dataTypeIds, taxonomy.data_types, 'data type');
+  const instrumentTypeTerms = resolveTerms(
+    instrumentTypeIds, taxonomy.instrument_types, 'instrument type',
+  );
+
+  const domain = taxonomy.domains.find(candidate => candidate.taxonomy_id === normalised.department_id);
+  const domainSubtopic = domain && domain.subtopics.find(candidate => candidate.id === normalised.subtopic_id);
+  if (!domain || !domainSubtopic) v2ContractError('demo ' + demoId + ' references inactive taxonomy');
+  Object.defineProperties(normalised, {
+    _registrySchemaVersion: { value: REGISTRY_SCHEMA_V2, enumerable: false },
+    _domainDefinition: { value: domain, enumerable: false },
+    _taskTerms: { value: taskTerms, enumerable: false },
+    _methodTerms: { value: methodTerms, enumerable: false },
+    _dataTypeTerms: { value: dataTypeTerms, enumerable: false },
+    _instrumentTypeTerms: { value: instrumentTypeTerms, enumerable: false },
+    _domain: { value: domain.id, enumerable: false },
+    _subtopic: { value: domainSubtopic.id, enumerable: false },
+    department_label: { value: domain.name, enumerable: false },
+    subtopic_label: { value: domainSubtopic.name, enumerable: false },
+  });
+  return normalised;
+}
+
+function pluralText(count, singular) {
+  return count + ' ' + singular + (count === 1 ? '' : 's');
+}
+
+function isSiteRecord(demo) {
+  const recordType = normalKey(demo.entry_type || demo.record_type);
+  const hasProjectFlag = Object.prototype.hasOwnProperty.call(demo, 'is_project');
+
+  // An explicit project declaration always wins, including for a legitimate
+  // project whose entry file happens to be named index.html.
+  if (recordType === 'project' || recordType === 'demo' || toBoolean(demo.is_project)) return false;
+  if (['site', 'dashboard', 'homepage'].includes(recordType)) return true;
+  if (hasProjectFlag && isExplicitFalse(demo.is_project)) return true;
+
+  // Compatibility for the current registry, which contains the dashboard
+  // itself as a Live Drive record. Keep this deliberately exact rather than
+  // excluding every future project that uses index.html.
+  const title = normalKey(demo.title);
+  return normalKey(path.basename(String(demo.file_name || ''))) === 'index-html'
+    && normalKey(demo.slug) === 'ai-for-science-demos'
+    && title === 'ai-for-science-demos';
+}
+
+const DOMAIN_ALIASES = new Map();
+const SUBTOPIC_ALIASES = new Map();
+DOMAIN_DEFINITIONS.forEach(domain => {
+  [domain.id, domain.name, domain.short].concat(domain.legacyIds || [], domain.aliases).forEach(alias => {
+    DOMAIN_ALIASES.set(normalKey(alias), domain);
+  });
+  const aliases = new Map();
+  domain.subtopics.concat(GENERAL_SUBTOPIC).forEach(subtopic => {
+    [subtopic.id, subtopic.name].concat(subtopic.aliases || []).forEach(alias => {
+      aliases.set(normalKey(alias), subtopic);
+    });
+  });
+  SUBTOPIC_ALIASES.set(domain.id, aliases);
+});
+
+function domainById(id) {
+  return DOMAIN_DEFINITIONS.find(domain => domain.id === id)
+    || DOMAIN_DEFINITIONS.find(domain => (domain.legacyIds || []).includes(id))
+    || DOMAIN_DEFINITIONS[DOMAIN_DEFINITIONS.length - 1];
+}
+
+function projectOverride(overrides, demo) {
+  const keys = projectKeys(demo);
+  for (const key of keys) {
+    if (overrides.has(key)) return overrides.get(key);
+  }
+  return '';
+}
+
+function projectKeys(demo) {
+  const fileStem = demo.file_name
+    ? path.basename(String(demo.file_name), path.extname(String(demo.file_name)))
+    : '';
+  return [...new Set(
+    [demo.slug, fileStem, demo.file_name, demo.title].filter(Boolean).map(slugSafe),
+  )];
+}
+
+function validateTaxonomy() {
+  if (DOMAIN_DEFINITIONS.length !== 7) fail('The NUS Science taxonomy must contain exactly seven departments.');
+
+  const departmentIds = new Set(DOMAIN_DEFINITIONS.map(domain => domain.id));
+  const regionIds = new Set(Object.keys(MAP_DATA.regions));
+  const missingRegions = [...departmentIds].filter(id => !regionIds.has(id));
+  const extraRegions = [...regionIds].filter(id => !departmentIds.has(id));
+  if (missingRegions.length || extraRegions.length) {
+    fail('Department/map region mismatch. Missing: ' + (missingRegions.join(', ') || 'none')
+      + '; extra: ' + (extraRegions.join(', ') || 'none'));
+  }
+
+  PROJECT_DOMAIN_OVERRIDES.forEach((domainId, key) => {
+    if (!departmentIds.has(domainId)) fail('Unknown department override for ' + key + ': ' + domainId);
+  });
+  PROJECT_SUBTOPIC_OVERRIDES.forEach((subtopicId, key) => {
+    const domainId = PROJECT_DOMAIN_OVERRIDES.get(key);
+    const domain = DOMAIN_DEFINITIONS.find(candidate => candidate.id === domainId);
+    if (!domain || !domain.subtopics.some(subtopic => subtopic.id === subtopicId)) {
+      fail('Invalid subtopic override for ' + key + ': ' + subtopicId);
+    }
+  });
+}
+
+function resolveDomain(demo) {
+  const canonical = [demo.department_id, demo.department, demo.academic_department].filter(Boolean);
+  for (const candidate of canonical) {
+    const resolved = DOMAIN_ALIASES.get(normalKey(candidate));
+    if (resolved) return resolved;
+  }
+  if (canonical.length) {
+    console.warn('  unrecognised department metadata for ' + (demo.title || demo.file_name || 'untitled record') + ': ' + canonical.join(', '));
+  }
+
+  const humanLabels = [demo.domain, demo.science_domain, demo.research_domain].filter(Boolean);
+  for (const candidate of humanLabels) {
+    const resolved = DOMAIN_ALIASES.get(normalKey(candidate));
+    if (resolved) return resolved;
+  }
+
+  const override = projectOverride(PROJECT_DOMAIN_OVERRIDES, demo);
+  if (override) return domainById(override);
+
+  const generatedId = DOMAIN_ALIASES.get(normalKey(demo.domain_id));
+  if (generatedId) return generatedId;
+
+  const text = [
+    ...humanLabels,
+    demo.category,
+    demo.title,
+    demo.description,
+    demo.task_type,
+    demo.method,
+    toList(demo.tags).join(' '),
+  ].filter(Boolean).join(' ').toLowerCase();
+
+  // Scientific subject takes priority over the analytical method. Keep these
+  // terms contextual: battery "health", battery "cell", and image "crop" are
+  // not medical, biological, or food evidence by themselves.
+  if (/\bbatter(?:y|ies)\b|lithium[- ]ion|electrochemi|energy storage|capacity fade|charge[- ]discharge/.test(text)) return domainById('chemistry-materials');
+  if (/astronom|astrophys|planet|space|galax|cosmo|stellar|telescope|exoplanet/.test(text)) return domainById('space-astronomy');
+  if (/physics|quantum|particle|superconduct|critical temperature|\bwave|fluid|mechanic|electromagnet|thermodynamic|weather satellite|brightness temperature|atmospher|remote sensing|himawari/.test(text)) return domainById('space-astronomy');
+  if (/pharmac|pharmaceut|\bdrug\b|drug discovery|therapeut|biomed|medical imag|clinical|\bpatient|medicine|drug delivery/.test(text)) return domainById('pharmacy-biomedical');
+  if (/\bfood\b|nutrition|ferment|agricultur|food safety|food processing|\bfood crops?\b/.test(text)) return domainById('food-science-technology');
+  if (/biolog|genom|\bdna\b|\brna\b|\bmrna\b|\bgenes?\b|protein|single[- ]cell|cell type|cellular|bioinform|neuro|ecolog|ecosystem|forest|canopy|microclimate/.test(text)) return domainById('biology-genomics');
+  if (/chemi|molecul|material|crystal|cataly|reaction|polymer/.test(text)) return domainById('chemistry-materials');
+  if (/mathemat|topolog|geometr|algebra|calculus|optimis|optimiz|number theory/.test(text)) return domainById('mathematics');
+  console.warn('  classification fallback (Statistics and Data Science): ' + (demo.title || demo.file_name || 'untitled record'));
+  return domainById('ai-mathematics-data');
+}
+
+function subtopicById(domain, id) {
+  return domain.subtopics.find(subtopic => subtopic.id === id) || GENERAL_SUBTOPIC;
+}
+
+function containsKeyword(value, keyword) {
+  const text = String(value || '').toLowerCase();
+  const raw = String(keyword || '').trim().toLowerCase();
+  const stem = raw.endsWith('*');
+  const term = stem ? raw.slice(0, -1) : raw;
+  if (!text || !term) return false;
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const ending = stem ? '[a-z0-9-]*' : '([^a-z0-9]|$)';
+  return new RegExp('(^|[^a-z0-9])' + escaped + ending).test(text);
+}
+
+function keywordSpecificity(keyword) {
+  const term = String(keyword || '').replace(/\*$/, '').trim();
+  const wordCount = term.split(/\s+/).filter(Boolean).length;
+  return Math.min(1.5, Math.max(0, wordCount - 1) * .5 + Math.min(term.length, 50) / 100);
+}
+
+function subtopicEvidenceScore(value, weight, subtopic) {
+  const matches = (subtopic.keywords || []).filter(keyword => containsKeyword(value, keyword));
+  if (!matches.length) return 0;
+  const specificity = Math.max(...matches.map(keywordSpecificity));
+  const strongMatch = (subtopic.strongKeywords || []).some(keyword => containsKeyword(value, keyword));
+  return weight + specificity + (strongMatch ? 6 : 0);
+}
+
+function resolveSubtopic(demo, domain) {
+  const canonicalFields = [demo.department_subtopic_id, demo.department_subtopic];
+  const aliases = SUBTOPIC_ALIASES.get(domain.id);
+  for (const field of canonicalFields) {
+    for (const value of toList(field)) {
+      const resolved = aliases.get(normalKey(value));
+      if (resolved) return resolved;
+    }
+  }
+  if (canonicalFields.some(Boolean)) {
+    console.warn('  unrecognised department subtopic for ' + (demo.title || demo.file_name || 'untitled record'));
+  }
+
+  const humanFields = [
+    demo.subtopic,
+    demo.science_subtopic,
+    demo.research_subtopic,
+    demo.subdomain,
+    demo.topic,
+  ];
+  for (const field of humanFields) {
+    for (const value of toList(field)) {
+      const resolved = aliases.get(normalKey(value));
+      if (resolved) return resolved;
+    }
+  }
+
+  const override = projectOverride(PROJECT_SUBTOPIC_OVERRIDES, demo);
+  if (override) return subtopicById(domain, override);
+
+  for (const value of toList(demo.subtopic_id)) {
+    const resolved = aliases.get(normalKey(value));
+    if (resolved) return resolved;
+  }
+
+  const evidence = [
+    [demo.title, 5],
+    [toList(demo.tags).join(' '), 4],
+    [demo.category, 4],
+    [demo.task_type, 3],
+    [demo.method, 3],
+    [demo.framework, 2],
+    [demo.description, 1],
+    [demo.learning_goal, 1],
+    [demo.data_source, 1],
+  ];
+  const scored = domain.subtopics.map(subtopic => ({
+    subtopic,
+    score: evidence.reduce((total, [value, weight]) => (
+      total + subtopicEvidenceScore(value, weight, subtopic)
+    ), 0),
+  })).sort((a, b) => b.score - a.score);
+
+  if (scored[0] && scored[0].score >= 4 && (!scored[1] || scored[0].score > scored[1].score)) {
+    return scored[0].subtopic;
+  }
+  return GENERAL_SUBTOPIC;
+}
+
+function fillTemplate(template, values, label) {
+  let page = template;
+  Object.keys(values).forEach(key => {
+    page = page.replaceAll('{{' + key + '}}', String(values[key]));
+  });
+  const leftovers = page.match(/\{\{[A-Z0-9_]+\}\}/g);
+  if (leftovers) fail(label + ' has unreplaced placeholders: ' + [...new Set(leftovers)].join(', '));
+  return page;
+}
+
+function appScriptForSchema(source, schemaVersion) {
+  if (schemaVersion !== REGISTRY_SCHEMA_V2) return source;
+  const scalarMatch = "if (activeFilters[group] && card.getAttribute('data-' + group) !== activeFilters[group]) matches = false;";
+  const listMatch = "var values = (card.getAttribute('data-' + group) || '').split('|');\n"
+    + "        if (activeFilters[group] && values.indexOf(activeFilters[group]) === -1) matches = false;";
+  if (!source.includes(scalarMatch)) throw new Error('Registry v2 filter script anchor is missing.');
+  return source.replace(scalarMatch, listMatch);
+}
+
+// ------------------------------------------------------------ registry I/O
+
+async function getJson(url, label, maxBytes = 0) {
+  const response = await fetch(url, { redirect: 'follow' });
+  if (!response.ok) throw new Error('HTTP ' + response.status + ' while fetching registry ' + (label || 'response'));
+  if (maxBytes) {
+    const advertised = Number(response.headers.get('content-length') || 0);
+    if (Number.isFinite(advertised) && advertised > maxBytes) {
+      throw new Error('Registry ' + (label || 'response') + ' is too large.');
+    }
+    const body = await response.text();
+    if (Buffer.byteLength(body, 'utf8') > maxBytes) {
+      throw new Error('Registry ' + (label || 'response') + ' is too large.');
+    }
+    try { return JSON.parse(body); }
+    catch (error) { throw new Error('Registry ' + (label || 'response') + ' is not valid JSON.'); }
+  }
+  return response.json();
+}
+
+function cardAssetError(message) {
+  throw new Error('Registry card asset response ' + message + '.');
+}
+
+function hasCardAssetMagic(bytes, extension) {
+  if (extension === 'jpg' || extension === 'jpeg') {
+    return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  }
+  if (extension === 'png') {
+    return bytes.length >= 8
+      && bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  }
+  if (extension === 'gif') {
+    const signature = bytes.subarray(0, 6).toString('ascii');
+    return signature === 'GIF87a' || signature === 'GIF89a';
+  }
+  if (extension === 'webp') {
+    return bytes.length >= 12
+      && bytes.subarray(0, 4).toString('ascii') === 'RIFF'
+      && bytes.subarray(8, 12).toString('ascii') === 'WEBP';
+  }
+  if (extension === 'avif') {
+    if (bytes.length < 16 || bytes.subarray(4, 8).toString('ascii') !== 'ftyp') return false;
+    const limit = Math.min(bytes.length - 3, 64);
+    for (let offset = 8; offset < limit; offset += 4) {
+      const brand = bytes.subarray(offset, offset + 4).toString('ascii');
+      if (brand === 'avif' || brand === 'avis') return true;
+    }
+  }
+  return false;
+}
+
+function validateCardAssetResponse(response, cardAsset, expectedRevision) {
+  if (!response || typeof response !== 'object' || Array.isArray(response)) {
+    cardAssetError('must be an object');
+  }
+  const allowed = new Set([
+    'ok', 'kind', 'id', 'mime', 'size', 'extension', 'base64', 'registry_revision',
+  ]);
+  if (Object.keys(response).some(key => !allowed.has(key))) {
+    cardAssetError('has unsupported fields');
+  }
+  if (response.ok !== true) cardAssetError('was not successful');
+  if (response.kind !== 'card_image') cardAssetError('has an invalid kind');
+  if (response.id !== cardAsset.asset_id) cardAssetError('does not match the requested asset id');
+  requireMatchingRegistryRevision(
+    response.registry_revision, expectedRevision, 'Card asset',
+  );
+
+  const publicPath = String(cardAsset.public_path || '');
+  if (!safePublicCardAssetUrl(publicPath, '')) cardAssetError('has an unsafe public_path');
+  const expectedExtension = path.extname(publicPath).slice(1).toLowerCase();
+  if (typeof response.extension !== 'string'
+      || response.extension !== response.extension.trim().toLowerCase()
+      || response.extension !== expectedExtension
+      || !CARD_ASSET_MIME_BY_EXTENSION[response.extension]) {
+    cardAssetError('has an invalid extension');
+  }
+  if (typeof response.mime !== 'string'
+      || response.mime !== CARD_ASSET_MIME_BY_EXTENSION[response.extension]) {
+    cardAssetError('has a mime/extension mismatch');
+  }
+  if (!Number.isSafeInteger(response.size)
+      || response.size < 1
+      || response.size > MAX_CARD_ASSET_BYTES) {
+    cardAssetError('has an invalid size');
+  }
+  if (typeof response.base64 !== 'string'
+      || response.base64.length > MAX_CARD_ASSET_RESPONSE_BYTES
+      || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(response.base64)) {
+    cardAssetError('has invalid base64');
+  }
+  const bytes = Buffer.from(response.base64, 'base64');
+  if (!bytes.length || bytes.toString('base64') !== response.base64) {
+    cardAssetError('has invalid base64');
+  }
+  if (bytes.length !== response.size) cardAssetError('size does not match decoded bytes');
+  if (!hasCardAssetMagic(bytes, response.extension)) {
+    cardAssetError('does not contain the declared image format');
+  }
+  return { assetId: cardAsset.asset_id, publicPath, bytes };
+}
+
+async function fetchV2CardAssets(demos, registry, registryRevision) {
+  const cards = demos.filter(demo => demo.card_asset).map(demo => demo.card_asset);
+  return inChunks(cards, registryReadBatchSize(REGISTRY_SCHEMA_V2), async cardAsset => {
+    const response = await withRetry(() => registry.getAsset(
+      cardAsset.asset_id, registryRevision,
+    ));
+    return validateCardAssetResponse(response, cardAsset, registryRevision);
+  });
+}
+
+function materializeCardAssets(assets) {
+  for (const asset of assets) {
+    if (!safePublicCardAssetUrl(asset.publicPath, '')) {
+      throw new Error('Registry card asset has an unsafe output path.');
+    }
+    const destination = path.resolve(DIST, asset.publicPath);
+    const cardRoot = path.resolve(DIST, 'assets', 'cards');
+    const relative = path.relative(cardRoot, destination);
+    if (!relative || relative.startsWith('..' + path.sep) || path.isAbsolute(relative)) {
+      throw new Error('Registry card asset escaped the card output directory.');
+    }
+
+    const directoryParts = ['assets', 'cards']
+      .concat(path.dirname(relative).split(path.sep).filter(part => part && part !== '.'));
+    let directory = DIST;
+    for (const part of directoryParts) {
+      directory = path.join(directory, part);
+      if (fs.existsSync(directory)) {
+        const stat = fs.lstatSync(directory);
+        if (!stat.isDirectory() || stat.isSymbolicLink()) {
+          throw new Error('Registry card asset output path is not a safe directory.');
+        }
+      } else {
+        fs.mkdirSync(directory);
+      }
+    }
+    if (fs.existsSync(destination)) {
+      const stat = fs.lstatSync(destination);
+      if (stat.isSymbolicLink() || !stat.isFile()) {
+        throw new Error('Registry card asset output cannot replace a non-file path.');
+      }
+      if (!fs.readFileSync(destination).equals(asset.bytes)) {
+        throw new Error('Registry card asset output conflicts with a checked-in asset.');
+      }
+      continue;
+    }
+    fs.writeFileSync(destination, asset.bytes);
+  }
+}
+
+function resolveBuildContentPolicy(env = process.env) {
+  const context = String(env.CONTEXT || '').trim();
+  const branch = String(env.BRANCH || '').trim();
+  const netlify = String(env.NETLIFY || '').trim().toLowerCase() === 'true';
+
+  if (netlify && context === 'production' && branch !== 'main') {
+    throw new Error('Netlify production builds are locked to the main branch.');
+  }
+
+  const preview = netlify && context === 'branch-deploy' && branch === 'develop';
+  return {
+    audience: preview ? 'preview' : 'production',
+    context: context || 'local',
+    branch: branch || 'local',
+    netlify,
+  };
+}
+
+function hasOwn(object, key) {
+  return Object.prototype.hasOwnProperty.call(object, key);
+}
+
+function normalizeRegistryRevision(value, label = 'Registry') {
+  const revision = String(value || '').trim();
+  if (!revision) return '';
+  if (!REGISTRY_REVISION_PATTERN.test(revision)) {
+    throw new Error(label + ' returned an invalid registry_revision.');
+  }
+  return revision;
+}
+
+function requireMatchingRegistryRevision(actual, expected, label) {
+  const wanted = normalizeRegistryRevision(expected, 'Expected Registry revision');
+  const received = normalizeRegistryRevision(actual, label || 'Registry');
+  if (!wanted) return received;
+  if (!received) throw new Error((label || 'Registry') + ' did not return registry_revision.');
+  if (received !== wanted) throw new Error((label || 'Registry') + ' registry_revision does not match the build request.');
+  return received;
+}
+
+function resolvePreviewHookReceipt(env, policy) {
+  const isStablePreview = policy.audience === 'preview'
+    && policy.context === 'branch-deploy'
+    && policy.branch === 'develop';
+  const hookDetected = ['INCOMING_HOOK_BODY', 'INCOMING_HOOK_TITLE', 'INCOMING_HOOK_URL']
+    .some(key => hasOwn(env, key));
+
+  if (!isStablePreview || !hookDetected) {
+    return { verified: false, registryRevision: '', requestId: '', requestedAt: '' };
+  }
+
+  const raw = hasOwn(env, 'INCOMING_HOOK_BODY') ? String(env.INCOMING_HOOK_BODY || '').trim() : '';
+  if (!raw) throw new Error('Preview Hook payload is missing.');
+  if (Buffer.byteLength(raw, 'utf8') > HOOK_BODY_MAX_BYTES) {
+    throw new Error('Preview Hook payload is too large.');
+  }
+
+  let payload;
+  try { payload = JSON.parse(raw); }
+  catch (error) { throw new Error('Preview Hook payload is not valid JSON.'); }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new Error('Preview Hook payload must be a JSON object.');
+  }
+
+  const allowed = new Set([
+    'schema', 'target', 'branch', 'registry_revision', 'request_id', 'requested_at',
+  ]);
+  if (Object.keys(payload).some(key => !allowed.has(key))) {
+    throw new Error('Preview Hook payload has unsupported fields.');
+  }
+  if (payload.schema !== DEPLOY_RECEIPT_SCHEMA) {
+    throw new Error('Preview Hook payload has an unsupported schema.');
+  }
+  if (payload.target !== 'preview' || payload.branch !== 'develop') {
+    throw new Error('Preview Hook payload does not match the stable develop Preview.');
+  }
+
+  const registryRevision = normalizeRegistryRevision(
+    payload.registry_revision, 'Preview Hook payload',
+  );
+  if (!registryRevision) throw new Error('Preview Hook payload is missing registry_revision.');
+
+  const requestId = String(payload.request_id || '').trim();
+  if (!REQUEST_ID_PATTERN.test(requestId)) {
+    throw new Error('Preview Hook payload has an invalid request_id.');
+  }
+  const requestedAt = String(payload.requested_at || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(requestedAt)
+      || !Number.isFinite(Date.parse(requestedAt))
+      || new Date(requestedAt).toISOString() !== requestedAt) {
+    throw new Error('Preview Hook payload has an invalid requested_at.');
+  }
+
+  return { verified: true, registryRevision, requestId, requestedAt };
+}
+
+function safeReceiptValue(value, pattern) {
+  const text = String(value || '').trim();
+  return pattern.test(text) ? text : null;
+}
+
+function createDeployReceipt(env, policy, trigger, registryRevision, builtAt) {
+  const revision = normalizeRegistryRevision(registryRevision, 'Deploy receipt');
+  const receipt = {
+    schema: DEPLOY_RECEIPT_SCHEMA,
+    verified: Boolean(trigger.verified),
+    revision_bound: Boolean(revision),
+    target: policy.audience === 'preview' ? 'preview' : 'production',
+    audience: policy.audience,
+    registry_revision: revision || null,
+    built_at: builtAt,
+    platform: policy.netlify ? 'netlify' : (MOCK ? 'local-mock' : 'local'),
+    context: safeReceiptValue(policy.context,
+      /^(?:production|branch-deploy|deploy-preview|dev|local)$/) || 'unknown',
+    branch: safeReceiptValue(policy.branch, /^[A-Za-z0-9._/-]{1,200}$/) || 'unknown',
+    site_id: safeReceiptValue(env.SITE_ID, /^[0-9a-f-]{20,64}$/i),
+    commit_ref: safeReceiptValue(env.COMMIT_REF, /^[0-9a-f]{7,64}$/i),
+    build_id: safeReceiptValue(env.BUILD_ID, /^[A-Za-z0-9_-]{1,128}$/),
+    deploy_id: safeReceiptValue(env.DEPLOY_ID, /^[A-Za-z0-9_-]{1,128}$/),
+  };
+  if (trigger.verified) {
+    receipt.request_id = trigger.requestId;
+    receipt.requested_at = trigger.requestedAt;
+  }
+  return receipt;
+}
+
+function deployHeaders(policy) {
+  const blocks = [
+    '/deploy-receipt.json',
+    '  X-Robots-Tag: noindex, nofollow',
+    '  Cache-Control: no-store',
+    '  X-Content-Type-Options: nosniff',
+  ];
+  const isNonProductionDeploy = policy.audience === 'preview'
+    || ['branch-deploy', 'deploy-preview', 'dev', 'local'].includes(policy.context);
+  if (isNonProductionDeploy) {
+    blocks.push('', '/*', '  X-Robots-Tag: noindex, nofollow');
+    // Content hashes change when bytes change. Cache only within the user's
+    // browser; the protected preview must not become publicly cacheable.
+    for (const directory of ['embedded', 'optimized', 'runtime']) {
+      blocks.push('', '/assets/' + directory + '/*',
+        '  Cache-Control: private, max-age=31536000, immutable',
+        '  X-Content-Type-Options: nosniff');
+    }
+  }
+  return blocks.join('\n') + '\n';
+}
+
+function scopedRegistryUrl(base, action, policy, id, registryRevision) {
+  const url = new URL(base);
+  url.searchParams.delete('status');
+  url.searchParams.delete('audience');
+  url.searchParams.delete('schema');
+  url.searchParams.delete('action');
+  url.searchParams.delete('id');
+  url.searchParams.delete('registry_revision');
+  url.searchParams.set('audience', policy.audience);
+  // Registry v2 is the sole content source after cutover. Audience still
+  // separates Production (Live only) from the stable develop Preview
+  // (Live + Draft), but no build context may reopen the archived V1 schema.
+  url.searchParams.set('schema', '2');
+  url.searchParams.set('action', action);
+  if (id) url.searchParams.set('id', id);
+  if (registryRevision) {
+    url.searchParams.set('registry_revision', normalizeRegistryRevision(
+      registryRevision, 'Registry request',
+    ));
+  }
+  return url.toString();
+}
+
+function isPublishableDemo(demo, policy, schemaVersion = 1) {
+  if (!demo || typeof demo !== 'object') return false;
+  const status = String(demo.status || '').trim();
+  const fileCheck = String(demo.file_check || '').trim().toLowerCase();
+  if (fileCheck === 'missing' || /\bunreadable\b/.test(fileCheck) || /\bpage empty\b/.test(fileCheck)) {
+    return false;
+  }
+  if (schemaVersion === REGISTRY_SCHEMA_V2) {
+    // Registry v2 is a closed contract. Recheck the compiler's health and
+    // permission matrix here so a hand-written or stale feed cannot bypass it.
+    if (!/^(?:ok(?:\b|\s|[-—:])|check assets:)/.test(fileCheck)) return false;
+    const permission = String(demo.public_page_permission || '').trim();
+    if (status === 'Live') return permission === 'Public';
+    return policy.audience === 'preview'
+      && status === 'Draft'
+      && (permission === 'Public' || permission === 'Preview only');
+  }
+  return status === 'Live' || (policy.audience === 'preview' && status === 'Draft');
+}
+
+async function loadRegistry(policy, expectedRevision) {
+  if (LOCAL) {
+    return require('./lib/local-content').loadLocalRegistry(
+      process.env.AIS_LOCAL_CONTENT_DIR || path.join(ROOT, 'content', 'sources', 'drive'),
+    );
+  }
+  if (MOCK) {
+    const manifestPath = process.env.MOCK_MANIFEST || path.join(ROOT, 'fixtures', 'manifest.json');
+    const fallbackHtml = process.env.MOCK_HTML_FALLBACK;
+    const readManifest = () => JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const manifest = readManifest();
+    const mockRevision = (key, fallback) => (
+      hasOwn(process.env, key) ? String(process.env[key] || '').trim() : fallback
+    );
+    return {
+      schemaVersion: registrySchemaVersion(manifest.schema_version),
+      taxonomy: manifest.taxonomy,
+      site: manifest.site || {},
+      demos: manifest.demos,
+      audience: manifest.audience || '',
+      registryRevision: manifest.registry_revision || '',
+      getHtml: async id => ({
+        html: fs.readFileSync(fallbackHtml || path.join(ROOT, 'fixtures', id + '.html'), 'utf8'),
+        registryRevision: mockRevision(
+          'MOCK_FILE_REGISTRY_REVISION', readManifest().registry_revision || '',
+        ),
+      }),
+      getAsset: async id => {
+        if (process.env.MOCK_ASSET_RESPONSE) {
+          return JSON.parse(fs.readFileSync(process.env.MOCK_ASSET_RESPONSE, 'utf8'));
+        }
+        const filePath = process.env.MOCK_ASSET_FILE;
+        if (!filePath) throw new Error('mock card asset is not configured');
+        const bytes = fs.readFileSync(filePath);
+        const extension = path.extname(filePath).slice(1).toLowerCase();
+        const mime = CARD_ASSET_MIME_BY_EXTENSION[extension];
+        if (!mime) throw new Error('mock card asset has an unsupported extension');
+        return {
+          ok: true,
+          kind: 'card_image',
+          id,
+          mime,
+          size: bytes.length,
+          extension,
+          base64: bytes.toString('base64'),
+          registry_revision: mockRevision(
+            'MOCK_ASSET_REGISTRY_REVISION', readManifest().registry_revision || '',
+          ),
+        };
+      },
+      getRevision: async () => mockRevision(
+        'MOCK_FINAL_REGISTRY_REVISION', readManifest().registry_revision || '',
+      ),
+    };
+  }
+
+  const base = process.env.REGISTRY_URL;
+  if (base && new URL(base).searchParams.get('schema') === '3') {
+    return require('./lib/registry-v3-client').loadV3Registry(base, policy, getJson, expectedRevision);
+  }
+  if (!base) {
+    fail('REGISTRY_URL is not set. In Netlify: Site configuration → Environment variables. '
+      + 'Get the value from the sheet: AI4S dashboard → Show Registry API URL for Netlify.');
+  }
+
+  const fetchManifest = async (registryRevision, label) => {
+    const manifestUrl = scopedRegistryUrl(
+      base, 'manifest', policy, '', registryRevision,
+    );
+    const manifest = await getJson(manifestUrl, label || 'manifest');
+    if (!manifest.ok) {
+      fail('Registry error: ' + (manifest.error || 'unknown')
+        + (manifest.error === 'bad token' ? ' — REGISTRY_URL must include the ?token=... part.' : ''));
+    }
+    return manifest;
+  };
+
+  const manifest = await fetchManifest(expectedRevision, 'manifest');
+
+  return {
+    schemaVersion: registrySchemaVersion(manifest.schema_version),
+    taxonomy: manifest.taxonomy,
+    site: manifest.site || {},
+    demos: manifest.demos,
+    audience: manifest.audience || '',
+    registryRevision: manifest.registry_revision || '',
+    getHtml: async (id, registryRevision) => {
+      if (!id) throw new Error('project record is missing file_id');
+      const url = scopedRegistryUrl(base, 'file', policy, id, registryRevision);
+      const result = await getJson(url, 'project file');
+      if (!result.ok) throw new Error(result.error || 'file fetch failed');
+      return { html: result.html, registryRevision: result.registry_revision || '' };
+    },
+    getAsset: async (id, registryRevision) => {
+      if (!id) throw new Error('card asset record is missing asset_id');
+      const url = scopedRegistryUrl(base, 'asset', policy, id, registryRevision);
+      const result = await getJson(
+        url, 'card asset', MAX_CARD_ASSET_RESPONSE_BYTES,
+      );
+      if (!result || result.ok !== true) throw new Error('Registry card asset fetch failed.');
+      return result;
+    },
+    getRevision: async registryRevision => {
+      const finalManifest = await fetchManifest(registryRevision, 'final manifest');
+      return finalManifest.registry_revision || '';
+    },
+  };
+}
+
+async function inChunks(items, size, fn) {
+  const output = [];
+  for (let i = 0; i < items.length; i += size) {
+    output.push(...await Promise.all(items.slice(i, i + size).map(fn)));
+  }
+  return output;
+}
+
+function registryReadBatchSize(schemaVersion) {
+  return schemaVersion === REGISTRY_SCHEMA_V2 ? 1 : 3;
+}
+
+async function withRetry(fn) {
+  try {
+    return await fn();
+  } catch (error) {
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    return fn();
+  }
+}
+
+// ------------------------------------------------------------ domain artwork
+
+function domainIcon(id) {
+  const icons = {
+    'space-astronomy': `<svg class="domain-symbol-svg" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+      <circle class="symbol-fill" cx="50" cy="50" r="23"/><circle cx="50" cy="50" r="23"/>
+      <ellipse cx="50" cy="50" rx="40" ry="13" transform="rotate(-15 50 50)"/>
+      <path d="M38 31c8 7 20 9 30 5M31 57c10 8 25 11 38 7"/>
+    </svg>`,
+    'biology-genomics': `<svg class="domain-symbol-svg" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+      <path d="M30 12c48 19-8 57 40 76M70 12C22 31 78 69 30 88"/>
+      <path d="M38 21h24M30 35h40M31 50h38M30 65h40M38 79h24"/>
+    </svg>`,
+    'chemistry-materials': `<svg class="domain-symbol-svg" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+      <path d="M34 15h32M41 15v27L22 75c-4 7 1 12 9 12h38c8 0 13-5 9-12L59 42V15"/>
+      <path class="symbol-fill" d="M28 68h44l7 13c1 3-3 6-8 6H29c-5 0-9-3-7-6Z"/>
+      <path d="M29 68h42M38 53h24"/>
+    </svg>`,
+    'pharmacy-biomedical': `<svg class="domain-symbol-svg" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+      <g transform="rotate(-38 50 50)"><rect class="symbol-fill" x="24" y="39" width="52" height="24" rx="12"/><rect x="24" y="39" width="52" height="24" rx="12"/><path d="M50 39v24"/></g>
+      <path d="M69 20v18M60 29h18"/>
+    </svg>`,
+    'food-science-technology': `<svg class="domain-symbol-svg" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+      <path class="symbol-fill" d="M49 84C21 66 19 31 52 17c9 28 7 50-3 67Z"/><path d="M49 84C21 66 19 31 52 17c9 28 7 50-3 67ZM48 74c4-20 13-35 29-47 5 26-5 44-29 47Z"/>
+      <path d="M49 84C48 61 45 42 36 28M50 67c7-16 14-26 27-40"/>
+    </svg>`,
+    mathematics: `<svg class="domain-symbol-svg" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+      <path d="M17 77h66M23 84V18M29 68c10-3 13-31 24-31s12 27 25 8"/>
+      <path d="M32 25h43M72 21l6 4-6 4"/>
+    </svg>`,
+    'ai-mathematics-data': `<svg class="domain-symbol-svg" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+      <rect class="symbol-fill" x="24" y="24" width="52" height="52" rx="8"/><rect x="24" y="24" width="52" height="52" rx="8"/>
+      <path d="M36 62V48M50 62V36M64 62V43M24 34H14M24 50H14M24 66H14M76 34h10M76 50h10M76 66h10"/>
+    </svg>`,
+  };
+  return icons[id] || icons['ai-mathematics-data'];
+}
+
+function mapHotspotHtml(domain) {
+  const region = MAP_DATA.regions[domain.id];
+  if (!region) fail('Missing map geometry for domain: ' + domain.id);
+  const outside = `M0 0H${MAP_DATA.width}V${MAP_DATA.height}H0Z ${region.path}`;
+  return `      <g class="map-region-effect" data-domain="${domain.id}" style="--domain-color:${domain.color}" aria-hidden="true">
+        <path class="map-region-dimmer" d="${esc(outside)}" fill-rule="evenodd"/>
+        <path class="map-region-lift" d="${esc(region.path)}"/>
+        <path class="map-region-glow" d="${esc(region.path)}" vector-effect="non-scaling-stroke"/>
+      </g>
+      <a class="map-hotspot-link" href="domains/${domain.id}/index.html" data-domain="${domain.id}" tabindex="-1" aria-hidden="true" style="--domain-color:${domain.color}">
+        <path class="map-hotspot" d="${esc(region.path)}" vector-effect="non-scaling-stroke"/>
+      </a>`;
+}
+
+function subtopicStats(domain, demos) {
+  const stats = domain.subtopics.map(subtopic => ({
+    ...subtopic,
+    projectCount: demos.filter(demo => demo._subtopic === subtopic.id).length,
+  }));
+  const generalCount = demos.filter(demo => demo._subtopic === GENERAL_SUBTOPIC.id).length;
+  if (generalCount) stats.push({ ...GENERAL_SUBTOPIC, projectCount: generalCount });
+  return stats;
+}
+
+function projectPreviewHtml(domain, demos) {
+  const count = demos.length;
+  const subtopics = subtopicStats(domain, demos);
+  const subtopicList = `<div class="popover-subtopics"><p class="popover-label">Subtopics</p><ul>${subtopics.map(subtopic => `<li class="subtopic-chip" data-live="${subtopic.projectCount ? 'true' : 'false'}"><span>${esc(subtopic.name)}</span>${subtopic.projectCount ? `<small>${subtopic.projectCount}</small>` : ''}</li>`).join('')}</ul></div>`;
+  const projects = count
+    ? `<div class="popover-project-section"><p class="popover-label">Projects</p><ul class="popover-projects">${demos.slice(0, 4).map(demo => {
+      const subtopic = subtopicById(domain, demo._subtopic);
+      return `<li><a href="demos/${esc(demo.slug)}/index.html"><span><strong>${esc(demo.title || 'Untitled experiment')}</strong><small>${esc(subtopic.name)}</small></span><span aria-hidden="true">&#8599;</span></a></li>`;
+    }).join('')}</ul></div>`
+    : '<p class="popover-empty">No live projects yet. This region is ready for its first experiment.</p>';
+  const action = count > 4 ? `View all ${count} projects` : 'Explore this department';
+  return `<div class="domain-popover-inner">
+        <p class="popover-kicker">${count ? esc(pluralText(count, 'live project')) : 'Future region'}</p>
+        <h3>${esc(domain.name)}</h3>
+        ${subtopicList}
+        ${projects}
+        <a class="domain-popover-action" href="domains/${domain.id}/index.html"><span>${esc(action)}</span><span aria-hidden="true">&#8594;</span></a>
+      </div>`;
+}
+
+function mapMarkerHtml(domain, demos) {
+  const region = MAP_DATA.regions[domain.id];
+  const count = demos.length;
+  const detail = count ? pluralText(count, 'project') : 'Coming soon';
+  const summary = `${domain.name}. ${count ? pluralText(count, 'live project') : 'No live projects yet'}. Subtopics: ${domain.subtopics.map(subtopic => subtopic.name).join(', ')}.`;
+  return `      <li class="map-marker" data-domain="${domain.id}" data-popover-side="${esc(region.popover)}" style="--map-x:${region.label[0]}%;--map-y:${region.label[1]}%;--domain-color:${domain.color}">
+        <a class="map-domain-label" href="domains/${domain.id}/index.html" aria-describedby="map-summary-${domain.id}" aria-controls="map-popover-${domain.id}" aria-expanded="false">
+          <span><strong>${esc(domain.name)}</strong><small>${esc(detail)}</small></span>
+        </a>
+        <span class="sr-only" id="map-summary-${domain.id}">${esc(summary)}</span>
+        <div class="domain-popover" id="map-popover-${domain.id}" hidden>${projectPreviewHtml(domain, demos)}</div>
+      </li>`;
+}
+
+function mobileDomainLinkHtml(domain, demos) {
+  const count = demos.length;
+  return `      <a class="mobile-domain-link" href="domains/${domain.id}/index.html" data-domain="${domain.id}" style="--domain-color:${domain.color}">
+        <span class="mobile-domain-icon" aria-hidden="true">${domainIcon(domain.id)}</span>
+        <span><strong>${esc(domain.name)}</strong><small>${count ? esc(pluralText(count, 'project')) : 'Coming soon'}</small></span>
+        <span aria-hidden="true">&#8594;</span>
+      </a>`;
+}
+
+// ------------------------------------------------- injected demo-page extras
+
+function provenanceRows(demo) {
+  const rows = [];
+  const add = (label, html) => { if (html) rows.push([label, html]); };
+  if (demo._registrySchemaVersion === REGISTRY_SCHEMA_V2) {
+    add('Data', esc(demo.data_source_label));
+    add('Task', esc((demo._taskTerms || []).map(term => term.label).join(', ')));
+    add('Method', esc((demo._methodTerms || []).map(term => term.label).join(', ')));
+    add('Data Type', esc((demo._dataTypeTerms || []).map(term => term.label).join(', ')));
+    add('Instrument Type', esc(
+      (demo._instrumentTypeTerms || []).map(term => term.label).join(', '),
+    ));
+    return rows;
+  }
+  add('Data', demo.data_link
+    ? `<a href="${esc(demo.data_link)}" target="_blank" rel="noopener">${esc(demo.data_source || demo.data_link)}</a>`
+    : esc(demo.data_source));
+  add('License', esc(demo.data_license));
+  add('Accessed', esc(demo.data_accessed && demo.data_accessed.length >= 10 && demo.data_accessed.includes('T')
+    ? demo.data_accessed.slice(0, 10) : demo.data_accessed));
+  add('Data notes', esc(demo.data_notes));
+  add('Task', esc(demo.task_type));
+  add('Method', esc(demo.method));
+  add('Framework', esc(demo.framework));
+  add('Training', esc(demo.training));
+  add('Metrics', esc(demo.metrics));
+  add('Workflow', demo.workflow_link
+    ? `<a href="${esc(demo.workflow_link)}" target="_blank" rel="noopener">Open the workflow behind this demo &#8599;</a>` : '');
+  add('Author', esc(demo.author));
+  return rows;
+}
+
+function injectionSnippet(demo) {
+  const domain = demo._domainDefinition || domainById(demo._domain);
+  const rows = provenanceRows(demo);
+  const goal = demo.learning_goal
+    ? `<p class="ai4s-goal">${esc(demo.learning_goal)}</p>` : '';
+  const details = rows.map(([key, value]) =>
+    `<div class="ai4s-row"><span>${key}</span><span>${value}</span></div>`).join('');
+  const hasPanel = rows.length > 0 || demo.learning_goal;
+
+  const infoControl = hasPanel ? `
+  <button id="ai4s-info-btn" class="ai4s-control ai4s-toolbar-control ai4s-info-control" type="button" aria-label="Data and methods" aria-expanded="false" aria-controls="ai4s-info">
+    <span class="ai4s-info-label-full">Data &amp; methods</span><span class="ai4s-info-label-short" aria-hidden="true">Info</span>
+  </button>` : '';
+  const panel = hasPanel ? `
+<section id="ai4s-info" hidden aria-labelledby="ai4s-info-title">
+  <h2 id="ai4s-info-title">${esc(demo.title)}</h2>${goal}${details}
+</section>
+<script>(function(){var b=document.getElementById('ai4s-info-btn'),p=document.getElementById('ai4s-info');function set(open,restore){p.hidden=!open;b.setAttribute('aria-expanded',String(open));if(restore)b.focus();}b.addEventListener('click',function(){set(p.hidden,false);});document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!p.hidden)set(false,true);});})();</script>` : '';
+  const toolbarClass = hasPanel ? 'ai4s-nav--with-info' : 'ai4s-nav--without-info';
+
+  return `
+<!-- injected by AIS Instrumentation Gym build -->
+<style>
+#ai4s-nav{position:fixed;left:max(12px,env(safe-area-inset-left));bottom:max(12px,env(safe-area-inset-bottom));z-index:2147483000;display:flex;gap:6px;font:650 13px/1 system-ui,sans-serif}
+#ai4s-nav .ai4s-toolbar-control{box-sizing:border-box;min-height:44px;display:inline-flex;align-items:center;padding:0 14px;border:1px solid #b6c2c9;border-radius:999px;background:#f7fbfd;color:#0b1724;text-decoration:none;box-shadow:0 6px 22px rgba(2,10,18,.2)}
+#ai4s-nav .ai4s-domain-link{background:#0b1724;border-color:#0b1724;color:#f7fbfd}
+#ai4s-nav .ai4s-domain-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ai4s-info-control{position:fixed;right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));z-index:2147483000;cursor:pointer;font:650 13px/1 system-ui,sans-serif}
+.ai4s-info-label-short{display:none}
+#ai4s-info{box-sizing:border-box;position:fixed;right:max(12px,env(safe-area-inset-right));bottom:68px;z-index:2147483000;width:min(390px,calc(100vw - 24px));max-height:min(70vh,620px);overflow:auto;padding:20px;border:1px solid #cbd4da;border-radius:14px;background:#fff;color:#0b1724;box-shadow:0 16px 44px rgba(2,10,18,.24);font:14px/1.55 system-ui,sans-serif}
+#ai4s-info h2{margin:0 0 12px;font:650 17px/1.3 system-ui,sans-serif}.ai4s-goal{margin:0 0 14px;color:#435462;font-style:italic}.ai4s-row{display:grid;grid-template-columns:86px minmax(0,1fr);gap:10px;margin:8px 0}.ai4s-row>span:first-child{color:#536674;font:700 10px/1.5 ui-monospace,monospace;text-transform:uppercase;letter-spacing:.06em}.ai4s-row>span:last-child{min-width:0;overflow-wrap:anywhere}.ai4s-row a{color:#075f87}
+#ai4s-nav .ai4s-toolbar-control:focus-visible,#ai4s-info a:focus-visible{outline:3px solid #38a9df;outline-offset:3px}
+@media(max-width:480px){
+  #ai4s-nav{box-sizing:border-box;left:max(6px,env(safe-area-inset-left));right:max(6px,env(safe-area-inset-right));bottom:max(8px,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:6px;border:1px solid rgba(182,194,201,.9);border-radius:16px;background:rgba(247,251,253,.96);box-shadow:0 8px 28px rgba(2,10,18,.24);font-size:12px}
+  #ai4s-nav.ai4s-nav--without-info{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #ai4s-nav .ai4s-toolbar-control{position:static;right:auto;bottom:auto;z-index:auto;justify-content:center;width:100%;min-width:0;height:44px;min-height:44px;max-width:100%;gap:4px;padding:0 7px;overflow:hidden;white-space:nowrap;box-shadow:none;font:650 12px/1 system-ui,sans-serif}
+  #ai4s-nav .ai4s-domain-arrow{flex:0 0 auto}
+  #ai4s-nav .ai4s-domain-label{display:block}
+  .ai4s-info-label-full{display:none}.ai4s-info-label-short{display:inline}
+  #ai4s-info{left:max(6px,env(safe-area-inset-left));right:max(6px,env(safe-area-inset-right));bottom:calc(max(8px,env(safe-area-inset-bottom)) + 66px);width:auto;max-height:70vh;max-height:min(70vh,calc(100dvh - 86px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));padding:16px;overscroll-behavior:contain}
+  .ai4s-row{grid-template-columns:72px minmax(0,1fr)}
+}
+@media(orientation:landscape) and (max-height:500px) and (hover:none) and (pointer:coarse){
+  #ai4s-nav,#ai4s-info{display:none!important}
+}
+</style>
+<nav id="ai4s-nav" class="${toolbarClass}" aria-label="AIS Instrumentation Gym navigation">
+  <a class="ai4s-toolbar-control ai4s-nav-link ai4s-domain-link" href="../../domains/${domain.id}/index.html" aria-label="Back to ${esc(domain.name)}" title="${esc(domain.name)}"><span class="ai4s-domain-arrow" aria-hidden="true">&#8592;</span><span class="ai4s-domain-label">${esc(domain.short)}</span></a>
+  <a class="ai4s-toolbar-control ai4s-nav-link ai4s-all-demos-link" href="../../index.html#projects">All demos</a>${infoControl}
+</nav>${panel}
+`;
+}
+
+function injectIntoDemo(html, demo) {
+  const snippet = injectionSnippet(demo);
+  const repaired = repairDemoNavigation(html);
+  const index = repaired.toLowerCase().lastIndexOf('</body>');
+  if (index === -1) return repaired + snippet;
+  return repaired.slice(0, index) + snippet + repaired.slice(index);
+}
+
+/**
+ * Demo files are published two directories below the site root. Repair their
+ * own "All demos" controls at build time so source pages can remain portable
+ * and a one-level ../index.html link cannot resolve to the missing
+ * /demos/index.html route.
+ */
+function repairDemoNavigation(html) {
+  const source = String(html || '');
+  const rawTextBlock = /<(script|style)\b[\s\S]*?<\/\1\s*>/gi;
+  let output = '';
+  let cursor = 0;
+  let block;
+
+  while ((block = rawTextBlock.exec(source))) {
+    output += repairDemoAnchors_(source.slice(cursor, block.index));
+    output += block[0];
+    cursor = block.index + block[0].length;
+  }
+  return output + repairDemoAnchors_(source.slice(cursor));
+}
+
+function repairDemoAnchors_(html) {
+  return html.replace(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi,
+    (anchor, attributes, content) => {
+      const isBackControl = /\bdata-role\s*=\s*(["'])back\1/i.test(attributes);
+      const label = content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      if (!isBackControl && !/\ball demos\b/i.test(label)) return anchor;
+
+      // Only repair the exact broken path observed in portable source demos.
+      // Requiring whitespace before href avoids matching data-href; requiring
+      // a quoted value avoids inventing a duplicate attribute for odd markup.
+      const brokenHref = /(\s)href(\s*=\s*)(["'])\.\.\/index\.html(?:#[^"']*)?\3/i;
+      if (!brokenHref.test(attributes)) return anchor;
+      const repairedAttributes = attributes.replace(brokenHref,
+        (match, space, equals, quote) => (
+          space + 'href' + equals + quote + '../../index.html#projects' + quote
+        ));
+      return '<a' + repairedAttributes + '>' + content + '</a>';
+    });
+}
+
+// -------------------------------------------------------------- dashboard
+
+function badgeHtml(demo, isNew) {
+  const badges = [];
+  if (demo.featured) badges.push('<span class="badge featured">Featured</span>');
+  if (isNew) badges.push('<span class="badge">New</span>');
+  if (demo.provenance) badges.push('<span class="badge">Provenance</span>');
+  return badges.join('');
+}
+
+function safePreviewUrl(value, hrefBase) {
+  const source = String(value || '').trim();
+  if (/^https:\/\/[^\s]+$/i.test(source)) return source;
+
+  const relative = source.replace(/^\.\//, '').replace(/^\//, '');
+  if (relative.startsWith('assets/') && !relative.split('/').includes('..')) {
+    return hrefBase + relative;
+  }
+  return '';
+}
+
+function cardPreview(demo, hrefBase) {
+  const isV2 = demo._registrySchemaVersion === REGISTRY_SCHEMA_V2;
+  if (isV2 && demo.card_asset) {
+    return safePublicCardAssetUrl(demo.card_asset.public_path, hrefBase);
+  }
+  const previewDirectory = path.join(SITE, 'assets', 'previews');
+  // A duplicate Registry row can add a numeric suffix to the public slug even
+  // though the underlying project file is unchanged. Try every stable project
+  // identity (slug, HTML file stem, file name and title) before giving up.
+  for (const key of projectKeys(demo)) {
+    for (const extension of ['jpg', 'webp', 'png', 'jpeg', 'avif']) {
+      const fileName = key + '.' + extension;
+      if (fs.existsSync(path.join(previewDirectory, fileName))) {
+        return hrefBase + 'assets/previews/' + fileName;
+      }
+    }
+  }
+  if (isV2) return '';
+  return safePreviewUrl(demo.preview_image || demo.picture || demo.thumbnail, hrefBase);
+}
+
+function cardHtml(demo, domain, isNew, hrefBase, index) {
+  const subtopic = subtopicById(domain, demo._subtopic);
+  const isV2 = demo._registrySchemaVersion === REGISTRY_SCHEMA_V2;
+  const taskTerms = isV2 ? (demo._taskTerms || []) : [];
+  const methodTerms = isV2 ? (demo._methodTerms || []) : [];
+  const dataTypeTerms = isV2 ? (demo._dataTypeTerms || []) : [];
+  const instrumentTypeTerms = isV2 ? (demo._instrumentTypeTerms || []) : [];
+  const taskLabels = taskTerms.map(term => term.label);
+  const methodLabels = methodTerms.map(term => term.label);
+  const dataTypeLabels = dataTypeTerms.map(term => term.label);
+  const instrumentTypeLabels = instrumentTypeTerms.map(term => term.label);
+  const meta = (isV2
+    ? taskLabels.concat(methodLabels)
+    : [demo.task_type, demo.framework].filter(Boolean)).map(esc).join(' &middot; ');
+  const search = [
+    demo.title,
+    isV2 ? demo.card_summary : demo.description,
+    domain.name,
+    subtopic.name,
+    demo.category,
+    isV2 ? taskLabels.join(' ') : demo.task_type,
+    isV2 ? methodLabels.join(' ') : demo.method,
+    isV2 ? dataTypeLabels.join(' ') : '',
+    isV2 ? instrumentTypeLabels.join(' ') : '',
+    demo.framework,
+    toList(demo.tags).join(' '),
+  ].filter(Boolean).join(' ').toLowerCase();
+  const cardNumber = String(index + 1).padStart(2, '0');
+  const preview = cardPreview(demo, hrefBase);
+  const previewAlt = isV2
+    ? (demo.card_asset && demo.card_asset.alt_text)
+      || projectOverride(PROJECT_PREVIEW_ALTS, demo)
+      || `Data preview from ${demo.title || 'this project'}`
+    : demo.preview_alt
+      || demo.picture_alt
+      || projectOverride(PROJECT_PREVIEW_ALTS, demo)
+      || `Data preview from ${demo.title || 'this project'}`;
+  const visual = preview
+    ? `<img class="card-preview" src="${esc(preview)}" alt="${esc(previewAlt)}" loading="lazy" decoding="async" referrerpolicy="no-referrer"><span class="card-preview-pending" hidden>Data preview unavailable</span>`
+    : '<span class="card-preview-pending">Data preview coming soon</span>';
+
+  const taskValues = isV2 ? demo.task_ids.join('|') : demo.task_type;
+  const methodValues = isV2 ? demo.method_ids.join('|') : '';
+  const dataTypeValues = isV2 ? demo.data_type_ids.join('|') : '';
+  const instrumentTypeValues = isV2 ? demo.instrument_type_ids.join('|') : '';
+  const facetAttributes = (isV2
+    ? ` data-method="${esc(methodValues)}" data-data-type="${esc(dataTypeValues)}" data-instrument-type="${esc(instrumentTypeValues)}"`
+    : '');
+  const domainFilterId = isV2 ? demo.department_id : domain.id;
+  const summary = isV2 ? demo.card_summary : demo.description;
+  return `<a class="project-card" href="${hrefBase}demos/${esc(demo.slug)}/index.html" style="--card-accent:${domain.color}" data-search="${esc(search)}" data-domain="${esc(domainFilterId)}" data-subtopic="${esc(subtopic.id)}" data-task="${esc(taskValues)}"${facetAttributes}>
+  <div class="card-visual${preview ? ' has-preview' : ''}">
+    ${visual}
+  </div>
+  <div class="card-body">
+    <div class="card-utility"><span class="card-index" aria-hidden="true">${cardNumber}</span><span class="badges">${badgeHtml(demo, isNew)}</span></div>
+    <p class="card-domain">${esc(domain.name)} <span aria-hidden="true">/</span> ${esc(subtopic.name)}</p>
+    <h3>${esc(demo.title || 'Untitled experiment')}</h3>
+    <p class="card-description">${esc(summary || 'Open this interactive experiment to explore the project.')}</p>
+    <div class="card-footer">
+      <div class="card-meta">${meta || 'Interactive experiment'}</div>
+      <span class="card-open"><span>Open project</span><span aria-hidden="true">&#8599;</span></span>
+    </div>
+  </div>
+</a>`;
+}
+
+function chipHtml(group, value, label) {
+  return `<button class="chip" type="button" data-group="${group}" data-value="${esc(value)}">${esc(label)}</button>`;
+}
+
+function filterGroupHtml(label, group, items) {
+  if (!items.length) return '';
+  return `        <div class="chiprow" role="group" aria-label="Filter by ${esc(label.toLowerCase())}">
+          <span class="chiplabel">${esc(label)}</span>
+          ${items.map(item => chipHtml(group, item.value, item.label)).join('\n          ')}
+        </div>`;
+}
+
+function v2FacetFilterHtml(label, group, terms, demos, field) {
+  const referenced = new Set(demos.flatMap(demo => demo[field] || []));
+  return filterGroupHtml(label, group, [...terms.values()]
+    .filter(term => term.active && referenced.has(term.id))
+    .map(term => ({ value: term.id, label: term.label })));
+}
+
+function domainSwitcherHtml(currentDomain, grouped, domains = DOMAIN_DEFINITIONS) {
+  return domains.map(domain => {
+    const count = grouped[domain.id].length;
+    const content = `<span><strong>${esc(domain.name)}</strong><small>${count ? pluralText(count, 'project') : 'Coming soon'}</small></span><span aria-hidden="true">${count && domain.id !== currentDomain.id ? '&#8599;' : '&#183;'}</span>`;
+    if (domain.id === currentDomain.id) {
+      return `      <span class="domain-switcher-link" aria-current="page">${content}</span>`;
+    }
+    return `      <a class="domain-switcher-link" href="../../domains/${domain.id}/index.html">${content}</a>`;
+  }).join('\n');
+}
+
+// ------------------------------------------------------------------ main
+
+async function main() {
+  if (MOCK && LOCAL) throw new Error('Choose either --mock or --local.');
+  if (INCLUDE_DRAFTS && !LOCAL) throw new Error('--include-drafts requires --local.');
+  console.log(LOCAL ? 'Build AIS Instrumentation Gym (local Drive snapshot)…'
+    : MOCK ? 'Build AIS Instrumentation Gym (mock fixtures)…' : 'Build AIS Instrumentation Gym (live registry)…');
+  validateTaxonomy();
+  const policy = LOCAL
+    ? require('./lib/local-content').localContentPolicy(process.env, { includeDrafts: INCLUDE_DRAFTS })
+    : resolveBuildContentPolicy(process.env);
+  const trigger = resolvePreviewHookReceipt(process.env, policy);
+  console.log('  content policy: ' + policy.audience + ' (' + policy.context + ' / ' + policy.branch + ')');
+  console.log('  deploy receipt: ' + (trigger.verified ? 'verified Preview request' : 'unverified build'));
+  const registry = await loadRegistry(policy, trigger.registryRevision);
+  const localCollection = LOCAL
+    ? require('./lib/local-demo-collection').loadLocalDemoCollection(path.join(ROOT, 'content'), registry.demos)
+    : null;
+  if (localCollection) registry.demos = localCollection.demos;
+  if (trigger.verified && registry.audience !== policy.audience) {
+    throw new Error('Registry audience does not match the verified Preview request.');
+  }
+  const activeRegistryRevision = requireMatchingRegistryRevision(
+    registry.registryRevision, trigger.registryRevision, 'Initial manifest',
+  );
+  const schemaVersion = registrySchemaVersion(registry.schemaVersion);
+  if (schemaVersion === REGISTRY_SCHEMA_V2 && !activeRegistryRevision) {
+    v2ContractError('registry_revision is required');
+  }
+  const v2Taxonomy = schemaVersion === REGISTRY_SCHEMA_V2
+    ? normalizeV2Taxonomy(registry.taxonomy)
+    : null;
+  const domains = v2Taxonomy ? v2Taxonomy.domains : DOMAIN_DEFINITIONS;
+  const site = registry.site && typeof registry.site === 'object' ? registry.site : {};
+  let demos;
+  if (schemaVersion === REGISTRY_SCHEMA_V2) {
+    if (!Array.isArray(registry.demos)) v2ContractError('demos must be an array');
+    const seen = {
+      demoIds: new Set(), slugs: new Set(), assetIds: new Set(), assetPaths: new Set(),
+    };
+    demos = registry.demos.map((demo, index) => (
+      normalizeV2Demo(demo, v2Taxonomy, seen, index)
+    ));
+  } else {
+    demos = Array.isArray(registry.demos)
+      ? registry.demos.filter(demo => demo && typeof demo === 'object')
+      : [];
+  }
+
+  const localPreviewIds = LOCAL
+    ? require('./lib/local-project-pages').localPreviewProjectIds(path.join(ROOT, 'content'), demos)
+    : new Set();
+  if (localCollection) {
+    localCollection.previewIds.forEach(id => localPreviewIds.add(id));
+  }
+  const visibleHere = demo => isPublishableDemo(demo, policy, schemaVersion)
+    || (LOCAL && localPreviewIds.has(demo.demo_id)
+      && isPublishableDemo(demo, { ...policy, audience: 'preview' }, schemaVersion));
+  const excluded = demos.filter(demo => !visibleHere(demo));
+  excluded.forEach(demo => console.warn('  skipping (not publishable for ' + policy.audience + '): '
+    + (demo.title || demo.file_name || demo.file_id || 'unnamed row')));
+  demos = demos.filter(visibleHere);
+
+  const siteRecords = demos.filter(demo => isSiteRecord(demo));
+  siteRecords.forEach(demo => console.warn('  skipping (dashboard record, not a project): ' + (demo.title || demo.file_name)));
+  const siteRecordSet = new Set(siteRecords);
+  demos = demos.filter(demo => !siteRecordSet.has(demo));
+
+  if (!demos.length && schemaVersion === REGISTRY_SCHEMA_V2) {
+    v2ContractError('no publishable project remains for this build');
+  }
+  if (!demos.length) console.warn('  No publishable demos in the registry — the Instrumentation Gym will show an empty library.');
+
+  if (schemaVersion !== REGISTRY_SCHEMA_V2) {
+    const used = {};
+    demos.forEach(demo => {
+      let slug = slugSafe(demo.slug || demo.title);
+      if (used[slug]) {
+        let number = 2;
+        while (used[slug + '-' + number]) number++;
+        slug += '-' + number;
+      }
+      used[slug] = true;
+      demo.slug = slug;
+      demo.tags = toList(demo.tags);
+      demo.featured = toBoolean(demo.featured);
+      demo.provenance = toBoolean(demo.provenance);
+      const domain = resolveDomain(demo);
+      const subtopic = resolveSubtopic(demo, domain);
+      demo._domain = domain.id;
+      demo._subtopic = subtopic.id;
+      demo.domain_id = demo._domain;
+      demo.department_id = demo._domain;
+      demo.department_label = domain.name;
+      demo.subtopic_id = demo._subtopic;
+      demo.department_subtopic_id = demo._subtopic;
+      demo.subtopic_label = subtopic.name;
+    });
+  }
+
+  // V3 loads all selected pages through its bounded reader first. The entry
+  // reads below then reuse verified bytes instead of taking the V2 serial path.
+  let registryProjectPages = new Map();
+  if (registry.protocolVersion === 3) {
+    console.log('  reading verified project pages for ' + demos.length + ' demos…');
+    registryProjectPages = await withRetry(() => registry.getProjectPages(demos, activeRegistryRevision));
+    console.log('  verified project pages loaded');
+  }
+
+  const pages = await inChunks(demos, registryReadBatchSize(schemaVersion), async demo => {
+    const localEntry = localCollection?.entries.get(demo.slug);
+    const result = localEntry
+      ? { html: localEntry.insightHtml, registryRevision: activeRegistryRevision }
+      : await withRetry(() => registry.getHtml(demo.file_id, activeRegistryRevision));
+    requireMatchingRegistryRevision(
+      result && result.registryRevision, activeRegistryRevision, 'Project file',
+    );
+    const html = result && result.html;
+    if (typeof html !== 'string' || html.trim() === '') {
+      throw new Error('project file is empty or unreadable: ' + (demo.title || demo.file_id));
+    }
+    return { demo, html };
+  });
+  const cardAssets = schemaVersion === REGISTRY_SCHEMA_V2 && registry.protocolVersion !== 3
+    ? await fetchV2CardAssets(demos, registry, activeRegistryRevision)
+    : [];
+
+  if (registry.protocolVersion === 3) {
+    for (const demo of demos) {
+      const bundle = registry.bundles.find(b => b.demo_id === demo.demo_id);
+      const card = bundle.resources.find(r => r.role === 'card');
+      if (card) demo.card_asset = { asset_id: card.resource_id, public_path: card.route, alt_text: demo.title };
+    }
+  }
+
+  if (activeRegistryRevision) {
+    console.log('  checking final registry revision…');
+    const finalRegistryRevision = await registry.getRevision(activeRegistryRevision);
+    requireMatchingRegistryRevision(
+      finalRegistryRevision, activeRegistryRevision, 'Final manifest',
+    );
+  }
+
+  // Authoring pages are loaded only for an explicit local build and are kept
+  // outside the dist/ directory used by Netlify. Read them before clearing output.
+  let localProjects = LOCAL
+    ? require('./lib/local-project-pages').loadLocalProjectPages(path.join(ROOT, 'content'), demos)
+    : new Map();
+  if (localCollection) {
+    localProjects = require('./lib/local-demo-collection').integrateLocalDemoPages(localCollection, demos, localProjects);
+  }
+
+  fs.rmSync(DIST, { recursive: true, force: true });
+  fs.mkdirSync(DIST, { recursive: true });
+  fs.writeFileSync(path.join(DIST, '_headers'), deployHeaders(policy));
+  const assetSource = path.join(SITE, 'assets');
+  if (fs.existsSync(assetSource)) fs.cpSync(assetSource, path.join(DIST, 'assets'), { recursive: true });
+  materializeCardAssets(cardAssets);
+  for (const { demo, html } of pages) {
+    const localPages = registryProjectPages.get(demo.slug) || localProjects.get(demo.slug);
+    if (localPages) {
+      for (const page of localPages) {
+        const destination = path.join(DIST, page.path);
+        fs.mkdirSync(path.dirname(destination), { recursive: true });
+        fs.writeFileSync(destination, page.bytes ?? (page.legacy ? injectIntoDemo(page.html, demo) : page.html));
+        if (page.html) console.log('  local page: /' + page.path);
+      }
+      const downloads = localPages.filter(page => page.bytes).length;
+      if (downloads) console.log('  local downloads: ' + downloads + ' files');
+      continue;
+    }
+    const directory = path.join(DIST, 'demos', demo.slug);
+    fs.mkdirSync(directory, { recursive: true });
+    fs.writeFileSync(path.join(directory, 'index.html'), injectIntoDemo(html, demo));
+    console.log('  demo: /demos/' + demo.slug + '/');
+  }
+
+  demos.sort((a, b) => Number(b.featured) - Number(a.featured)
+    || (schemaVersion === REGISTRY_SCHEMA_V2
+      ? Number(a.sort_order || 0) - Number(b.sort_order || 0)
+      : 0)
+    || ((Date.parse(b.date_added) || 0) - (Date.parse(a.date_added) || 0)));
+
+  const now = Date.now();
+  const isNew = demo => {
+    const date = Date.parse(demo.date_added);
+    const elapsed = now - date;
+    return Number.isFinite(date) && elapsed >= 0 && elapsed < NEW_WINDOW_DAYS * 864e5;
+  };
+
+  const grouped = Object.fromEntries(domains.map(domain => [domain.id, []]));
+  demos.forEach(demo => grouped[demo._domain].push(demo));
+  const activeDepartments = domains.filter(domain => grouped[domain.id].length);
+  const runtimeDomainById = id => domains.find(domain => domain.id === id);
+  const built = new Date().toISOString().slice(0, 10);
+  const styles = fs.readFileSync(path.join(SITE, 'styles.css'), 'utf8');
+  const script = appScriptForSchema(
+    fs.readFileSync(path.join(SITE, 'app.js'), 'utf8'), schemaVersion,
+  );
+
+  const template = fs.readFileSync(path.join(SITE, 'template.html'), 'utf8');
+  const countLine = pluralText(demos.length, 'interactive project')
+    + ' · ' + pluralText(activeDepartments.length, 'active department');
+  const rootCards = demos.map((demo, index) =>
+    cardHtml(demo, runtimeDomainById(demo._domain), isNew(demo), '', index)).join('\n');
+  const domainFilters = filterGroupHtml('Department', 'domain', activeDepartments.map(domain => ({
+    value: domain.taxonomy_id || domain.id,
+    label: domain.short,
+  })));
+  const methodFilters = schemaVersion === REGISTRY_SCHEMA_V2
+    ? v2FacetFilterHtml('Method', 'method', v2Taxonomy.methods, demos, 'method_ids')
+    : '';
+  const dataTypeFilters = schemaVersion === REGISTRY_SCHEMA_V2
+    ? v2FacetFilterHtml(
+      'Data Type', 'data-type', v2Taxonomy.data_types, demos, 'data_type_ids',
+    )
+    : '';
+  const instrumentTypeFilters = schemaVersion === REGISTRY_SCHEMA_V2
+    ? v2FacetFilterHtml(
+      'Instrument Type', 'instrument-type', v2Taxonomy.instrument_types,
+      demos, 'instrument_type_ids',
+    )
+    : '';
+  const rootFilters = [domainFilters, methodFilters, dataTypeFilters, instrumentTypeFilters]
+    .filter(Boolean).join('\n');
+
+  const page = fillTemplate(template, {
+    PAGE_TITLE: 'AIS Instrumentation Gym',
+    COUNT_LINE: countLine,
+    MAP_HOTSPOTS: domains.map(mapHotspotHtml).join('\n'),
+    MAP_MARKERS: domains.map(domain => mapMarkerHtml(domain, grouped[domain.id])).join('\n'),
+    MOBILE_DOMAIN_LINKS: domains.map(domain => mobileDomainLinkHtml(domain, grouped[domain.id])).join('\n'),
+    DOMAIN_FILTERS: rootFilters,
+    CARDS: rootCards,
+    BUILT: built,
+    STYLES: styles,
+    SCRIPT: script,
+  }, 'site/template.html');
+  fs.writeFileSync(path.join(DIST, 'index.html'), page);
+
+  const domainTemplate = fs.readFileSync(path.join(SITE, 'domain-template.html'), 'utf8');
+  domains.forEach((domain, domainIndex) => {
+    const domainDemos = grouped[domain.id];
+    const taskFilters = schemaVersion === REGISTRY_SCHEMA_V2
+      ? v2FacetFilterHtml('Task', 'task', v2Taxonomy.tasks, domainDemos, 'task_ids')
+      : (() => {
+        const tasks = [...new Set(domainDemos.map(demo => demo.task_type).filter(Boolean))].sort();
+        return filterGroupHtml('Task', 'task', tasks.map(task => ({ value: task, label: task })));
+      })();
+    const domainDataTypeFilters = schemaVersion === REGISTRY_SCHEMA_V2
+      ? v2FacetFilterHtml(
+        'Data Type', 'data-type', v2Taxonomy.data_types, domainDemos, 'data_type_ids',
+      )
+      : '';
+    const domainInstrumentTypeFilters = schemaVersion === REGISTRY_SCHEMA_V2
+      ? v2FacetFilterHtml(
+        'Instrument Type', 'instrument-type', v2Taxonomy.instrument_types,
+        domainDemos, 'instrument_type_ids',
+      )
+      : '';
+    const domainPageFilters = [taskFilters, domainDataTypeFilters, domainInstrumentTypeFilters]
+      .filter(Boolean).join('\n');
+    const cards = domainDemos.map((demo, index) =>
+      cardHtml(demo, domain, isNew(demo), '../../', index)).join('\n');
+    const count = domainDemos.length;
+    const futureText = 'Reserved paths include ' + domain.futurePaths.join(', ') + '. New projects will appear here as they are added to AIS Instrumentation Gym.';
+    const domainPage = fillTemplate(domainTemplate, {
+      PAGE_TITLE: esc(domain.name + ' | AIS Instrumentation Gym'),
+      DOMAIN_NAME: esc(domain.name),
+      DOMAIN_SHORT: esc(domain.short),
+      DOMAIN_DESCRIPTION: esc(domain.description),
+      DOMAIN_NUMBER: String(domainIndex + 1).padStart(2, '0'),
+      DOMAIN_COUNT: count ? esc(pluralText(count, 'interactive project') + ' in this department') : 'No projects published yet',
+      DOMAIN_COLOR: domain.color,
+      DOMAIN_SOFT: domain.soft,
+      DOMAIN_ICON: domainIcon(domain.id),
+      TASK_FILTERS: domainPageFilters,
+      FILTER_HIDDEN: count ? '' : 'hidden',
+      CARDS: cards,
+      EMPTY_HIDDEN: count ? 'hidden' : '',
+      EMPTY_KICKER: count ? 'No signal found' : 'Coming soon',
+      EMPTY_TITLE: count ? 'No projects match this search.' : 'This region is ready for its first experiment.',
+      EMPTY_TEXT: count ? 'Clear the filters or try a broader term.' : esc(futureText),
+      DOMAIN_LINKS: domainSwitcherHtml(domain, grouped, domains),
+      BUILT: built,
+      STYLES: styles,
+      SCRIPT: script,
+    }, 'site/domain-template.html (' + domain.id + ')');
+    const directory = path.join(DIST, 'domains', domain.id);
+    fs.mkdirSync(directory, { recursive: true });
+    fs.writeFileSync(path.join(directory, 'index.html'), domainPage);
+    console.log('  domain: /domains/' + domain.id + '/ (' + count + ')');
+  });
+
+  domains.forEach(domain => {
+    (domain.legacyIds || []).forEach(legacyId => {
+      const directory = path.join(DIST, 'domains', legacyId);
+      fs.mkdirSync(directory, { recursive: true });
+      const target = '../' + domain.id + '/index.html';
+      const redirect = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Redirecting | AIS Instrumentation Gym</title><link rel="canonical" href="${target}"><meta http-equiv="refresh" content="0;url=${target}"></head><body><p>This domain has moved to <a href="${target}">${esc(domain.name)}</a>.</p><script>location.replace(${JSON.stringify(target)}+location.search+location.hash);</script></body></html>`;
+      fs.writeFileSync(path.join(directory, 'index.html'), redirect);
+      console.log('  legacy redirect: /domains/' + legacyId + '/ → /domains/' + domain.id + '/');
+    });
+  });
+
+  RETIRED_DOMAIN_IDS.forEach(legacyId => {
+    const directory = path.join(DIST, 'domains', legacyId);
+    const target = '../../index.html#science-map';
+    fs.mkdirSync(directory, { recursive: true });
+    const redirect = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Science map | AIS Instrumentation Gym</title><link rel="canonical" href="${target}"><meta http-equiv="refresh" content="0;url=${target}"></head><body><p>This former collection has been reorganised across the seven NUS Science departments. <a href="${target}">Return to the science map</a>.</p><script>location.replace(${JSON.stringify(target)});</script></body></html>`;
+    fs.writeFileSync(path.join(directory, 'index.html'), redirect);
+    console.log('  retired collection: /domains/' + legacyId + '/ → science map');
+  });
+
+  const publicDemos = schemaVersion === REGISTRY_SCHEMA_V2
+    ? demos.map(demo => ({
+      demo_id: demo.demo_id,
+      entry_type: demo.entry_type,
+      slug: demo.slug,
+      status: demo.status,
+      featured: demo.featured,
+      sort_order: demo.sort_order,
+      title: demo.title,
+      card_summary: demo.card_summary,
+      department_id: demo.department_id,
+      subtopic_id: demo.subtopic_id,
+      task_ids: [...demo.task_ids],
+      method_ids: [...demo.method_ids],
+      data_type_ids: [...demo.data_type_ids],
+      instrument_type_ids: [...demo.instrument_type_ids],
+      audience: demo.audience,
+      data_source_label: demo.data_source_label,
+      public_page_permission: demo.public_page_permission,
+      card_asset: demo.card_asset ? { ...demo.card_asset } : null,
+      date_added: demo.date_added,
+    }))
+    : demos.map(({
+      file_id,
+      file_check,
+      picture_file_id,
+      preview_file_id,
+      thumbnail_file_id,
+      _domain,
+      _subtopic,
+      ...rest
+    }) => rest);
+  const publicDomains = domains.map(domain => ({
+    id: domain.id,
+    name: domain.name,
+    short: domain.short,
+    description: domain.description,
+    color: domain.color,
+    future_paths: domain.futurePaths,
+    subtopics: subtopicStats(domain, grouped[domain.id]).map(subtopic => ({
+      id: subtopic.id,
+      name: subtopic.name,
+      project_count: subtopic.projectCount,
+    })),
+    legacy_ids: domain.legacyIds,
+    project_count: grouped[domain.id].length,
+  }));
+  const publicManifest = {
+    generated: new Date().toISOString(),
+    taxonomy_version: 6,
+    site: schemaVersion === REGISTRY_SCHEMA_V2
+      ? { title: String(site.title || ''), tagline: String(site.tagline || '') }
+      : site,
+    domains: publicDomains,
+    demos: publicDemos,
+  };
+  if (schemaVersion === REGISTRY_SCHEMA_V2) {
+    publicManifest.schema_version = REGISTRY_SCHEMA_V2;
+    const publicTerms = terms => [...terms.values()].map(term => ({
+      id: term.id,
+      label: term.label,
+      active: term.active,
+    }));
+    const publicOptionTerms = terms => [...terms.values()].map(term => ({
+      id: term.id,
+      label: term.label,
+      description: term.description,
+      display_order: term.display_order,
+      active: term.active,
+    }));
+    publicManifest.taxonomy = {
+      departments: [...v2Taxonomy.departments.values()].map(term => ({
+        id: term.id,
+        label: term.label,
+        short_label: String(term.short_label || ''),
+        description: String(term.description || ''),
+        display_order: term.display_order,
+        active: term.active,
+        theme_key: String(term.theme_key || ''),
+        icon_key: String(term.icon_key || ''),
+      })),
+      subtopics: [...v2Taxonomy.subtopics.values()].map(term => ({
+        id: term.id,
+        department_id: term.department_id,
+        label: term.label,
+        display_order: term.display_order,
+        active: term.active,
+      })),
+      tasks: publicTerms(v2Taxonomy.tasks),
+      methods: publicTerms(v2Taxonomy.methods),
+      data_types: publicOptionTerms(v2Taxonomy.data_types),
+      instrument_types: publicOptionTerms(v2Taxonomy.instrument_types),
+    };
+  }
+  if (registry.protocolVersion === 3) {
+    publicManifest.schema_version = 3;
+    publicManifest.demos.forEach(demo => {
+      const bundle = registry.bundles.find(b => b.demo_id === demo.demo_id);
+      demo.pages = bundle.pages.map(p => ({ role: p.role, state: p.state, path: p.route }));
+    });
+  }
+  fs.writeFileSync(path.join(DIST, 'manifest.json'), JSON.stringify(publicManifest, null, 2));
+  const deployReceipt = createDeployReceipt(
+    process.env, policy, trigger, activeRegistryRevision, new Date().toISOString(),
+  );
+  if (registry.protocolVersion === 3) {
+    deployReceipt.registry_schema = 3;
+    deployReceipt.registry_instance = registry.registryInstance;
+  }
+  fs.writeFileSync(path.join(DIST, 'deploy-receipt.json'), JSON.stringify(
+    deployReceipt, null, 2,
+  ));
+
+  if (policy.audience === 'preview' || LOCAL) {
+    const performance = require('./lib/site-performance').optimizeSiteOutput(DIST);
+    const saved = performance.pages.reduce((sum, page) => sum + page.inputBytes - page.outputBytes, 0);
+    fs.writeFileSync(path.join(DIST, 'performance-report.json'), JSON.stringify(performance, null, 2));
+    console.log('  lossless delivery: ' + performance.assets.length + ' reusable assets; '
+      + (saved / 1048576).toFixed(2) + ' MiB removed from HTML');
+  }
+
+  console.log('Done: ' + demos.length + ' demos across ' + pluralText(activeDepartments.length, 'active department')
+    + ' → ' + path.relative(ROOT, DIST) + '/ (built ' + built + ')');
+}
+
+if (require.main === module) {
+  main().catch(error => fail(error.message));
+}
+
+module.exports = {
+  DOMAIN_DEFINITIONS,
+  PROJECT_DOMAIN_OVERRIDES,
+  PROJECT_SUBTOPIC_OVERRIDES,
+  esc,
+  isSiteRecord,
+  resolveDomain,
+  resolveSubtopic,
+  cardPreview,
+  normalizeV2Taxonomy,
+  normalizeV2Demo,
+  repairDemoNavigation,
+  resolveBuildContentPolicy,
+  resolvePreviewHookReceipt,
+  normalizeRegistryRevision,
+  requireMatchingRegistryRevision,
+  createDeployReceipt,
+  deployHeaders,
+  safePreviewUrl,
+  safePublicCardAssetUrl,
+  scopedRegistryUrl,
+  registryReadBatchSize,
+  isPublishableDemo,
+  validateTaxonomy,
+};

@@ -1,0 +1,7 @@
+[build]
+  publish = ".preview/desk"
+  functions = ".preview/functions"
+[functions]
+  node_bundler = "esbuild"
+[build.processing.html]
+  pretty_urls = false

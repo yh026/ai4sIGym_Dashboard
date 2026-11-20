@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Demo overview · Instrumentation Gym</title>
+    <link rel="stylesheet" href="./manager.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#workspace">Skip to workspace</a>
+    <div class="app-shell">
+      <aside class="desk-sidebar">
+        <div class="sidebar-top">
+          <a class="brand" href="./">Instrumentation Gym<span>Management desk</span></a>
+          <button
+            id="menuToggle"
+            class="menu-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="sidebarContent"
+          >
+            Menu
+          </button>
+        </div>
+        <div id="sidebarContent" class="sidebar-content">
+          <nav id="deskNav" class="navigation" aria-label="Management">
+            <div class="nav-group" role="group" aria-labelledby="workspaceLabel">
+              <span id="workspaceLabel" class="nav-label">Workspace</span>
+              <a href="./" data-view="overview" aria-current="page">Demo overview</a>
+              <a href="?view=new" data-view="new" data-owner-nav hidden>Add a new demo</a>
+              <a href="?view=upload" data-view="upload">Upload a Preview</a>
+            </div>
+            <div class="nav-group" role="group" aria-labelledby="releaseLabel" data-owner-nav hidden>
+              <span id="releaseLabel" class="nav-label">Production</span>
+              <a href="?view=publish" data-view="publish">Publish Previews to Production</a>
+              <a href="?view=files" data-view="files">Publish files to Production</a>
+              <a href="?view=receipts" data-view="receipts">Release receipts</a>
+            </div>
+            <div class="nav-group" role="group" aria-labelledby="recoveryLabel" data-owner-nav hidden>
+              <span id="recoveryLabel" class="nav-label">Recovery</span>
+              <a href="?view=restore-demo" data-view="restore-demo">Restore one demo</a>
+              <a href="?view=restore-site" data-view="restore-site">Restore the whole site</a>
+            </div>
+            <div class="nav-group nav-access" data-owner-nav hidden>
+              <a href="?view=access" data-view="access">Member access</a>
+            </div>
+          </nav>
+          <div class="identity">
+            <strong id="identityRole">Connecting</strong><span id="identityEmail">Checking access</span>
+          </div>
+        </div>
+      </aside>
+      <main id="workspace" tabindex="-1">
+        <header class="desk-header">
+          <div>
+            <span id="privateScope" class="scope-label" hidden>Public Production · aisigym.netlify.app</span>
+            <h1 id="pageTitle" tabindex="-1">Demo overview</h1>
+            <p id="pageDescription" class="page-description" hidden></p>
+          </div>
+          <button id="refreshState" class="button secondary" type="button">Refresh</button>
+        </header>
+        <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+        <section id="overviewSection" aria-labelledby="pageTitle">
+          <dl class="overview-stats">
+            <div>
+              <dt>Published demos</dt>
+              <dd id="catalogCount">—</dd>
+            </div>
+            <div>
+              <dt>With a Preview</dt>
+              <dd id="previewCount">—</dd>
+            </div>
+            <div id="reviewStat" hidden>
+              <dt>Marked done</dt>
+              <dd id="doneCount">—</dd>
+            </div>
+          </dl>
+          <div class="overview-tools">
+            <div class="search">
+              <label for="demoSearch">Find a demo</label>
+              <input id="demoSearch" type="search" placeholder="Search by name" autocomplete="off" />
+            </div>
+            <div id="sortControl" class="sort-control" hidden>
+              <label for="demoSort">Sort by</label>
+              <select id="demoSort">
+                <option value="unchecked">Unchecked first</option>
+                <option value="latest">Latest Preview</option>
+                <option value="name">Name A–Z</option>
+              </select>
+            </div>
+          </div>
+          <p id="resultCount" class="search-count" aria-live="polite"></p>
+          <div class="table-scroll">
+            <table class="overview-table">
+              <thead>
+                <tr>
+                  <th scope="col">Demo</th>
+                  <th scope="col">Production</th>
+                  <th scope="col">Preview</th>
+                  <th id="checklistHeading" scope="col" hidden>My checklist</th>
+                </tr>
+              </thead>
+              <tbody id="overviewRows">
+                <tr>
+                  <td colspan="3">Loading demos…</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p id="checklistHelp" class="table-note" hidden>
+            Mark done saves your own review check. A new Preview clears it.
+          </p>
+        </section>
+        <section id="newSection" hidden aria-labelledby="pageTitle">
+          <form id="newDemoForm">
+            <fieldset id="newDemoFields" disabled>
+              <legend>Demo details</legend>
+              <div class="new-demo-details">
+                <div>
+                  <label for="newDemoTitle">Demo name</label>
+                  <input id="newDemoTitle" type="text" maxlength="160" required />
+                </div>
+                <div>
+                  <label for="newDemoCategory">Category</label>
+                  <select id="newDemoCategory" required>
+                    <option value="">Choose a category</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="newDemoSlug">Demo address</label>
+                  <div class="address-input">
+                    <span>/demos/</span>
+                    <input
+                      id="newDemoSlug"
+                      type="text"
+                      pattern="[a-z0-9]+(-[a-z0-9]+)*"
+                      maxlength="100"
+                      autocapitalize="none"
+                      spellcheck="false"
+                      required
+                      aria-describedby="addressHint"
+                    />
+                  </div>
+                  <p id="addressHint" class="subtle">
+                    Generated from the name. You can edit it before uploading.
+                  </p>
+                </div>
+              </div>
+              <div id="newDemoDrop" class="drop-zone new-demo-package">
+                <h2>Preview files</h2>
+                <p class="subtle">
+                  Choose or drop a ZIP or folder with index.html (or insight.html), workflow.html,
+                  dataset.html and their assets. For other filenames, map the three pages in demo.json.
+                </p>
+                <div class="picker-grid">
+                  <div>
+                    <input id="newDemoZip" class="file-input" type="file" accept=".zip" />
+                    <label class="button secondary file-label" for="newDemoZip">Choose a ZIP</label>
+                  </div>
+                  <div>
+                    <input
+                      id="newDemoFolder"
+                      class="file-input"
+                      type="file"
+                      webkitdirectory
+                      directory
+                      multiple
+                    />
+                    <label class="button secondary file-label" for="newDemoFolder">Choose a folder</label>
+                  </div>
+                </div>
+                <p id="newDemoSelection" class="subtle" role="status">No package selected</p>
+              </div>
+              <div class="task-footer">
+                <button id="createNewDemo" class="button primary" type="submit" disabled>
+                  Create Preview
+                </button>
+              </div>
+            </fieldset>
+          </form>
+          <div id="newDemoProgress" class="upload-region" role="status" hidden></div>
+        </section>
+        <section id="uploadSection" hidden aria-labelledby="importTitle">
+          <div class="section-heading">
+            <div>
+              <h2 id="importTitle">Preview files</h2>
+            </div>
+            <span id="importState" class="badge">Ready to import</span>
+          </div>
+          <div class="demo-picker">
+            <label for="demoSelect">Demo to update</label
+            ><select id="demoSelect" disabled>
+              <option value="">Select a demo</option>
+            </select>
+            <p id="uploadContext" class="subtle">Select a demo to load its current files before importing.</p>
+          </div>
+          <div id="dropZone" class="drop-zone">
+            <p class="drop-title">Drop HTML, a ZIP, or a folder here</p>
+            <p class="subtle">Include the images, videos and data the pages use.</p>
+            <div class="picker-grid">
+              <div>
+                <input
+                  id="packageInput"
+                  class="file-input"
+                  type="file"
+                  accept=".html,.htm,.zip"
+                  multiple
+                  disabled
+                /><label class="button secondary file-label" for="packageInput"
+                  >Choose HTML or ZIP files</label
+                >
+              </div>
+              <div>
+                <input
+                  id="folderInput"
+                  class="file-input"
+                  type="file"
+                  webkitdirectory
+                  directory
+                  multiple
+                  disabled
+                /><label class="button secondary file-label" for="folderInput"
+                  >Choose a complete folder</label
+                >
+              </div>
+            </div>
+          </div>
+          <div id="reviewSection" class="review-section" hidden>
+            <div class="section-heading">
+              <h3>Review file changes</h3>
+              <button id="clearReview" class="button quiet" type="button">Clear import</button>
+            </div>
+            <p id="reviewContext" class="subtle"></p>
+            <div id="diffSummary" class="diff-summary"></div>
+            <div class="diff-scroll">
+              <table class="diff-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Change</th>
+                    <th scope="col">File path</th>
+                    <th scope="col">Size</th>
+                  </tr>
+                </thead>
+                <tbody id="diffRows"></tbody>
+              </table>
+            </div>
+            <p id="reviewBytes" class="subtle"></p>
+          </div>
+          <div id="uploadRegion" class="upload-region" hidden>
+            <label id="uploadMessage" for="uploadProgress">Preparing upload</label
+            ><progress id="uploadProgress" max="100" value="0"></progress
+            ><span id="uploadBytes" class="subtle"></span>
+          </div>
+          <div class="confirm-row">
+            <button id="confirmUpload" class="button primary" type="button" disabled>Create preview</button>
+          </div>
+        </section>
+        <section id="releaseSection" hidden aria-labelledby="pageTitle">
+          <div id="releaseNotice" class="notice" role="status" aria-live="polite" hidden></div>
+          <section
+            class="release-action reviewed-publish"
+            data-release-panel="publish"
+            hidden
+            aria-labelledby="promoteTitle"
+          >
+            <div class="section-heading">
+              <h2 id="promoteTitle">Choose reviewed demos</h2>
+              <div class="search">
+                <label for="reviewedSearch">Find a demo</label>
+                <input id="reviewedSearch" type="search" placeholder="Search by name" autocomplete="off" />
+              </div>
+            </div>
+            <div id="reviewedSelections" class="reviewed-selections"></div>
+            <div class="reviewed-submit">
+              <p id="reviewedSelectionCount" class="selection-total" role="status" aria-live="polite">
+                0 demos selected
+              </p>
+              <button id="promoteRelease" class="button primary" type="button" disabled>
+                Publish selected Previews to Production
+              </button>
+            </div>
+          </section>
+          <div class="release-action task-form" data-release-panel="files restore-demo restore-site" hidden>
+            <div class="demo-picker" data-release-panel="files restore-demo" hidden>
+              <label for="releaseDemo">Demo</label>
+              <select id="releaseDemo" disabled>
+                <option value="">Select a demo</option>
+              </select>
+            </div>
+            <section data-release-panel="files" hidden aria-labelledby="directTitle">
+              <h2 id="directTitle">Release package</h2>
+              <div class="picker-grid">
+                <div>
+                  <input
+                    id="releasePackageInput"
+                    class="file-input"
+                    type="file"
+                    accept=".html,.htm,.zip"
+                    multiple
+                    disabled
+                  />
+                  <label class="button secondary file-label" for="releasePackageInput"
+                    >Choose HTML or ZIP files</label
+                  >
+                </div>
+                <div>
+                  <input
+                    id="releaseFolderInput"
+                    class="file-input"
+                    type="file"
+                    webkitdirectory
+                    directory
+                    multiple
+                    disabled
+                  />
+                  <label class="button secondary file-label" for="releaseFolderInput"
+                    >Choose a complete folder</label
+                  >
+                </div>
+              </div>
+              <div id="releaseDiff" class="release-diff" hidden></div>
+              <div class="task-footer">
+                <button id="directRelease" class="button primary" type="button" disabled>
+                  Publish files and sync Preview
+                </button>
+              </div>
+            </section>
+            <section data-release-panel="restore-demo restore-site" hidden aria-label="Restore version">
+              <label for="rollbackTarget">Version to restore</label>
+              <select id="rollbackTarget" disabled>
+                <option value="">Choose a version</option>
+              </select>
+              <div id="rollbackImpact" class="rollback-impact" role="status" aria-live="polite"></div>
+              <div class="task-footer">
+                <button id="restoreRelease" class="button primary" type="button" disabled>
+                  Restore one demo
+                </button>
+              </div>
+            </section>
+          </div>
+          <div id="releaseProgressRegion" class="upload-region" hidden>
+            <label id="releaseProgressLabel" for="releaseProgress">Preparing release</label>
+            <progress id="releaseProgress" max="100" value="0"></progress>
+            <p id="releaseTransport" class="subtle"></p>
+            <p id="releaseOperation" class="subtle"></p>
+          </div>
+          <div id="releaseReceipts" class="release-receipts" data-release-panel="receipts" hidden></div>
+        </section>
+        <section id="accessSection" hidden aria-labelledby="grantTitle">
+          <div class="section-heading">
+            <div>
+              <h2 id="grantTitle">Upload permissions</h2>
+            </div>
+          </div>
+          <p class="helper">
+            Invite the member to the private project, then choose the demos they can update.
+            <a
+              href="https://app.netlify.com/projects/aisigym/overview?modal=share"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Invite in Netlify (opens in a new tab)</a
+            >
+          </p>
+          <form id="grantForm" novalidate>
+            <div class="grant-email">
+              <label for="grantEmail">Member email</label
+              ><input
+                id="grantEmail"
+                type="email"
+                autocomplete="email"
+                placeholder="name@example.com"
+                required
+              />
+            </div>
+            <fieldset>
+              <legend>Allow uploads to</legend>
+              <div class="grant-selection-tools">
+                <div class="member-actions">
+                  <button id="selectAllGrants" class="button secondary" type="button">Select all</button>
+                  <button id="clearGrantSelection" class="button secondary" type="button">
+                    Clear selection
+                  </button>
+                </div>
+                <span id="grantSelectionCount" class="subtle" aria-live="polite">0 selected</span>
+              </div>
+              <div id="grantChoices" class="grant-choices"></div>
+            </fieldset>
+            <div class="grant-actions">
+              <p class="subtle">
+                Saving with no demos selected revokes all upload permissions for this email.
+              </p>
+              <button id="saveGrant" class="button primary" type="submit">Save permissions</button>
+            </div>
+          </form>
+          <div id="grantList" class="grant-list"></div>
+        </section>
+      </main>
+    </div>
+    <noscript
+      ><p class="noscript">Enable JavaScript to load demos, import files, and manage previews.</p></noscript
+    >
+    <script type="module" src="./manager.mjs"></script>
+  </body>
+</html>
