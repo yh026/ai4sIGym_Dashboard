@@ -106,7 +106,7 @@ export function availableNewDemo(registration, { base, catalog, files }) {
         const name = path.toLowerCase();
         return name === route || name === route + '.html' || name.startsWith(route + '/');
       }),
-    'This demo address is already in use. Choose another address or use Upload a Preview to update the existing demo.',
+    'This demo address is already in use. Choose another address or open Update a Preview for the existing demo.',
     409,
   );
   return demo;

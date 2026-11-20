@@ -77,7 +77,7 @@ function notify(message = '', tone = 'info', version = null) {
   box.dataset.tone = tone;
   box.setAttribute('role', tone === 'error' ? 'alert' : 'status');
   if (message) box.append(element('span', message));
-  const pinned = version && link('Open this preview', version.url || version.pages?.insight);
+  const pinned = version && link('Open this Preview', version.url || version.pages?.insight);
   if (pinned) {
     box.append(document.createTextNode(' '), pinned);
   }
@@ -95,14 +95,8 @@ function updateControls() {
   $('clearReview').disabled = uploading || loading;
   const valid = validReview();
   const hasOperations = valid && (review.files.length > 0 || review.remove.length > 0);
-  const allReused =
-    valid && review.changes.length > 0 && review.changes.every((change) => change.kind === 'reused');
   $('confirmUpload').disabled = !enabled || preparing || !hasOperations;
-  $('confirmUpload').textContent = uploading
-    ? 'Creating preview…'
-    : allReused
-      ? 'Reuse files and create preview'
-      : 'Create preview';
+  $('confirmUpload').textContent = uploading ? 'Updating Preview…' : 'Update Preview';
   for (const input of $('grantForm').querySelectorAll('input,button'))
     input.disabled = !isOwner() || locked() || loading;
   for (const button of $('grantList').querySelectorAll('button')) button.disabled = locked() || loading;
@@ -176,7 +170,7 @@ const releaseViews = new Set(['publish', 'files', 'restore-demo', 'restore-site'
 const ownerView = (name) => name === 'new' || name === 'access' || releaseViews.has(name);
 const descriptions = {
   new: 'Upload a three-page demo to share its first private Preview.',
-  upload: 'Choose a demo and upload the version you want to share for review.',
+  upload: 'Choose an existing demo and select the files you want to update.',
   publish: 'Select the Previews you reviewed. Their pages and assets will be released together.',
   files: 'Upload one package to release a demo and sync its Preview to the same files.',
   'restore-demo':
@@ -184,7 +178,7 @@ const descriptions = {
   'restore-site':
     'Choose an earlier version for the whole public site. Review the affected demos before restoring.',
   receipts: 'Open a receipt for its pages, file changes and transfer details.',
-  access: 'Give members permission to upload Previews for the demos they maintain.',
+  access: 'Give members permission to update Previews for the demos they maintain.',
 };
 function readRoute() {
   const url = new URL(location.href);
@@ -612,7 +606,7 @@ function renderReview() {
     .reduce((sum, change) => sum + change.after.size, 0);
   $('reviewBytes').textContent = changed.length
     ? `${changed.length} changes · ${bytes(uploadSize)} in changed files. Existing content will be reused.`
-    : 'All files match existing content. You can still create a fixed preview without uploading file data.';
+    : 'All files match the current version. This Preview update will reuse them.';
   $('importState').textContent = changed.length ? 'Ready to confirm' : 'Content unchanged';
 }
 async function preparePackage(resolveInputs) {
@@ -638,7 +632,7 @@ async function preparePackage(resolveInputs) {
     const changes = planChanges(baseline, imported.files, imported.remove);
     review = { ...imported, changes, slug: capturedSlug, base, revision: capturedRevision };
     renderReview();
-    notify('Files checked. Review the changes, then create the preview.');
+    notify('Files checked. Review the changes, then select Update Preview.');
   } catch (error) {
     if (id !== importId || capturedSlug !== slug || capturedRevision !== revision) return;
     review = null;
@@ -714,7 +708,9 @@ $('newDemoForm').addEventListener('submit', async (event) => {
   };
   const address = $('newDemoSlug');
   if (Object.hasOwn(catalog, details.slug)) {
-    address.setCustomValidity('This demo address is already in use. Choose another address.');
+    address.setCustomValidity(
+      'This demo address is already in use. Choose another address or open Update a Preview for the existing demo.',
+    );
     address.reportValidity();
     return;
   }
@@ -791,7 +787,7 @@ async function confirmPackage() {
   $('uploadProgress').value = 0;
   $('uploadMessage').textContent = 'Preparing upload';
   $('uploadBytes').textContent = '';
-  notify('Creating preview. Keep this page open.', 'loading');
+  notify('Updating Preview. Keep this page open.', 'loading');
   try {
     const { submitPackage } = await import('./upload.mjs');
     const version = await submitPackage({
@@ -826,12 +822,12 @@ async function confirmPackage() {
     releaseState = null;
     invalidateReview();
     render();
-    notify('Preview created. Its links are available in Demo overview.', 'info', version);
+    notify('Preview updated. Its links are available in Demo overview.', 'info', version);
     $('uploadProgress').value = 100;
   } catch (error) {
     ready = false;
     invalidateReview();
-    notify(`Could not confirm preview creation: ${error.message} Refresh before importing again.`, 'error');
+    notify(`Could not confirm the Preview update. ${error.message} Refresh before trying again.`, 'error');
   } finally {
     uploading = false;
     updateControls();

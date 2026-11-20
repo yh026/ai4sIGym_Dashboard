@@ -6,7 +6,7 @@ The owner can tick **Mark done** as a personal record of reviewing and publishin
 
 Use **Add a new demo** to enter a name, choose a category and upload a ZIP or folder. The name suggests an editable demo address. Include `index.html` (or `insight.html`), `workflow.html`, `dataset.html` and the files they reference. Use the `demo.json` page mapping below for custom filenames. The owner can create a demo once at an available address. When all three pages are ready on a protected deployment, the overview opens with the three shareable Preview links. The Production column reads **Not published yet**.
 
-Use **Upload a Preview** to update an existing demo, import files, review the changes, and confirm the upload. The new submission becomes that demo's current Preview. A direct page link shared earlier still opens the version it was copied from for as long as Netlify retains the deployment. Reviewers need access to protected Netlify previews.
+Use **Update a Preview** to choose an existing demo, select its files and review the changes. Select **Update Preview** to make that version available for review. A direct page link shared earlier still opens the version it was copied from for as long as Netlify retains the deployment. Reviewers need access to protected Netlify previews.
 
 To add a colleague, open **Member access**. Use the Netlify project invitation link if they need permission to view protected previews. Enter their email, choose individual demos or **Select all**, and click **Save permissions**. **Clear selection** resets the form. Saving an empty selection revokes that member's upload access.
 

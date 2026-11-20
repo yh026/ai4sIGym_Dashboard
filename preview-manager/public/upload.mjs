@@ -86,7 +86,7 @@ export async function submitPackage({ slug, base, files, remove = [], registrati
   let status = await callDesk('finish', { method: 'POST', params: { id } });
   notify(
     status.cloud
-      ? 'Files received. Creating fixed preview…'
+      ? 'Files received. Preparing the Preview…'
       : 'Files saved to Netlify. Waiting for the preview processor…',
   );
   const deadline = Date.now() + 18 * 60000;
